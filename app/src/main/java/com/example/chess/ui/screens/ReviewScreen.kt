@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,14 +25,18 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoGraph
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.MusicOff
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
@@ -38,11 +45,13 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,18 +67,23 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.chess.analysis.AnalyzedMove
+import com.example.chess.analysis.BlunderClassifier
 import com.example.chess.analysis.MoveClassification
 import com.example.chess.analysis.ParsedPgnGame
 import com.example.chess.analysis.PgnParser
 import com.example.chess.audio.rememberChessSoundEffects
 import com.example.chess.audio.rememberVoiceCoach
+import com.example.chess.core.LegalMoveGenerator
 import com.example.chess.core.Move
 import com.example.chess.core.PieceColor
 import com.example.chess.core.Position
+import com.example.chess.core.Square
 import com.example.chess.data.ChessDatabaseProvider
 import com.example.chess.data.MistakeRecord
 import com.example.chess.network.ChessComClient
 import com.example.chess.network.ChessComGameItem
+import com.example.chess.engine.Evaluation
 import com.example.chess.engine.LocalChessEngine
 import com.example.chess.tactics.TacticsRepository
 import com.example.chess.ui.components.CentipawnEvaluationGraph
@@ -121,6 +135,7 @@ data class GameReviewChapter(
  */
 @Composable
 fun ReviewScreen(
+  initialPgn: String? = null,
   onRetryPosition: (String, Move) -> Unit = { _, _ -> },
   onPracticeInArena: (String, String) -> Unit = { _, _ -> },
   modifier: Modifier = Modifier
@@ -193,6 +208,71 @@ fun ReviewScreen(
   var currentMoveIndex by remember { mutableStateOf(parsedGame?.moves?.size?.minus(1)?.coerceAtLeast(0) ?: 0) }
 
   val chessEngine = remember { LocalChessEngine() }
+
+  // Load initial PGN if passed from Arena or elsewhere
+  LaunchedEffect(initialPgn) {
+    if (!initialPgn.isNullOrBlank()) {
+      pgnInputText = initialPgn
+      val parsed = PgnParser.parse(initialPgn)
+      parsedGame = parsed
+      currentMoveIndex = (parsed.moves.size - 1).coerceAtLeast(0)
+      currentSubTab = ReviewSubTab.PGN_REPLAY
+    }
+  }
+
+  // Move Classification & Accuracy Calculation
+  val analyzedGameMoves = remember(parsedGame) {
+    val moves = parsedGame?.moves ?: emptyList()
+    if (moves.isEmpty()) return@remember emptyList<AnalyzedMove>()
+    val list = mutableListOf<AnalyzedMove>()
+    var posBefore = Position.fromFen(Position.STARTING_FEN)
+    var prevEval = Evaluation.cp(chessEngine.evaluateStatic(posBefore))
+
+    for (i in moves.indices) {
+      val m = moves[i]
+      val posAfter = m.positionAfter
+      val curCp = chessEngine.evaluateStatic(posAfter)
+      val curEval = Evaluation.cp(curCp)
+      val playerColor = posBefore.sideToMove
+      val isBook = i < 6
+      val bestMove = m.move
+      val classification = if (isBook) MoveClassification.BOOK else BlunderClassifier.classify(playerColor, prevEval, curEval, isBestMove = false)
+      val explanation = BlunderClassifier.generateExplanation(playerColor, m.move, posBefore, posAfter, classification, bestMove)
+
+      list.add(
+        AnalyzedMove(
+          moveIndex = i,
+          move = m.move,
+          playerColor = playerColor,
+          positionBefore = posBefore,
+          positionAfter = posAfter,
+          evalBefore = prevEval,
+          evalAfter = curEval,
+          bestMove = bestMove,
+          classification = classification,
+          explanation = explanation
+        )
+      )
+      posBefore = posAfter
+      prevEval = curEval
+    }
+    list
+  }
+
+  val whiteAccuracy = remember(analyzedGameMoves) {
+    BlunderClassifier.calculateAccuracy(analyzedGameMoves, PieceColor.WHITE)
+  }
+  val blackAccuracy = remember(analyzedGameMoves) {
+    BlunderClassifier.calculateAccuracy(analyzedGameMoves, PieceColor.BLACK)
+  }
+
+  // Drill Workout State for Spaced-Repetition Leitner Mode
+  var isDrillActive by remember { mutableStateOf(false) }
+  var drillIndex by remember { mutableStateOf(0) }
+  var drillSelectedSquare by remember { mutableStateOf<Square?>(null) }
+  var drillLegalTargets by remember { mutableStateOf<Set<Square>>(emptySet()) }
+  var drillSuccess by remember { mutableStateOf<Boolean?>(null) }
+  var drillFeedbackText by remember { mutableStateOf<String?>(null) }
 
   // Fast centipawn evaluation curve across all parsed game moves
   val gameEvalPoints = remember(parsedGame) {
@@ -755,6 +835,109 @@ fun ReviewScreen(
         }
       }
 
+      // Game Accuracy & Move Classification Summary Card
+      item {
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlassCard(shape = RoundedCornerShape(18.dp), borderBrush = LiquidGlassBorderGold)
+            .padding(16.dp)
+        ) {
+          Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+              ) {
+                Icon(imageVector = Icons.Default.TrendingUp, contentDescription = null, tint = CoachAccentGold, modifier = Modifier.size(18.dp))
+                Text(
+                  text = "GAME ACCURACY (CAPS EVALUATION)",
+                  color = CoachAccentGold,
+                  fontSize = 11.sp,
+                  fontWeight = FontWeight.Bold,
+                  letterSpacing = 1.sp
+                )
+              }
+              Text(
+                text = "${parsedGame?.moves?.size ?: 0} Plies",
+                color = TextMuted,
+                fontSize = 11.sp
+              )
+            }
+
+            // Accuracy Bars: White vs Black
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+              // White Accuracy
+              Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                  Text(text = parsedGame?.white ?: "White", color = TextTitle, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                  Text(text = "$whiteAccuracy%", color = CoachPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+                LinearProgressIndicator(
+                  progress = { (whiteAccuracy / 100f).coerceIn(0f, 1f) },
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                  color = CoachPrimary,
+                  trackColor = LiquidGlassSurfaceSubtle
+                )
+              }
+
+              // Black Accuracy
+              Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                  Text(text = parsedGame?.black ?: "Black", color = TextTitle, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                  Text(text = "$blackAccuracy%", color = CoachAccentGold, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+                LinearProgressIndicator(
+                  progress = { (blackAccuracy / 100f).coerceIn(0f, 1f) },
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                  color = CoachAccentGold,
+                  trackColor = LiquidGlassSurfaceSubtle
+                )
+              }
+            }
+
+            // Move counts pills
+            val bestCount = analyzedGameMoves.count { it.classification == MoveClassification.BEST_MOVE || it.classification == MoveClassification.BOOK }
+            val excellentCount = analyzedGameMoves.count { it.classification == MoveClassification.EXCELLENT || it.classification == MoveClassification.GOOD }
+            val inaccuracyCount = analyzedGameMoves.count { it.classification == MoveClassification.INACCURACY }
+            val mistakeCount = analyzedGameMoves.count { it.classification == MoveClassification.MISTAKE }
+            val blunderCount = analyzedGameMoves.count { it.classification == MoveClassification.BLUNDER }
+
+            Row(
+              modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+              horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+              MoveBadgePill("★ $bestCount Best", StatusExcellent)
+              MoveBadgePill("✓ $excellentCount Excellent", CoachPrimary)
+              MoveBadgePill("?! $inaccuracyCount Inaccuracies", StatusInaccuracy)
+              MoveBadgePill("? $mistakeCount Mistakes", StatusMistake)
+              MoveBadgePill("?? $blunderCount Blunders", StatusBlunder)
+            }
+          }
+        }
+      }
+
       // Replayer Board & Control Bar
       item {
         val moves = parsedGame?.moves ?: emptyList()
@@ -884,6 +1067,57 @@ fun ReviewScreen(
                 shape = RoundedCornerShape(8.dp)
               ) {
                 Icon(imageVector = Icons.Default.FastForward, contentDescription = "End", modifier = Modifier.size(20.dp))
+              }
+            }
+
+            // Move Classification & Coach Explanation for Current Move
+            if (analyzedGameMoves.isNotEmpty() && currentMoveIndex in analyzedGameMoves.indices) {
+              val curAnalyzed = analyzedGameMoves[currentMoveIndex]
+              Box(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .liquidGlassCard(
+                    shape = RoundedCornerShape(12.dp),
+                    borderBrush = when (curAnalyzed.classification) {
+                      MoveClassification.BLUNDER -> androidx.compose.ui.graphics.SolidColor(StatusBlunder)
+                      MoveClassification.MISTAKE -> androidx.compose.ui.graphics.SolidColor(StatusMistake)
+                      MoveClassification.INACCURACY -> androidx.compose.ui.graphics.SolidColor(StatusInaccuracy)
+                      else -> LiquidGlassBorderCyan
+                    }
+                  )
+                  .padding(12.dp)
+              ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Text(
+                      text = curAnalyzed.classification.badgeText,
+                      color = when (curAnalyzed.classification) {
+                        MoveClassification.BLUNDER -> StatusBlunder
+                        MoveClassification.MISTAKE -> StatusMistake
+                        MoveClassification.INACCURACY -> StatusInaccuracy
+                        MoveClassification.BRILLIANT, MoveClassification.GREAT, MoveClassification.BEST_MOVE -> StatusExcellent
+                        else -> CoachPrimary
+                      },
+                      fontSize = 12.5.sp,
+                      fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                      text = "Eval: ${curAnalyzed.evalAfter.format()}",
+                      color = TextMuted,
+                      fontSize = 11.sp
+                    )
+                  }
+                  Text(
+                    text = curAnalyzed.explanation,
+                    color = TextBody,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                  )
+                }
               }
             }
 
@@ -1051,6 +1285,230 @@ fun ReviewScreen(
         }
       }
 
+      // Interactive Leitner Drill Workout Session
+      if (isDrillActive && mistakeList.isNotEmpty()) {
+        item {
+          val clampedIdx = drillIndex.coerceIn(0, mistakeList.size - 1)
+          val record = mistakeList[clampedIdx]
+          val drillPosition = remember(record.fenBefore) { Position.fromFen(record.fenBefore) }
+          val targetMove = remember(record.bestMoveUci) { Move.fromUci(record.bestMoveUci) }
+
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .liquidGlassCard(shape = RoundedCornerShape(18.dp), borderBrush = LiquidGlassBorderGold)
+              .padding(16.dp)
+          ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                Row(
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                  Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, tint = CoachAccentGold, modifier = Modifier.size(18.dp))
+                  Text(
+                    text = "MISTAKE WORKOUT (${clampedIdx + 1}/${mistakeList.size})",
+                    color = CoachAccentGold,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                  )
+                }
+
+                IconButton(
+                  onClick = {
+                    isDrillActive = false
+                    drillSelectedSquare = null
+                    drillLegalTargets = emptySet()
+                    drillSuccess = null
+                    drillFeedbackText = null
+                  },
+                  modifier = Modifier.size(32.dp)
+                ) {
+                  Icon(imageVector = Icons.Default.Close, contentDescription = "Exit Drill", tint = TextMuted)
+                }
+              }
+
+              Text(
+                text = "Stage ${record.repetitionStage}/3: ${if (drillPosition.sideToMove == PieceColor.WHITE) "White" else "Black"} to move. Find the best continuation!",
+                color = TextTitle,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold
+              )
+
+              // Interactive Board for Drill
+              InteractiveChessBoard(
+                position = drillPosition,
+                selectedSquare = drillSelectedSquare,
+                legalTargetSquares = drillLegalTargets,
+                onSquareTapped = { square ->
+                  val piece = drillPosition.pieceAt(square)
+                  if (drillSelectedSquare == null) {
+                    if (piece != null && piece.color == drillPosition.sideToMove) {
+                      drillSelectedSquare = square
+                      val allLegal = LegalMoveGenerator.generateLegalMoves(drillPosition)
+                      drillLegalTargets = allLegal.filter { it.from == square }.map { it.to }.toSet()
+                    }
+                  } else {
+                    val from = drillSelectedSquare!!
+                    val move = Move(from, square)
+                    drillSelectedSquare = null
+                    drillLegalTargets = emptySet()
+
+                    if (move.uci == record.bestMoveUci || (move.from == targetMove.from && move.to == targetMove.to)) {
+                      // Success!
+                      drillSuccess = true
+                      drillFeedbackText = "Correct! Solved position. Stage advanced."
+                      if (soundEnabled) soundEffects.playVictory()
+                      coroutineScope.launch {
+                        withContext(Dispatchers.IO) {
+                          val nextStage = (record.repetitionStage + 1).coerceAtMost(4)
+                          dao.updateMistake(record.copy(repetitionStage = nextStage, timesSolvedSuccessfully = record.timesSolvedSuccessfully + 1))
+                        }
+                      }
+                    } else {
+                      // Mistake - Leitner reset
+                      drillSuccess = false
+                      drillFeedbackText = "Not the best move. Try again! Target move is ${record.bestMoveUci}."
+                      if (soundEnabled) soundEffects.playDefeat()
+                      coroutineScope.launch {
+                        withContext(Dispatchers.IO) {
+                          dao.updateMistake(record.copy(repetitionStage = 0))
+                        }
+                      }
+                    }
+                  }
+                },
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .height(280.dp)
+              )
+
+              // Feedback Banner
+              if (drillFeedbackText != null) {
+                Box(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .liquidGlassCard(
+                      shape = RoundedCornerShape(10.dp),
+                      borderBrush = if (drillSuccess == true) androidx.compose.ui.graphics.SolidColor(StatusExcellent) else androidx.compose.ui.graphics.SolidColor(StatusBlunder),
+                      backgroundColor = if (drillSuccess == true) Color(0x2810B981) else Color(0x28EF4444)
+                    )
+                    .padding(12.dp)
+                ) {
+                  Text(
+                    text = drillFeedbackText!!,
+                    color = if (drillSuccess == true) StatusExcellent else StatusBlunder,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Bold
+                  )
+                }
+              }
+
+              // Drill Controls
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+              ) {
+                OutlinedButton(
+                  onClick = {
+                    drillFeedbackText = "Hint: Target move is ${record.bestMoveUci}"
+                    if (soundEnabled) soundEffects.playHint()
+                  },
+                  modifier = Modifier.weight(1f).height(40.dp),
+                  shape = RoundedCornerShape(10.dp),
+                  colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachAccentGold)
+                ) {
+                  Text("Show Hint", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                Button(
+                  onClick = {
+                    if (drillIndex < mistakeList.size - 1) {
+                      drillIndex++
+                      drillSelectedSquare = null
+                      drillLegalTargets = emptySet()
+                      drillSuccess = null
+                      drillFeedbackText = null
+                    } else {
+                      isDrillActive = false
+                    }
+                  },
+                  modifier = Modifier.weight(1f).height(40.dp),
+                  shape = RoundedCornerShape(10.dp),
+                  colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115))
+                ) {
+                  Text(
+                    text = if (drillIndex < mistakeList.size - 1) "Next Mistake" else "Finish Drill",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                  )
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Hero Drill Launcher Card (when drill is inactive)
+      if (!isDrillActive && mistakeList.isNotEmpty()) {
+        item {
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .liquidGlassCard(shape = RoundedCornerShape(18.dp), borderBrush = LiquidGlassBorderGold)
+              .padding(16.dp)
+          ) {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Column(modifier = Modifier.weight(1f)) {
+                Text(
+                  text = "Spaced Repetition Mistake Drill",
+                  color = CoachAccentGold,
+                  fontSize = 14.sp,
+                  fontWeight = FontWeight.Bold
+                )
+                Text(
+                  text = "${mistakeList.size} positions due for practice. Strengthen tactical reflexes using Leitner intervals.",
+                  color = TextBody,
+                  fontSize = 11.5.sp,
+                  lineHeight = 15.sp,
+                  modifier = Modifier.padding(top = 2.dp)
+                )
+              }
+
+              Spacer(modifier = Modifier.width(10.dp))
+
+              Button(
+                onClick = {
+                  drillIndex = 0
+                  drillSelectedSquare = null
+                  drillLegalTargets = emptySet()
+                  drillSuccess = null
+                  drillFeedbackText = null
+                  isDrillActive = true
+                  if (soundEnabled) soundEffects.playHint()
+                },
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115)),
+                modifier = Modifier.testTag("start_mistake_drill_button")
+              ) {
+                Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Start Drill", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+              }
+            }
+          }
+        }
+      }
+
       if (mistakeList.isEmpty()) {
         item {
           Box(
@@ -1190,3 +1648,20 @@ fun ReviewScreen(
     )
   }
 }
+
+@Composable
+private fun MoveBadgePill(text: String, color: Color) {
+  Box(
+    modifier = Modifier
+      .liquidGlassPill(shape = RoundedCornerShape(8.dp), isActive = false)
+      .padding(horizontal = 8.dp, vertical = 4.dp)
+  ) {
+    Text(
+      text = text,
+      color = color,
+      fontSize = 11.sp,
+      fontWeight = FontWeight.Bold
+    )
+  }
+}
+

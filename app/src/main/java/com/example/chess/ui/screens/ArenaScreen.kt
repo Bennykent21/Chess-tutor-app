@@ -1,30 +1,41 @@
 package com.example.chess.ui.screens
 
 import android.content.Context
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoGraph
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.MusicOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
@@ -35,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -109,6 +121,9 @@ fun ArenaScreen(
   var currentLevel by remember { mutableStateOf(selectedLevel) }
   var playerColor by remember { mutableStateOf(PieceColor.WHITE) }
 
+  val playedMoves = remember { mutableStateListOf<Move>() }
+  val positionHistory = remember { mutableStateListOf<Position>() }
+
   var selectedSquare by remember { mutableStateOf<Square?>(null) }
   var legalTargetSquares by remember { mutableStateOf<Set<Square>>(emptySet()) }
   var lastMove by remember { mutableStateOf<Move?>(null) }
@@ -126,6 +141,33 @@ fun ArenaScreen(
 
   // Game End State
   val gameStatus = remember(position) { LegalMoveGenerator.getGameStatus(position) }
+
+  fun takebackMove() {
+    if (isEngineThinking) return
+    if (playedMoves.size >= 2 && positionHistory.size >= 2) {
+      playedMoves.removeAt(playedMoves.size - 1)
+      positionHistory.removeAt(positionHistory.size - 1)
+      playedMoves.removeAt(playedMoves.size - 1)
+      val restored = positionHistory.removeAt(positionHistory.size - 1)
+      position = restored
+      lastMove = playedMoves.lastOrNull()
+      selectedSquare = null
+      legalTargetSquares = emptySet()
+      whisperArrow = null
+      whisperText = null
+      if (soundEnabled) soundEffects.playHint()
+    } else if (playedMoves.size == 1 && positionHistory.size >= 1) {
+      playedMoves.removeAt(0)
+      val restored = positionHistory.removeAt(0)
+      position = restored
+      lastMove = null
+      selectedSquare = null
+      legalTargetSquares = emptySet()
+      whisperArrow = null
+      whisperText = null
+      if (soundEnabled) soundEffects.playHint()
+    }
+  }
 
   // Sound cues on game finish
   LaunchedEffect(gameStatus) {
@@ -149,10 +191,12 @@ fun ArenaScreen(
       val botMove = engine.selectMove(position, currentLevel)
       val destOccupant = position.pieceAt(botMove.to)
       val isCapture = destOccupant != null || botMove.isEnPassant
+      positionHistory.add(position)
       val nextPos = LegalMoveGenerator.makeMove(position, botMove)
       val isCheck = LegalMoveGenerator.isKingInCheck(nextPos, nextPos.sideToMove)
       position = nextPos
       lastMove = botMove
+      playedMoves.add(botMove)
       isEngineThinking = false
 
       if (soundEnabled) {
@@ -184,10 +228,12 @@ fun ArenaScreen(
         // Execute player move
         val destOccupant = position.pieceAt(moveAttempt.to)
         val isCapture = destOccupant != null || moveAttempt.isEnPassant
+        positionHistory.add(position)
         val nextPos = LegalMoveGenerator.makeMove(position, moveAttempt)
         val isCheck = LegalMoveGenerator.isKingInCheck(nextPos, nextPos.sideToMove)
         position = nextPos
         lastMove = moveAttempt
+        playedMoves.add(moveAttempt)
         selectedSquare = null
         legalTargetSquares = emptySet()
         whisperLevel = 0
@@ -414,18 +460,127 @@ fun ArenaScreen(
       }
     }
 
-    // Dynamic Chessboard
-    InteractiveChessBoard(
-      position = position,
-      selectedSquare = selectedSquare,
-      legalTargetSquares = legalTargetSquares,
-      recommendedArrow = whisperArrow,
-      lastMove = lastMove,
-      onSquareTapped = { sq -> onSquareClicked(sq) },
+    // Dynamic Chessboard with Live Vertical Evaluation Gauge
+    Row(
       modifier = Modifier
         .fillMaxWidth()
-        .height(320.dp)
-    )
+        .height(320.dp),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      LiveEvaluationBar(
+        evaluation = currentEval,
+        modifier = Modifier
+          .width(10.dp)
+          .fillMaxHeight()
+      )
+
+      InteractiveChessBoard(
+        position = position,
+        selectedSquare = selectedSquare,
+        legalTargetSquares = legalTargetSquares,
+        recommendedArrow = whisperArrow,
+        lastMove = lastMove,
+        onSquareTapped = { sq -> onSquareClicked(sq) },
+        modifier = Modifier
+          .weight(1f)
+          .fillMaxHeight()
+      )
+    }
+
+    // Move History Ribbon
+    if (playedMoves.isNotEmpty()) {
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .liquidGlassCard(shape = RoundedCornerShape(10.dp))
+          .horizontalScroll(rememberScrollState())
+          .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        var num = 1
+        for (i in playedMoves.indices step 2) {
+          val w = playedMoves[i]
+          val b = if (i + 1 < playedMoves.size) playedMoves[i + 1] else null
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(text = "$num.", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(
+              text = w.uci,
+              color = if (i == playedMoves.size - 1) CoachPrimary else TextTitle,
+              fontSize = 12.sp,
+              fontWeight = if (i == playedMoves.size - 1) FontWeight.Bold else FontWeight.Normal
+            )
+            if (b != null) {
+              Text(
+                text = b.uci,
+                color = if (i + 1 == playedMoves.size - 1) CoachPrimary else TextTitle,
+                fontSize = 12.sp,
+                fontWeight = if (i + 1 == playedMoves.size - 1) FontWeight.Bold else FontWeight.Normal
+              )
+            }
+          }
+          num++
+        }
+      }
+    }
+
+    // Action Controls: Takeback, Flip Side, Review Game
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      OutlinedButton(
+        onClick = { takebackMove() },
+        enabled = playedMoves.isNotEmpty() && !isEngineThinking,
+        modifier = Modifier
+          .weight(1f)
+          .height(38.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachPrimary)
+      ) {
+        Icon(imageVector = Icons.Default.Undo, contentDescription = "Takeback", modifier = Modifier.size(14.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("Takeback", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+      }
+
+      OutlinedButton(
+        onClick = {
+          playerColor = playerColor.opposite()
+          if (soundEnabled) soundEffects.playHint()
+        },
+        enabled = !isEngineThinking,
+        modifier = Modifier
+          .weight(1f)
+          .height(38.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachAccentGold)
+      ) {
+        Icon(imageVector = Icons.Default.SwapVert, contentDescription = "Flip", modifier = Modifier.size(14.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(if (playerColor == PieceColor.WHITE) "Side: White" else "Side: Black", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+      }
+
+      Button(
+        onClick = {
+          onGameFinished(position, playedMoves.toList())
+        },
+        enabled = playedMoves.isNotEmpty(),
+        modifier = Modifier
+          .weight(1.2f)
+          .height(38.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115))
+      ) {
+        Icon(imageVector = Icons.Default.AutoGraph, contentDescription = null, modifier = Modifier.size(14.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("Review Game", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+      }
+    }
 
     // Live Blunder Notification Banner
     if (recordedBlunderAlert != null) {
@@ -482,17 +637,36 @@ fun ArenaScreen(
             )
           }
 
-          Button(
-            onClick = {
-              position = Position.initial()
-              lastMove = null
-              whisperLevel = 0
-              whisperText = null
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115)),
-            shape = RoundedCornerShape(10.dp)
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
           ) {
-            Text("Play Again", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            OutlinedButton(
+              onClick = {
+                onGameFinished(position, playedMoves.toList())
+              },
+              colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachAccentGold),
+              border = ButtonDefaults.outlinedButtonBorder.copy(brush = LiquidGlassBorderGold),
+              shape = RoundedCornerShape(10.dp)
+            ) {
+              Text("Review Game", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+              onClick = {
+                position = Position.initial()
+                lastMove = null
+                whisperLevel = 0
+                whisperText = null
+                playedMoves.clear()
+                positionHistory.clear()
+                positionHistory.add(Position.initial())
+              },
+              colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115)),
+              shape = RoundedCornerShape(10.dp)
+            ) {
+              Text("Play Again", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
           }
         }
       }
@@ -621,6 +795,58 @@ fun ArenaScreen(
           soundEffects.playHint()
         }
       }
+    )
+  }
+}
+
+/**
+ * Vertical Evaluation Gauge showing real-time White vs Black advantage.
+ * Smoothly interpolates using a sigmoid conversion from centipawns.
+ */
+@Composable
+fun LiveEvaluationBar(
+  evaluation: Evaluation,
+  modifier: Modifier = Modifier
+) {
+  val animatedCp by animateFloatAsState(
+    targetValue = (evaluation.centipawns ?: 0).toFloat(),
+    animationSpec = spring(stiffness = Spring.StiffnessLow),
+    label = "eval_gauge"
+  )
+
+  val whiteFraction = remember(animatedCp, evaluation.mateInMoves) {
+    if (evaluation.mateInMoves != null) {
+      if (evaluation.mateInMoves > 0) 0.96f else 0.04f
+    } else {
+      val sigmoid = 1.0f / (1.0f + Math.pow(10.0, -animatedCp.toDouble() / 400.0).toFloat())
+      sigmoid.coerceIn(0.04f, 0.96f)
+    }
+  }
+
+  Column(
+    modifier = modifier
+      .clip(RoundedCornerShape(6.dp))
+      .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(6.dp))
+      .background(Color(0xFF1F242E)),
+    verticalArrangement = Arrangement.SpaceBetween
+  ) {
+    // Black advantage portion at the top
+    Box(
+      modifier = Modifier
+        .fillMaxWidth()
+        .weight((1f - whiteFraction).coerceAtLeast(0.02f))
+        .background(Color(0xFF1E222A))
+    )
+    // White advantage portion at the bottom
+    Box(
+      modifier = Modifier
+        .fillMaxWidth()
+        .weight(whiteFraction.coerceAtLeast(0.02f))
+        .background(
+          androidx.compose.ui.graphics.Brush.verticalGradient(
+            colors = listOf(Color(0xFFFFFFFF), Color(0xFFD6DEE7))
+          )
+        )
     )
   }
 }

@@ -120,6 +120,36 @@ object CurriculumRepository {
           ),
           recommendedArrow = Pair(Square.fromAlgebraic("e7"), Square.fromAlgebraic("e6")),
           highlightedSquares = listOf(Square.fromAlgebraic("d5"))
+        ),
+        LessonStep(
+          stepIndex = 2,
+          startingFen = "rnbqkb1r/ppp2ppp/4pn2/3p2B1/2PP4/2N5/PP2PPPP/R2QKBNR b KQkq - 1 4",
+          playedMove = Move.fromUci("f8e7"),
+          conceptTitle = "Neutralizing the Pin (Be7)",
+          explanation = "White's Bg5 pins Black's knight against the Queen. Developing the dark-squared Bishop to e7 unpins the Knight and prepares kingside castling.",
+          hintLadder = HintLadder(
+            level1Concept = "How do you safely relieve the pin on your f6 knight while continuing piece development?",
+            level2FocusZone = "The e-file bishop development",
+            level3CandidatePiece = Square.fromAlgebraic("f8"),
+            level4DirectMove = Move.fromUci("f8e7")
+          ),
+          recommendedArrow = Pair(Square.fromAlgebraic("f8"), Square.fromAlgebraic("e7")),
+          highlightedSquares = listOf(Square.fromAlgebraic("e7"), Square.fromAlgebraic("f6"))
+        ),
+        LessonStep(
+          stepIndex = 3,
+          startingFen = "r1bqk2r/ppp1bppp/5n2/3P2B1/3P4/2N5/PP2PPPP/R2QKBNR b KQkq - 0 5",
+          playedMove = Move.fromUci("f6d5"),
+          conceptTitle = "The Carlsbad Pawn Recapture",
+          explanation = "White exchanges pawns on d5. Recapturing with Nxd5 eliminates White's dangerous dark-squared bishop after Bxe7.",
+          hintLadder = HintLadder(
+            level1Concept = "Recapture towards the center while challenging White's bishop.",
+            level2FocusZone = "Central knight jump",
+            level3CandidatePiece = Square.fromAlgebraic("f6"),
+            level4DirectMove = Move.fromUci("f6d5")
+          ),
+          recommendedArrow = Pair(Square.fromAlgebraic("f6"), Square.fromAlgebraic("d5")),
+          highlightedSquares = listOf(Square.fromAlgebraic("d5"), Square.fromAlgebraic("g5"))
         )
       )
     ),
@@ -148,6 +178,36 @@ object CurriculumRepository {
           ),
           recommendedArrow = Pair(Square.fromAlgebraic("e4"), Square.fromAlgebraic("d4")),
           highlightedSquares = listOf(Square.fromAlgebraic("d5"), Square.fromAlgebraic("e5"))
+        ),
+        LessonStep(
+          stepIndex = 2,
+          startingFen = "8/8/3k4/8/3K4/4P3/8/8 w - - 1 2",
+          playedMove = Move.fromUci("e3e4"),
+          conceptTitle = "Gaining Tempo with the Pawn",
+          explanation = "When Black retreats directly in front of your King, pushing the pawn creates tempo, forcing Black to cede the vital e5 square.",
+          hintLadder = HintLadder(
+            level1Concept = "Advance the protected pawn to take away squares from Black's king.",
+            level2FocusZone = "The passed e-pawn",
+            level3CandidatePiece = Square.fromAlgebraic("e3"),
+            level4DirectMove = Move.fromUci("e3e4")
+          ),
+          recommendedArrow = Pair(Square.fromAlgebraic("e3"), Square.fromAlgebraic("e4")),
+          highlightedSquares = listOf(Square.fromAlgebraic("e5"), Square.fromAlgebraic("d5"))
+        ),
+        LessonStep(
+          stepIndex = 3,
+          startingFen = "8/8/8/3k4/4P3/3K4/8/8 w - - 0 3",
+          playedMove = Move.fromUci("d3e3"),
+          conceptTitle = "Maintaining the King Shield",
+          explanation = "Never let your King fall behind your pawn. By keeping the King alongside or in front of the pawn, promotion is mathematically guaranteed.",
+          hintLadder = HintLadder(
+            level1Concept = "Support the pawn from directly behind while maintaining control over f4 and d4.",
+            level2FocusZone = "Central king support",
+            level3CandidatePiece = Square.fromAlgebraic("d3"),
+            level4DirectMove = Move.fromUci("d3e3")
+          ),
+          recommendedArrow = Pair(Square.fromAlgebraic("d3"), Square.fromAlgebraic("e3")),
+          highlightedSquares = listOf(Square.fromAlgebraic("e4"), Square.fromAlgebraic("e5"))
         )
       )
     )

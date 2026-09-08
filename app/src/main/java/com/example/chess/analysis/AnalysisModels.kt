@@ -12,8 +12,11 @@ import com.example.chess.engine.Evaluation
  * Standard classification of a chess move based on evaluation change
  */
 enum class MoveClassification(val label: String, val badgeText: String) {
+  BRILLIANT("Brilliant", "!! Brilliant"),
+  GREAT("Great Find", "! Great"),
   BEST_MOVE("Best Move", "★ Best"),
-  EXCELLENT("Excellent", "✓ Good"),
+  EXCELLENT("Excellent", "✓ Excellent"),
+  GOOD("Good", "✓ Good"),
   INACCURACY("Inaccuracy", "?! Inaccuracy"),
   MISTAKE("Mistake", "? Mistake"),
   BLUNDER("Blunder", "?? Blunder"),
@@ -98,9 +101,16 @@ object BlunderClassifier {
     val hangingPiece = positionAfter.pieceAt(move.to)
 
     return when (classification) {
+      MoveClassification.BRILLIANT -> {
+        "A brilliant move! Deep positional insight that unlocks decisive tactical advantages."
+      }
+      MoveClassification.GREAT -> {
+        "A great move! Finding the only move that maintains or extends your advantage."
+      }
       MoveClassification.BEST_MOVE, MoveClassification.BOOK -> {
         "Maintains piece harmony, activates ${movedPiece?.type?.name?.lowercase() ?: "piece"}, and controls critical central squares."
       }
+      MoveClassification.GOOD, MoveClassification.EXCELLENT -> "Solid move preserving your positional harmony."
       MoveClassification.INACCURACY -> {
         "Slightly passive continuation. Playing ${bestAlternative.uci} would have applied more central pressure."
       }
@@ -114,7 +124,25 @@ object BlunderClassifier {
           "Severe tactical concession. Swings the advantage directly to your opponent. Strongest move was ${bestAlternative.uci}."
         }
       }
-      MoveClassification.EXCELLENT -> "Solid move preserving your positional advantages."
     }
+  }
+
+  /**
+   * Computes CAPS-style accuracy percentage (0.0% to 100.0%) for a given side.
+   */
+  fun calculateAccuracy(moves: List<AnalyzedMove>, color: PieceColor): Float {
+    val playerMoves = moves.filter { it.playerColor == color }
+    if (playerMoves.isEmpty()) return 100.0f
+    var totalLoss = 0f
+    for (m in playerMoves) {
+      val before = m.evalBefore.scoreForSide(color)
+      val after = m.evalAfter.scoreForSide(color)
+      val loss = (before - after).coerceAtLeast(0f)
+      totalLoss += loss
+    }
+    val avgCpLoss = (totalLoss / playerMoves.size) * 100f
+    // CAPS exponential decay formula approximation
+    val raw = (103.1668f * kotlin.math.exp(-0.04354f * avgCpLoss) - 3.1669f).coerceIn(12.0f, 99.8f)
+    return ((raw * 10).toInt()) / 10.0f
   }
 }

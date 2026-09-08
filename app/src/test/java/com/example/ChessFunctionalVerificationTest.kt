@@ -25,7 +25,7 @@ class ChessFunctionalVerificationTest {
 
   @Test
   fun testAllTacticalPuzzlesAreSolvable() {
-    for (puzzle in TacticsRepository.allPuzzles) {
+    for (puzzle in TacticsRepository.builtInPuzzles) {
       val pos = Position.fromFen(puzzle.fen)
       assertEquals("Puzzle ${puzzle.title} sideToMove must match sideToPlay", puzzle.sideToPlay, pos.sideToMove)
       assertFalse("Puzzle ${puzzle.title} must not start in checkmate", LegalMoveGenerator.getGameStatus(pos) == GameStatus.CHECKMATE)

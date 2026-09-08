@@ -27,6 +27,12 @@ import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +47,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.chess.audio.rememberChessSoundEffects
 import com.example.chess.audio.rememberVoiceCoach
 import com.example.chess.coaching.CurriculumLesson
 import com.example.chess.coaching.CurriculumRepository
@@ -81,6 +88,8 @@ fun CurriculumScreen(
   modifier: Modifier = Modifier
 ) {
   val voiceCoach = rememberVoiceCoach()
+  val soundEffects = rememberChessSoundEffects()
+  var soundEnabled by remember { mutableStateOf(true) }
   var selectedSubTab by remember { mutableStateOf(CurriculumSubTab.MASTERCLASSES) }
   var activeLesson by remember { mutableStateOf<CurriculumLesson?>(null) }
   var currentStepIndex by remember { mutableStateOf(0) }
@@ -132,13 +141,16 @@ fun CurriculumScreen(
         Row(
           modifier = Modifier
             .liquidGlassPill(shape = RoundedCornerShape(10.dp), isActive = false)
-            .clickable { activeLesson = null }
+            .clickable {
+              activeLesson = null
+              currentStepIndex = 0
+            }
             .padding(horizontal = 10.dp, vertical = 6.dp),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
           Icon(
-            imageVector = Icons.Default.ChevronRight,
+            imageVector = Icons.Default.ArrowBack,
             contentDescription = "Back",
             tint = CoachPrimary,
             modifier = Modifier.size(18.dp)
@@ -151,17 +163,38 @@ fun CurriculumScreen(
           )
         }
 
-        Box(
-          modifier = Modifier
-            .liquidGlassPill(shape = RoundedCornerShape(10.dp), isActive = true)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-          Text(
-            text = lesson.ecoCode,
-            color = CoachAccentGold,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold
-          )
+          // Sound Toggle Pill
+          Box(
+            modifier = Modifier
+              .liquidGlassPill(shape = RoundedCornerShape(10.dp), isActive = soundEnabled)
+              .clickable { soundEnabled = !soundEnabled }
+              .padding(horizontal = 8.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+          ) {
+            Icon(
+              imageVector = if (soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+              contentDescription = "Sound FX",
+              tint = if (soundEnabled) CoachAccentGold else TextMuted,
+              modifier = Modifier.size(16.dp)
+            )
+          }
+
+          Box(
+            modifier = Modifier
+              .liquidGlassPill(shape = RoundedCornerShape(10.dp), isActive = true)
+              .padding(horizontal = 10.dp, vertical = 6.dp)
+          ) {
+            Text(
+              text = lesson.ecoCode,
+              color = CoachAccentGold,
+              fontSize = 12.sp,
+              fontWeight = FontWeight.Bold
+            )
+          }
         }
       }
 
@@ -174,12 +207,79 @@ fun CurriculumScreen(
           .weight(1f, fill = false)
       )
 
+      // Step Navigator Ribbon for multi-step masterclasses
+      if (lesson.steps.size > 1) {
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlassCard(shape = RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          OutlinedButton(
+            onClick = {
+              if (currentStepIndex > 0) {
+                currentStepIndex--
+                currentHintLevel = 0
+                if (soundEnabled) soundEffects.playMove()
+              }
+            },
+            enabled = currentStepIndex > 0,
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachPrimary),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.height(34.dp)
+          ) {
+            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+            Spacer(modifier = Modifier.size(4.dp))
+            Text("Previous", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+          }
+
+          Text(
+            text = "Step ${currentStepIndex + 1} of ${lesson.steps.size}",
+            color = CoachAccentGold,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+          )
+
+          Button(
+            onClick = {
+              if (currentStepIndex < lesson.steps.size - 1) {
+                currentStepIndex++
+                currentHintLevel = 0
+                if (soundEnabled) soundEffects.playMove()
+              } else {
+                if (soundEnabled) soundEffects.playVictory()
+                activeLesson = null
+                currentStepIndex = 0
+              }
+            },
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115)),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.height(34.dp)
+          ) {
+            Text(
+              text = if (currentStepIndex < lesson.steps.size - 1) "Next Step" else "Complete ✓",
+              fontSize = 11.sp,
+              fontWeight = FontWeight.Bold
+            )
+            if (currentStepIndex < lesson.steps.size - 1) {
+              Spacer(modifier = Modifier.size(4.dp))
+              Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp))
+            }
+          }
+        }
+      }
+
       CoachDialogueDeck(
         state = coachingState,
         onNextHint = {
           if (currentHintLevel < 4) {
             val nextLvl = currentHintLevel + 1
             currentHintLevel = nextLvl
+            if (soundEnabled) soundEffects.playHint()
             val hintSpoken = when (nextLvl) {
               1 -> step.hintLadder.level1Concept
               2 -> step.hintLadder.level2FocusZone
