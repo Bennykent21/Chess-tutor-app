@@ -1,0 +1,6 @@
+{
+  "name": "Chess Tutor",
+  "description": "Concept-first chess coach with pedagogical hints, contextual practice arena, and mistake spaced repetition",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
