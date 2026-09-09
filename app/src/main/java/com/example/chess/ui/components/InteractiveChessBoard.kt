@@ -154,20 +154,21 @@ fun InteractiveChessBoard(
               )
             }
 
-            // Legal move indicator pip (subtle dot for empty, crisp ring for capture)
+            // Legal move indicator pip (crisp dot for empty square, vivid target ring for captures)
             if (isLegalTarget) {
               if (piece == null) {
                 Box(
                   modifier = Modifier
-                    .size(squareSize * 0.28f)
+                    .size(squareSize * 0.30f)
                     .clip(CircleShape)
-                    .background(Color(0x991E293B))
+                    .background(Color(0xCC0EA5E9))
+                    .border(1.5.dp, Color(0xEEFFFFFF), CircleShape)
                 )
               } else {
                 Box(
                   modifier = Modifier
-                    .size(squareSize * 0.86f)
-                    .border(3.5.dp, Color(0xCCDC2626), CircleShape)
+                    .size(squareSize * 0.88f)
+                    .border(3.5.dp, Color(0xEEEF4444), CircleShape)
                 )
               }
             }
@@ -266,48 +267,41 @@ fun ChessPieceView(
   piece: Piece,
   modifier: Modifier = Modifier
 ) {
-  val symbol = when (piece.color) {
-    PieceColor.WHITE -> when (piece.type) {
-      PieceType.KING -> "♔"
-      PieceType.QUEEN -> "♕"
-      PieceType.ROOK -> "♖"
-      PieceType.BISHOP -> "♗"
-      PieceType.KNIGHT -> "♘"
-      PieceType.PAWN -> "♙"
-    }
-    PieceColor.BLACK -> when (piece.type) {
-      PieceType.KING -> "♚"
-      PieceType.QUEEN -> "♛"
-      PieceType.ROOK -> "♜"
-      PieceType.BISHOP -> "♝"
-      PieceType.KNIGHT -> "♞"
-      PieceType.PAWN -> "♟"
-    }
+  val symbol = when (piece.type) {
+    PieceType.KING -> "♚"
+    PieceType.QUEEN -> "♛"
+    PieceType.ROOK -> "♜"
+    PieceType.BISHOP -> "♝"
+    PieceType.KNIGHT -> "♞"
+    PieceType.PAWN -> "♟"
   }
 
   Canvas(modifier = modifier) {
-    val textSize = size.width * 0.85f
+    val textSize = size.width * 0.86f
     val x = size.width / 2f
-    val y = size.height * 0.78f
+    val y = size.height * 0.79f
 
     val native = drawContext.canvas.nativeCanvas
+    val boldTypeface = android.graphics.Typeface.create(android.graphics.Typeface.SANS_SERIF, android.graphics.Typeface.BOLD)
 
     if (piece.color == PieceColor.WHITE) {
-      // 1. Dark outline for White Piece (Guarantees 100% visibility on light square!)
+      // 1. Dark outline for White Piece (Bold charcoal border)
       val strokePaint = Paint().apply {
         isAntiAlias = true
+        typeface = boldTypeface
         textAlign = Paint.Align.CENTER
         this.textSize = textSize
         style = Paint.Style.STROKE
-        strokeWidth = textSize * 0.12f
+        strokeWidth = textSize * 0.11f
         strokeJoin = Paint.Join.ROUND
-        color = android.graphics.Color.rgb(20, 24, 30) // Solid dark charcoal outline
+        color = android.graphics.Color.rgb(18, 22, 28)
       }
       native.drawText(symbol, x, y, strokePaint)
 
       // 2. Pure White Solid Fill
       val fillPaint = Paint().apply {
         isAntiAlias = true
+        typeface = boldTypeface
         textAlign = Paint.Align.CENTER
         this.textSize = textSize
         style = Paint.Style.FILL
@@ -315,25 +309,27 @@ fun ChessPieceView(
       }
       native.drawText(symbol, x, y, fillPaint)
     } else {
-      // 1. Soft outline for Black Piece (Guarantees visibility on dark squares)
+      // 1. Soft Light Ivory outline for Black Piece
       val strokePaint = Paint().apply {
         isAntiAlias = true
+        typeface = boldTypeface
         textAlign = Paint.Align.CENTER
         this.textSize = textSize
         style = Paint.Style.STROKE
         strokeWidth = textSize * 0.10f
         strokeJoin = Paint.Join.ROUND
-        color = android.graphics.Color.rgb(226, 232, 240) // Soft ivory-white outline
+        color = android.graphics.Color.rgb(238, 242, 248)
       }
       native.drawText(symbol, x, y, strokePaint)
 
       // 2. Deep Obsidian Black Solid Fill
       val fillPaint = Paint().apply {
         isAntiAlias = true
+        typeface = boldTypeface
         textAlign = Paint.Align.CENTER
         this.textSize = textSize
         style = Paint.Style.FILL
-        color = android.graphics.Color.rgb(24, 26, 32)
+        color = android.graphics.Color.rgb(22, 25, 32)
       }
       native.drawText(symbol, x, y, fillPaint)
     }

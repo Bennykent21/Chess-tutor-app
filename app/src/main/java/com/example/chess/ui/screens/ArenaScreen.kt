@@ -11,6 +11,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -66,6 +67,7 @@ import com.example.chess.core.GameStatus
 import com.example.chess.core.LegalMoveGenerator
 import com.example.chess.core.Move
 import com.example.chess.core.PieceColor
+import com.example.chess.core.PieceType
 import com.example.chess.core.Position
 import com.example.chess.core.Square
 import com.example.chess.data.ChessDatabaseProvider
@@ -138,9 +140,26 @@ fun ArenaScreen(
 
   // Toast / Banner alert when a mistake is auto-recorded to Room database
   var recordedBlunderAlert by remember { mutableStateOf<String?>(null) }
+  var pendingPromotionMoves by remember { mutableStateOf<List<Move>?>(null) }
 
   // Game End State
   val gameStatus = remember(position) { LegalMoveGenerator.getGameStatus(position) }
+
+  fun restartGame(newFen: String = Position.STARTING_FEN) {
+    position = Position.fromFen(newFen)
+    playedMoves.clear()
+    positionHistory.clear()
+    selectedSquare = null
+    legalTargetSquares = emptySet()
+    lastMove = null
+    whisperArrow = null
+    whisperText = null
+    whisperLevel = 0
+    recordedBlunderAlert = null
+    pendingPromotionMoves = null
+    isEngineThinking = false
+    if (soundEnabled) soundEffects.playHint()
+  }
 
   fun takebackMove() {
     if (isEngineThinking) return
@@ -155,6 +174,7 @@ fun ArenaScreen(
       legalTargetSquares = emptySet()
       whisperArrow = null
       whisperText = null
+      pendingPromotionMoves = null
       if (soundEnabled) soundEffects.playHint()
     } else if (playedMoves.size == 1 && positionHistory.size >= 1) {
       playedMoves.removeAt(0)
@@ -165,6 +185,7 @@ fun ArenaScreen(
       legalTargetSquares = emptySet()
       whisperArrow = null
       whisperText = null
+      pendingPromotionMoves = null
       if (soundEnabled) soundEffects.playHint()
     }
   }
@@ -183,12 +204,14 @@ fun ArenaScreen(
     currentEval = eval
   }
 
-  // Handle Bot Turn
-  LaunchedEffect(position, isEngineThinking) {
+  // Handle Bot Turn (Auto-plays if it's the bot's turn to move)
+  LaunchedEffect(position, playerColor, gameStatus) {
     if (position.sideToMove != playerColor && gameStatus == GameStatus.IN_PROGRESS && !isEngineThinking) {
       isEngineThinking = true
-      delay(400) // Brief natural human-like pause
-      val botMove = engine.selectMove(position, currentLevel)
+      delay(300) // Brief natural human-like pause
+      val botMove = withContext(Dispatchers.Default) {
+        engine.selectMove(position, currentLevel)
+      }
       val destOccupant = position.pieceAt(botMove.to)
       val isCapture = destOccupant != null || botMove.isEnPassant
       positionHistory.add(position)
@@ -201,6 +224,70 @@ fun ArenaScreen(
 
       if (soundEnabled) {
         soundEffects.playMove(isCapture = isCapture, isCheck = isCheck)
+      }
+    }
+  }
+
+  fun executePlayerMove(moveAttempt: Move) {
+    val fenBefore = position.toFen()
+    val prevEval = currentEval
+
+    // Execute player move
+    val destOccupant = position.pieceAt(moveAttempt.to)
+    val isCapture = destOccupant != null || moveAttempt.isEnPassant
+    positionHistory.add(position)
+    val nextPos = LegalMoveGenerator.makeMove(position, moveAttempt)
+    val isCheck = LegalMoveGenerator.isKingInCheck(nextPos, nextPos.sideToMove)
+    position = nextPos
+    lastMove = moveAttempt
+    playedMoves.add(moveAttempt)
+    selectedSquare = null
+    legalTargetSquares = emptySet()
+    whisperLevel = 0
+    whisperText = null
+    whisperArrow = null
+    pendingPromotionMoves = null
+
+    if (soundEnabled) {
+      soundEffects.playMove(isCapture = isCapture, isCheck = isCheck)
+    }
+
+    // Evaluate whether this move was a blunder & record to Room database
+    coroutineScope.launch {
+      val bestEngineMove = engine.selectMove(Position.fromFen(fenBefore), TrainingLevel.ADVANCED_1600)
+      val newEval = engine.evaluatePosition(nextPos, depth = 3)
+      val prevCp = prevEval.centipawns ?: 0
+      val newCp = newEval.centipawns ?: 0
+      val delta = prevCp - newCp
+
+      // If evaluation dropped significantly (> 180 centipawns) and was not the best move
+      if (delta > 180 && moveAttempt != bestEngineMove) {
+        val deltaPawns = delta / 100f
+        val explanation = "In this position, playing ${moveAttempt.uci} surrendered $deltaPawns pawns of evaluation. Best move was ${bestEngineMove.uci}."
+        
+        withContext(Dispatchers.IO) {
+          val dao = ChessDatabaseProvider.getDatabase(context).chessDao()
+          dao.insertMistake(
+            MistakeRecord(
+              fenBefore = fenBefore,
+              playedMoveUci = moveAttempt.uci,
+              bestMoveUci = bestEngineMove.uci,
+              evalDeltaPawns = deltaPawns,
+              pedagogicalExplanation = explanation,
+              reviewDueTimestampMs = System.currentTimeMillis() + 86400000L, // Due in 1 day
+              repetitionStage = 0
+            )
+          )
+        }
+        recordedBlunderAlert = "Mistake logged to Spaced-Repetition Review Book (-${String.format("%.1f", deltaPawns)})"
+        if (soundEnabled) {
+          soundEffects.playBlunder()
+        }
+        if (voiceEnabled) {
+          voiceCoach.speak("That surrendered positional evaluation. It has been filed to your mistake review book.")
+        }
+        delay(4500)
+        recordedBlunderAlert = null
       }
     }
   }
@@ -218,74 +305,25 @@ fun ArenaScreen(
       }
     } else {
       val src = selectedSquare!!
+      if (piece != null && piece.color == playerColor) {
+        if (square == src) {
+          selectedSquare = null
+          legalTargetSquares = emptySet()
+        } else {
+          selectedSquare = square
+          val allLegal = LegalMoveGenerator.generateLegalMoves(position)
+          legalTargetSquares = allLegal.filter { it.from == square }.map { it.to }.toSet()
+        }
+        return
+      }
+
       val allLegal = LegalMoveGenerator.generateLegalMoves(position)
-      val moveAttempt = allLegal.find { it.from == src && it.to == square }
+      val movesForTarget = allLegal.filter { it.from == src && it.to == square }
 
-      if (moveAttempt != null) {
-        val fenBefore = position.toFen()
-        val prevEval = currentEval
-
-        // Execute player move
-        val destOccupant = position.pieceAt(moveAttempt.to)
-        val isCapture = destOccupant != null || moveAttempt.isEnPassant
-        positionHistory.add(position)
-        val nextPos = LegalMoveGenerator.makeMove(position, moveAttempt)
-        val isCheck = LegalMoveGenerator.isKingInCheck(nextPos, nextPos.sideToMove)
-        position = nextPos
-        lastMove = moveAttempt
-        playedMoves.add(moveAttempt)
-        selectedSquare = null
-        legalTargetSquares = emptySet()
-        whisperLevel = 0
-        whisperText = null
-        whisperArrow = null
-
-        if (soundEnabled) {
-          soundEffects.playMove(isCapture = isCapture, isCheck = isCheck)
-        }
-
-        // Evaluate whether this move was a blunder & record to Room database
-        coroutineScope.launch {
-          val bestEngineMove = engine.selectMove(Position.fromFen(fenBefore), TrainingLevel.ADVANCED_1600)
-          val newEval = engine.evaluatePosition(nextPos, depth = 3)
-          val prevCp = prevEval.centipawns ?: 0
-          val newCp = newEval.centipawns ?: 0
-          val delta = prevCp - newCp
-
-          // If evaluation dropped significantly (> 180 centipawns) and was not the best move
-          if (delta > 180 && moveAttempt != bestEngineMove) {
-            val deltaPawns = delta / 100f
-            val explanation = "In this position, playing ${moveAttempt.uci} surrendered $deltaPawns pawns of evaluation. Best move was ${bestEngineMove.uci}."
-            
-            withContext(Dispatchers.IO) {
-              val dao = ChessDatabaseProvider.getDatabase(context).chessDao()
-              dao.insertMistake(
-                MistakeRecord(
-                  fenBefore = fenBefore,
-                  playedMoveUci = moveAttempt.uci,
-                  bestMoveUci = bestEngineMove.uci,
-                  evalDeltaPawns = deltaPawns,
-                  pedagogicalExplanation = explanation,
-                  reviewDueTimestampMs = System.currentTimeMillis() + 86400000L, // Due in 1 day
-                  repetitionStage = 0
-                )
-              )
-            }
-            recordedBlunderAlert = "Mistake logged to Spaced-Repetition Review Book (-${String.format("%.1f", deltaPawns)})"
-            if (soundEnabled) {
-              soundEffects.playBlunder()
-            }
-            if (voiceEnabled) {
-              voiceCoach.speak("That surrendered positional evaluation. It has been filed to your mistake review book.")
-            }
-            delay(4500)
-            recordedBlunderAlert = null
-          }
-        }
-      } else if (piece != null && piece.color == playerColor) {
-        selectedSquare = square
-        val allLegal = LegalMoveGenerator.generateLegalMoves(position)
-        legalTargetSquares = allLegal.filter { it.from == square }.map { it.to }.toSet()
+      if (movesForTarget.size > 1 && movesForTarget.any { it.promotion != null }) {
+        pendingPromotionMoves = movesForTarget
+      } else if (movesForTarget.isNotEmpty()) {
+        executePlayerMove(movesForTarget.first())
       } else {
         selectedSquare = null
         legalTargetSquares = emptySet()
@@ -464,19 +502,20 @@ fun ArenaScreen(
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .height(320.dp),
+        .aspectRatio(1.05f),
       horizontalArrangement = Arrangement.spacedBy(8.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
       LiveEvaluationBar(
         evaluation = currentEval,
         modifier = Modifier
-          .width(10.dp)
+          .width(12.dp)
           .fillMaxHeight()
       )
 
       InteractiveChessBoard(
         position = position,
+        flipped = (playerColor == PieceColor.BLACK),
         selectedSquare = selectedSquare,
         legalTargetSquares = legalTargetSquares,
         recommendedArrow = whisperArrow,
@@ -486,6 +525,75 @@ fun ArenaScreen(
           .weight(1f)
           .fillMaxHeight()
       )
+    }
+
+    // Pawn Promotion Modal Dialog
+    if (pendingPromotionMoves != null) {
+      androidx.compose.ui.window.Dialog(
+        onDismissRequest = { pendingPromotionMoves = null }
+      ) {
+        Box(
+          modifier = Modifier
+            .liquidGlassCard(
+              shape = RoundedCornerShape(16.dp),
+              borderBrush = LiquidGlassBorderCyan
+            )
+            .padding(20.dp),
+          contentAlignment = Alignment.Center
+        ) {
+          Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+          ) {
+            Text(
+              text = "Promote Pawn",
+              color = CoachPrimary,
+              fontSize = 16.sp,
+              fontWeight = FontWeight.Bold
+            )
+            Text(
+              text = "Choose a promotion piece",
+              color = TextBody,
+              fontSize = 12.sp
+            )
+            Row(
+              horizontalArrangement = Arrangement.spacedBy(10.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              val moves = pendingPromotionMoves!!
+              val queenMove = moves.find { it.promotion == PieceType.QUEEN }
+              val knightMove = moves.find { it.promotion == PieceType.KNIGHT }
+              val rookMove = moves.find { it.promotion == PieceType.ROOK }
+              val bishopMove = moves.find { it.promotion == PieceType.BISHOP }
+
+              val promoOptions = listOfNotNull(
+                queenMove?.let { "♛" to it },
+                knightMove?.let { "♞" to it },
+                rookMove?.let { "♜" to it },
+                bishopMove?.let { "♝" to it }
+              )
+
+              promoOptions.forEach { (symbol, move) ->
+                Box(
+                  modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF1E2430))
+                    .border(1.5.dp, CoachPrimary, RoundedCornerShape(12.dp))
+                    .clickable { executePlayerMove(move) },
+                  contentAlignment = Alignment.Center
+                ) {
+                  Text(
+                    text = symbol,
+                    fontSize = 28.sp,
+                    color = Color.White
+                  )
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     // Move History Ribbon
@@ -528,10 +636,10 @@ fun ArenaScreen(
       }
     }
 
-    // Action Controls: Takeback, Flip Side, Review Game
+    // Action Controls: Takeback, Flip Side, Reset, Review Game
     Row(
       modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
       OutlinedButton(
@@ -545,7 +653,7 @@ fun ArenaScreen(
       ) {
         Icon(imageVector = Icons.Default.Undo, contentDescription = "Takeback", modifier = Modifier.size(14.dp))
         Spacer(modifier = Modifier.width(4.dp))
-        Text("Takeback", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text("Undo", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
       }
 
       OutlinedButton(
@@ -555,14 +663,28 @@ fun ArenaScreen(
         },
         enabled = !isEngineThinking,
         modifier = Modifier
-          .weight(1f)
+          .weight(1.1f)
           .height(38.dp),
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachAccentGold)
       ) {
         Icon(imageVector = Icons.Default.SwapVert, contentDescription = "Flip", modifier = Modifier.size(14.dp))
         Spacer(modifier = Modifier.width(4.dp))
-        Text(if (playerColor == PieceColor.WHITE) "Side: White" else "Side: Black", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(if (playerColor == PieceColor.WHITE) "White" else "Black", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+      }
+
+      OutlinedButton(
+        onClick = { restartGame() },
+        enabled = !isEngineThinking && playedMoves.isNotEmpty(),
+        modifier = Modifier
+          .weight(1f)
+          .height(38.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextMuted)
+      ) {
+        Icon(imageVector = Icons.Default.Refresh, contentDescription = "New Game", modifier = Modifier.size(14.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("Reset", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
       }
 
       Button(
@@ -571,14 +693,14 @@ fun ArenaScreen(
         },
         enabled = playedMoves.isNotEmpty(),
         modifier = Modifier
-          .weight(1.2f)
+          .weight(1.3f)
           .height(38.dp),
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115))
       ) {
         Icon(imageVector = Icons.Default.AutoGraph, contentDescription = null, modifier = Modifier.size(14.dp))
         Spacer(modifier = Modifier.width(4.dp))
-        Text("Review Game", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text("Review", fontSize = 11.sp, fontWeight = FontWeight.Bold)
       }
     }
 
@@ -654,13 +776,7 @@ fun ArenaScreen(
 
             Button(
               onClick = {
-                position = Position.initial()
-                lastMove = null
-                whisperLevel = 0
-                whisperText = null
-                playedMoves.clear()
-                positionHistory.clear()
-                positionHistory.add(Position.initial())
+                restartGame()
               },
               colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115)),
               shape = RoundedCornerShape(10.dp)

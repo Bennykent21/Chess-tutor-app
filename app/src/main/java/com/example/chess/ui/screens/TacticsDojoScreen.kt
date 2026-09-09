@@ -328,6 +328,7 @@ fun TacticsDojoScreen(
 
       InteractiveChessBoard(
         position = currentPosition,
+        flipped = (puzzle.sideToPlay == PieceColor.BLACK),
         selectedSquare = selectedSquare,
         legalTargetSquares = legalTargetSquares,
         lastMove = lastMove,
@@ -366,12 +367,12 @@ fun TacticsDojoScreen(
 
               if (attemptedMove.from == expectedTargetMove.from && attemptedMove.to == expectedTargetMove.to) {
                 // Correct solution move!
-                val destPiece = currentPosition.pieceAt(attemptedMove.to)
-                val isCapture = destPiece != null
-                val nextPos = LegalMoveGenerator.makeMove(currentPosition, attemptedMove)
+                val destPiece = currentPosition.pieceAt(expectedTargetMove.to)
+                val isCapture = destPiece != null || expectedTargetMove.isEnPassant
+                val nextPos = LegalMoveGenerator.makeMove(currentPosition, expectedTargetMove)
                 val isCheck = LegalMoveGenerator.isKingInCheck(nextPos, nextPos.sideToMove)
                 currentPosition = nextPos
-                lastMove = attemptedMove
+                lastMove = expectedTargetMove
                 selectedSquare = null
                 legalTargetSquares = emptySet()
                 isSolved = true

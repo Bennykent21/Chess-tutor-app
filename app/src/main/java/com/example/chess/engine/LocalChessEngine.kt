@@ -87,6 +87,24 @@ class LocalChessEngine : EngineClient {
      20, 30, 10,  0,  0, 10, 30, 20
   )
 
+  companion object {
+    private val OPENING_BOOK: Map<String, List<String>> = mapOf(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -" to listOf("e2e4", "d2d4", "c2c4", "g1f3"),
+      "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3" to listOf("e7e5", "c7c5", "e7e6", "c7c6"),
+      "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6" to listOf("g1f3", "f2f4", "d2d4", "b1c3"),
+      "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq -" to listOf("b8c6", "g8f6", "d7d6"),
+      "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq -" to listOf("f1b5", "f1c4", "d2d4"),
+      "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6" to listOf("g1f3", "b1c3", "c2c3", "d2d4"),
+      "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq -" to listOf("d7d6", "b8c6", "e7e6"),
+      "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3" to listOf("d7d5", "g8f6", "e7e6"),
+      "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6" to listOf("c2c4", "g1f3", "e2e3", "c1f4"),
+      "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3" to listOf("e7e6", "c7c6", "d5c4"),
+      "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq -" to listOf("c2c4", "g1f3", "c1g5"),
+      "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq c3" to listOf("e7e5", "c7c5", "g8f6", "e7e6"),
+      "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq -" to listOf("d7d5", "g8f6", "c7c5")
+    )
+  }
+
   override suspend fun evaluatePosition(position: Position, depth: Int): Evaluation = withContext(Dispatchers.Default) {
     val score = minimax(position, depth, -30000, 30000, position.sideToMove == PieceColor.WHITE)
     Evaluation.cp(score)
@@ -96,32 +114,108 @@ class LocalChessEngine : EngineClient {
     val legalMoves = LegalMoveGenerator.generateLegalMoves(position)
     if (legalMoves.isEmpty()) error("No legal moves available in position")
 
-    // Score all candidate legal moves
+    // Check opening book for instant, natural opening play
+    if (level.elo >= 1000) {
+      val fenKey = position.toFen().split(" ").take(4).joinToString(" ")
+      val bookReplies = OPENING_BOOK[fenKey]
+      if (!bookReplies.isNullOrEmpty()) {
+        val matchingLegal = bookReplies.mapNotNull { uci -> legalMoves.find { it.uci == uci } }
+        if (matchingLegal.isNotEmpty()) {
+          return@withContext matchingLegal.random()
+        }
+      }
+    }
+
+    val isWhite = position.sideToMove == PieceColor.WHITE
+
+    // Score all candidate legal moves accurately from current player's perspective
     val scoredMoves = legalMoves.map { move ->
       val nextPos = LegalMoveGenerator.makeMove(position, move)
-      // Evaluate from perspective of current side to move
-      val score = -minimax(
+      // If White moves, next position is Black to move (isMaximizing = false).
+      // White wants to maximize evaluation from White's perspective.
+      // If Black moves, next position is White to move (isMaximizing = true).
+      // Black wants to minimize evaluation from White's perspective (maximize -eval).
+      val nextEval = minimax(
         nextPos,
-        level.depth - 1,
+        (level.depth - 1).coerceAtLeast(0),
         -30000,
         30000,
-        nextPos.sideToMove == PieceColor.WHITE
+        !isWhite
       )
-      ScoredMove(move, if (position.sideToMove == PieceColor.WHITE) score else -score)
+      val playerPerspectiveScore = if (isWhite) nextEval else -nextEval
+      ScoredMove(move, playerPerspectiveScore)
     }.sortedByDescending { it.score }
 
-    // Human-like move selection:
-    // With probability (1 - blunderProbability), pick best or top 2.
-    // Otherwise pick from top-N candidate pool.
+    // Human-like move selection calibrated to training level
     val candidatePoolSize = min(level.maxCandidatePool, scoredMoves.size)
     val shouldBlunder = Random.nextFloat() < level.blunderProbability
 
     if (!shouldBlunder || candidatePoolSize <= 1) {
       scoredMoves.first().move
     } else {
-      // Pick randomly within the candidate pool
       val chosenIdx = Random.nextInt(0, candidatePoolSize)
       scoredMoves[chosenIdx].move
+    }
+  }
+
+  private fun orderMoves(position: Position, moves: List<Move>): List<Move> {
+    return moves.sortedByDescending { move ->
+      var score = 0
+      val targetPiece = position.pieceAt(move.to)
+      val movingPiece = position.pieceAt(move.from)
+      if (targetPiece != null) {
+        // MVV-LVA: Most Valuable Victim - Least Valuable Attacker
+        score += (targetPiece.type.value * 10) - (movingPiece?.type?.value ?: 0)
+      } else if (move.isEnPassant) {
+        score += 900
+      }
+      if (move.promotion != null) {
+        score += move.promotion.value
+      }
+      score
+    }
+  }
+
+  private fun quiescence(
+    position: Position,
+    alpha: Int,
+    beta: Int,
+    isMaximizing: Boolean
+  ): Int {
+    val standPat = evaluateStatic(position)
+    var curAlpha = alpha
+    var curBeta = beta
+
+    if (isMaximizing) {
+      if (standPat >= curBeta) return curBeta
+      if (standPat > curAlpha) curAlpha = standPat
+
+      val legalMoves = LegalMoveGenerator.generateLegalMoves(position)
+      val captures = legalMoves.filter { position.pieceAt(it.to) != null || it.isEnPassant }
+      if (captures.isEmpty()) return standPat
+
+      for (move in orderMoves(position, captures)) {
+        val nextPos = LegalMoveGenerator.makeMove(position, move)
+        val score = quiescence(nextPos, curAlpha, curBeta, false)
+        if (score >= curBeta) return curBeta
+        if (score > curAlpha) curAlpha = score
+      }
+      return curAlpha
+    } else {
+      if (standPat <= curAlpha) return curAlpha
+      if (standPat < curBeta) curBeta = standPat
+
+      val legalMoves = LegalMoveGenerator.generateLegalMoves(position)
+      val captures = legalMoves.filter { position.pieceAt(it.to) != null || it.isEnPassant }
+      if (captures.isEmpty()) return standPat
+
+      for (move in orderMoves(position, captures)) {
+        val nextPos = LegalMoveGenerator.makeMove(position, move)
+        val score = quiescence(nextPos, curAlpha, curBeta, true)
+        if (score <= curAlpha) return curAlpha
+        if (score < curBeta) curBeta = score
+      }
+      return curBeta
     }
   }
 
@@ -133,11 +227,11 @@ class LocalChessEngine : EngineClient {
     isMaximizing: Boolean
   ): Int {
     if (depth <= 0) {
-      return evaluateStatic(position)
+      return quiescence(position, alpha, beta, isMaximizing)
     }
 
-    val moves = LegalMoveGenerator.generateLegalMoves(position)
-    if (moves.isEmpty()) {
+    val rawMoves = LegalMoveGenerator.generateLegalMoves(position)
+    if (rawMoves.isEmpty()) {
       return if (LegalMoveGenerator.isKingInCheck(position, position.sideToMove)) {
         // Checkmate! Favors faster checkmates
         if (isMaximizing) -20000 - depth else 20000 + depth
@@ -146,6 +240,7 @@ class LocalChessEngine : EngineClient {
       }
     }
 
+    val moves = orderMoves(position, rawMoves)
     var currentAlpha = alpha
     var currentBeta = beta
 

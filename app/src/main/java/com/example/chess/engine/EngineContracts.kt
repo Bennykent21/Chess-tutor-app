@@ -77,32 +77,32 @@ enum class TrainingLevel(
     elo = 1200,
     title = "Level 3 (1200)",
     description = "Solid fundamentals, struggles with pawn structures and king safety",
-    depth = 3,
-    blunderProbability = 0.18f,
+    depth = 2,
+    blunderProbability = 0.16f,
     maxCandidatePool = 3
   ),
   CLUB_1400(
     elo = 1400,
     title = "Level 4 (1400)",
-    description = "Disciplined tactical vision, good opening book knowledge",
-    depth = 4,
-    blunderProbability = 0.10f,
+    description = "Disciplined tactical vision, solid opening development",
+    depth = 3,
+    blunderProbability = 0.08f,
     maxCandidatePool = 2
   ),
   ADVANCED_1600(
     elo = 1600,
     title = "Level 5 (1600)",
-    description = "Sharp attacking skills, punishes structural mistakes quickly",
-    depth = 5,
-    blunderProbability = 0.05f,
+    description = "Sharp attacking calculation, punishes structural mistakes quickly",
+    depth = 3,
+    blunderProbability = 0.03f,
     maxCandidatePool = 2
   ),
   EXPERT_1800(
     elo = 1800,
     title = "Level 6 (1800)",
-    description = "Mastery of endgames, tempo, piece harmony, and calculation",
-    depth = 6,
-    blunderProbability = 0.01f,
+    description = "Positional mastery, sharp tactical vision with quiescence calculation",
+    depth = 4,
+    blunderProbability = 0.0f,
     maxCandidatePool = 1
   )
 }
