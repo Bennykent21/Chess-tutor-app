@@ -61,6 +61,22 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.chess.ui.components.BoardThemeDialog
+import com.example.chess.ui.components.ChessBoardTheme
+import com.example.chess.ui.components.ExportGameDialog
+import com.example.chess.ui.components.GameAccuracyReportDialog
+import com.example.chess.ui.components.MoveEvaluationPoint
+import com.example.chess.ui.components.TimeControl
+import com.example.chess.ui.components.TimeControlDialog
+import com.example.chess.ui.components.formatClockTime
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Timer
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.example.chess.audio.rememberChessSoundEffects
 import com.example.chess.audio.rememberVoiceCoach
 import com.example.chess.core.GameStatus
@@ -123,6 +139,23 @@ fun ArenaScreen(
   var currentLevel by remember { mutableStateOf(selectedLevel) }
   var playerColor by remember { mutableStateOf(PieceColor.WHITE) }
 
+  // Board Theme
+  var currentBoardTheme by remember { mutableStateOf(ChessBoardTheme.CLASSIC_TOURNAMENT) }
+  var showThemeDialog by remember { mutableStateOf(false) }
+
+  // Game Clocks & Time Controls
+  var selectedTimeControl by remember { mutableStateOf(TimeControl.UNLIMITED) }
+  var showTimeControlDialog by remember { mutableStateOf(false) }
+  var whiteTimeMillis by remember { mutableStateOf(0L) }
+  var blackTimeMillis by remember { mutableStateOf(0L) }
+  var isClockRunning by remember { mutableStateOf(false) }
+  var timeoutWinner by remember { mutableStateOf<PieceColor?>(null) }
+
+  // Accuracy Report & Export
+  var showExportDialog by remember { mutableStateOf(false) }
+  var showAccuracyReportDialog by remember { mutableStateOf(false) }
+  val evalPointsHistory = remember { mutableStateListOf<MoveEvaluationPoint>() }
+
   val playedMoves = remember { mutableStateListOf<Move>() }
   val positionHistory = remember { mutableStateListOf<Position>() }
 
@@ -145,10 +178,47 @@ fun ArenaScreen(
   // Game End State
   val gameStatus = remember(position) { LegalMoveGenerator.getGameStatus(position) }
 
+  // Reset clocks when TimeControl changes
+  LaunchedEffect(selectedTimeControl) {
+    whiteTimeMillis = selectedTimeControl.baseSeconds * 1000L
+    blackTimeMillis = selectedTimeControl.baseSeconds * 1000L
+    isClockRunning = false
+    timeoutWinner = null
+  }
+
+  // Real-time Clock Countdown
+  LaunchedEffect(isClockRunning, position.sideToMove, gameStatus, timeoutWinner, selectedTimeControl) {
+    if (isClockRunning && gameStatus == GameStatus.IN_PROGRESS && timeoutWinner == null && selectedTimeControl != TimeControl.UNLIMITED) {
+      while (isClockRunning && gameStatus == GameStatus.IN_PROGRESS && timeoutWinner == null) {
+        delay(100)
+        if (position.sideToMove == PieceColor.WHITE) {
+          whiteTimeMillis = (whiteTimeMillis - 100).coerceAtLeast(0)
+          if (whiteTimeMillis <= 0) {
+            timeoutWinner = PieceColor.BLACK
+            isClockRunning = false
+            if (soundEnabled) soundEffects.playDefeat()
+            if (voiceEnabled) voiceCoach.speak("White flagged! Black wins on time.")
+            break
+          }
+        } else {
+          blackTimeMillis = (blackTimeMillis - 100).coerceAtLeast(0)
+          if (blackTimeMillis <= 0) {
+            timeoutWinner = PieceColor.WHITE
+            isClockRunning = false
+            if (soundEnabled) soundEffects.playVictory()
+            if (voiceEnabled) voiceCoach.speak("Black flagged! White wins on time.")
+            break
+          }
+        }
+      }
+    }
+  }
+
   fun restartGame(newFen: String = Position.STARTING_FEN) {
     position = Position.fromFen(newFen)
     playedMoves.clear()
     positionHistory.clear()
+    evalPointsHistory.clear()
     selectedSquare = null
     legalTargetSquares = emptySet()
     lastMove = null
@@ -158,7 +228,42 @@ fun ArenaScreen(
     recordedBlunderAlert = null
     pendingPromotionMoves = null
     isEngineThinking = false
+    timeoutWinner = null
+    isClockRunning = false
+    whiteTimeMillis = selectedTimeControl.baseSeconds * 1000L
+    blackTimeMillis = selectedTimeControl.baseSeconds * 1000L
     if (soundEnabled) soundEffects.playHint()
+  }
+
+  fun generatePgnString(): String {
+    val sb = StringBuilder()
+    val date = SimpleDateFormat("yyyy.MM.dd", Locale.US).format(Date())
+    sb.append("[Event \"Chess Tutor Sparring Arena\"]\n")
+    sb.append("[Site \"Chess Tutor\"]\n")
+    sb.append("[Date \"$date\"]\n")
+    sb.append("[White \"${if (playerColor == PieceColor.WHITE) "Player" else currentLevel.title}\"]\n")
+    sb.append("[Black \"${if (playerColor == PieceColor.BLACK) "Player" else currentLevel.title}\"]\n")
+    val resultStr = when {
+      timeoutWinner == PieceColor.WHITE -> "1-0"
+      timeoutWinner == PieceColor.BLACK -> "0-1"
+      gameStatus == GameStatus.CHECKMATE -> if (position.sideToMove == PieceColor.BLACK) "1-0" else "0-1"
+      gameStatus == GameStatus.STALEMATE || gameStatus == GameStatus.DRAW_INSUFFICIENT_MATERIAL -> "1/2-1/2"
+      else -> "*"
+    }
+    sb.append("[Result \"$resultStr\"]\n")
+    if (selectedTimeControl != TimeControl.UNLIMITED) {
+      sb.append("[TimeControl \"${selectedTimeControl.baseSeconds}+${selectedTimeControl.incrementSeconds}\"]\n")
+    }
+    sb.append("\n")
+
+    for (i in playedMoves.indices) {
+      if (i % 2 == 0) {
+        sb.append("${(i / 2) + 1}. ")
+      }
+      sb.append("${playedMoves[i].san} ")
+    }
+    sb.append(resultStr)
+    return sb.toString()
   }
 
   fun takebackMove() {
@@ -222,6 +327,32 @@ fun ArenaScreen(
       playedMoves.add(botMove)
       isEngineThinking = false
 
+      if (selectedTimeControl != TimeControl.UNLIMITED) {
+        if (!isClockRunning) isClockRunning = true
+        if (playerColor == PieceColor.WHITE) {
+          blackTimeMillis += selectedTimeControl.incrementSeconds * 1000L
+        } else {
+          whiteTimeMillis += selectedTimeControl.incrementSeconds * 1000L
+        }
+      }
+
+      coroutineScope.launch {
+        val botNewEval = engine.evaluatePosition(nextPos, depth = 3)
+        val botEvalPawns = (botNewEval.centipawns ?: 0) / 100f
+        val botSwing = ((currentEval.centipawns ?: 0) - (botNewEval.centipawns ?: 0)) / 100f
+        evalPointsHistory.add(
+          MoveEvaluationPoint(
+            moveIndex = playedMoves.size - 1,
+            san = botMove.san,
+            moveNumber = (playedMoves.size + 1) / 2,
+            color = playerColor.opposite(),
+            centipawns = botNewEval.centipawns ?: 0,
+            evalPawns = botEvalPawns,
+            swingDeltaPawns = botSwing
+          )
+        )
+      }
+
       if (soundEnabled) {
         soundEffects.playMove(isCapture = isCapture, isCheck = isCheck)
       }
@@ -248,6 +379,15 @@ fun ArenaScreen(
     whisperArrow = null
     pendingPromotionMoves = null
 
+    if (selectedTimeControl != TimeControl.UNLIMITED) {
+      if (!isClockRunning) isClockRunning = true
+      if (playerColor == PieceColor.WHITE) {
+        whiteTimeMillis += selectedTimeControl.incrementSeconds * 1000L
+      } else {
+        blackTimeMillis += selectedTimeControl.incrementSeconds * 1000L
+      }
+    }
+
     if (soundEnabled) {
       soundEffects.playMove(isCapture = isCapture, isCheck = isCheck)
     }
@@ -259,6 +399,20 @@ fun ArenaScreen(
       val prevCp = prevEval.centipawns ?: 0
       val newCp = newEval.centipawns ?: 0
       val delta = prevCp - newCp
+
+      val newEvalPawns = (newEval.centipawns ?: 0) / 100f
+      val playerSwing = delta / 100f
+      evalPointsHistory.add(
+        MoveEvaluationPoint(
+          moveIndex = playedMoves.size - 1,
+          san = moveAttempt.san,
+          moveNumber = (playedMoves.size + 1) / 2,
+          color = playerColor,
+          centipawns = newEval.centipawns ?: 0,
+          evalPawns = newEvalPawns,
+          swingDeltaPawns = playerSwing
+        )
+      )
 
       // If evaluation dropped significantly (> 180 centipawns) and was not the best move
       if (delta > 180 && moveAttempt != bestEngineMove) {
@@ -376,7 +530,7 @@ fun ArenaScreen(
       .padding(top = 12.dp, bottom = 96.dp),
     verticalArrangement = Arrangement.spacedBy(10.dp)
   ) {
-    // Opponent Header & Live Eval Indicator
+    // Opponent Header & Actions Row
     Row(
       modifier = Modifier.fillMaxWidth(),
       horizontalArrangement = Arrangement.SpaceBetween,
@@ -407,92 +561,148 @@ fun ArenaScreen(
             fontWeight = FontWeight.Bold
           )
           Text(
-            text = if (isEngineThinking) "Thinking..." else "Ready",
+            text = if (isEngineThinking) "Thinking..." else if (position.sideToMove != playerColor) "Bot to move" else "Waiting...",
             color = if (isEngineThinking) CoachPrimary else TextMuted,
             fontSize = 11.sp
           )
         }
       }
 
-      // Voice Toggle, Sound FX, Import, and Eval Pill Row
+      // Action buttons: Theme, Clock/Timer, Export, Import, Sound, Voice
       Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
       ) {
-        // Import FEN / PGN Dialog Launcher
-        Box(
-          modifier = Modifier
-            .liquidGlassPill(shape = RoundedCornerShape(10.dp), isActive = false)
-            .clickable { showImportDialog = true }
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-        ) {
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        // Bot Clock if clock enabled
+        if (selectedTimeControl != TimeControl.UNLIMITED) {
+          val botTime = if (playerColor == PieceColor.WHITE) blackTimeMillis else whiteTimeMillis
+          val isBotTurn = position.sideToMove != playerColor && gameStatus == GameStatus.IN_PROGRESS && timeoutWinner == null
+          val isLowTime = botTime < 30_000L
+          Box(
+            modifier = Modifier
+              .clip(RoundedCornerShape(8.dp))
+              .background(if (isBotTurn) CoachPrimary.copy(alpha = 0.15f) else LiquidGlassSurface)
+              .border(
+                1.dp,
+                if (isLowTime) StatusBlunder else if (isBotTurn) CoachPrimary else LiquidGlassSurfaceSubtle,
+                RoundedCornerShape(8.dp)
+              )
+              .padding(horizontal = 8.dp, vertical = 4.dp)
           ) {
-            Icon(
-              imageVector = Icons.Default.Tune,
-              contentDescription = "Import FEN or PGN",
-              tint = CoachAccentGold,
-              modifier = Modifier.size(16.dp)
-            )
             Text(
-              text = "Import",
-              color = CoachAccentGold,
-              fontSize = 11.sp,
+              text = formatClockTime(botTime),
+              color = if (isLowTime) StatusBlunder else if (isBotTurn) CoachPrimary else TextTitle,
+              fontSize = 12.sp,
               fontWeight = FontWeight.Bold
             )
           }
         }
 
+        // Time Control Selector
+        Box(
+          modifier = Modifier
+            .liquidGlassPill(shape = RoundedCornerShape(9.dp), isActive = selectedTimeControl != TimeControl.UNLIMITED)
+            .clickable { showTimeControlDialog = true }
+            .padding(horizontal = 7.dp, vertical = 5.dp)
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+          ) {
+            Icon(
+              imageVector = Icons.Default.Timer,
+              contentDescription = "Time Controls",
+              tint = if (selectedTimeControl != TimeControl.UNLIMITED) CoachPrimary else TextMuted,
+              modifier = Modifier.size(15.dp)
+            )
+            Text(
+              text = selectedTimeControl.formatSeconds(),
+              color = if (selectedTimeControl != TimeControl.UNLIMITED) CoachPrimary else TextMuted,
+              fontSize = 10.sp,
+              fontWeight = FontWeight.Bold
+            )
+          }
+        }
+
+        // Board Theme Selector
+        Box(
+          modifier = Modifier
+            .liquidGlassPill(shape = RoundedCornerShape(9.dp), isActive = false)
+            .clickable { showThemeDialog = true }
+            .padding(horizontal = 6.dp, vertical = 5.dp)
+        ) {
+          Icon(
+            imageVector = Icons.Default.Palette,
+            contentDescription = "Board Theme",
+            tint = CoachAccentGold,
+            modifier = Modifier.size(15.dp)
+          )
+        }
+
+        // Export Game PGN/FEN
+        Box(
+          modifier = Modifier
+            .liquidGlassPill(shape = RoundedCornerShape(9.dp), isActive = false)
+            .clickable { showExportDialog = true }
+            .padding(horizontal = 6.dp, vertical = 5.dp)
+        ) {
+          Icon(
+            imageVector = Icons.Default.Share,
+            contentDescription = "Export PGN",
+            tint = CoachAccentGold,
+            modifier = Modifier.size(15.dp)
+          )
+        }
+
+        // Import FEN / PGN Dialog Launcher
+        Box(
+          modifier = Modifier
+            .liquidGlassPill(shape = RoundedCornerShape(9.dp), isActive = false)
+            .clickable { showImportDialog = true }
+            .padding(horizontal = 6.dp, vertical = 5.dp)
+        ) {
+          Icon(
+            imageVector = Icons.Default.FileUpload,
+            contentDescription = "Import FEN or PGN",
+            tint = TextMuted,
+            modifier = Modifier.size(15.dp)
+          )
+        }
+
         // Sound FX Toggle
         Box(
           modifier = Modifier
-            .liquidGlassPill(shape = RoundedCornerShape(10.dp), isActive = soundEnabled)
+            .liquidGlassPill(shape = RoundedCornerShape(9.dp), isActive = soundEnabled)
             .clickable {
               soundEnabled = !soundEnabled
               soundEffects.isSoundEnabled = soundEnabled
             }
-            .padding(horizontal = 7.dp, vertical = 6.dp)
+            .padding(horizontal = 6.dp, vertical = 5.dp)
         ) {
           Icon(
             imageVector = if (soundEnabled) Icons.Default.MusicNote else Icons.Default.MusicOff,
             contentDescription = "Sound Effects",
             tint = if (soundEnabled) CoachPrimary else TextMuted,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(15.dp)
           )
         }
 
         // Voice Coach Toggle
         Box(
           modifier = Modifier
-            .liquidGlassPill(shape = RoundedCornerShape(10.dp), isActive = voiceEnabled)
+            .liquidGlassPill(shape = RoundedCornerShape(9.dp), isActive = voiceEnabled)
             .clickable {
               voiceEnabled = !voiceEnabled
               voiceCoach.isSpeechEnabled = voiceEnabled
               if (!voiceEnabled) voiceCoach.stop()
             }
-            .padding(horizontal = 7.dp, vertical = 6.dp)
+            .padding(horizontal = 6.dp, vertical = 5.dp)
         ) {
           Icon(
             imageVector = if (voiceEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
             contentDescription = "Voice Coach",
             tint = if (voiceEnabled) CoachPrimary else TextMuted,
-            modifier = Modifier.size(16.dp)
-          )
-        }
-
-        // Live Centipawn Eval
-        Box(
-          modifier = Modifier
-            .liquidGlassPill(shape = RoundedCornerShape(10.dp), isActive = true)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-        ) {
-          Text(
-            text = currentEval.format(),
-            color = CoachAccentGold,
-            fontSize = 11.5.sp,
-            fontWeight = FontWeight.Bold
+            modifier = Modifier.size(15.dp)
           )
         }
       }
@@ -502,20 +712,22 @@ fun ArenaScreen(
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .aspectRatio(1.05f),
+        .aspectRatio(1.04f),
       horizontalArrangement = Arrangement.spacedBy(8.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
       LiveEvaluationBar(
         evaluation = currentEval,
+        flipped = (playerColor == PieceColor.BLACK),
         modifier = Modifier
-          .width(12.dp)
+          .width(26.dp)
           .fillMaxHeight()
       )
 
       InteractiveChessBoard(
         position = position,
         flipped = (playerColor == PieceColor.BLACK),
+        boardTheme = currentBoardTheme,
         selectedSquare = selectedSquare,
         legalTargetSquares = legalTargetSquares,
         recommendedArrow = whisperArrow,
@@ -525,6 +737,86 @@ fun ArenaScreen(
           .weight(1f)
           .fillMaxHeight()
       )
+    }
+
+    // Player Status Row & Player Clock
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+      ) {
+        Box(
+          modifier = Modifier
+            .size(14.dp)
+            .clip(CircleShape)
+            .background(if (playerColor == PieceColor.WHITE) Color.White else Color(0xFF1E293B))
+            .border(1.dp, CoachAccentGold, CircleShape)
+        )
+        Text(
+          text = "You (${if (playerColor == PieceColor.WHITE) "White" else "Black"})",
+          color = TextTitle,
+          fontSize = 13.sp,
+          fontWeight = FontWeight.Bold
+        )
+        if (position.sideToMove == playerColor && gameStatus == GameStatus.IN_PROGRESS && timeoutWinner == null) {
+          Box(
+            modifier = Modifier
+              .clip(RoundedCornerShape(6.dp))
+              .background(CoachPrimary.copy(alpha = 0.2f))
+              .padding(horizontal = 6.dp, vertical = 2.dp)
+          ) {
+            Text(text = "Your Turn", color = CoachPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+          }
+        }
+      }
+
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+      ) {
+        // Live Centipawn Eval Badge
+        Box(
+          modifier = Modifier
+            .liquidGlassPill(shape = RoundedCornerShape(8.dp), isActive = true)
+            .padding(horizontal = 7.dp, vertical = 3.dp)
+        ) {
+          Text(
+            text = currentEval.format(),
+            color = CoachAccentGold,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+          )
+        }
+
+        // Player Clock if clock enabled
+        if (selectedTimeControl != TimeControl.UNLIMITED) {
+          val playerTime = if (playerColor == PieceColor.WHITE) whiteTimeMillis else blackTimeMillis
+          val isPlayerTurn = position.sideToMove == playerColor && gameStatus == GameStatus.IN_PROGRESS && timeoutWinner == null
+          val isLowTime = playerTime < 30_000L
+          Box(
+            modifier = Modifier
+              .clip(RoundedCornerShape(8.dp))
+              .background(if (isPlayerTurn) CoachPrimary.copy(alpha = 0.2f) else LiquidGlassSurface)
+              .border(
+                1.dp,
+                if (isLowTime) StatusBlunder else if (isPlayerTurn) CoachPrimary else LiquidGlassSurfaceSubtle,
+                RoundedCornerShape(8.dp)
+              )
+              .padding(horizontal = 8.dp, vertical = 4.dp)
+          ) {
+            Text(
+              text = formatClockTime(playerTime),
+              color = if (isLowTime) StatusBlunder else if (isPlayerTurn) CoachPrimary else TextTitle,
+              fontSize = 12.sp,
+              fontWeight = FontWeight.Bold
+            )
+          }
+        }
+      }
     }
 
     // Pawn Promotion Modal Dialog
@@ -636,7 +928,7 @@ fun ArenaScreen(
       }
     }
 
-    // Action Controls: Takeback, Flip Side, Reset, Review Game
+    // Action Controls: Takeback, Flip Side, Reset, Accuracy Report, Review Game
     Row(
       modifier = Modifier.fillMaxWidth(),
       horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -663,7 +955,7 @@ fun ArenaScreen(
         },
         enabled = !isEngineThinking,
         modifier = Modifier
-          .weight(1.1f)
+          .weight(1.05f)
           .height(38.dp),
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachAccentGold)
@@ -687,19 +979,31 @@ fun ArenaScreen(
         Text("Reset", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
       }
 
+      OutlinedButton(
+        onClick = { showAccuracyReportDialog = true },
+        enabled = playedMoves.isNotEmpty(),
+        modifier = Modifier
+          .weight(1.15f)
+          .height(38.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachAccentGold)
+      ) {
+        Icon(imageVector = Icons.Default.AutoGraph, contentDescription = "Report", modifier = Modifier.size(14.dp))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("Report", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+      }
+
       Button(
         onClick = {
           onGameFinished(position, playedMoves.toList())
         },
         enabled = playedMoves.isNotEmpty(),
         modifier = Modifier
-          .weight(1.3f)
+          .weight(1.25f)
           .height(38.dp),
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115))
       ) {
-        Icon(imageVector = Icons.Default.AutoGraph, contentDescription = null, modifier = Modifier.size(14.dp))
-        Spacer(modifier = Modifier.width(4.dp))
         Text("Review", fontSize = 11.sp, fontWeight = FontWeight.Bold)
       }
     }
@@ -725,8 +1029,9 @@ fun ArenaScreen(
       }
     }
 
-    // Game End Banner if checkmate/stalemate
-    if (gameStatus != GameStatus.IN_PROGRESS) {
+    // Game End Banner if checkmate/stalemate/timeout
+    val isGameEnded = gameStatus != GameStatus.IN_PROGRESS || timeoutWinner != null
+    if (isGameEnded) {
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -736,52 +1041,67 @@ fun ArenaScreen(
           )
           .padding(16.dp)
       ) {
-        Row(
+        Column(
           modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically
+          verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-          Column {
-            Text(
-              text = when (gameStatus) {
-                GameStatus.CHECKMATE -> "Checkmate! Match Complete"
-                GameStatus.STALEMATE -> "Stalemate — Draw"
-                else -> "Game Ended"
-              },
-              color = CoachAccentGold,
-              fontSize = 14.5.sp,
-              fontWeight = FontWeight.Bold
-            )
-            Text(
-              text = "Ready for Coach Debrief & Mistake Analysis",
-              color = TextBody,
-              fontSize = 12.sp
-            )
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Column {
+              Text(
+                text = when {
+                  timeoutWinner == PieceColor.WHITE -> "White Wins on Time!"
+                  timeoutWinner == PieceColor.BLACK -> "Black Wins on Time!"
+                  gameStatus == GameStatus.CHECKMATE -> "Checkmate! ${if (position.sideToMove == PieceColor.BLACK) "White" else "Black"} Wins"
+                  gameStatus == GameStatus.STALEMATE -> "Stalemate — Draw"
+                  else -> "Game Ended"
+                },
+                color = CoachAccentGold,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+              )
+              Text(
+                text = "Match complete. View accuracy or launch deep review.",
+                color = TextBody,
+                fontSize = 12.sp
+              )
+            }
           }
 
           Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
           ) {
             OutlinedButton(
-              onClick = {
-                onGameFinished(position, playedMoves.toList())
-              },
+              onClick = { showAccuracyReportDialog = true },
               colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachAccentGold),
               border = ButtonDefaults.outlinedButtonBorder.copy(brush = LiquidGlassBorderGold),
-              shape = RoundedCornerShape(10.dp)
+              shape = RoundedCornerShape(10.dp),
+              modifier = Modifier.weight(1f)
             ) {
-              Text("Review Game", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+              Text("Accuracy Graph", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+            }
+
+            OutlinedButton(
+              onClick = { onGameFinished(position, playedMoves.toList()) },
+              colors = ButtonDefaults.outlinedButtonColors(contentColor = CoachPrimary),
+              shape = RoundedCornerShape(10.dp),
+              modifier = Modifier.weight(1f)
+            ) {
+              Text("Review Game", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
             }
 
             Button(
-              onClick = {
-                restartGame()
-              },
+              onClick = { restartGame() },
               colors = ButtonDefaults.buttonColors(containerColor = CoachPrimary, contentColor = Color(0xFF0F1115)),
-              shape = RoundedCornerShape(10.dp)
+              shape = RoundedCornerShape(10.dp),
+              modifier = Modifier.weight(1f)
             ) {
-              Text("Play Again", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+              Text("Play Again", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
             }
           }
         }
@@ -913,16 +1233,68 @@ fun ArenaScreen(
       }
     )
   }
+
+  // Time Control Dialog
+  if (showTimeControlDialog) {
+    TimeControlDialog(
+      current = selectedTimeControl,
+      onSelect = { tc ->
+        selectedTimeControl = tc
+        restartGame()
+      },
+      onDismiss = { showTimeControlDialog = false }
+    )
+  }
+
+  // Board Theme Dialog
+  if (showThemeDialog) {
+    BoardThemeDialog(
+      currentTheme = currentBoardTheme,
+      onSelectTheme = { theme -> currentBoardTheme = theme },
+      onDismiss = { showThemeDialog = false }
+    )
+  }
+
+  // Export Game Dialog (PGN / FEN)
+  if (showExportDialog) {
+    ExportGameDialog(
+      pgnText = generatePgnString(),
+      fenText = position.toFen(),
+      onDismiss = { showExportDialog = false }
+    )
+  }
+
+  // Post-Match Accuracy & Advantage Graph Dialog
+  if (showAccuracyReportDialog) {
+    val resultSummary = when {
+      timeoutWinner == PieceColor.WHITE -> "White Wins on Time!"
+      timeoutWinner == PieceColor.BLACK -> "Black Wins on Time!"
+      gameStatus == GameStatus.CHECKMATE -> if (position.sideToMove == PieceColor.BLACK) "White Wins by Checkmate!" else "Black Wins by Checkmate!"
+      gameStatus == GameStatus.STALEMATE -> "Draw by Stalemate"
+      else -> "Game in Progress (${playedMoves.size} moves)"
+    }
+    GameAccuracyReportDialog(
+      gameTitle = arenaGameTitle ?: "Sparring vs ${currentLevel.title}",
+      gameResultSummary = resultSummary,
+      evalPoints = evalPointsHistory.toList(),
+      playerColor = playerColor,
+      botName = "Sparring Bot (${currentLevel.title})",
+      onRematch = { restartGame() },
+      onDismiss = { showAccuracyReportDialog = false }
+    )
+  }
 }
 
 /**
  * Vertical Evaluation Gauge showing real-time White vs Black advantage.
  * Smoothly interpolates using a sigmoid conversion from centipawns.
+ * Supports flipped board perspective and displays score text directly on the gauge.
  */
 @Composable
 fun LiveEvaluationBar(
   evaluation: Evaluation,
-  modifier: Modifier = Modifier
+  modifier: Modifier = Modifier,
+  flipped: Boolean = false
 ) {
   val animatedCp by animateFloatAsState(
     targetValue = (evaluation.centipawns ?: 0).toFloat(),
@@ -930,7 +1302,7 @@ fun LiveEvaluationBar(
     label = "eval_gauge"
   )
 
-  val whiteFraction = remember(animatedCp, evaluation.mateInMoves) {
+  val rawWhiteFraction = remember(animatedCp, evaluation.mateInMoves) {
     if (evaluation.mateInMoves != null) {
       if (evaluation.mateInMoves > 0) 0.96f else 0.04f
     } else {
@@ -939,30 +1311,58 @@ fun LiveEvaluationBar(
     }
   }
 
-  Column(
+  // If flipped (playing Black), the bottom represents Black and top represents White
+  val bottomFraction = if (flipped) 1.0f - rawWhiteFraction else rawWhiteFraction
+  val topFraction = 1.0f - bottomFraction
+
+  val topColor = if (flipped) Color(0xFFE8EDF2) else Color(0xFF1E222A)
+  val bottomColor = if (flipped) Color(0xFF1E222A) else Color(0xFFE8EDF2)
+
+  Box(
     modifier = modifier
-      .clip(RoundedCornerShape(6.dp))
-      .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(6.dp))
-      .background(Color(0xFF1F242E)),
-    verticalArrangement = Arrangement.SpaceBetween
+      .clip(RoundedCornerShape(8.dp))
+      .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(8.dp))
+      .background(Color(0xFF181C24)),
+    contentAlignment = Alignment.Center
   ) {
-    // Black advantage portion at the top
+    Column(
+      modifier = Modifier.fillMaxSize(),
+      verticalArrangement = Arrangement.SpaceBetween
+    ) {
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .weight(topFraction.coerceAtLeast(0.02f))
+          .background(topColor)
+      )
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .weight(bottomFraction.coerceAtLeast(0.02f))
+          .background(bottomColor)
+      )
+    }
+
+    // Centipawn text displayed vertically or concisely on the gauge
+    val displayScore = evaluation.format()
+    val isWhiteAdvantage = (evaluation.centipawns ?: 0) >= 0
+    val textBgColor = if (isWhiteAdvantage) Color(0xCCFFFFFF) else Color(0xCC111827)
+    val textFgColor = if (isWhiteAdvantage) Color(0xFF111827) else Color(0xFFF3F4F6)
+
     Box(
       modifier = Modifier
-        .fillMaxWidth()
-        .weight((1f - whiteFraction).coerceAtLeast(0.02f))
-        .background(Color(0xFF1E222A))
-    )
-    // White advantage portion at the bottom
-    Box(
-      modifier = Modifier
-        .fillMaxWidth()
-        .weight(whiteFraction.coerceAtLeast(0.02f))
-        .background(
-          androidx.compose.ui.graphics.Brush.verticalGradient(
-            colors = listOf(Color(0xFFFFFFFF), Color(0xFFD6DEE7))
-          )
-        )
-    )
+        .clip(RoundedCornerShape(4.dp))
+        .background(textBgColor)
+        .padding(horizontal = 3.dp, vertical = 2.dp),
+      contentAlignment = Alignment.Center
+    ) {
+      Text(
+        text = displayScore,
+        fontSize = 8.5.sp,
+        fontWeight = FontWeight.Bold,
+        color = textFgColor,
+        maxLines = 1
+      )
+    }
   }
 }

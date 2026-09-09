@@ -87,6 +87,17 @@ class LocalChessEngine : EngineClient {
      20, 30, 10,  0,  0, 10, 30, 20
   )
 
+  private val KING_ENDGAME_TABLE = intArrayOf(
+    -50,-40,-30,-20,-20,-30,-40,-50,
+    -30,-20,-10,  0,  0,-10,-20,-30,
+    -30,-10, 20, 30, 30, 20,-10,-30,
+    -30,-10, 30, 40, 40, 30,-10,-30,
+    -30,-10, 30, 40, 40, 30,-10,-30,
+    -30,-10, 20, 30, 30, 20,-10,-30,
+    -30,-30,  0,  0,  0,  0,-30,-30,
+    -50,-30,-30,-30,-30,-30,-30,-50
+  )
+
   companion object {
     private val OPENING_BOOK: Map<String, List<String>> = mapOf(
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -" to listOf("e2e4", "d2d4", "c2c4", "g1f3"),
@@ -106,8 +117,21 @@ class LocalChessEngine : EngineClient {
   }
 
   override suspend fun evaluatePosition(position: Position, depth: Int): Evaluation = withContext(Dispatchers.Default) {
-    val score = minimax(position, depth, -30000, 30000, position.sideToMove == PieceColor.WHITE)
-    Evaluation.cp(score)
+    val searchDepth = depth.coerceIn(3, 4)
+    val isWhiteToMove = position.sideToMove == PieceColor.WHITE
+    val score = minimax(position, searchDepth, -30000, 30000, isWhiteToMove)
+
+    if (score >= 15000) {
+      val plies = (20000 + searchDepth - score).coerceAtLeast(1)
+      val moves = (plies + 1) / 2
+      Evaluation.mate(moves)
+    } else if (score <= -15000) {
+      val plies = (20000 + searchDepth + score).coerceAtLeast(1)
+      val moves = (plies + 1) / 2
+      Evaluation.mate(-moves)
+    } else {
+      Evaluation.cp(score)
+    }
   }
 
   override suspend fun selectMove(position: Position, level: TrainingLevel): Move = withContext(Dispatchers.Default) {
@@ -268,26 +292,176 @@ class LocalChessEngine : EngineClient {
   }
 
   /**
-   * Static heuristic evaluation of position in centipawns (from White's perspective)
+   * Static heuristic evaluation of position in centipawns (from White's perspective).
+   * Incorporates material values, middle-game and endgame PSTs, bishop pair bonus,
+   * passed/doubled/isolated pawns, open rook files, and king safety.
    */
   fun evaluateStatic(position: Position): Int {
     var score = 0
+    var whiteNonPawnMaterial = 0
+    var blackNonPawnMaterial = 0
+    var whiteBishops = 0
+    var blackBishops = 0
+    val whitePawnFiles = IntArray(8)
+    val blackPawnFiles = IntArray(8)
+
+    // First pass: collect piece distributions and material
+    for (i in 0 until 64) {
+      val piece = position.squares[i] ?: continue
+      when (piece.type) {
+        PieceType.PAWN -> {
+          val sq = Square(i)
+          if (piece.color == PieceColor.WHITE) whitePawnFiles[sq.file]++ else blackPawnFiles[sq.file]++
+        }
+        PieceType.BISHOP -> {
+          if (piece.color == PieceColor.WHITE) {
+            whiteBishops++
+            whiteNonPawnMaterial += 330
+          } else {
+            blackBishops++
+            blackNonPawnMaterial += 330
+          }
+        }
+        PieceType.KNIGHT -> {
+          if (piece.color == PieceColor.WHITE) whiteNonPawnMaterial += 320 else blackNonPawnMaterial += 320
+        }
+        PieceType.ROOK -> {
+          if (piece.color == PieceColor.WHITE) whiteNonPawnMaterial += 500 else blackNonPawnMaterial += 500
+        }
+        PieceType.QUEEN -> {
+          if (piece.color == PieceColor.WHITE) whiteNonPawnMaterial += 900 else blackNonPawnMaterial += 900
+        }
+        PieceType.KING -> Unit
+      }
+    }
+
+    val isEndgame = (whiteNonPawnMaterial + blackNonPawnMaterial) <= 2400
+
+    // Bishop pair bonuses
+    if (whiteBishops >= 2) score += 45
+    if (blackBishops >= 2) score -= 45
+
+    // Second pass: evaluate pieces, PST, mobility and structural heuristics
     for (i in 0 until 64) {
       val piece = position.squares[i] ?: continue
       val sq = Square(i)
       val pValue = piece.type.value
-      val pstScore = getPstScore(piece, sq)
+      val pstScore = getPstScore(piece, sq, isEndgame)
+
+      var positionalDelta = pValue + pstScore
+
+      // Specific tactical heuristics
+      when (piece.type) {
+        PieceType.PAWN -> {
+          val file = sq.file
+          val rank = sq.rank
+          if (piece.color == PieceColor.WHITE) {
+            // Doubled pawns
+            if (whitePawnFiles[file] > 1) positionalDelta -= 18
+            // Isolated pawns
+            val hasNeighbor = (file > 0 && whitePawnFiles[file - 1] > 0) || (file < 7 && whitePawnFiles[file + 1] > 0)
+            if (!hasNeighbor) positionalDelta -= 16
+            // Passed pawn bonus
+            var isPassed = true
+            for (f in max(0, file - 1)..min(7, file + 1)) {
+              for (r in (rank + 1)..7) {
+                val blocking = position.pieceAt(f, r)
+                if (blocking != null && blocking.type == PieceType.PAWN && blocking.color == PieceColor.BLACK) {
+                  isPassed = false
+                  break
+                }
+              }
+              if (!isPassed) break
+            }
+            if (isPassed) {
+              positionalDelta += when (rank) {
+                3 -> 15
+                4 -> 30
+                5 -> 60
+                6 -> 110
+                else -> 5
+              }
+            }
+          } else {
+            // Black pawns
+            if (blackPawnFiles[file] > 1) positionalDelta -= 18
+            val hasNeighbor = (file > 0 && blackPawnFiles[file - 1] > 0) || (file < 7 && blackPawnFiles[file + 1] > 0)
+            if (!hasNeighbor) positionalDelta -= 16
+            var isPassed = true
+            for (f in max(0, file - 1)..min(7, file + 1)) {
+              for (r in 0 until rank) {
+                val blocking = position.pieceAt(f, r)
+                if (blocking != null && blocking.type == PieceType.PAWN && blocking.color == PieceColor.WHITE) {
+                  isPassed = false
+                  break
+                }
+              }
+              if (!isPassed) break
+            }
+            if (isPassed) {
+              val passedRank = 7 - rank
+              positionalDelta += when (passedRank) {
+                3 -> 15
+                4 -> 30
+                5 -> 60
+                6 -> 110
+                else -> 5
+              }
+            }
+          }
+        }
+
+        PieceType.ROOK -> {
+          val file = sq.file
+          val isOpen = (whitePawnFiles[file] == 0 && blackPawnFiles[file] == 0)
+          val isSemiOpen = if (piece.color == PieceColor.WHITE) (whitePawnFiles[file] == 0) else (blackPawnFiles[file] == 0)
+          if (isOpen) {
+            positionalDelta += 24
+          } else if (isSemiOpen) {
+            positionalDelta += 12
+          }
+          // Rook on 7th rank (attacking)
+          if ((piece.color == PieceColor.WHITE && sq.rank == 6) || (piece.color == PieceColor.BLACK && sq.rank == 1)) {
+            positionalDelta += 30
+          }
+        }
+
+        PieceType.KING -> {
+          // In middlegame, reward castled pawn shelter
+          if (!isEndgame) {
+            val file = sq.file
+            val isCastledKingside = file >= 6
+            val isCastledQueenside = file <= 2
+            if (piece.color == PieceColor.WHITE) {
+              if (isCastledKingside && whitePawnFiles[6] > 0 && whitePawnFiles[7] > 0) positionalDelta += 25
+              if (isCastledQueenside && whitePawnFiles[1] > 0 && whitePawnFiles[2] > 0) positionalDelta += 20
+              // Penalize exposed center king on open file
+              if ((file == 3 || file == 4) && whitePawnFiles[file] == 0) positionalDelta -= 30
+            } else {
+              if (isCastledKingside && blackPawnFiles[6] > 0 && blackPawnFiles[7] > 0) positionalDelta += 25
+              if (isCastledQueenside && blackPawnFiles[1] > 0 && blackPawnFiles[2] > 0) positionalDelta += 20
+              if ((file == 3 || file == 4) && blackPawnFiles[file] == 0) positionalDelta -= 30
+            }
+          }
+        }
+
+        else -> Unit
+      }
 
       if (piece.color == PieceColor.WHITE) {
-        score += (pValue + pstScore)
+        score += positionalDelta
       } else {
-        score -= (pValue + pstScore)
+        score -= positionalDelta
       }
     }
+
+    // Tempo bonus: active side to play gets a small initiative bonus
+    score += if (position.sideToMove == PieceColor.WHITE) 12 else -12
+
     return score
   }
 
-  private fun getPstScore(piece: Piece, square: Square): Int {
+  private fun getPstScore(piece: Piece, square: Square, isEndgame: Boolean = false): Int {
     val rank = if (piece.color == PieceColor.WHITE) square.rank else 7 - square.rank
     val index = (7 - rank) * 8 + square.file
 
@@ -297,7 +471,7 @@ class LocalChessEngine : EngineClient {
       PieceType.BISHOP -> BISHOP_TABLE[index]
       PieceType.ROOK -> ROOK_TABLE[index]
       PieceType.QUEEN -> QUEEN_TABLE[index]
-      PieceType.KING -> KING_MIDDLE_TABLE[index]
+      PieceType.KING -> if (isEndgame) KING_ENDGAME_TABLE[index] else KING_MIDDLE_TABLE[index]
     }
   }
 }

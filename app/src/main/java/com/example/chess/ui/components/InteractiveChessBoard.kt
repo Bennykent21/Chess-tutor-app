@@ -49,6 +49,43 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
+enum class ChessBoardTheme(
+  val label: String,
+  val lightSquare: Color,
+  val darkSquare: Color,
+  val lastMoveHighlight: Color = Color(0x66F59E0B),
+  val boardBorder: Color = Color(0x334E5D6C)
+) {
+  CLASSIC_TOURNAMENT(
+    label = "Tournament Green",
+    lightSquare = Color(0xFFEEEED2),
+    darkSquare = Color(0xFF769656),
+    lastMoveHighlight = Color(0x77BACA44),
+    boardBorder = Color(0xFF53693D)
+  ),
+  WARM_WOOD(
+    label = "Walnut & Maple",
+    lightSquare = Color(0xFFF0D9B5),
+    darkSquare = Color(0xFFB58863),
+    lastMoveHighlight = Color(0x77CDA869),
+    boardBorder = Color(0xFF8B6447)
+  ),
+  SLATE_GLASS(
+    label = "Modern Slate",
+    lightSquare = Color(0xFFE2E8F0),
+    darkSquare = Color(0xFF475569),
+    lastMoveHighlight = Color(0x6638BDF8),
+    boardBorder = Color(0xFF334155)
+  ),
+  CYBER_NEON(
+    label = "Cyber Midnight",
+    lightSquare = Color(0xFF1E293B),
+    darkSquare = Color(0xFF0F172A),
+    lastMoveHighlight = Color(0x6606B6D4),
+    boardBorder = Color(0xFF06B6D4)
+  )
+}
+
 /**
  * High-Contrast, Tournament-Grade Chessboard.
  * Designed so that white and black pieces have distinct outlines and remain
@@ -59,6 +96,7 @@ fun InteractiveChessBoard(
   position: Position,
   modifier: Modifier = Modifier,
   flipped: Boolean = false,
+  boardTheme: ChessBoardTheme = ChessBoardTheme.CLASSIC_TOURNAMENT,
   selectedSquare: Square? = null,
   onSquareTapped: (Square) -> Unit = {},
   legalTargetSquares: Set<Square> = emptySet(),
@@ -81,7 +119,7 @@ fun InteractiveChessBoard(
         .size(boardSize)
         .aspectRatio(1f)
         .clip(RoundedCornerShape(14.dp))
-        .border(2.dp, CanvasCardBorder, RoundedCornerShape(14.dp))
+        .border(2.dp, boardTheme.boardBorder, RoundedCornerShape(14.dp))
     ) {
       val squareSize = boardSize / 8
 
@@ -104,9 +142,9 @@ fun InteractiveChessBoard(
             isKingChecked -> BoardCheckSquare
             isSelected -> BoardHighlightSquare
             isHighlighted -> Color(0x55F59E0B)
-            isLastMoveSquare -> BoardLastMoveSquare
-            isLight -> BoardLightSquare
-            else -> BoardDarkSquare
+            isLastMoveSquare -> boardTheme.lastMoveHighlight
+            isLight -> boardTheme.lightSquare
+            else -> boardTheme.darkSquare
           }
 
           Box(

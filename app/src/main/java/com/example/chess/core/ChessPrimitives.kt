@@ -99,6 +99,9 @@ data class Move(
   val uci: String
     get() = "${from.algebraic}${to.algebraic}${promotion?.notation?.lowercaseChar() ?: ""}"
 
+  val san: String
+    get() = uci
+
   companion object {
     fun fromUci(uci: String): Move {
       require(uci.length in 4..5) { "Invalid UCI move: $uci" }
