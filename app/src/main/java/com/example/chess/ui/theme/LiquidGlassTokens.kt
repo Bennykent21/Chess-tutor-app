@@ -19,87 +19,84 @@ import androidx.compose.ui.unit.dp
  * and backdrop glow for an immersive, tactile chess experience.
  */
 
-// Premium Dark Canvas with Deep Indigo-Slate Vignette
-val LiquidCanvasStart = Color(0xFF090B10)
-val LiquidCanvasMid = Color(0xFF0D111A)
-val LiquidCanvasEnd = Color(0xFF07080C)
+// Clean Dark Canvas with Deep Slate
+val LiquidCanvasStart = Color(0xFF0F1115)
+val LiquidCanvasMid = Color(0xFF12161F)
+val LiquidCanvasEnd = Color(0xFF0B0D12)
 
 val LiquidCanvasBrush = Brush.verticalGradient(
   colors = listOf(LiquidCanvasStart, LiquidCanvasMid, LiquidCanvasEnd)
 )
 
-// Glass Base Surfaces (Translucent frosted acrylics)
-val LiquidGlassSurface = Color(0x1AFFFFFF)          // 10% pure white translucency
-val LiquidGlassSurfaceSubtle = Color(0x0EFFFFFF)    // 5.5% white translucency
-val LiquidGlassSurfaceElevated = Color(0x28FFFFFF)  // 16% white translucency
-val LiquidGlassSurfaceActive = Color(0x38FFFFFF)    // 22% white highlight
+// Clean Card Surfaces (Solid and calm, avoiding muddy rainbow translucency)
+val LiquidGlassSurface = Color(0xFF161A22)          // Crisp solid card surface
+val LiquidGlassSurfaceSubtle = Color(0xFF1B202A)    // Slightly lighter card/section
+val LiquidGlassSurfaceElevated = Color(0xFF222834)  // Floating card surface
+val LiquidGlassSurfaceActive = Color(0xFF2B3342)    // Highlighted surface
 
-// Liquid Specular Highlight Rims (Borders simulating physical glass edges catching light)
+// Clean borders with consistent tone
 val LiquidGlassBorder = Brush.verticalGradient(
   colors = listOf(
-    Color(0x52FFFFFF), // 32% white top specular rim
-    Color(0x18FFFFFF), // 9% mid refraction
-    Color(0x08FFFFFF)  // 3% bottom falloff
+    Color(0xFF2D3543),
+    Color(0xFF222834)
   )
 )
 
 val LiquidGlassBorderGold = Brush.verticalGradient(
   colors = listOf(
-    Color(0x99FBBF24), // Specular gold highlight
-    Color(0x40F59E0B), // Warm amber mid
-    Color(0x15F59E0B)  // Soft bottom glow
+    Color(0xFFFBBF24),
+    Color(0xFFD97706)
   )
 )
 
+// Align secondary border to subtle slate rather than clashing cyan
 val LiquidGlassBorderCyan = Brush.verticalGradient(
   colors = listOf(
-    Color(0x9938BDF8), // Specular cyan highlight
-    Color(0x400284C7), // Sky blue mid
-    Color(0x150284C7)
+    Color(0xFF3B4656),
+    Color(0xFF262E3B)
   )
 )
 
 val LiquidGlassBorderSubtle = Brush.verticalGradient(
   colors = listOf(
-    Color(0x33FFFFFF),
-    Color(0x14FFFFFF),
-    Color(0x08FFFFFF)
+    Color(0xFF2A313E),
+    Color(0xFF1E242E)
   )
 )
 
-// Liquid Glass Accent Glows (Ambient Backdrops)
+// Ambient backdrops (Restrained to single Coach warm amber)
 val LiquidGlowAmber = Brush.radialGradient(
-  colors = listOf(Color(0x33F59E0B), Color(0x00F59E0B))
+  colors = listOf(Color(0x18F59E0B), Color.Transparent)
 )
 
 val LiquidGlowCyan = Brush.radialGradient(
-  colors = listOf(Color(0x3338BDF8), Color(0x0038BDF8))
+  colors = listOf(Color(0x0CF59E0B), Color.Transparent)
 )
 
 val LiquidGlowPurple = Brush.radialGradient(
-  colors = listOf(Color(0x28818CF8), Color(0x00818CF8))
+  colors = listOf(Color(0x0CF59E0B), Color.Transparent)
 )
 
 /**
- * High-level helper Modifier to turn any layout element into a frosted Liquid Glass card.
+ * Clean, tactile card modifier with sharp contrast and restrained border styling.
  */
 fun Modifier.liquidGlassCard(
-  shape: Shape = RoundedCornerShape(18.dp),
-  elevation: Dp = 8.dp,
+  shape: Shape = RoundedCornerShape(16.dp),
+  elevation: Dp = 2.dp,
   backgroundColor: Color = LiquidGlassSurface,
   borderBrush: Brush = LiquidGlassBorder,
   borderWidth: Dp = 1.dp
 ): Modifier = this
-  .shadow(elevation, shape, ambientColor = Color(0x40000000), spotColor = Color(0x66000000))
+  .shadow(elevation, shape, ambientColor = Color(0x33000000), spotColor = Color(0x4D000000))
   .clip(shape)
   .background(backgroundColor)
   .border(borderWidth, borderBrush, shape)
 
 /**
- * Modifier for elevated interactive glass buttons & highlighted badges
+ * Clean pill/badge modifier with clear contrast
  */
 fun Modifier.liquidGlassPill(
-  shape: Shape = RoundedCornerShape(12.dp),
+  shape: Shape = RoundedCornerShape(10.dp),
   isActive: Boolean = false,
   activeBorderBrush: Brush = LiquidGlassBorderGold
 ): Modifier = this
@@ -110,3 +107,4 @@ fun Modifier.liquidGlassPill(
     brush = if (isActive) activeBorderBrush else LiquidGlassBorderSubtle,
     shape = shape
   )
+

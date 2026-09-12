@@ -220,43 +220,98 @@ fun ReviewScreen(
     }
   }
 
-  // Move Classification & Accuracy Calculation
-  val analyzedGameMoves = remember(parsedGame) {
+  // Asynchronous Move Classification & True Engine Best-Move Analysis
+  var isAnalyzingGame by remember { mutableStateOf(false) }
+  var analysisProgress by remember { mutableStateOf(0f) }
+  var analyzedGameMoves by remember { mutableStateOf<List<AnalyzedMove>>(emptyList()) }
+
+  LaunchedEffect(parsedGame) {
     val moves = parsedGame?.moves ?: emptyList()
-    if (moves.isEmpty()) return@remember emptyList<AnalyzedMove>()
+    if (moves.isEmpty()) {
+      analyzedGameMoves = emptyList()
+      isAnalyzingGame = false
+      return@LaunchedEffect
+    }
+
+    isAnalyzingGame = true
+    analysisProgress = 0f
     val list = mutableListOf<AnalyzedMove>()
     var posBefore = Position.fromFen(Position.STARTING_FEN)
     var prevEval = Evaluation.cp(chessEngine.evaluateStatic(posBefore))
 
-    for (i in moves.indices) {
-      val m = moves[i]
-      val posAfter = m.positionAfter
-      val curCp = chessEngine.evaluateStatic(posAfter)
-      val curEval = Evaluation.cp(curCp)
-      val playerColor = posBefore.sideToMove
-      val isBook = i < 6
-      val bestMove = m.move
-      val classification = if (isBook) MoveClassification.BOOK else BlunderClassifier.classify(playerColor, prevEval, curEval, isBestMove = false)
-      val explanation = BlunderClassifier.generateExplanation(playerColor, m.move, posBefore, posAfter, classification, bestMove)
+    withContext(Dispatchers.Default) {
+      for (i in moves.indices) {
+        val m = moves[i]
+        val posAfter = m.positionAfter
+        val curCp = chessEngine.evaluateStatic(posAfter)
+        val curEval = Evaluation.cp(curCp)
+        val playerColor = posBefore.sideToMove
+        val isBook = i < 6
 
-      list.add(
-        AnalyzedMove(
-          moveIndex = i,
-          move = m.move,
+        // Correct Engine Best Move Calculation
+        val (engineBestMove, _) = chessEngine.findBestMove(posBefore, depth = 2)
+        val isMatch = m.move.from == engineBestMove.from && m.move.to == engineBestMove.to
+        val classification = if (isBook) {
+          MoveClassification.BOOK
+        } else {
+          BlunderClassifier.classify(playerColor, prevEval, curEval, isBestMove = isMatch)
+        }
+
+        val explanation = BlunderClassifier.generateExplanation(
           playerColor = playerColor,
+          move = m.move,
           positionBefore = posBefore,
           positionAfter = posAfter,
-          evalBefore = prevEval,
-          evalAfter = curEval,
-          bestMove = bestMove,
           classification = classification,
-          explanation = explanation
+          bestAlternative = engineBestMove
         )
-      )
-      posBefore = posAfter
-      prevEval = curEval
+
+        list.add(
+          AnalyzedMove(
+            moveIndex = i,
+            move = m.move,
+            playerColor = playerColor,
+            positionBefore = posBefore,
+            positionAfter = posAfter,
+            evalBefore = prevEval,
+            evalAfter = curEval,
+            bestMove = engineBestMove,
+            classification = classification,
+            explanation = explanation
+          )
+        )
+
+        posBefore = posAfter
+        prevEval = curEval
+        analysisProgress = (i + 1).toFloat() / moves.size
+      }
     }
-    list
+
+    analyzedGameMoves = list
+    isAnalyzingGame = false
+
+    // Update dynamic chapters if key blunders/turning points exist
+    val keyMoments = list.filter {
+      it.classification == MoveClassification.BLUNDER ||
+      it.classification == MoveClassification.MISTAKE ||
+      it.classification == MoveClassification.GREAT ||
+      it.classification == MoveClassification.BRILLIANT
+    }.take(5)
+
+    if (keyMoments.isNotEmpty()) {
+      chapters = keyMoments.map { km ->
+        GameReviewChapter(
+          moveNumber = (km.moveIndex + 2) / 2,
+          playerColor = km.playerColor,
+          move = km.move,
+          bestMove = km.bestMove,
+          classification = km.classification,
+          narrativeExplanation = km.explanation,
+          fenBefore = km.positionBefore.toFen()
+        )
+      }
+      selectedChapter = chapters.first()
+    }
   }
 
   val whiteAccuracy = remember(analyzedGameMoves) {
@@ -265,6 +320,7 @@ fun ReviewScreen(
   val blackAccuracy = remember(analyzedGameMoves) {
     BlunderClassifier.calculateAccuracy(analyzedGameMoves, PieceColor.BLACK)
   }
+
 
   // Drill Workout State for Spaced-Repetition Leitner Mode
   var isDrillActive by remember { mutableStateOf(false) }

@@ -34,3 +34,38 @@ data class UserProgress(
   val blundersCorrected: Int = 0,
   val currentDailyStreak: Int = 1
 )
+
+/**
+ * Persists user opening repertoire sets for White and Black.
+ */
+@Entity(tableName = "repertoire")
+data class RepertoireEntity(
+  @PrimaryKey(autoGenerate = true) val id: Long = 0,
+  val name: String,
+  val side: String, // "WHITE" or "BLACK"
+  val ecoFamily: String,
+  val description: String,
+  val totalLines: Int = 0,
+  val masteredLines: Int = 0,
+  val weakLines: Int = 0,
+  val createdAtTimestampMs: Long = System.currentTimeMillis()
+)
+
+/**
+ * A critical branch, variation move, or annotated position within a Repertoire.
+ */
+@Entity(tableName = "repertoire_position")
+data class RepertoirePositionEntity(
+  @PrimaryKey(autoGenerate = true) val id: Long = 0,
+  val repertoireId: Long,
+  val fen: String,
+  val parentFen: String? = null,
+  val moveUci: String,
+  val moveSan: String,
+  val coachNote: String = "",
+  val isCritical: Boolean = false,
+  val status: String = "LEARNING", // "KNOWN", "LEARNING", "WEAK"
+  val reviewCount: Int = 0,
+  val lastReviewedAt: Long = 0L
+)
+

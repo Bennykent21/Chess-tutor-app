@@ -33,42 +33,20 @@ fun LiquidGlassCanvas(
         )
       )
   ) {
-    // Atmospheric Refractive Light Bleeds for Glass Depth
+    // Clean, calm ambient atmosphere (single subtle warm tone)
     Canvas(modifier = Modifier.fillMaxSize()) {
       val w = size.width
       val h = size.height
 
-      // Top-right warm amber/gold atmospheric light
+      // Subtle warm ambient vignette at top
       drawCircle(
         brush = Brush.radialGradient(
-          colors = listOf(Color(0x22F59E0B), Color(0x08F59E0B), Color.Transparent),
-          center = Offset(w * 0.85f, h * 0.12f),
-          radius = w * 0.7f
+          colors = listOf(Color(0x0CF59E0B), Color.Transparent),
+          center = Offset(w * 0.5f, 0f),
+          radius = w * 0.85f
         ),
-        center = Offset(w * 0.85f, h * 0.12f),
-        radius = w * 0.7f
-      )
-
-      // Center-left subtle cyan glass caustics
-      drawCircle(
-        brush = Brush.radialGradient(
-          colors = listOf(Color(0x1538BDF8), Color(0x0538BDF8), Color.Transparent),
-          center = Offset(w * 0.1f, h * 0.45f),
-          radius = w * 0.8f
-        ),
-        center = Offset(w * 0.1f, h * 0.45f),
-        radius = w * 0.8f
-      )
-
-      // Bottom-right deep violet/indigo glass refraction
-      drawCircle(
-        brush = Brush.radialGradient(
-          colors = listOf(Color(0x18818CF8), Color(0x04818CF8), Color.Transparent),
-          center = Offset(w * 0.75f, h * 0.85f),
-          radius = w * 0.75f
-        ),
-        center = Offset(w * 0.75f, h * 0.85f),
-        radius = w * 0.75f
+        center = Offset(w * 0.5f, 0f),
+        radius = w * 0.85f
       )
     }
 
@@ -76,3 +54,4 @@ fun LiquidGlassCanvas(
     content()
   }
 }
+

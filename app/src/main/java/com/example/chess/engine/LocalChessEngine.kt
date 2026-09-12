@@ -155,10 +155,6 @@ class LocalChessEngine : EngineClient {
     // Score all candidate legal moves accurately from current player's perspective
     val scoredMoves = legalMoves.map { move ->
       val nextPos = LegalMoveGenerator.makeMove(position, move)
-      // If White moves, next position is Black to move (isMaximizing = false).
-      // White wants to maximize evaluation from White's perspective.
-      // If Black moves, next position is White to move (isMaximizing = true).
-      // Black wants to minimize evaluation from White's perspective (maximize -eval).
       val nextEval = minimax(
         nextPos,
         (level.depth - 1).coerceAtLeast(0),
@@ -181,6 +177,33 @@ class LocalChessEngine : EngineClient {
       scoredMoves[chosenIdx].move
     }
   }
+
+  /**
+   * Evaluates all legal moves and returns the best engine move and resulting evaluation.
+   */
+  suspend fun findBestMove(position: Position, depth: Int = 3): Pair<Move, Evaluation> = withContext(Dispatchers.Default) {
+    val legalMoves = LegalMoveGenerator.generateLegalMoves(position)
+    if (legalMoves.isEmpty()) error("No legal moves available in position")
+
+    val isWhite = position.sideToMove == PieceColor.WHITE
+    val scoredMoves = legalMoves.map { move ->
+      val nextPos = LegalMoveGenerator.makeMove(position, move)
+      val nextEval = minimax(
+        nextPos,
+        (depth - 1).coerceAtLeast(0),
+        -30000,
+        30000,
+        !isWhite
+      )
+      val playerPerspectiveScore = if (isWhite) nextEval else -nextEval
+      ScoredMove(move, playerPerspectiveScore)
+    }.sortedByDescending { it.score }
+
+    val top = scoredMoves.first()
+    val topScoreFromWhitePerspective = if (isWhite) top.score else -top.score
+    Pair(top.move, Evaluation.cp(topScoreFromWhitePerspective))
+  }
+
 
   private fun orderMoves(position: Position, moves: List<Move>): List<Move> {
     return moves.sortedByDescending { move ->

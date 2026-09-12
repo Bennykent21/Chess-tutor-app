@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import kotlinx.coroutines.Job
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -165,6 +166,7 @@ fun ArenaScreen(
 
   var isEngineThinking by remember { mutableStateOf(false) }
   var currentEval by remember { mutableStateOf(Evaluation.EVEN) }
+  var evalJob by remember { mutableStateOf<Job?>(null) }
 
   // Coach Whisper (4-Level Ladder in-game)
   var whisperLevel by remember { mutableStateOf(0) }
@@ -215,6 +217,8 @@ fun ArenaScreen(
   }
 
   fun restartGame(newFen: String = Position.STARTING_FEN) {
+    evalJob?.cancel()
+    evalJob = null
     position = Position.fromFen(newFen)
     playedMoves.clear()
     positionHistory.clear()
@@ -234,6 +238,7 @@ fun ArenaScreen(
     blackTimeMillis = selectedTimeControl.baseSeconds * 1000L
     if (soundEnabled) soundEffects.playHint()
   }
+
 
   fun generatePgnString(): String {
     val sb = StringBuilder()
@@ -267,6 +272,8 @@ fun ArenaScreen(
   }
 
   fun takebackMove() {
+    evalJob?.cancel()
+    evalJob = null
     if (isEngineThinking) return
     if (playedMoves.size >= 2 && positionHistory.size >= 2) {
       playedMoves.removeAt(playedMoves.size - 1)
@@ -294,6 +301,7 @@ fun ArenaScreen(
       if (soundEnabled) soundEffects.playHint()
     }
   }
+
 
   // Sound cues on game finish
   LaunchedEffect(gameStatus) {
@@ -393,8 +401,9 @@ fun ArenaScreen(
     }
 
     // Evaluate whether this move was a blunder & record to Room database
-    coroutineScope.launch {
-      val bestEngineMove = engine.selectMove(Position.fromFen(fenBefore), TrainingLevel.ADVANCED_1600)
+    evalJob?.cancel()
+    evalJob = coroutineScope.launch {
+      val (bestEngineMove, _) = engine.findBestMove(Position.fromFen(fenBefore), depth = 2)
       val newEval = engine.evaluatePosition(nextPos, depth = 3)
       val prevCp = prevEval.centipawns ?: 0
       val newCp = newEval.centipawns ?: 0
@@ -415,7 +424,7 @@ fun ArenaScreen(
       )
 
       // If evaluation dropped significantly (> 180 centipawns) and was not the best move
-      if (delta > 180 && moveAttempt != bestEngineMove) {
+      if (delta > 180 && moveAttempt.uci != bestEngineMove.uci) {
         val deltaPawns = delta / 100f
         val explanation = "In this position, playing ${moveAttempt.uci} surrendered $deltaPawns pawns of evaluation. Best move was ${bestEngineMove.uci}."
         

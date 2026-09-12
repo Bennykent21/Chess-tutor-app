@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,10 +55,13 @@ import com.example.chess.coaching.CurriculumLesson
 import com.example.chess.coaching.CurriculumRepository
 import com.example.chess.core.Move
 import com.example.chess.core.Position
+import com.example.chess.data.ChessDatabaseProvider
 import com.example.chess.openings.OpeningBranch
 import com.example.chess.openings.OpeningTreeRepository
+import com.example.chess.repertoire.RepertoireRepository
 import com.example.chess.ui.components.CoachDialogueDeck
 import com.example.chess.ui.components.InteractiveChessBoard
+
 import com.example.chess.ui.theme.CoachAccentGold
 import com.example.chess.ui.theme.CoachBadgeBg
 import com.example.chess.ui.theme.CoachPrimary
@@ -73,6 +78,7 @@ import com.example.chess.ui.theme.TextMuted
 import com.example.chess.ui.theme.TextTitle
 
 enum class CurriculumSubTab {
+  REPERTOIRE,
   MASTERCLASSES,
   OPENING_TREE
 }
@@ -87,13 +93,20 @@ fun CurriculumScreen(
   onPracticePositionInArena: (String, String) -> Unit, // (startingFen, lessonTitle)
   modifier: Modifier = Modifier
 ) {
+  val context = LocalContext.current
+  val dao = remember { ChessDatabaseProvider.getDatabase(context).chessDao() }
+  LaunchedEffect(Unit) {
+    RepertoireRepository.seedDefaultsIfEmpty(dao)
+  }
+
   val voiceCoach = rememberVoiceCoach()
   val soundEffects = rememberChessSoundEffects()
   var soundEnabled by remember { mutableStateOf(true) }
-  var selectedSubTab by remember { mutableStateOf(CurriculumSubTab.MASTERCLASSES) }
+  var selectedSubTab by remember { mutableStateOf(CurriculumSubTab.REPERTOIRE) }
   var activeLesson by remember { mutableStateOf<CurriculumLesson?>(null) }
   var currentStepIndex by remember { mutableStateOf(0) }
   var currentHintLevel by remember { mutableStateOf(0) }
+
 
   // State for Opening Tree Explorer
   var explorerPosition by remember { mutableStateOf(Position.initial()) }
@@ -325,7 +338,11 @@ fun CurriculumScreen(
           letterSpacing = 1.sp
         )
         Text(
-          text = if (selectedSubTab == CurriculumSubTab.MASTERCLASSES) "Curriculum Masterclasses" else "Opening Tree Explorer",
+          text = when (selectedSubTab) {
+            CurriculumSubTab.REPERTOIRE -> "Repertoire Studio"
+            CurriculumSubTab.MASTERCLASSES -> "Masterclasses"
+            CurriculumSubTab.OPENING_TREE -> "Opening Explorer"
+          },
           color = TextTitle,
           fontSize = 20.sp,
           fontWeight = FontWeight.Bold
@@ -342,9 +359,24 @@ fun CurriculumScreen(
         Box(
           modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
+            .background(if (selectedSubTab == CurriculumSubTab.REPERTOIRE) CoachPrimary else Color.Transparent)
+            .clickable { selectedSubTab = CurriculumSubTab.REPERTOIRE }
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+        ) {
+          Text(
+            text = "Repertoire",
+            color = if (selectedSubTab == CurriculumSubTab.REPERTOIRE) Color(0xFF0F1115) else TextMuted,
+            fontSize = 11.5.sp,
+            fontWeight = FontWeight.Bold
+          )
+        }
+
+        Box(
+          modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
             .background(if (selectedSubTab == CurriculumSubTab.MASTERCLASSES) CoachPrimary else Color.Transparent)
             .clickable { selectedSubTab = CurriculumSubTab.MASTERCLASSES }
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
           Text(
             text = "Classes",
@@ -359,10 +391,10 @@ fun CurriculumScreen(
             .clip(RoundedCornerShape(10.dp))
             .background(if (selectedSubTab == CurriculumSubTab.OPENING_TREE) CoachPrimary else Color.Transparent)
             .clickable { selectedSubTab = CurriculumSubTab.OPENING_TREE }
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
           Text(
-            text = "Opening Tree",
+            text = "Tree",
             color = if (selectedSubTab == CurriculumSubTab.OPENING_TREE) Color(0xFF0F1115) else TextMuted,
             fontSize = 11.5.sp,
             fontWeight = FontWeight.Bold
@@ -371,23 +403,36 @@ fun CurriculumScreen(
       }
     }
 
-    if (selectedSubTab == CurriculumSubTab.MASTERCLASSES) {
-      LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-      ) {
-        items(CurriculumRepository.allLessons) { lesson ->
-          CurriculumLessonCard(
-            lesson = lesson,
-            onClick = {
-              activeLesson = lesson
-              currentStepIndex = 0
-              currentHintLevel = 0
-            }
-          )
+    when (selectedSubTab) {
+      CurriculumSubTab.REPERTOIRE -> {
+        RepertoireStudioView(
+          dao = dao,
+          soundEnabled = soundEnabled,
+          soundEffects = soundEffects,
+          voiceCoach = voiceCoach,
+          onPracticePositionInArena = onPracticePositionInArena,
+          modifier = Modifier.fillMaxSize()
+        )
+      }
+      CurriculumSubTab.MASTERCLASSES -> {
+        LazyColumn(
+          modifier = Modifier.fillMaxSize(),
+          verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+          items(CurriculumRepository.allLessons) { lesson ->
+            CurriculumLessonCard(
+              lesson = lesson,
+              onClick = {
+                activeLesson = lesson
+                currentStepIndex = 0
+                currentHintLevel = 0
+              }
+            )
+          }
         }
       }
-    } else {
+      CurriculumSubTab.OPENING_TREE -> {
+
       // Opening Tree Explorer Screen
       val branches = OpeningTreeRepository.getBranchesForPosition(explorerPosition)
 
@@ -580,6 +625,7 @@ fun CurriculumScreen(
       }
     }
   }
+}
 }
 
 @Composable
