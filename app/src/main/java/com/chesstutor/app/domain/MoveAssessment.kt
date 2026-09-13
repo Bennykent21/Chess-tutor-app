@@ -14,7 +14,9 @@ enum class VerifiedConsequence {
     MISSED_FORCED_MATE,
     WALKED_INTO_FORCED_MATE,
     MATERIAL_LOST_BY_FORCE,
-    HANGING_PIECE
+    HANGING_PIECE,
+    FORK_OPPORTUNITY_MISSED,
+    ALLOWED_ENEMY_FORK
 }
 
 data class SearchConfidence(val depth: Int?, val nodes: Long?)

@@ -194,6 +194,81 @@ fun ArenaScreen(
             }
         }
 
+        // Engine Diagnostics & Smoke Test
+        AcademyCard(sectionLabel = "Engine Diagnostics (Smoke Test)") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Verify subprocess execution, UCI pipes, depth, and evaluation.",
+                    style = ChessTutorTypography.bodyMedium,
+                    color = ChessTutorColors.TextSecondary
+                )
+
+                Button(
+                    onClick = { viewModel.runEngineDiagnostics() },
+                    enabled = !state.isRunningDiagnostics,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ChessTutorColors.SurfaceElevated,
+                        contentColor = ChessTutorColors.Primary
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(if (state.isRunningDiagnostics) "Running 1000ms Analysis..." else "Run Engine Smoke Test")
+                }
+
+                state.engineDiagnostics?.let { diag ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ChessTutorColors.SurfaceElevated, RoundedCornerShape(8.dp))
+                            .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(8.dp))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Engine: ${diag.engineName}",
+                            style = ChessTutorTypography.titleMedium,
+                            color = ChessTutorColors.Primary
+                        )
+                        Text(
+                            text = "Status: ${if (diag.isAlive) "Active (Subprocess Alive)" else "Disposed / Offline"}",
+                            style = ChessTutorTypography.bodyMedium,
+                            color = if (diag.isAlive) Color(0xFF10B981) else Color(0xFFEF4444)
+                        )
+                        Text(
+                            text = "Best Move: ${diag.bestMove}",
+                            style = ChessTutorTypography.bodyMedium,
+                            color = ChessTutorColors.TextPrimary
+                        )
+                        Text(
+                            text = "Evaluation: ${diag.centipawns?.let { "$it cp" } ?: "N/A"}",
+                            style = ChessTutorTypography.bodyMedium,
+                            color = ChessTutorColors.TextPrimary
+                        )
+                        Text(
+                            text = "Depth Reached: ${diag.depth ?: "N/A"}",
+                            style = ChessTutorTypography.bodyMedium,
+                            color = ChessTutorColors.TextPrimary
+                        )
+                        if (diag.pv.isNotBlank()) {
+                            Text(
+                                text = "Principal Variation: ${diag.pv}",
+                                style = ChessTutorTypography.bodyMedium,
+                                color = ChessTutorColors.TextSecondary
+                            )
+                        }
+                        Text(
+                            text = "Execution Latency: ${diag.latencyMs} ms",
+                            style = ChessTutorTypography.labelSmall,
+                            color = ChessTutorColors.TextSecondary
+                        )
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
     }
 }

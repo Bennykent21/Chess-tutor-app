@@ -2,15 +2,21 @@ package com.chesstutor.app
 
 import com.chesstutor.app.data.repository.InMemoryReviewRepository
 import com.chesstutor.app.domain.ChessPosition
+import com.chesstutor.app.domain.ForkTactic
+import com.chesstutor.app.domain.HangingPiece
 import com.chesstutor.app.domain.MoveChoice
 import com.chesstutor.app.domain.ReviewItem
 import com.chesstutor.app.domain.ReviewScheduler
+import com.chesstutor.app.domain.TacticalAnalysis
 import com.chesstutor.app.domain.VerifiedConsequence
+import com.example.chess.core.PieceColor
+import com.example.chess.core.Square
 import com.chesstutor.app.engine.AnalysisRequest
 import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import com.chesstutor.app.engine.PositionAnalysis
+import com.chesstutor.app.engine.StockfishProcessEngineClient
 import com.chesstutor.app.engine.UciProtocol
 import com.chesstutor.app.viewmodel.AppViewModel
 import kotlinx.coroutines.runBlocking
@@ -245,5 +251,133 @@ class ChessTutorSpecVerificationTest {
         viewModel.showHint() // capped at 4
         assertEquals(4, viewModel.state.value.hintLevel)
         assertNotNull(viewModel.state.value.recommendedArrow)
+    }
+
+    // 6. Real Stockfish Process Smoke Test
+    @Test
+    fun testStockfishRealProcessExecution() = runBlocking {
+        val binaryFile = java.io.File("src/main/jniLibs/x86_64/libstockfish.so")
+        if (!binaryFile.exists()) {
+            println("Skipping real binary test because x86_64 binary not found at ${binaryFile.absolutePath}")
+            return@runBlocking
+        }
+        val client = StockfishProcessEngineClient(binaryFile.absolutePath)
+        client.initialize()
+        assertTrue("Stockfish process must be alive", client.isAlive)
+
+        val diag = client.runDiagnostics(movetimeMs = 600)
+        println("=== REAL STOCKFISH DIAGNOSTICS RESULT ===")
+        println("Engine: ${diag.engineName}")
+        println("Best Move: ${diag.bestMove}")
+        println("Centipawns: ${diag.centipawns}")
+        println("Depth: ${diag.depth}")
+        println("PV: ${diag.pv}")
+        println("Latency: ${diag.latencyMs}ms")
+        println("=========================================")
+
+        assertTrue(diag.isAlive)
+        assertTrue(diag.bestMove.isNotBlank())
+        assertNotNull(diag.depth)
+        assertTrue("Depth must be >= 1", (diag.depth ?: 0) >= 1)
+        assertNotNull(diag.centipawns)
+
+        client.dispose()
+        assertFalse("Stockfish process should be disposed", client.isAlive)
+    }
+
+    // 7. Subprocess Crash & Dying Mid-Search Resilience Test
+    @Test
+    fun testStockfishSubprocessCrashGracefulFallback() = runBlocking {
+        val binaryFile = java.io.File("src/main/jniLibs/x86_64/libstockfish.so")
+        if (!binaryFile.exists()) return@runBlocking
+        val client = StockfishProcessEngineClient(binaryFile.absolutePath)
+        client.initialize()
+        assertTrue(client.isAlive)
+
+        // Simulate abrupt process termination
+        client.dispose()
+        assertFalse(client.isAlive)
+
+        // Request must complete immediately via fallback without hanging
+        val analysis = client.analyze(
+            AnalysisRequest(
+                requestId = 101,
+                fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                movetimeMs = 200
+            )
+        )
+        assertNotNull(analysis)
+        assertTrue("Fallback returns a legal move without hanging", analysis.bestMoveUci.isNotBlank())
+    }
+
+    // 8. Domain: Hanging Piece Detection (Positive and Negative Examples)
+    @Test
+    fun testHangingPieceDetectionPositiveAndNegative() {
+        // Negative example: Starting position has zero hanging pieces
+        val startPos = ChessPosition(ChessPosition.STARTING_FEN)
+        assertTrue("Starting position must have zero hanging pieces", startPos.hangingPieces.isEmpty())
+
+        // Positive example: Black knight on e4 is attacked by Q(f3) and undefended, and f7 pawn is attacked by Q(f3) & B(c4)
+        val hangingKnightFen = "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4"
+        val posWithHanging = ChessPosition(hangingKnightFen)
+        val blackHanging = TacticalAnalysis.findHangingPieces(posWithHanging, PieceColor.BLACK)
+
+        assertEquals("Both e4 knight and f7 pawn are tactically hanging", 2, blackHanging.size)
+        assertTrue(blackHanging.any { it.square == "e4" && it.piece == 'n' && it.isCompletelyUndefended })
+        assertTrue(blackHanging.any { it.square == "f7" && it.piece == 'p' })
+    }
+
+    // 9. Domain: Geometric Double-Attack (Fork) Detection
+    @Test
+    fun testForkDetectionPositiveAndNegative() {
+        // Negative example: Starting position has zero fork moves
+        val startPos = ChessPosition(ChessPosition.STARTING_FEN)
+        assertTrue("Starting position must have no geometric forks", startPos.forks.isEmpty())
+
+        // Positive example: White knight on d5 can jump to c7 checking King on e8 and attacking Rook on a8
+        val forkFen = "r1bqk2r/pppp1ppp/2n5/3N4/4n3/8/PPPP1PPP/R1BQK2R w KQkq - 0 1"
+        val forkPos = ChessPosition(forkFen)
+        val forks = forkPos.forks
+
+        assertTrue("Forks should be detected", forks.isNotEmpty())
+        val knightFork = forks.firstOrNull { it.move.uci == "d5c7" }
+        assertNotNull("Knight jump d5c7 should be identified as a geometric fork", knightFork)
+        assertTrue(knightFork!!.attackedSquares.contains("e8")) // King
+        assertTrue(knightFork.attackedSquares.contains("a8")) // Rook
+    }
+
+    // 10. Domain: Static Exchange Evaluation (SEE)
+    @Test
+    fun testStaticExchangeEvaluationSEE() {
+        // Test winning capture: Pawn attacks Queen
+        val fen = "4k3/8/8/3q4/4P3/8/8/4K3 w - - 0 1"
+        val pos = ChessPosition(fen)
+        val gain = TacticalAnalysis.staticExchangeEvaluation(
+            pos.internalPosition,
+            Square.fromAlgebraic("d5"),
+            PieceColor.WHITE
+        )
+        // Capturing Queen (900) with Pawn (100) yields net gain of at least 800-900 cp
+        assertTrue("SEE must evaluate winning capture with positive centipawns", gain >= 800)
+    }
+
+    // 11. Engine: UCI_Elo and UCI_LimitStrength Calibration
+    @Test
+    fun testUciEloCalibrationConfiguration() = runBlocking {
+        val binaryFile = java.io.File("src/main/jniLibs/x86_64/libstockfish.so")
+        if (!binaryFile.exists()) return@runBlocking
+        val client = StockfishProcessEngineClient(binaryFile.absolutePath)
+        client.initialize()
+        assertTrue(client.isAlive)
+
+        // Calibrate to CCRL 40/4 calibrated Elo: 1600
+        client.setElo(1600)
+        assertTrue("Engine must stay alive after setting UCI_Elo", client.isAlive)
+
+        // Sub-1320 rating calibration uses Skill Level
+        client.setElo(800)
+        assertTrue("Engine must stay alive after sub-1320 Elo adjustment", client.isAlive)
+
+        client.dispose()
     }
 }

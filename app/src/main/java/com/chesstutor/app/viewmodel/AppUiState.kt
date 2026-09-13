@@ -30,5 +30,7 @@ data class AppUiState(
     val arenaStatusText: String = "",
     val evaluationCp: Int? = null,
     val mateIn: Int? = null,
-    val curriculumLessonId: String? = null
+    val curriculumLessonId: String? = null,
+    val engineDiagnostics: com.chesstutor.app.engine.EngineDiagnostics? = null,
+    val isRunningDiagnostics: Boolean = false
 )

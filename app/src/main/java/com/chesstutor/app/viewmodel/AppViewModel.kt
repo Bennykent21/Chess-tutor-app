@@ -482,4 +482,57 @@ class AppViewModel(
             )
         }
     }
+
+    fun runEngineDiagnostics() {
+        if (_state.value.isRunningDiagnostics) return
+        _state.update { it.copy(isRunningDiagnostics = true) }
+        viewModelScope.launch {
+            try {
+                val diag = if (engine is com.chesstutor.app.engine.StockfishProcessEngineClient) {
+                    engine.runDiagnostics(movetimeMs = 1000)
+                } else {
+                    val start = System.currentTimeMillis()
+                    val res = engine.analyze(
+                        AnalysisRequest(
+                            requestId = 9999,
+                            fen = ChessPosition.STARTING_FEN,
+                            movetimeMs = 1000
+                        )
+                    )
+                    com.chesstutor.app.engine.EngineDiagnostics(
+                        engineName = "Fallback Engine (Local)",
+                        isAlive = true,
+                        bestMove = res.bestMoveUci,
+                        centipawns = res.centipawns,
+                        depth = res.depth,
+                        pv = res.principalVariation.joinToString(" "),
+                        latencyMs = System.currentTimeMillis() - start
+                    )
+                }
+                android.util.Log.i("StockfishDiagnostics", "Engine diagnostics: $diag")
+                _state.update {
+                    it.copy(
+                        isRunningDiagnostics = false,
+                        engineDiagnostics = diag
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("StockfishDiagnostics", "Diagnostics failed", e)
+                _state.update {
+                    it.copy(
+                        isRunningDiagnostics = false,
+                        engineDiagnostics = com.chesstutor.app.engine.EngineDiagnostics(
+                            engineName = "Engine Error",
+                            isAlive = false,
+                            bestMove = "Error: ${e.message}",
+                            centipawns = null,
+                            depth = null,
+                            pv = "",
+                            latencyMs = 0
+                        )
+                    )
+                }
+            }
+        }
+    }
 }

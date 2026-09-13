@@ -54,6 +54,22 @@ class ChessPosition(fen: String? = null) {
         }
     }
 
+    /**
+     * Identifies pieces of the side to move that are currently hanging
+     * (undefended or vulnerable via Static Exchange Evaluation).
+     */
+    val hangingPieces: List<HangingPiece> by lazy {
+        TacticalAnalysis.findHangingPieces(this)
+    }
+
+    /**
+     * Identifies tactical moves in this position that execute a geometric fork
+     * (simultaneous double attack against 2+ significant enemy pieces).
+     */
+    val forks: List<ForkTactic> by lazy {
+        TacticalAnalysis.findForks(this)
+    }
+
     fun play(move: MoveChoice): Boolean {
         val allLegal = LegalMoveGenerator.generateLegalMoves(currentPosition)
         val matched = allLegal.firstOrNull { it.uci == move.uci } ?: return false
