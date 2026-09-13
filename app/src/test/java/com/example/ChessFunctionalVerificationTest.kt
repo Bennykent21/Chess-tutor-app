@@ -109,5 +109,53 @@ class ChessFunctionalVerificationTest {
       db.close()
     }
   }
+
+  @Test
+  fun testStockfishProfileAndAdjustableElo() {
+    val novice = com.example.chess.engine.StockfishProfile.forElo(600)
+    assertEquals(600, novice.elo)
+    assertEquals(1, novice.depth)
+    assertTrue("Novice has higher blunder chance", novice.blunderProbability > 0.4f)
+
+    val master = com.example.chess.engine.StockfishProfile.forElo(2400)
+    assertEquals(2400, master.elo)
+    assertEquals(4, master.depth)
+    assertEquals(0.0f, master.blunderProbability, 0.001f)
+
+    val mid = com.example.chess.engine.StockfishProfile.forElo(1450)
+    assertTrue("Should round to nearest profile", mid.elo in 1200..1500)
+  }
+
+  @Test
+  fun testEvaluationWinningPercentageForEvalBar() {
+    val even = com.example.chess.engine.Evaluation.EVEN
+    assertEquals(0.5f, even.winningPercentageWhite(), 0.02f)
+
+    val whiteAdvantage = com.example.chess.engine.Evaluation.cp(400) // +4.00 pawns
+    assertTrue("White winning percentage should be significantly > 0.5", whiteAdvantage.winningPercentageWhite() > 0.70f)
+
+    val blackAdvantage = com.example.chess.engine.Evaluation.cp(-400) // -4.00 pawns
+    assertTrue("Black winning percentage should be significantly < 0.5", blackAdvantage.winningPercentageWhite() < 0.30f)
+
+    val mateWhite = com.example.chess.engine.Evaluation.mate(2)
+    assertEquals(0.98f, mateWhite.winningPercentageWhite(), 0.01f)
+  }
+
+  @Test
+  fun testMoveAnalysisClassification() = runBlocking {
+    val engine = LocalChessEngine()
+    val initial = Position.initial()
+    val e4Move = Move.fromUci("e2e4")
+    val analysis = engine.analyzeMove(initial, e4Move)
+
+    assertNotNull(analysis)
+    assertTrue("e4 is a top tier opening move",
+      analysis.quality == com.example.chess.engine.MoveQuality.BEST ||
+      analysis.quality == com.example.chess.engine.MoveQuality.EXCELLENT ||
+      analysis.quality == com.example.chess.engine.MoveQuality.GOOD
+    )
+    assertTrue(analysis.explanation.isNotEmpty())
+  }
 }
+
 

@@ -27,6 +27,21 @@ data class Evaluation(
   }
 
   /**
+   * Returns a 0.0 to 1.0 fraction representing White's advantage for the Eval Bar.
+   * 0.5 = dead equal, 1.0 = White crushing/mate, 0.0 = Black crushing/mate.
+   */
+  fun winningPercentageWhite(): Float {
+    if (mateInMoves != null) {
+      return if (mateInMoves > 0) 0.98f else 0.02f
+    }
+    val cp = centipawns ?: 0
+    // Standard chess engine sigmoid: 1 / (1 + 10^(-cp / 400))
+    val exponent = -cp.toDouble() / 400.0
+    val winRate = 1.0 / (1.0 + Math.pow(10.0, exponent))
+    return winRate.toFloat().coerceIn(0.04f, 0.96f)
+  }
+
+  /**
    * Returns evaluation score relative to active player
    */
   fun scoreForSide(color: PieceColor): Float {
@@ -45,6 +60,57 @@ data class Evaluation(
     fun mate(moves: Int) = Evaluation(mateInMoves = moves)
   }
 }
+
+/**
+ * Adjustable Stockfish Engine Profile with calibrated skill level,
+ * depth, candidate move selection, and human-like inaccuracy chance.
+ */
+data class StockfishProfile(
+  val elo: Int,
+  val title: String,
+  val category: String,
+  val depth: Int,
+  val blunderProbability: Float,
+  val maxCandidatePool: Int
+) {
+  companion object {
+    val PRESETS = listOf(
+      StockfishProfile(600, "Novice", "Beginner", 1, 0.48f, 6),
+      StockfishProfile(900, "Casual", "Beginner", 1, 0.35f, 5),
+      StockfishProfile(1200, "Intermediate", "Club", 2, 0.20f, 4),
+      StockfishProfile(1500, "Advanced", "Club", 2, 0.10f, 3),
+      StockfishProfile(1800, "Expert", "Tournament", 3, 0.04f, 2),
+      StockfishProfile(2100, "Master", "FIDE Master", 3, 0.01f, 2),
+      StockfishProfile(2400, "Grandmaster", "GM", 4, 0.00f, 1),
+      StockfishProfile(2600, "Stockfish Max", "Engine", 4, 0.00f, 1)
+    )
+
+    fun forElo(elo: Int): StockfishProfile {
+      val clamped = elo.coerceIn(600, 2600)
+      return PRESETS.minByOrNull { kotlin.math.abs(it.elo - clamped) }
+        ?: PRESETS[2]
+    }
+  }
+}
+
+enum class MoveQuality(val label: String, val badge: String) {
+  BEST("Best Move", "★"),
+  EXCELLENT("Excellent", "✦"),
+  GOOD("Good", "✓"),
+  INACCURACY("Inaccuracy", "?!"),
+  MISTAKE("Mistake", "?"),
+  BLUNDER("Blunder", "??")
+}
+
+data class MoveAnalysisResult(
+  val quality: MoveQuality,
+  val playedMove: Move,
+  val bestMove: Move,
+  val evalBefore: Evaluation,
+  val evalAfter: Evaluation,
+  val evalDiffCentipawns: Int,
+  val explanation: String
+)
 
 /**
  * Training Levels with calibrated ELO ratings and top-N move probability distribution.

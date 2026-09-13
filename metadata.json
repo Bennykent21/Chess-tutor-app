@@ -1,6 +1,6 @@
 {
   "name": "Chess Tutor",
-  "description": "Concept-first chess coach with pedagogical hints, contextual practice arena, and mistake spaced repetition",
+  "description": "Clean, beautiful chess trainer with adjustable Stockfish engine, live advantage evaluation bar, daily tactical puzzles, and opening masterclasses",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

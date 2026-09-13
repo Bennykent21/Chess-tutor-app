@@ -15,9 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AutoGraph
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -42,10 +42,10 @@ import com.example.chess.ui.theme.TextMuted
 import com.example.chess.ui.theme.TextTitle
 
 enum class ChessAppTab(val label: String, val icon: ImageVector) {
-  COACH("COACH", Icons.Default.School),
-  CURRICULUM("CURRICULUM", Icons.Default.MenuBook),
-  ARENA("ARENA", Icons.Default.SportsEsports),
-  REVIEW("REVIEW", Icons.Default.AutoGraph)
+  PLAY("Play", Icons.Default.SportsEsports),
+  ANALYZE("Analyze", Icons.Default.AutoGraph),
+  PUZZLES("Puzzles", Icons.Default.Extension),
+  LEARN("Learn", Icons.AutoMirrored.Filled.MenuBook)
 }
 
 /**
