@@ -104,14 +104,23 @@ fun ReviewScreen(
 
         // Active Review Board
         if (state.activeReviewItem != null) {
-            ChessBoard(
-                fen = state.fen,
-                selectedSquare = state.selectedSquare,
-                legalTargets = state.legalTargets,
-                lastMove = state.lastMove,
-                recommendedArrow = state.recommendedArrow,
-                onSquareTapped = { square -> viewModel.onSquareTapped(square) }
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(ChessTutorColors.SurfaceElevated)
+                    .border(1.5.dp, ChessTutorColors.Border, RoundedCornerShape(16.dp))
+                    .padding(6.dp)
+            ) {
+                ChessBoard(
+                    fen = state.fen,
+                    selectedSquare = state.selectedSquare,
+                    legalTargets = state.legalTargets,
+                    lastMove = state.lastMove,
+                    recommendedArrow = state.recommendedArrow,
+                    onSquareTapped = { square -> viewModel.onSquareTapped(square) }
+                )
+            }
 
             // Result banner
             AnimatedVisibility(visible = state.reviewSolved) {
@@ -185,18 +194,109 @@ fun ReviewScreen(
                 }
             }
         } else {
-            // Empty state
+            // Enhanced Encouraging Empty State with Queue Preview
             AcademyCard(sectionLabel = "Queue Status") {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0x2210B981))
+                            .border(1.dp, ChessTutorColors.Success, RoundedCornerShape(12.dp))
+                            .padding(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = ChessTutorColors.Success,
+                            modifier = Modifier.width(28.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Your Review Queue is Clean!",
+                            style = ChessTutorTypography.titleMedium,
+                            color = ChessTutorColors.Success
+                        )
+                        Text(
+                            text = "No pending mistakes due today.",
+                            style = ChessTutorTypography.bodyMedium,
+                            color = ChessTutorColors.TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
                 Text(
-                    text = "No Mistakes Currently Queued",
-                    style = ChessTutorTypography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Play in the Coach loop or sparring in the Arena. Any missed mate-in-one or verified blunder will automatically be captured here for spaced review.",
+                    text = "As you play against Stockfish in the Arena or train in the Coach loop, any missed mate-in-one or tactical oversight is automatically scheduled for spaced repetition memory drills.",
                     style = ChessTutorTypography.bodyMedium,
                     color = ChessTutorColors.TextSecondary
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Queue Preview Card Mockup
+                Text(
+                    text = "WHAT A QUEUED REVIEW LOOKS LIKE",
+                    style = ChessTutorTypography.labelSmall,
+                    color = ChessTutorColors.Primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(ChessTutorColors.SurfaceElevated)
+                        .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(12.dp))
+                        .padding(14.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "TACTICAL DEFENSE • STAGE 1",
+                                style = ChessTutorTypography.labelSmall,
+                                color = ChessTutorColors.Primary
+                            )
+                            Text(
+                                text = "Due in 3 days",
+                                style = ChessTutorTypography.labelSmall,
+                                color = ChessTutorColors.TextSecondary
+                            )
+                        }
+                        Text(
+                            text = "Back-Rank Vulnerability: King trapped behind pawns.",
+                            style = ChessTutorTypography.titleSmall,
+                            color = ChessTutorColors.TextPrimary
+                        )
+                        Text(
+                            text = "• Correct solve: Advances stage (1d → 3d → 7d → 14d → 30d)\n• Failed move: Resets stage to immediate review with 4-level hint ladder.",
+                            style = ChessTutorTypography.bodyMedium,
+                            color = ChessTutorColors.TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { viewModel.loadSampleMistakeForReview() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ChessTutorColors.Primary,
+                        contentColor = ChessTutorColors.Background
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Lightbulb, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Load Sample Mistake to Test Queue")
+                }
             }
         }
 

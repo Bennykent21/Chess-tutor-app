@@ -3,6 +3,7 @@ package com.chesstutor.app.ui.arena
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,15 +18,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +50,7 @@ import com.chesstutor.app.ui.theme.ChessTutorTypography
 import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArenaScreen(
     state: AppUiState,
@@ -46,7 +58,8 @@ fun ArenaScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    val difficulties = listOf("Beginner", "Casual", "Intermediate", "Advanced")
+    val opponentSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val diagnosticsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Column(
         modifier = modifier
@@ -56,13 +69,14 @@ fun ArenaScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Header & Opponent Badge Card
         AcademyCard(sectionLabel = "Engine Arena") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Stockfish Sparring",
                         style = ChessTutorTypography.titleLarge
@@ -74,59 +88,106 @@ fun ArenaScreen(
                     )
                 }
 
-                Button(
-                    onClick = { viewModel.resetArenaGame() },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ChessTutorColors.SurfaceElevated,
-                        contentColor = ChessTutorColors.Primary
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "New Game")
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("New")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // Engine Diagnostics & Smoke Test Modal Trigger (Keeps main screen clean)
+                    IconButton(
+                        onClick = { viewModel.setEngineDiagnosticsDialogVisible(true) },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(ChessTutorColors.SurfaceElevated)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.BugReport,
+                            contentDescription = "Engine Diagnostics",
+                            tint = ChessTutorColors.Primary
+                        )
+                    }
+
+                    // Reset Match
+                    IconButton(
+                        onClick = { viewModel.resetArenaGame() },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(ChessTutorColors.SurfaceElevated)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "New Game",
+                            tint = ChessTutorColors.Primary
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = "PRESET BOT TIERS (FALLBACK)", style = ChessTutorTypography.labelSmall)
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+
+            // Opponent Tuning Bar (Click to open Pre-Game Setup Sheet)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ChessTutorColors.SurfaceElevated)
+                    .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(12.dp))
+                    .clickable { viewModel.setArenaOpponentSheetVisible(true) }
+                    .padding(12.dp)
             ) {
-                difficulties.forEach { diff ->
-                    val selected = !state.useLinkedRatingForBot && state.arenaDifficulty == diff
-                    FilterChip(
-                        selected = selected,
-                        onClick = { viewModel.setArenaDifficulty(diff) },
-                        label = { Text(diff) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = ChessTutorColors.Primary,
-                            selectedLabelColor = ChessTutorColors.Background,
-                            containerColor = ChessTutorColors.SurfaceElevated,
-                            labelColor = ChessTutorColors.TextPrimary
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            tint = ChessTutorColors.Primary,
+                            modifier = Modifier.width(20.dp)
                         )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "OPPONENT CALIBRATION",
+                                style = ChessTutorTypography.labelSmall,
+                                color = ChessTutorColors.Primary
+                            )
+                            Text(
+                                text = state.botTuningDescription,
+                                style = ChessTutorTypography.titleSmall,
+                                color = ChessTutorColors.TextPrimary
+                            )
+                        }
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = "Change Opponent",
+                        tint = ChessTutorColors.Primary
                     )
                 }
             }
         }
 
-        // Rating Linking and Bot Tuning
-        RatingLinkCard(
-            state = state,
-            viewModel = viewModel
-        )
-
-        // Live Board
-        ChessBoard(
-            fen = state.fen,
-            selectedSquare = state.selectedSquare,
-            legalTargets = state.legalTargets,
-            lastMove = state.lastMove,
-            recommendedArrow = state.recommendedArrow,
-            onSquareTapped = { square -> viewModel.onSquareTapped(square) }
-        )
+        // Live Chess Board (Hero visual priority with crisp framing)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(ChessTutorColors.SurfaceElevated)
+                .border(1.5.dp, ChessTutorColors.Border, RoundedCornerShape(16.dp))
+                .padding(8.dp)
+        ) {
+            ChessBoard(
+                fen = state.fen,
+                selectedSquare = state.selectedSquare,
+                legalTargets = state.legalTargets,
+                lastMove = state.lastMove,
+                recommendedArrow = state.recommendedArrow,
+                onSquareTapped = { square -> viewModel.onSquareTapped(square) }
+            )
+        }
 
         // Real-time Blunder Alert
         AnimatedVisibility(visible = state.mistakeDetected) {
@@ -160,7 +221,7 @@ fun ArenaScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Saved to your Review Queue for spaced review.",
+                        text = "Saved to your Review Queue for spaced repetition review.",
                         style = ChessTutorTypography.bodyMedium,
                         color = ChessTutorColors.TextSecondary
                     )
@@ -181,7 +242,7 @@ fun ArenaScreen(
             }
         }
 
-        // Match Info
+        // Match Info & Evaluation Strip
         AcademyCard(sectionLabel = "Game Status") {
             Text(
                 text = if (state.busy) "Stockfish is calculating response..." else state.arenaStatusText.ifBlank { state.message },
@@ -200,38 +261,147 @@ fun ArenaScreen(
             }
         }
 
-        // Engine Diagnostics & Smoke Test
-        AcademyCard(sectionLabel = "Engine Diagnostics (Smoke Test)") {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    // Pre-Game Opponent Setup Sheet
+    if (state.isArenaOpponentSheetVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.setArenaOpponentSheetVisible(false) },
+            sheetState = opponentSheetState,
+            containerColor = ChessTutorColors.Surface,
+            contentColor = ChessTutorColors.TextPrimary
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Opponent Setup",
+                        style = ChessTutorTypography.titleLarge
+                    )
+                    IconButton(onClick = { viewModel.setArenaOpponentSheetVisible(false) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
                 Text(
-                    text = "Verify subprocess execution, UCI pipes, depth, and evaluation.",
+                    text = "Configure engine strength using preset bot tiers or link your online profile for automatic Elo calibration.",
                     style = ChessTutorTypography.bodyMedium,
                     color = ChessTutorColors.TextSecondary
                 )
+
+                // Preset Bot Tiers
+                Text(text = "PRESET DIFFICULTY TIERS", style = ChessTutorTypography.labelSmall)
+                val difficulties = listOf("Beginner", "Casual", "Intermediate", "Advanced")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    difficulties.forEach { diff ->
+                        val selected = !state.useLinkedRatingForBot && state.arenaDifficulty == diff
+                        FilterChip(
+                            selected = selected,
+                            onClick = { viewModel.setArenaDifficulty(diff) },
+                            label = { Text(diff) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = ChessTutorColors.Primary,
+                                selectedLabelColor = ChessTutorColors.Background,
+                                containerColor = ChessTutorColors.SurfaceElevated,
+                                labelColor = ChessTutorColors.TextPrimary
+                            )
+                        )
+                    }
+                }
+
+                // Profile Rating Linking
+                RatingLinkCard(
+                    state = state,
+                    viewModel = viewModel
+                )
+
+                Button(
+                    onClick = { viewModel.setArenaOpponentSheetVisible(false) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ChessTutorColors.Primary,
+                        contentColor = ChessTutorColors.Background
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Apply & Continue Game")
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+        }
+    }
+
+    // Engine Diagnostics & Smoke Test Sheet (Settings / Debug modal)
+    if (state.isEngineDiagnosticsDialogVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.setEngineDiagnosticsDialogVisible(false) },
+            sheetState = diagnosticsSheetState,
+            containerColor = ChessTutorColors.Surface,
+            contentColor = ChessTutorColors.TextPrimary
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Engine Diagnostics",
+                            style = ChessTutorTypography.titleLarge
+                        )
+                        Text(
+                            text = "Low-level UCI subprocess & native binary verification",
+                            style = ChessTutorTypography.bodyMedium,
+                            color = ChessTutorColors.TextSecondary
+                        )
+                    }
+                    IconButton(onClick = { viewModel.setEngineDiagnosticsDialogVisible(false) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
 
                 Button(
                     onClick = { viewModel.runEngineDiagnostics() },
                     enabled = !state.isRunningDiagnostics,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = ChessTutorColors.SurfaceElevated,
-                        contentColor = ChessTutorColors.Primary
+                        containerColor = ChessTutorColors.Primary,
+                        contentColor = ChessTutorColors.Background
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(Icons.Default.BugReport, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(if (state.isRunningDiagnostics) "Running 1000ms Analysis..." else "Run Engine Smoke Test")
                 }
 
                 state.engineDiagnostics?.let { diag ->
-                    Spacer(modifier = Modifier.height(4.dp))
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(ChessTutorColors.SurfaceElevated, RoundedCornerShape(8.dp))
-                            .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(8.dp))
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                            .background(ChessTutorColors.SurfaceElevated, RoundedCornerShape(12.dp))
+                            .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(12.dp))
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = "Engine: ${diag.engineName}",
@@ -270,11 +440,25 @@ fun ArenaScreen(
                             style = ChessTutorTypography.labelSmall,
                             color = ChessTutorColors.TextSecondary
                         )
+                        diag.resolvedBinaryPath?.let { path ->
+                            Text(
+                                text = "Binary Path: $path",
+                                style = ChessTutorTypography.labelSmall,
+                                color = ChessTutorColors.TextSecondary
+                            )
+                        }
+                        diag.launchError?.let { err ->
+                            Text(
+                                text = "Startup Note: $err",
+                                style = ChessTutorTypography.labelSmall,
+                                color = Color(0xFFF59E0B)
+                            )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }

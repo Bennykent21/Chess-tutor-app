@@ -391,6 +391,35 @@ class ChessTutorSpecVerificationTest {
         client.dispose()
     }
 
+    @Test
+    fun testStockfishRealProcessDiagnosticsExecution() = runBlocking {
+        val binaryFile = java.io.File("src/main/jniLibs/x86_64/libstockfish.so")
+        assertTrue("Native x86_64 Stockfish binary must exist at src/main/jniLibs/x86_64/libstockfish.so", binaryFile.exists())
+        val client = StockfishProcessEngineClient(binaryFile.absolutePath)
+        client.initialize()
+        assertTrue("Subprocess must be alive", client.isAlive)
+
+        val diag = client.runDiagnostics(movetimeMs = 500)
+        println("=== REAL FIRST-PARTY STOCKFISH DIAGNOSTICS CAPTURED ===")
+        println("Engine: ${diag.engineName}")
+        println("Status: Alive=${diag.isAlive}")
+        println("Best Move: ${diag.bestMove}")
+        println("Evaluation: ${diag.centipawns} cp")
+        println("Depth Reached: ${diag.depth}")
+        println("Principal Variation: ${diag.pv}")
+        println("Execution Latency: ${diag.latencyMs} ms")
+        println("=====================================================")
+
+        assertTrue("Engine name must contain Stockfish", diag.engineName.contains("Stockfish", ignoreCase = true))
+        assertTrue("Subprocess must report alive", diag.isAlive)
+        assertTrue("Best move must be non-blank", diag.bestMove.isNotBlank())
+        assertNotNull("Real Stockfish must report a non-null centipawn evaluation", diag.centipawns)
+        assertNotNull("Depth must not be null", diag.depth)
+        assertTrue("Depth must exceed fallback depth 3 (depth reached: ${diag.depth})", (diag.depth ?: 0) >= 8)
+
+        client.dispose()
+    }
+
     // 12. Rating Linking: Chess.com and Lichess JSON Parsing and Extraction
     @Test
     fun testChessComAndLichessStatsParsing() {

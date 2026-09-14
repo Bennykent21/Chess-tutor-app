@@ -15,6 +15,10 @@ class StockfishProcessEngineClient(
     private val binaryPath: String,
     private val fallbackClient: EngineClient = LocalFallbackEngineClient()
 ) : EngineClient {
+    val targetPath: String get() = binaryPath
+    var lastStartupError: String? = null
+        private set
+
     private var process: Process? = null
     private var stdinWriter: BufferedWriter? = null
     private var readerJob: Job? = null
@@ -31,8 +35,15 @@ class StockfishProcessEngineClient(
 
     override suspend fun initialize() = withContext(Dispatchers.IO) {
         val file = File(binaryPath)
-        if (!file.exists() || !file.canExecute()) {
-            throw IllegalStateException("Stockfish binary not found or not executable at $binaryPath")
+        if (!file.exists()) {
+            val err = "Stockfish binary not found at $binaryPath"
+            lastStartupError = err
+            throw IllegalStateException(err)
+        }
+        if (!file.canExecute()) {
+            val err = "Stockfish binary exists but does not have execute permission at $binaryPath"
+            lastStartupError = err
+            throw IllegalStateException(err)
         }
 
         try {
@@ -47,12 +58,27 @@ class StockfishProcessEngineClient(
             send("isready")
             val isReady = withTimeoutOrNull(4000) { ready.await() }
             if (isReady == null) {
+                val err = "Stockfish process started, but did not respond to isready within 4000ms"
+                lastStartupError = err
                 dispose()
-                throw IllegalStateException("Stockfish did not respond to isready within timeout")
+                throw IllegalStateException(err)
             }
+            lastStartupError = null
         } catch (e: Exception) {
+            val err = "${e::class.java.simpleName}: ${e.message}"
+            lastStartupError = err
             dispose()
             throw e
+        }
+    }
+
+    suspend fun ensureInitialized(): Boolean = withContext(Dispatchers.IO) {
+        if (isAlive) return@withContext true
+        try {
+            initialize()
+            isAlive
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -198,6 +224,24 @@ class StockfishProcessEngineClient(
      * Executes a smoke test on the engine returning structured diagnostic metadata.
      */
     suspend fun runDiagnostics(movetimeMs: Int = 1000): EngineDiagnostics = withContext(Dispatchers.IO) {
+        if (!isAlive) {
+            ensureInitialized()
+        }
+
+        if (!isAlive) {
+            return@withContext EngineDiagnostics(
+                engineName = "Stockfish (Inactive)",
+                isAlive = false,
+                bestMove = "None",
+                centipawns = null,
+                depth = null,
+                pv = "",
+                latencyMs = 0,
+                resolvedBinaryPath = binaryPath,
+                launchError = lastStartupError ?: "Stockfish process is not alive"
+            )
+        }
+
         val startMs = System.currentTimeMillis()
         val analysis = analyze(
             AnalysisRequest(
@@ -214,7 +258,9 @@ class StockfishProcessEngineClient(
             centipawns = analysis.centipawns,
             depth = analysis.depth,
             pv = analysis.principalVariation.joinToString(" "),
-            latencyMs = latency
+            latencyMs = latency,
+            resolvedBinaryPath = binaryPath,
+            launchError = null
         )
     }
 }
@@ -226,5 +272,7 @@ data class EngineDiagnostics(
     val centipawns: Int?,
     val depth: Int?,
     val pv: String,
-    val latencyMs: Long
+    val latencyMs: Long,
+    val resolvedBinaryPath: String? = null,
+    val launchError: String? = null
 )

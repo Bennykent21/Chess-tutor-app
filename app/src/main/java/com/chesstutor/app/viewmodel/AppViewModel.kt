@@ -586,16 +586,86 @@ class AppViewModel(
         }
     }
 
-    // Curriculum practice
+    // Curriculum practice & progress
+    fun setCurriculumTab(tab: Int) {
+        _state.update { it.copy(curriculumTab = tab) }
+    }
+
     fun practiceCurriculumLesson(lessonId: String, fen: String, title: String) {
         _state.update {
             it.copy(
                 tab = 0, // open in Coach for interactive guided retry
-                curriculumLessonId = lessonId
+                curriculumLessonId = lessonId,
+                practicedModules = it.practicedModules + lessonId
             )
         }
         loadCoachPosition(fen)
         _state.update { it.copy(message = "Curriculum Masterclass: $title. Find the key idea!") }
+    }
+
+    fun loadLearnTopic(topic: com.chesstutor.app.domain.LearnTopic) {
+        _state.update {
+            it.copy(
+                tab = 0, // load onto the interactive board in Coach tab
+                curriculumLessonId = topic.id,
+                fen = topic.demoFen,
+                selectedSquare = null,
+                legalTargets = emptySet(),
+                lastMove = null,
+                recommendedArrow = Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.drop(2)),
+                message = "${topic.title}: ${topic.moveExplanation}",
+                mistakeDetected = false,
+                assessment = null,
+                hintLevel = 0,
+                hintText = ""
+            )
+        }
+    }
+
+    fun markModuleMastered(lessonId: String) {
+        _state.update {
+            it.copy(
+                masteredModules = it.masteredModules + lessonId,
+                practicedModules = it.practicedModules + lessonId
+            )
+        }
+    }
+
+    fun setArenaOpponentSheetVisible(visible: Boolean) {
+        _state.update { it.copy(isArenaOpponentSheetVisible = visible) }
+    }
+
+    fun setEngineDiagnosticsDialogVisible(visible: Boolean) {
+        _state.update { it.copy(isEngineDiagnosticsDialogVisible = visible) }
+    }
+
+    fun loadSampleMistakeForReview() {
+        val sampleItem = ReviewItem(
+            id = "sample_review_${System.currentTimeMillis()}",
+            fen = FEN_MATE_IN_ONE,
+            bestMoveUci = "d1h5",
+            explanation = "Missed Forced Mate: Qh5# was decisive checkmate in 1 move.",
+            stage = 0,
+            dueAt = java.time.Instant.now().minusSeconds(60)
+        )
+        viewModelScope.launch {
+            repository.upsert(sampleItem)
+            val updated = repository.loadAll()
+            _state.update {
+                it.copy(
+                    reviews = updated,
+                    activeReviewIndex = 0,
+                    activeReviewItem = sampleItem,
+                    fen = sampleItem.fen,
+                    message = "Sample Mistake Loaded: Prove mastery by finding the mating move!",
+                    hintLevel = 0,
+                    hintText = "",
+                    reviewSolved = false,
+                    recommendedArrow = null,
+                    lastMove = null
+                )
+            }
+        }
     }
 
     private fun playCurriculumMove(move: MoveChoice) {
@@ -643,7 +713,9 @@ class AppViewModel(
                         centipawns = res.centipawns,
                         depth = res.depth,
                         pv = res.principalVariation.joinToString(" "),
-                        latencyMs = System.currentTimeMillis() - start
+                        latencyMs = System.currentTimeMillis() - start,
+                        resolvedBinaryPath = "In-memory Kotlin fallback (no native subprocess)",
+                        launchError = "Running on LocalFallbackEngineClient. No native ELF binary attached."
                     )
                 }
                 android.util.Log.i("StockfishDiagnostics", "Engine diagnostics: $diag")
@@ -665,7 +737,8 @@ class AppViewModel(
                             centipawns = null,
                             depth = null,
                             pv = "",
-                            latencyMs = 0
+                            latencyMs = 0,
+                            launchError = "${e::class.java.simpleName}: ${e.message}"
                         )
                     )
                 }

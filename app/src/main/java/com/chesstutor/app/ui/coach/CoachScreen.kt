@@ -80,15 +80,24 @@ fun CoachScreen(
             }
         }
 
-        // The Interactive Chess Board
-        ChessBoard(
-            fen = state.fen,
-            selectedSquare = state.selectedSquare,
-            legalTargets = state.legalTargets,
-            lastMove = state.lastMove,
-            recommendedArrow = state.recommendedArrow,
-            onSquareTapped = { square -> viewModel.onSquareTapped(square) }
-        )
+        // The Interactive Chess Board with distinct frame and elevation
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(ChessTutorColors.SurfaceElevated)
+                .border(1.5.dp, ChessTutorColors.Border, RoundedCornerShape(16.dp))
+                .padding(6.dp)
+        ) {
+            ChessBoard(
+                fen = state.fen,
+                selectedSquare = state.selectedSquare,
+                legalTargets = state.legalTargets,
+                lastMove = state.lastMove,
+                recommendedArrow = state.recommendedArrow,
+                onSquareTapped = { square -> viewModel.onSquareTapped(square) }
+            )
+        }
 
         // Verified Consequence / Mistake Banner
         AnimatedVisibility(

@@ -31,6 +31,11 @@ data class AppUiState(
     val evaluationCp: Int? = null,
     val mateIn: Int? = null,
     val curriculumLessonId: String? = null,
+    val curriculumTab: Int = 0, // 0: Mistake Patterns, 1: Learn (Openings, Middlegame, Endgame)
+    val practicedModules: Set<String> = setOf("lesson_mate_1"),
+    val masteredModules: Set<String> = emptySet(),
+    val isArenaOpponentSheetVisible: Boolean = false,
+    val isEngineDiagnosticsDialogVisible: Boolean = false,
     val engineDiagnostics: com.chesstutor.app.engine.EngineDiagnostics? = null,
     val isRunningDiagnostics: Boolean = false,
     val linkedProfile: com.chesstutor.app.data.model.LinkedChessProfile? = null,
