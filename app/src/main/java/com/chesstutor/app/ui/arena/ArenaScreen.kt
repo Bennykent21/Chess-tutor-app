@@ -89,14 +89,14 @@ fun ArenaScreen(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = "DIFFICULTY LEVEL", style = ChessTutorTypography.labelSmall)
+            Text(text = "PRESET BOT TIERS (FALLBACK)", style = ChessTutorTypography.labelSmall)
             Spacer(modifier = Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 difficulties.forEach { diff ->
-                    val selected = state.arenaDifficulty == diff
+                    val selected = !state.useLinkedRatingForBot && state.arenaDifficulty == diff
                     FilterChip(
                         selected = selected,
                         onClick = { viewModel.setArenaDifficulty(diff) },
@@ -111,6 +111,12 @@ fun ArenaScreen(
                 }
             }
         }
+
+        // Rating Linking and Bot Tuning
+        RatingLinkCard(
+            state = state,
+            viewModel = viewModel
+        )
 
         // Live Board
         ChessBoard(

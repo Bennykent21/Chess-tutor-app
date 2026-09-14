@@ -2,6 +2,11 @@ package com.chesstutor.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chesstutor.app.data.model.LinkedChessProfile
+import com.chesstutor.app.data.model.RatingPlatform
+import com.chesstutor.app.data.model.RatingTimeControl
+import com.chesstutor.app.data.repository.InMemoryRatingRepository
+import com.chesstutor.app.data.repository.RatingRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveAssessment
@@ -14,6 +19,7 @@ import com.chesstutor.app.engine.AnalysisRequest
 import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.EngineClient
+import com.chesstutor.app.engine.StockfishProcessEngineClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +31,7 @@ import java.util.UUID
 class AppViewModel(
     private val repository: ReviewRepository,
     private val engine: EngineClient,
+    private val ratingRepository: RatingRepository = InMemoryRatingRepository()
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
@@ -46,6 +53,30 @@ class AppViewModel(
             runCatching { engine.initialize() }
             loadReviews()
             loadCoachPosition(FEN_MATE_IN_ONE)
+            observeLinkedProfile()
+        }
+    }
+
+    private fun observeLinkedProfile() {
+        viewModelScope.launch {
+            ratingRepository.getLinkedProfileFlow().collect { profile ->
+                _state.update { current ->
+                    current.copy(
+                        linkedProfile = profile,
+                        useLinkedRatingForBot = profile?.activeRating != null
+                    )
+                }
+                applyBotElo()
+            }
+        }
+    }
+
+    private fun applyBotElo() {
+        val elo = _state.value.effectiveBotElo
+        viewModelScope.launch {
+            if (engine is StockfishProcessEngineClient) {
+                engine.setElo(elo)
+            }
         }
     }
 
@@ -362,7 +393,10 @@ class AppViewModel(
 
             // Engine response if not game over
             if (!afterPos.isOver) {
-                val engineResponse = engine.analyze(AnalysisRequest(reqId + 2, afterFen, depth = depth))
+                applyBotElo()
+                val engineResponse = engine.analyze(
+                    AnalysisRequest(reqId + 2, afterFen, depth = 5, movetimeMs = 400)
+                )
                 val engineMovePos = ChessPosition(afterFen)
                 val engineMove = engineMovePos.legalMoves.firstOrNull { it.uci == engineResponse.bestMoveUci }
                     ?: engineMovePos.legalMoves.firstOrNull()
@@ -376,7 +410,7 @@ class AppViewModel(
                             busy = false,
                             evaluationCp = engineResponse.centipawns,
                             mateIn = engineResponse.mateInMoves,
-                            arenaStatusText = "Opponent responded with ${engineMove.san}."
+                            arenaStatusText = "Opponent (${it.botTuningDescription}) responded with ${engineMove.san}."
                         )
                     }
                 } else {
@@ -391,6 +425,108 @@ class AppViewModel(
                 }
             }
         }
+    }
+
+    // Rating Linking and Bot Calibration
+    fun linkRatingAccount(
+        platform: RatingPlatform,
+        username: String,
+        timeControl: RatingTimeControl = RatingTimeControl.RAPID
+    ) {
+        val clean = username.trim()
+        if (clean.isBlank()) {
+            _state.update { it.copy(linkingError = "Please enter a valid username.") }
+            return
+        }
+        _state.update {
+            it.copy(
+                isLinkingLoading = true,
+                linkingError = null,
+                linkingSuccessMessage = null
+            )
+        }
+        viewModelScope.launch {
+            val result = ratingRepository.linkAccount(platform, clean, timeControl)
+            result.onSuccess { profile ->
+                _state.update {
+                    it.copy(
+                        isLinkingLoading = false,
+                        linkingError = null,
+                        linkingSuccessMessage = "Successfully linked ${profile.platform.displayName} profile '${profile.username}'",
+                        useLinkedRatingForBot = true
+                    )
+                }
+                applyBotElo()
+            }.onFailure { err ->
+                _state.update {
+                    it.copy(
+                        isLinkingLoading = false,
+                        linkingError = err.message ?: "Failed to link profile. Please check username."
+                    )
+                }
+            }
+        }
+    }
+
+    fun refreshLinkedRating() {
+        val current = _state.value.linkedProfile ?: return
+        _state.update {
+            it.copy(
+                isLinkingLoading = true,
+                linkingError = null,
+                linkingSuccessMessage = null
+            )
+        }
+        viewModelScope.launch {
+            val result = ratingRepository.refreshProfile()
+            result.onSuccess { profile ->
+                _state.update {
+                    it.copy(
+                        isLinkingLoading = false,
+                        linkingSuccessMessage = "Updated ratings for '${profile.username}'"
+                    )
+                }
+                applyBotElo()
+            }.onFailure { err ->
+                _state.update {
+                    it.copy(
+                        isLinkingLoading = false,
+                        linkingError = err.message ?: "Failed to refresh rating"
+                    )
+                }
+            }
+        }
+    }
+
+    fun setRatingTimeControl(timeControl: RatingTimeControl) {
+        viewModelScope.launch {
+            ratingRepository.updateTimeControl(timeControl)
+            applyBotElo()
+        }
+    }
+
+    fun setUseLinkedRatingForBot(useLinked: Boolean) {
+        _state.update { it.copy(useLinkedRatingForBot = useLinked) }
+        applyBotElo()
+    }
+
+    fun unlinkRatingAccount() {
+        viewModelScope.launch {
+            ratingRepository.unlinkAccount()
+            _state.update {
+                it.copy(
+                    linkedProfile = null,
+                    useLinkedRatingForBot = false,
+                    linkingSuccessMessage = null,
+                    linkingError = null
+                )
+            }
+            applyBotElo()
+        }
+    }
+
+    fun clearLinkingStatus() {
+        _state.update { it.copy(linkingError = null, linkingSuccessMessage = null) }
     }
 
     // Review Mode: Spaced Repetition Practice
@@ -467,7 +603,8 @@ class AppViewModel(
     }
 
     fun setArenaDifficulty(difficulty: String) {
-        _state.update { it.copy(arenaDifficulty = difficulty) }
+        _state.update { it.copy(arenaDifficulty = difficulty, useLinkedRatingForBot = false) }
+        applyBotElo()
     }
 
     fun resetArenaGame() {

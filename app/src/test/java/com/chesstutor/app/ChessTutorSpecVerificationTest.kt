@@ -1,5 +1,15 @@
 package com.chesstutor.app
 
+import com.chesstutor.app.data.model.LinkedChessProfile
+import com.chesstutor.app.data.model.RatingPlatform
+import com.chesstutor.app.data.model.RatingTimeControl
+import com.chesstutor.app.data.network.ChessComCategoryDto
+import com.chesstutor.app.data.network.ChessComLastDto
+import com.chesstutor.app.data.network.ChessComStatsDto
+import com.chesstutor.app.data.network.LichessPerfDto
+import com.chesstutor.app.data.network.LichessPerfsDto
+import com.chesstutor.app.data.network.LichessUserDto
+import com.chesstutor.app.data.repository.InMemoryRatingRepository
 import com.chesstutor.app.data.repository.InMemoryReviewRepository
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.ForkTactic
@@ -380,4 +390,162 @@ class ChessTutorSpecVerificationTest {
 
         client.dispose()
     }
+
+    // 12. Rating Linking: Chess.com and Lichess JSON Parsing and Extraction
+    @Test
+    fun testChessComAndLichessStatsParsing() {
+        val moshi = com.squareup.moshi.Moshi.Builder()
+            .add(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
+            .build()
+
+        // Chess.com JSON structure
+        val chessComJson = """
+            {
+              "chess_rapid": { "last": { "rating": 1540 } },
+              "chess_blitz": { "last": { "rating": 1420 } },
+              "chess_bullet": { "last": { "rating": 1310 } }
+            }
+        """.trimIndent()
+        val chessComAdapter = moshi.adapter(ChessComStatsDto::class.java)
+        val chessComDto = chessComAdapter.fromJson(chessComJson)
+        assertNotNull("Chess.com DTO must be parsed", chessComDto)
+        assertEquals(1540, chessComDto?.rapid?.last?.rating)
+        assertEquals(1420, chessComDto?.blitz?.last?.rating)
+        assertEquals(1310, chessComDto?.bullet?.last?.rating)
+
+        // Lichess JSON structure
+        val lichessJson = """
+            {
+              "id": "player1",
+              "username": "Player1",
+              "perfs": {
+                "rapid": { "rating": 1680 },
+                "blitz": { "rating": 1590 },
+                "bullet": { "rating": 1495 }
+              }
+            }
+        """.trimIndent()
+        val lichessAdapter = moshi.adapter(LichessUserDto::class.java)
+        val lichessDto = lichessAdapter.fromJson(lichessJson)
+        assertNotNull("Lichess DTO must be parsed", lichessDto)
+        assertEquals("Player1", lichessDto?.username)
+        assertEquals(1680, lichessDto?.perfs?.rapid?.rating)
+        assertEquals(1590, lichessDto?.perfs?.blitz?.rating)
+        assertEquals(1495, lichessDto?.perfs?.bullet?.rating)
+    }
+
+    // 13. Rating Linking: Time Control Selection and Fallback
+    @Test
+    fun testLinkedChessProfileActiveRatingSelection() {
+        val profile = LinkedChessProfile(
+            platform = RatingPlatform.CHESS_COM,
+            username = "tactician",
+            rapidRating = 1600,
+            blitzRating = 1450,
+            bulletRating = null, // No bullet games
+            selectedTimeControl = RatingTimeControl.RAPID
+        )
+
+        // Selected format is Rapid
+        assertEquals(1600, profile.activeRating)
+
+        // Switch to Blitz
+        val blitzProfile = profile.copy(selectedTimeControl = RatingTimeControl.BLITZ)
+        assertEquals(1450, blitzProfile.activeRating)
+
+        // Switch to Bullet (null rating falls back to blitz/rapid)
+        val bulletProfile = profile.copy(selectedTimeControl = RatingTimeControl.BULLET)
+        assertEquals(1450, bulletProfile.activeRating)
+    }
+
+    // 14. UI Copy Compliance: "Tuned to approximate your rating" vs "this bot IS"
+    @Test
+    fun testBotTuningCopyCompliance() {
+        val linkedProfile = LinkedChessProfile(
+            platform = RatingPlatform.LICHESS,
+            username = "hikaru",
+            rapidRating = 2800,
+            blitzRating = 2900,
+            bulletRating = 3000,
+            selectedTimeControl = RatingTimeControl.RAPID
+        )
+
+        val desc = linkedProfile.tuningDescription()
+        // MUST contain: "Tuned to approximate your"
+        assertTrue(
+            "Tuning copy must state it is tuned to approximate the rating",
+            desc.contains("Tuned to approximate your")
+        )
+
+        // MUST NEVER claim "this bot IS"
+        assertFalse(
+            "Copy must never claim 'this bot IS <rating>'",
+            desc.lowercase().contains("this bot is")
+        )
+    }
+
+    // 15. No-Account Fallback: Preset Tiers Verification
+    @Test
+    fun testNoAccountFallbackToPresetTiers() {
+        val vm = AppViewModel(
+            repository = InMemoryReviewRepository(),
+            engine = LocalFallbackEngineClient(),
+            ratingRepository = InMemoryRatingRepository(initialProfile = null)
+        )
+
+        // Default state without linked account
+        assertNull(vm.state.value.linkedProfile)
+        assertFalse(vm.state.value.useLinkedRatingForBot)
+
+        // Verify standard preset mapping
+        vm.setArenaDifficulty("Beginner")
+        assertEquals(800, vm.state.value.effectiveBotElo)
+
+        vm.setArenaDifficulty("Casual")
+        assertEquals(1200, vm.state.value.effectiveBotElo)
+
+        vm.setArenaDifficulty("Intermediate")
+        assertEquals(1600, vm.state.value.effectiveBotElo)
+
+        vm.setArenaDifficulty("Advanced")
+        assertEquals(2000, vm.state.value.effectiveBotElo)
+    }
+
+    // 16. ViewModel Integration: Linking, Format Switching, and Unlinking
+    @Test
+    fun testAppViewModelRatingLinkingFlow() = runBlocking {
+        val ratingRepo = InMemoryRatingRepository()
+        val vm = AppViewModel(
+            repository = InMemoryReviewRepository(),
+            engine = LocalFallbackEngineClient(),
+            ratingRepository = ratingRepo
+        )
+
+        // 1. Link Chess.com account
+        vm.linkRatingAccount(RatingPlatform.CHESS_COM, "erik", RatingTimeControl.RAPID)
+        kotlinx.coroutines.delay(50) // Allow coroutine emission
+
+        assertNotNull(vm.state.value.linkedProfile)
+        assertEquals("erik", vm.state.value.linkedProfile?.username)
+        assertTrue(vm.state.value.useLinkedRatingForBot)
+        assertEquals(1520, vm.state.value.effectiveBotElo)
+        assertTrue(vm.state.value.botTuningDescription.contains("Tuned to approximate your Chess.com Rapid rating (1520)"))
+
+        // 2. Switch time control format to Blitz
+        vm.setRatingTimeControl(RatingTimeControl.BLITZ)
+        kotlinx.coroutines.delay(50)
+        assertEquals(1450, vm.state.value.effectiveBotElo)
+        assertTrue(vm.state.value.botTuningDescription.contains("Blitz rating (1450)"))
+
+        // 3. Switch back to Preset Tier
+        vm.setArenaDifficulty("Intermediate")
+        assertFalse(vm.state.value.useLinkedRatingForBot)
+        assertEquals(1600, vm.state.value.effectiveBotElo)
+
+        // 4. Unlink profile
+        vm.unlinkRatingAccount()
+        kotlinx.coroutines.delay(50)
+        assertNull(vm.state.value.linkedProfile)
+    }
 }
+

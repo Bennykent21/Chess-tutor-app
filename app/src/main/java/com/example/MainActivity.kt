@@ -23,7 +23,8 @@ class MainActivity : ComponentActivity() {
       val viewModel = remember {
         val repo = AppContainer.provideReviewRepository(context)
         val engine = AppContainer.provideEngineClient(context)
-        AppViewModel(repo, engine)
+        val ratingRepo = AppContainer.provideRatingRepository(context)
+        AppViewModel(repo, engine, ratingRepo)
       }
 
       ChessTutorTheme {

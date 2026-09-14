@@ -32,5 +32,34 @@ data class AppUiState(
     val mateIn: Int? = null,
     val curriculumLessonId: String? = null,
     val engineDiagnostics: com.chesstutor.app.engine.EngineDiagnostics? = null,
-    val isRunningDiagnostics: Boolean = false
-)
+    val isRunningDiagnostics: Boolean = false,
+    val linkedProfile: com.chesstutor.app.data.model.LinkedChessProfile? = null,
+    val useLinkedRatingForBot: Boolean = false,
+    val isLinkingLoading: Boolean = false,
+    val linkingError: String? = null,
+    val linkingSuccessMessage: String? = null
+) {
+    val effectiveBotElo: Int
+        get() {
+            if (useLinkedRatingForBot && linkedProfile?.activeRating != null) {
+                return linkedProfile.activeRating!!.coerceIn(600, 3000)
+            }
+            return when (arenaDifficulty) {
+                "Beginner" -> 800
+                "Casual" -> 1200
+                "Intermediate" -> 1600
+                "Advanced" -> 2000
+                else -> 1200
+            }
+        }
+
+    val botTuningDescription: String
+        get() {
+            if (useLinkedRatingForBot && linkedProfile?.activeRating != null) {
+                val prof = linkedProfile
+                return "Tuned to approximate your ${prof.platform.displayName} ${prof.selectedTimeControl.displayName} rating (${prof.activeRating})"
+            }
+            return "Tuned to approximate $arenaDifficulty (~${effectiveBotElo} Elo) preset"
+        }
+}
+
