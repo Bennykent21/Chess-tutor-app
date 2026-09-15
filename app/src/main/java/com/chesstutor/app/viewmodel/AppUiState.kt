@@ -32,6 +32,12 @@ data class AppUiState(
     val mateIn: Int? = null,
     val curriculumLessonId: String? = null,
     val curriculumTab: Int = 0, // 0: Mistake Patterns, 1: Learn (Openings, Middlegame, Endgame)
+    val activeCoachTitle: String = "Forced Mate & Consequence Retry",
+    val activeCoachSubtitle: String = "Every mistake is backed by a concrete, checkable fact.",
+    val activeCoachCategory: String = "TODAY'S FOCUS",
+    val activeCoachRecommendedMove: String? = null,
+    val isSettingsVisible: Boolean = false,
+    val isSoundEnabled: Boolean = true,
     val practicedModules: Set<String> = setOf("lesson_mate_1"),
     val masteredModules: Set<String> = emptySet(),
     val isArenaOpponentSheetVisible: Boolean = false,

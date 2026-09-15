@@ -2,29 +2,44 @@ package com.chesstutor.app.ui.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import com.chesstutor.app.ui.arena.ArenaScreen
 import com.chesstutor.app.ui.coach.CoachScreen
 import com.chesstutor.app.ui.curriculum.CurriculumScreen
 import com.chesstutor.app.ui.review.ReviewScreen
+import com.chesstutor.app.ui.settings.SettingsSheet
 import com.chesstutor.app.ui.theme.ChessTutorColors
+import com.chesstutor.app.ui.theme.ChessTutorTypography
 import com.chesstutor.app.viewmodel.AppViewModel
 
 sealed class NavTab(val index: Int, val title: String, val icon: ImageVector) {
@@ -38,6 +53,7 @@ sealed class NavTab(val index: Int, val title: String, val icon: ImageVector) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavHost(
     viewModel: AppViewModel,
@@ -48,6 +64,46 @@ fun AppNavHost(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = ChessTutorColors.Background,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ChessTutorColors.Primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Psychology,
+                                contentDescription = null,
+                                tint = ChessTutorColors.Background,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Chess Tutor",
+                            style = ChessTutorTypography.titleLarge,
+                            color = ChessTutorColors.TextPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.setSettingsVisible(true) }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = ChessTutorColors.TextPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = ChessTutorColors.Background
+                )
+            )
+        },
         bottomBar = {
             NavigationBar(
                 containerColor = ChessTutorColors.Surface,
@@ -84,6 +140,14 @@ fun AppNavHost(
                 2 -> ArenaScreen(state = state, viewModel = viewModel)
                 3 -> ReviewScreen(state = state, viewModel = viewModel)
             }
+        }
+
+        if (state.isSettingsVisible) {
+            SettingsSheet(
+                state = state,
+                viewModel = viewModel,
+                onDismiss = { viewModel.setSettingsVisible(false) }
+            )
         }
     }
 }

@@ -59,7 +59,6 @@ fun ArenaScreen(
 ) {
     val scrollState = rememberScrollState()
     val opponentSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val diagnosticsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Column(
         modifier = modifier
@@ -88,34 +87,18 @@ fun ArenaScreen(
                     )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // Engine Diagnostics & Smoke Test Modal Trigger (Keeps main screen clean)
-                    IconButton(
-                        onClick = { viewModel.setEngineDiagnosticsDialogVisible(true) },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(ChessTutorColors.SurfaceElevated)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.BugReport,
-                            contentDescription = "Engine Diagnostics",
-                            tint = ChessTutorColors.Primary
-                        )
-                    }
-
-                    // Reset Match
-                    IconButton(
-                        onClick = { viewModel.resetArenaGame() },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(ChessTutorColors.SurfaceElevated)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "New Game",
-                            tint = ChessTutorColors.Primary
-                        )
-                    }
+                // Reset Match
+                IconButton(
+                    onClick = { viewModel.resetArenaGame() },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(ChessTutorColors.SurfaceElevated)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "New Game",
+                        tint = ChessTutorColors.Primary
+                    )
                 }
             }
 
@@ -337,124 +320,6 @@ fun ArenaScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Apply & Continue Game")
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-            }
-        }
-    }
-
-    // Engine Diagnostics & Smoke Test Sheet (Settings / Debug modal)
-    if (state.isEngineDiagnosticsDialogVisible) {
-        ModalBottomSheet(
-            onDismissRequest = { viewModel.setEngineDiagnosticsDialogVisible(false) },
-            sheetState = diagnosticsSheetState,
-            containerColor = ChessTutorColors.Surface,
-            contentColor = ChessTutorColors.TextPrimary
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Engine Diagnostics",
-                            style = ChessTutorTypography.titleLarge
-                        )
-                        Text(
-                            text = "Low-level UCI subprocess & native binary verification",
-                            style = ChessTutorTypography.bodyMedium,
-                            color = ChessTutorColors.TextSecondary
-                        )
-                    }
-                    IconButton(onClick = { viewModel.setEngineDiagnosticsDialogVisible(false) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
-                    }
-                }
-
-                Button(
-                    onClick = { viewModel.runEngineDiagnostics() },
-                    enabled = !state.isRunningDiagnostics,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ChessTutorColors.Primary,
-                        contentColor = ChessTutorColors.Background
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.BugReport, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (state.isRunningDiagnostics) "Running 1000ms Analysis..." else "Run Engine Smoke Test")
-                }
-
-                state.engineDiagnostics?.let { diag ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(ChessTutorColors.SurfaceElevated, RoundedCornerShape(12.dp))
-                            .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(12.dp))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = "Engine: ${diag.engineName}",
-                            style = ChessTutorTypography.titleMedium,
-                            color = ChessTutorColors.Primary
-                        )
-                        Text(
-                            text = "Status: ${if (diag.isAlive) "Active (Subprocess Alive)" else "Disposed / Offline"}",
-                            style = ChessTutorTypography.bodyMedium,
-                            color = if (diag.isAlive) Color(0xFF10B981) else Color(0xFFEF4444)
-                        )
-                        Text(
-                            text = "Best Move: ${diag.bestMove}",
-                            style = ChessTutorTypography.bodyMedium,
-                            color = ChessTutorColors.TextPrimary
-                        )
-                        Text(
-                            text = "Evaluation: ${diag.centipawns?.let { "$it cp" } ?: "N/A"}",
-                            style = ChessTutorTypography.bodyMedium,
-                            color = ChessTutorColors.TextPrimary
-                        )
-                        Text(
-                            text = "Depth Reached: ${diag.depth ?: "N/A"}",
-                            style = ChessTutorTypography.bodyMedium,
-                            color = ChessTutorColors.TextPrimary
-                        )
-                        if (diag.pv.isNotBlank()) {
-                            Text(
-                                text = "Principal Variation: ${diag.pv}",
-                                style = ChessTutorTypography.bodyMedium,
-                                color = ChessTutorColors.TextSecondary
-                            )
-                        }
-                        Text(
-                            text = "Execution Latency: ${diag.latencyMs} ms",
-                            style = ChessTutorTypography.labelSmall,
-                            color = ChessTutorColors.TextSecondary
-                        )
-                        diag.resolvedBinaryPath?.let { path ->
-                            Text(
-                                text = "Binary Path: $path",
-                                style = ChessTutorTypography.labelSmall,
-                                color = ChessTutorColors.TextSecondary
-                            )
-                        }
-                        diag.launchError?.let { err ->
-                            Text(
-                                text = "Startup Note: $err",
-                                style = ChessTutorTypography.labelSmall,
-                                color = Color(0xFFF59E0B)
-                            )
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))

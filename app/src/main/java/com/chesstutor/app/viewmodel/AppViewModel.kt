@@ -113,12 +113,22 @@ class AppViewModel(
         }
     }
 
-    fun loadCoachPosition(fen: String) {
+    fun loadCoachPosition(
+        fen: String,
+        title: String = "Forced Mate & Consequence Retry",
+        subtitle: String = "Every mistake is backed by a concrete, checkable fact.",
+        category: String = "TACTICAL COACHING",
+        recommendedMoveUci: String? = null
+    ) {
         val pos = ChessPosition(fen)
         val mates = pos.matesInOne
         _state.update {
             it.copy(
                 fen = fen,
+                activeCoachTitle = title,
+                activeCoachSubtitle = subtitle,
+                activeCoachCategory = category,
+                activeCoachRecommendedMove = recommendedMoveUci,
                 message = if (mates.isNotEmpty()) "Find the concrete forced mate in 1 move!" else "Evaluate the position and play the best move.",
                 hintLevel = 0,
                 hintText = "",
@@ -128,7 +138,9 @@ class AppViewModel(
                 assessment = null,
                 selectedSquare = null,
                 legalTargets = emptySet(),
-                recommendedArrow = null,
+                recommendedArrow = recommendedMoveUci?.let { uci ->
+                    if (uci.length >= 4) Pair(uci.substring(0, 2), uci.substring(2, 4)) else null
+                },
                 lastMove = null
             )
         }
@@ -591,33 +603,99 @@ class AppViewModel(
         _state.update { it.copy(curriculumTab = tab) }
     }
 
-    fun practiceCurriculumLesson(lessonId: String, fen: String, title: String) {
+    fun practiceCurriculumLesson(
+        lessonId: String,
+        fen: String,
+        title: String,
+        category: String = "VERIFIABLE CURRICULUM",
+        description: String = "Spot the key tactical motif and find the winning move.",
+        recommendedMoveUci: String? = null
+    ) {
         _state.update {
             it.copy(
                 tab = 0, // open in Coach for interactive guided retry
                 curriculumLessonId = lessonId,
-                practicedModules = it.practicedModules + lessonId
+                practicedModules = it.practicedModules + lessonId,
+                activeCoachTitle = title,
+                activeCoachSubtitle = description,
+                activeCoachCategory = category,
+                activeCoachRecommendedMove = recommendedMoveUci
             )
         }
-        loadCoachPosition(fen)
-        _state.update { it.copy(message = "Curriculum Masterclass: $title. Find the key idea!") }
+        loadCoachPosition(
+            fen = fen,
+            title = title,
+            subtitle = description,
+            category = category,
+            recommendedMoveUci = recommendedMoveUci
+        )
+        _state.update { it.copy(message = "$title: Find the winning line!") }
     }
 
-    fun loadLearnTopic(topic: com.chesstutor.app.domain.LearnTopic) {
+    fun exploreLearnTopic(topic: com.chesstutor.app.domain.LearnTopic) {
+        val arrow = if (topic.recommendedMoveUci.length >= 4) {
+            Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.substring(2, 4))
+        } else null
         _state.update {
             it.copy(
                 tab = 0, // load onto the interactive board in Coach tab
                 curriculumLessonId = topic.id,
+                activeCoachTitle = topic.title,
+                activeCoachSubtitle = topic.subtitle,
+                activeCoachCategory = topic.category.displayName.uppercase(),
+                activeCoachRecommendedMove = topic.recommendedMoveUci,
                 fen = topic.demoFen,
                 selectedSquare = null,
                 legalTargets = emptySet(),
                 lastMove = null,
-                recommendedArrow = Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.drop(2)),
+                recommendedArrow = arrow,
                 message = "${topic.title}: ${topic.moveExplanation}",
                 mistakeDetected = false,
                 assessment = null,
                 hintLevel = 0,
                 hintText = ""
+            )
+        }
+    }
+
+    fun loadLearnTopic(topic: com.chesstutor.app.domain.LearnTopic) {
+        exploreLearnTopic(topic)
+    }
+
+    fun playActivePrincipleMove() {
+        val moveUci = _state.value.activeCoachRecommendedMove ?: return
+        if (moveUci.length < 4) return
+        val from = moveUci.substring(0, 2)
+        val to = moveUci.substring(2, 4)
+        val pos = ChessPosition(_state.value.fen)
+        val success = pos.play(moveUci)
+        if (success) {
+            _state.update {
+                it.copy(
+                    fen = pos.fen,
+                    lastMove = Pair(from, to),
+                    selectedSquare = null,
+                    legalTargets = emptySet(),
+                    recommendedArrow = null,
+                    message = "Demonstrated principle move: $moveUci. Now test your own response moves!"
+                )
+            }
+        }
+    }
+
+    fun setSoundEnabled(enabled: Boolean) {
+        _state.update { it.copy(isSoundEnabled = enabled) }
+    }
+
+    fun setSettingsVisible(visible: Boolean) {
+        _state.update { it.copy(isSettingsVisible = visible) }
+    }
+
+    fun resetCurriculumProgress() {
+        _state.update {
+            it.copy(
+                practicedModules = emptySet(),
+                masteredModules = emptySet()
             )
         }
     }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -283,19 +284,29 @@ fun ReviewScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { viewModel.loadSampleMistakeForReview() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ChessTutorColors.Primary,
-                        contentColor = ChessTutorColors.Background
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                Spacer(modifier = Modifier.height(14.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(ChessTutorColors.Surface)
+                        .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(10.dp))
+                        .padding(12.dp)
                 ) {
-                    Icon(Icons.Default.Lightbulb, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Load Sample Mistake to Test Queue")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = ChessTutorColors.Primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Example card (informational only). Live mistakes will populate this queue automatically during Coach training or Arena games.",
+                            style = ChessTutorTypography.bodyMedium,
+                            color = ChessTutorColors.TextSecondary
+                        )
+                    }
                 }
             }
         }

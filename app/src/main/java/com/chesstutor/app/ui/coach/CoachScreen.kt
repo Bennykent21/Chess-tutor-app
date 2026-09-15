@@ -20,6 +20,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Verified
@@ -59,23 +61,43 @@ fun CoachScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Academy Card: Today's Focus
-        AcademyCard(sectionLabel = "Today's Focus") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Forced Mate & Consequence Retry",
-                        style = ChessTutorTypography.titleLarge
-                    )
-                    Text(
-                        text = "Every mistake is backed by a concrete, checkable fact.",
-                        style = ChessTutorTypography.bodyMedium,
-                        color = ChessTutorColors.TextSecondary
-                    )
+        // Dynamic Session Header Card
+        AcademyCard(sectionLabel = state.activeCoachCategory) {
+            Column {
+                Text(
+                    text = state.activeCoachTitle,
+                    style = ChessTutorTypography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = state.activeCoachSubtitle,
+                    style = ChessTutorTypography.bodyMedium,
+                    color = ChessTutorColors.TextSecondary
+                )
+                if (state.activeCoachRecommendedMove != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Button(
+                        onClick = { viewModel.playActivePrincipleMove() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ChessTutorColors.SurfaceElevated,
+                            contentColor = ChessTutorColors.Primary
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.border(1.dp, ChessTutorColors.Border, RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = ChessTutorColors.Primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Demonstrate Principle Move (${state.activeCoachRecommendedMove})",
+                            style = ChessTutorTypography.labelSmall,
+                            color = ChessTutorColors.Primary
+                        )
+                    }
                 }
             }
         }
@@ -234,16 +256,40 @@ fun CoachScreen(
         AcademyCard(sectionLabel = "Practice Scenarios") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ScenarioRow("Scholar's Mate Missed", "White has Queen on f3, Black King open") {
-                    viewModel.loadCoachPosition(AppViewModel.FEN_MATE_IN_ONE)
+                    viewModel.loadCoachPosition(
+                        fen = AppViewModel.FEN_MATE_IN_ONE,
+                        title = "Missed Forced Mate (Scholar's Mate)",
+                        subtitle = "White Queen delivers immediate mate on f7.",
+                        category = "PRACTICE SCENARIO",
+                        recommendedMoveUci = "f3f7"
+                    )
                 }
                 ScenarioRow("Back-Rank Decoy", "Unprotected 8th rank mate in 1") {
-                    viewModel.loadCoachPosition(AppViewModel.FEN_BACK_RANK_MATE)
+                    viewModel.loadCoachPosition(
+                        fen = AppViewModel.FEN_BACK_RANK_MATE,
+                        title = "Back-Rank Checkmate Decoy",
+                        subtitle = "Rook penetrates 8th rank with trapped King.",
+                        category = "PRACTICE SCENARIO",
+                        recommendedMoveUci = "d1d8"
+                    )
                 }
                 ScenarioRow("Hanging Piece Trap", "Overextended bishop undefended") {
-                    viewModel.loadCoachPosition(AppViewModel.FEN_HANGING_PIECE)
+                    viewModel.loadCoachPosition(
+                        fen = AppViewModel.FEN_HANGING_PIECE,
+                        title = "Hanging Piece Vulnerability",
+                        subtitle = "Overextended bishop has zero defenders.",
+                        category = "PRACTICE SCENARIO",
+                        recommendedMoveUci = "d8d4"
+                    )
                 }
                 ScenarioRow("Royal Fork Tactic", "Knight on e5 fork target") {
-                    viewModel.loadCoachPosition(AppViewModel.FEN_FORK_TACTIC)
+                    viewModel.loadCoachPosition(
+                        fen = AppViewModel.FEN_FORK_TACTIC,
+                        title = "Royal Knight Fork",
+                        subtitle = "Delivering double threats with knight.",
+                        category = "PRACTICE SCENARIO",
+                        recommendedMoveUci = "e5f7"
+                    )
                 }
             }
         }

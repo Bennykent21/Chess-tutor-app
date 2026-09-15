@@ -1,5 +1,8 @@
 package com.chesstutor.app.ui.curriculum
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,13 +24,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -34,12 +41,19 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.domain.LearnCategory
+import com.chesstutor.app.domain.LearnCurriculumRepository
+import com.chesstutor.app.domain.LearnTopic
 import com.chesstutor.app.ui.components.AcademyCard
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.ChessTutorTypography
@@ -62,7 +76,7 @@ fun CurriculumScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Top Navigation Sub-tab Toggle
+        // Top Sub-tab Toggle
         TabRow(
             selectedTabIndex = state.curriculumTab,
             containerColor = ChessTutorColors.Surface,
@@ -119,14 +133,60 @@ fun CurriculumScreen(
     }
 }
 
+private data class MistakeModule(
+    val id: String,
+    val title: String,
+    val category: String,
+    val description: String,
+    val fen: String,
+    val recommendedMoveUci: String
+)
+
 @Composable
 private fun MistakePatternsSection(
     state: AppUiState,
     viewModel: AppViewModel
 ) {
-    val totalModules = 4
-    val practicedCount = state.practicedModules.size.coerceAtMost(totalModules)
-    val progress = practicedCount.toFloat() / totalModules.toFloat()
+    val mistakeModules = remember {
+        listOf(
+            MistakeModule(
+                id = "lesson_mate_1",
+                title = "Module 1: Missed Forced Mate",
+                category = "MATE-IN-1 DETECTION",
+                description = "Learn to identify mating nets instantly. When a forced mate exists, any non-mating move is classified as a critical mistake.",
+                fen = AppViewModel.FEN_MATE_IN_ONE,
+                recommendedMoveUci = "f3f7"
+            ),
+            MistakeModule(
+                id = "lesson_back_rank",
+                title = "Module 2: Back-Rank Vulnerability",
+                category = "TACTICAL DEFENSE",
+                description = "Kings trapped behind their own pawns with no escape square ('luft'). Learn to identify the checkmate line before it happens.",
+                fen = AppViewModel.FEN_BACK_RANK_MATE,
+                recommendedMoveUci = "d1d8"
+            ),
+            MistakeModule(
+                id = "lesson_hanging_piece",
+                title = "Module 3: Hanging Pieces",
+                category = "MATERIAL PRESERVATION",
+                description = "A piece is hanging if it is attacked and has zero defenders, or is defended fewer times than attacked. Spot hanging targets instantly.",
+                fen = AppViewModel.FEN_HANGING_PIECE,
+                recommendedMoveUci = "d8d4"
+            ),
+            MistakeModule(
+                id = "lesson_fork",
+                title = "Module 4: Fork & Double Attack",
+                category = "TACTICAL EXECUTION",
+                description = "Delivering double threats with knights and queens. One threat cannot be defended while the other is executed.",
+                fen = AppViewModel.FEN_FORK_TACTIC,
+                recommendedMoveUci = "e5f7"
+            )
+        )
+    }
+
+    val totalModules = mistakeModules.size
+    val practicedCount = state.practicedModules.count { id -> mistakeModules.any { it.id == id } }
+    val progress = if (totalModules > 0) practicedCount.toFloat() / totalModules.toFloat() else 0f
 
     AcademyCard(sectionLabel = "Verifiable Curriculum") {
         Text(
@@ -134,7 +194,7 @@ private fun MistakePatternsSection(
             style = ChessTutorTypography.titleLarge
         )
         Text(
-            text = "Each module targets a strictly checkable failure mode. No vague assertions — every pattern is verifiable by engine logic.",
+            text = "Each module targets a strictly checkable failure mode. Every pattern is verifiable by concrete engine logic.",
             style = ChessTutorTypography.bodyMedium,
             color = ChessTutorColors.TextSecondary
         )
@@ -167,69 +227,28 @@ private fun MistakePatternsSection(
         )
     }
 
-    LessonCard(
-        lessonId = "lesson_mate_1",
-        title = "Module 1: Missed Forced Mate",
-        category = "MATE-IN-1 DETECTION",
-        description = "Learn to identify mating nets instantly. When a forced mate exists, any non-mating move is classified as a critical mistake.",
-        exampleFen = AppViewModel.FEN_MATE_IN_ONE,
-        status = getModuleStatus("lesson_mate_1", state.practicedModules, state.masteredModules),
-        onPractice = {
-            viewModel.practiceCurriculumLesson(
-                lessonId = "lesson_mate_1",
-                fen = AppViewModel.FEN_MATE_IN_ONE,
-                title = "Missed Forced Mate"
+    mistakeModules.forEach { module ->
+        key(module.id) {
+            LessonCard(
+                lessonId = module.id,
+                title = module.title,
+                category = module.category,
+                description = module.description,
+                exampleFen = module.fen,
+                status = getModuleStatus(module.id, state.practicedModules, state.masteredModules),
+                onPractice = {
+                    viewModel.practiceCurriculumLesson(
+                        lessonId = module.id,
+                        fen = module.fen,
+                        title = module.title,
+                        category = module.category,
+                        description = module.description,
+                        recommendedMoveUci = module.recommendedMoveUci
+                    )
+                }
             )
         }
-    )
-
-    LessonCard(
-        lessonId = "lesson_back_rank",
-        title = "Module 2: Back-Rank Vulnerability",
-        category = "TACTICAL DEFENSE",
-        description = "Kings trapped behind their own pawns with no escape square ('luft'). Learn to identify the checkmate line before it happens.",
-        exampleFen = AppViewModel.FEN_BACK_RANK_MATE,
-        status = getModuleStatus("lesson_back_rank", state.practicedModules, state.masteredModules),
-        onPractice = {
-            viewModel.practiceCurriculumLesson(
-                lessonId = "lesson_back_rank",
-                fen = AppViewModel.FEN_BACK_RANK_MATE,
-                title = "Back-Rank Vulnerability"
-            )
-        }
-    )
-
-    LessonCard(
-        lessonId = "lesson_hanging_piece",
-        title = "Module 3: Hanging Pieces",
-        category = "MATERIAL PRESERVATION",
-        description = "A piece is hanging if it is attacked and has zero defenders, or is defended fewer times than attacked. Spot hanging targets instantly.",
-        exampleFen = AppViewModel.FEN_HANGING_PIECE,
-        status = getModuleStatus("lesson_hanging_piece", state.practicedModules, state.masteredModules),
-        onPractice = {
-            viewModel.practiceCurriculumLesson(
-                lessonId = "lesson_hanging_piece",
-                fen = AppViewModel.FEN_HANGING_PIECE,
-                title = "Hanging Pieces"
-            )
-        }
-    )
-
-    LessonCard(
-        lessonId = "lesson_fork",
-        title = "Module 4: Fork & Double Attack",
-        category = "TACTICAL EXECUTION",
-        description = "Delivering double threats with knights and queens. One threat cannot be defended while the other is executed.",
-        exampleFen = AppViewModel.FEN_FORK_TACTIC,
-        status = getModuleStatus("lesson_fork", state.practicedModules, state.masteredModules),
-        onPractice = {
-            viewModel.practiceCurriculumLesson(
-                lessonId = "lesson_fork",
-                fen = AppViewModel.FEN_FORK_TACTIC,
-                title = "Fork & Double Attack"
-            )
-        }
-    )
+    }
 }
 
 @Composable
@@ -240,101 +259,202 @@ private fun LearnSection(viewModel: AppViewModel) {
             style = ChessTutorTypography.titleLarge
         )
         Text(
-            text = "Structured reference material across the three phases of chess. Use these principles to guide decisions when concrete tactical forcing lines are absent.",
+            text = "Structured masterclasses across Openings, Middlegame, and Endgame. Tap any topic to expand key principles and explore the exact position interactively on the board.",
             style = ChessTutorTypography.bodyMedium,
             color = ChessTutorColors.TextSecondary
         )
     }
 
-    // Section 1: Openings
-    TheorySectionCard(
-        title = "Phase 1: Opening Principles & Repertoire",
-        subtitle = "Development, Center Control, and King Safety",
-        topics = listOf(
-            TheoryTopic(
-                title = "1. Central Occupation & Minor Piece Development",
-                description = "Occupy the central squares (e4, d4) with pawns to restrict enemy piece mobility. Develop minor pieces toward the center (Knights before Bishops). Avoid moving the same piece multiple times before your pieces are active.",
-                takeaway = "Rule of thumb: Every move in the first 8 moves must either stake out a central square, activate a piece, or protect the king.",
-                exploreFen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
-                exploreTitle = "Italian Game Opening Development"
-            ),
-            TheoryTopic(
-                title = "2. Early Castling & King Protection",
-                description = "Clear the path between your King and Rook immediately. Castle within the first 7 to 10 moves. Never initiate an open confrontation in the center while your King remains on e1 or e8.",
-                takeaway = "Rule of thumb: Keep the shield pawns (f2, g2, h2 or f7, g7, h7) unmoved unless tactically forced to prevent creating holes.",
-                exploreFen = "r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 w - - 4 6",
-                exploreTitle = "Castled King Safety"
-            ),
-            TheoryTopic(
-                title = "3. Classical Opening Systems Overview",
-                description = "• Open Games (1.e4 e5): Leads to rapid tactical skirmishes (Italian Game, Ruy Lopez).\n• Semi-Open Games (1.e4 c5): The Sicilian Defense creates asymmetrical counter-attacking play.\n• Closed Games (1.d4 d5): The Queen's Gambit offers a strategic battle over space and pawn structures.",
-                takeaway = "Tip: Choose one system for White and two for Black (one vs 1.e4, one vs 1.d4) to build opening consistency.",
-                exploreFen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
-                exploreTitle = "Sicilian Defense Center Skirmish"
-            )
-        ),
-        viewModel = viewModel
+    val phases = listOf(
+        Pair(LearnCategory.OPENING, "Phase 1: Opening Principles & Repertoire"),
+        Pair(LearnCategory.MIDDLEGAME, "Phase 2: Middlegame Strategy & Outposts"),
+        Pair(LearnCategory.ENDGAME, "Phase 3: Endgame Technique & Precision")
     )
 
-    // Section 2: Middlegame
-    TheorySectionCard(
-        title = "Phase 2: Middlegame Strategy & Planning",
-        subtitle = "Pawn Levers, Outposts, and Piece Coordination",
-        topics = listOf(
-            TheoryTopic(
-                title = "1. Outposts & Structural Pawn Holes",
-                description = "An outpost is a central square (usually on the 4th, 5th, or 6th rank) that can never be attacked by an opponent's pawn. Knights anchored on outposts dominate the entire board.",
-                takeaway = "Strategy: When an opponent pushes a pawn, look immediately for the backward square left behind that can no longer be protected.",
-                exploreFen = "r4rk1/pp1b1ppp/1qn1pn2/3p4/3P4/1PN1PN2/P3BPPP/R2Q1RK1 w - - 0 12",
-                exploreTitle = "Middlegame Knight Outpost"
-            ),
-            TheoryTopic(
-                title = "2. Pawn Breaks & Open Files",
-                description = "Rooks need open files to exert influence. A pawn break is a pawn push that challenges the enemy pawn chain, forcing a pawn trade that opens a file or diagonal for your heavy pieces.",
-                takeaway = "Rule of thumb: In closed positions, planning revolves entirely around preparing and executing the correct pawn break (e.g. c4, f4, or d5).",
-                exploreFen = "r2q1rk1/1ppbbppp/p1np1n2/4p3/B3P3/2PP1N2/PP3PPP/RNBQR1K1 w - - 0 9",
-                exploreTitle = "Pawn Break Preparation"
-            ),
-            TheoryTopic(
-                title = "3. Piece Coordination & Battery Attacks",
-                description = "Aligning complementary pieces—such as a Queen and Bishop along a long diagonal or doubling Rooks on an open file—multiplies their offensive force against weak defensive squares (f7, g7, h7).",
-                takeaway = "Checklist: Before attacking, ensure all pieces participate. An attack conducted with only 1 or 2 pieces will almost always fail.",
-                exploreFen = "r4rk1/1b2bppp/ppq1pn2/2p5/P2P1B2/2PB1N2/1P2QPPP/R4RK1 w - - 0 14",
-                exploreTitle = "Coordinated Battery Alignment"
+    phases.forEach { (category, phaseTitle) ->
+        key(category.name) {
+            val topicsForCategory = LearnCurriculumRepository.topics.filter { it.category == category }
+            LearnPhaseCard(
+                title = phaseTitle,
+                subtitle = category.displayName,
+                topics = topicsForCategory,
+                viewModel = viewModel
             )
-        ),
-        viewModel = viewModel
-    )
+        }
+    }
+}
 
-    // Section 3: Endgame
-    TheorySectionCard(
-        title = "Phase 3: Endgame Technique & Precision",
-        subtitle = "King Activity, Opposition, and Rook Endgames",
-        topics = listOf(
-            TheoryTopic(
-                title = "1. The Active King in the Endgame",
-                description = "Once queens are traded, the danger of checkmate decreases drastically. The King transforms from a vulnerable liability into an aggressive piece that must march directly to the center to support pawns.",
-                takeaway = "Key rule: The player whose King reaches the center first wins a substantial positional advantage.",
-                exploreFen = "8/5pk1/4p1p1/3pP3/3P1PP1/4K3/8/8 w - - 0 40",
-                exploreTitle = "King March to the Center"
-            ),
-            TheoryTopic(
-                title = "2. Opposition & Key Squares (Pawn Promotion)",
-                description = "Direct opposition occurs when two Kings face each other on the same rank or file with one square between them. The player who does NOT have to move holds the opposition and can force the enemy King aside.",
-                takeaway = "Calculation tip: Use the 'Square of the Pawn' rule to know whether your King can catch a passed pawn without counting move-by-move.",
-                exploreFen = "8/4k3/8/4P3/8/4K3/8/8 w - - 0 1",
-                exploreTitle = "King & Pawn Opposition"
-            ),
-            TheoryTopic(
-                title = "3. Rook Endgame Essentials: Lucena & Philidor",
-                description = "• Lucena Position: The winning technique where you build a 'bridge' with your Rook on the 4th rank to shield your King from checks while your pawn queens.\n• Philidor Position: The defensive technique keeping your Rook on the 6th rank to prevent the enemy King from penetrating.",
-                takeaway = "Golden rule of rooks: Rooks belong behind passed pawns—both your own to push them, and your opponent's to halt them.",
-                exploreFen = "1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1",
-                exploreTitle = "Lucena Bridge Technique"
-            )
-        ),
-        viewModel = viewModel
-    )
+@Composable
+private fun LearnPhaseCard(
+    title: String,
+    subtitle: String,
+    topics: List<LearnTopic>,
+    viewModel: AppViewModel
+) {
+    AcademyCard(sectionLabel = subtitle.uppercase()) {
+        Text(text = title, style = ChessTutorTypography.titleLarge)
+        Text(text = subtitle, style = ChessTutorTypography.bodyMedium, color = ChessTutorColors.TextSecondary)
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            topics.forEachIndexed { index, topic ->
+                key(topic.id) {
+                    LearnTopicCard(
+                        topic = topic,
+                        initiallyExpanded = index == 0,
+                        onExplore = { viewModel.exploreLearnTopic(topic) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LearnTopicCard(
+    topic: LearnTopic,
+    initiallyExpanded: Boolean,
+    onExplore: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(ChessTutorColors.SurfaceElevated)
+            .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(12.dp))
+            .padding(12.dp)
+    ) {
+        Column {
+            // Header row with tap-to-expand
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = topic.title,
+                        style = ChessTutorTypography.titleMedium,
+                        color = ChessTutorColors.TextPrimary
+                    )
+                    Text(
+                        text = topic.subtitle,
+                        style = ChessTutorTypography.bodyMedium,
+                        color = ChessTutorColors.TextSecondary
+                    )
+                }
+                IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint = ChessTutorColors.Primary
+                    )
+                }
+            }
+
+            // Progressive Disclosure content
+            AnimatedVisibility(
+                visible = expanded,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = topic.summary,
+                        style = ChessTutorTypography.bodyMedium,
+                        color = ChessTutorColors.TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "KEY PRINCIPLES:",
+                        style = ChessTutorTypography.labelSmall,
+                        color = ChessTutorColors.Primary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    topic.keyPrinciples.forEach { principle ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = ChessTutorColors.Primary,
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = principle,
+                                style = ChessTutorTypography.bodyMedium,
+                                color = ChessTutorColors.TextSecondary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ChessTutorColors.Surface)
+                            .padding(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(
+                                imageVector = Icons.Default.Lightbulb,
+                                contentDescription = null,
+                                tint = ChessTutorColors.Primary,
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = topic.moveExplanation,
+                                style = ChessTutorTypography.bodyMedium,
+                                color = ChessTutorColors.TextPrimary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // Secondary action button (visually distinct from primary practice buttons)
+                    Button(
+                        onClick = onExplore,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ChessTutorColors.Surface,
+                            contentColor = ChessTutorColors.Primary
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Explore Position on Board",
+                            style = ChessTutorTypography.labelSmall,
+                            color = ChessTutorColors.Primary
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 enum class ModuleProgressStatus {
@@ -387,6 +507,7 @@ private fun LessonCard(
             color = ChessTutorColors.TextSecondary
         )
         Spacer(modifier = Modifier.height(14.dp))
+        // Primary action button (bold primary container)
         Button(
             onClick = onPractice,
             colors = ButtonDefaults.buttonColors(
@@ -395,9 +516,13 @@ private fun LessonCard(
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text(if (status == ModuleProgressStatus.NOT_STARTED) "Start Practice" else "Practice Again")
+            Text(
+                text = if (status == ModuleProgressStatus.NOT_STARTED) "Start Practice" else "Practice Again",
+                style = ChessTutorTypography.titleMedium,
+                color = ChessTutorColors.Background
+            )
             Spacer(modifier = Modifier.width(6.dp))
-            Icon(Icons.Default.ArrowForward, contentDescription = null)
+            Icon(Icons.Default.ArrowForward, contentDescription = null, tint = ChessTutorColors.Background)
         }
     }
 }
@@ -450,79 +575,3 @@ private fun StatusBadge(status: ModuleProgressStatus) {
 }
 
 private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
-
-private data class TheoryTopic(
-    val title: String,
-    val description: String,
-    val takeaway: String,
-    val exploreFen: String,
-    val exploreTitle: String
-)
-
-@Composable
-private fun TheorySectionCard(
-    title: String,
-    subtitle: String,
-    topics: List<TheoryTopic>,
-    viewModel: AppViewModel
-) {
-    AcademyCard(sectionLabel = "Instructional Guide") {
-        Text(text = title, style = ChessTutorTypography.titleLarge)
-        Text(text = subtitle, style = ChessTutorTypography.bodyMedium, color = ChessTutorColors.TextSecondary)
-
-        Spacer(modifier = Modifier.height(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            topics.forEach { topic ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(ChessTutorColors.SurfaceElevated)
-                        .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(12.dp))
-                        .padding(12.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = topic.title,
-                            style = ChessTutorTypography.titleMedium,
-                            color = ChessTutorColors.Primary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = topic.description,
-                            style = ChessTutorTypography.bodyMedium,
-                            color = ChessTutorColors.TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = topic.takeaway,
-                            style = ChessTutorTypography.labelSmall,
-                            color = ChessTutorColors.TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Button(
-                            onClick = {
-                                viewModel.practiceCurriculumLesson(
-                                    lessonId = "theory_${topic.exploreTitle.hashCode()}",
-                                    fen = topic.exploreFen,
-                                    title = topic.exploreTitle
-                                )
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = ChessTutorColors.Surface,
-                                contentColor = ChessTutorColors.Primary
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.align(Alignment.End)
-                        ) {
-                            Text("Explore in Coach")
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.height(14.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
