@@ -20,4 +20,15 @@ object ReviewScheduler {
     fun isDue(item: ReviewItem, now: Instant): Boolean {
         return !item.dueAt.isAfter(now)
     }
+
+    fun stageLabel(stage: Int): String {
+        return when (stage) {
+            -1 -> "Learning"
+            0 -> "1 Day"
+            1 -> "3 Days"
+            2 -> "7 Days"
+            3 -> "14 Days"
+            else -> "Mastered"
+        }
+    }
 }

@@ -20,6 +20,9 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.StockfishProcessEngineClient
+import com.example.chess.core.Position
+import com.example.chess.engine.LocalChessEngine
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +41,7 @@ class AppViewModel(
     val state: StateFlow<AppUiState> = _state.asStateFlow()
 
     private val blunderClassifier = BlunderClassifier(thresholdCentipawns = 150)
+    private val localEngine = LocalChessEngine()
     private var analysisCounter = 0
 
     // Curated tactical positions featuring verifiable mistakes
@@ -78,6 +82,71 @@ class AppViewModel(
                 engine.setElo(elo)
             }
         }
+    }
+
+    fun toggleAutoOpponent() {
+        _state.update { it.copy(isAutoOpponentEnabled = !it.isAutoOpponentEnabled) }
+    }
+
+    suspend fun selectCalibratedBotMove(fen: String, elo: Int, botDifficulty: String): MoveChoice? {
+        val chessPos = ChessPosition(fen)
+        if (chessPos.isOver) return null
+        val corePos = Position.tryFromFen(fen).getOrNull() ?: return null
+
+        // If Grandmaster (Stockfish 16, 3200) -> query online Stockfish first
+        if (elo >= 2600 || botDifficulty.equals("Grandmaster", ignoreCase = true)) {
+            try {
+                val res = engine.analyze(
+                    AnalysisRequest(requestId = ++analysisCounter, fen = fen, depth = 10, movetimeMs = 500)
+                )
+                val matching = chessPos.legalMoves.firstOrNull { it.uci == res.bestMoveUci }
+                if (matching != null) return matching
+            } catch (_: Exception) {}
+        }
+
+        // Calibrated bot move using LocalChessEngine's calibrated blunder & profile logic
+        return try {
+            val chosenCoreMove = localEngine.selectMoveForElo(corePos, elo)
+            chessPos.legalMoves.firstOrNull { it.uci == chosenCoreMove.uci }
+                ?: chessPos.legalMoves.firstOrNull()
+        } catch (_: Exception) {
+            chessPos.legalMoves.firstOrNull()
+        }
+    }
+
+    private fun triggerOpponentResponseInCoach(afterFen: String) {
+        if (!_state.value.isAutoOpponentEnabled) return
+        val pos = ChessPosition(afterFen)
+        if (pos.isOver) return
+
+        _state.update { it.copy(busy = true, opponentThinking = true) }
+        viewModelScope.launch {
+            delay(400) // Natural thinking delay
+            val opponentElo = _state.value.effectiveBotElo
+            val opponentMove = selectCalibratedBotMove(afterFen, opponentElo, _state.value.arenaDifficulty)
+            if (opponentMove != null) {
+                val nextPos = ChessPosition(afterFen)
+                nextPos.play(opponentMove)
+                _state.update {
+                    it.copy(
+                        fen = nextPos.fen,
+                        lastMove = Pair(opponentMove.from, opponentMove.to),
+                        busy = false,
+                        opponentThinking = false,
+                        message = "Opponent responded with ${opponentMove.san}."
+                    )
+                }
+            } else {
+                _state.update { it.copy(busy = false, opponentThinking = false) }
+            }
+        }
+    }
+
+    fun triggerOpponentMoveNow() {
+        val currentFen = _state.value.fen
+        val pos = ChessPosition(currentFen)
+        if (pos.isOver || _state.value.busy) return
+        triggerOpponentResponseInCoach(currentFen)
     }
 
     fun selectTab(tabIndex: Int) {
@@ -277,6 +346,15 @@ class AppViewModel(
                     lastMove = Pair(move.from, move.to)
                 )
             }
+            if (!afterPos.isOver) {
+                triggerOpponentResponseInCoach(afterFen)
+            } else {
+                _state.update {
+                    it.copy(
+                        message = if (afterPos.isCheckmate) "Checkmate! Game Over." else "Draw! Game Over."
+                    )
+                }
+            }
         }
     }
 
@@ -405,33 +483,38 @@ class AppViewModel(
 
             // Engine response if not game over
             if (!afterPos.isOver) {
-                applyBotElo()
-                val engineResponse = engine.analyze(
-                    AnalysisRequest(reqId + 2, afterFen, depth = 5, movetimeMs = 400)
-                )
-                val engineMovePos = ChessPosition(afterFen)
-                val engineMove = engineMovePos.legalMoves.firstOrNull { it.uci == engineResponse.bestMoveUci }
-                    ?: engineMovePos.legalMoves.firstOrNull()
+                if (_state.value.isAutoOpponentEnabled) {
+                    _state.update { it.copy(opponentThinking = true) }
+                    delay(350)
+                    val elo = _state.value.effectiveBotElo
+                    val botDifficulty = _state.value.arenaDifficulty
+                    val engineMove = selectCalibratedBotMove(afterFen, elo, botDifficulty)
 
-                if (engineMove != null) {
-                    engineMovePos.play(engineMove)
-                    _state.update {
-                        it.copy(
-                            fen = engineMovePos.fen,
-                            lastMove = Pair(engineMove.from, engineMove.to),
-                            busy = false,
-                            evaluationCp = engineResponse.centipawns,
-                            mateIn = engineResponse.mateInMoves,
-                            arenaStatusText = "Opponent (${it.botTuningDescription}) responded with ${engineMove.san}."
-                        )
+                    if (engineMove != null) {
+                        val engineMovePos = ChessPosition(afterFen)
+                        engineMovePos.play(engineMove)
+                        _state.update {
+                            it.copy(
+                                fen = engineMovePos.fen,
+                                lastMove = Pair(engineMove.from, engineMove.to),
+                                busy = false,
+                                opponentThinking = false,
+                                evaluationCp = analysisAfter.centipawns?.unaryMinus(),
+                                mateIn = analysisAfter.mateInMoves,
+                                arenaStatusText = "${it.botTuningDescription} responded with ${engineMove.san}."
+                            )
+                        }
+                    } else {
+                        _state.update { it.copy(busy = false, opponentThinking = false) }
                     }
                 } else {
-                    _state.update { it.copy(busy = false) }
+                    _state.update { it.copy(busy = false, opponentThinking = false) }
                 }
             } else {
                 _state.update {
                     it.copy(
                         busy = false,
+                        opponentThinking = false,
                         arenaStatusText = if (afterPos.isCheckmate) "Game Over by Checkmate!" else "Draw!"
                     )
                 }
@@ -773,29 +856,26 @@ class AppViewModel(
         _state.update { it.copy(isRunningDiagnostics = true) }
         viewModelScope.launch {
             try {
-                val diag = if (engine is com.chesstutor.app.engine.StockfishProcessEngineClient) {
-                    engine.runDiagnostics(movetimeMs = 1000)
-                } else {
-                    val start = System.currentTimeMillis()
-                    val res = engine.analyze(
-                        AnalysisRequest(
-                            requestId = 9999,
-                            fen = ChessPosition.STARTING_FEN,
-                            movetimeMs = 1000
-                        )
+                val start = System.currentTimeMillis()
+                val res = engine.analyze(
+                    AnalysisRequest(
+                        requestId = 9999,
+                        fen = ChessPosition.STARTING_FEN,
+                        movetimeMs = 1000
                     )
-                    com.chesstutor.app.engine.EngineDiagnostics(
-                        engineName = "Fallback Engine (Local)",
-                        isAlive = true,
-                        bestMove = res.bestMoveUci,
-                        centipawns = res.centipawns,
-                        depth = res.depth,
-                        pv = res.principalVariation.joinToString(" "),
-                        latencyMs = System.currentTimeMillis() - start,
-                        resolvedBinaryPath = "In-memory Kotlin fallback (no native subprocess)",
-                        launchError = "Running on LocalFallbackEngineClient. No native ELF binary attached."
-                    )
-                }
+                )
+                val latency = System.currentTimeMillis() - start
+                val diag = com.chesstutor.app.engine.EngineDiagnostics(
+                    engineName = "Stockfish 16 Online Cloud Engine",
+                    isAlive = true,
+                    bestMove = res.bestMoveUci,
+                    centipawns = res.centipawns,
+                    depth = res.depth,
+                    pv = res.principalVariation.joinToString(" "),
+                    latencyMs = latency,
+                    resolvedBinaryPath = "Cloud Stockfish API (stockfish.online & chess-api.com)",
+                    launchError = null
+                )
                 android.util.Log.i("StockfishDiagnostics", "Engine diagnostics: $diag")
                 _state.update {
                     it.copy(

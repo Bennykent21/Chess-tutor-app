@@ -48,19 +48,22 @@ data class AppUiState(
     val useLinkedRatingForBot: Boolean = false,
     val isLinkingLoading: Boolean = false,
     val linkingError: String? = null,
-    val linkingSuccessMessage: String? = null
+    val linkingSuccessMessage: String? = null,
+    val isAutoOpponentEnabled: Boolean = true,
+    val opponentThinking: Boolean = false
 ) {
     val effectiveBotElo: Int
         get() {
             if (useLinkedRatingForBot && linkedProfile?.activeRating != null) {
-                return linkedProfile.activeRating!!.coerceIn(600, 3000)
+                return linkedProfile.activeRating!!.coerceIn(250, 3200)
             }
-            return when (arenaDifficulty) {
-                "Beginner" -> 800
-                "Casual" -> 1200
-                "Intermediate" -> 1600
-                "Advanced" -> 2000
-                else -> 1200
+            return when (arenaDifficulty.lowercase()) {
+                "beginner" -> 250
+                "casual" -> 600
+                "intermediate" -> 1300
+                "advanced" -> 2000
+                "grandmaster" -> 3200
+                else -> 1300
             }
         }
 
@@ -68,9 +71,16 @@ data class AppUiState(
         get() {
             if (useLinkedRatingForBot && linkedProfile?.activeRating != null) {
                 val prof = linkedProfile
-                return "Tuned to approximate your ${prof.platform.displayName} ${prof.selectedTimeControl.displayName} rating (${prof.activeRating})"
+                return "Calibrated to your ${prof.platform.displayName} ${prof.selectedTimeControl.displayName} rating (${prof.activeRating})"
             }
-            return "Tuned to approximate $arenaDifficulty (~${effectiveBotElo} Elo) preset"
+            return when (arenaDifficulty.lowercase()) {
+                "beginner" -> "Martin (250 Elo Beginner)"
+                "casual" -> "Wayne (600 Elo Casual)"
+                "intermediate" -> "Nelson (1300 Elo Intermediate)"
+                "advanced" -> "Elena (2000 Elo Advanced)"
+                "grandmaster" -> "Stockfish 16 (3200 Elo Grandmaster)"
+                else -> "$arenaDifficulty (~${effectiveBotElo} Elo)"
+            }
         }
 }
 

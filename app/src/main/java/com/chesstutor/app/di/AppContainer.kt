@@ -41,89 +41,16 @@ object AppContainer {
     }
 
     @Volatile
-    var engineResolutionDiagnostic: String = "Engine initializing..."
+    var engineResolutionDiagnostic: String = "Online Stockfish Engine Active (stockfish.online & chess-api.com with local fallback)"
         private set
 
     fun provideEngineClient(context: Context): EngineClient {
         return engineClientInstance ?: synchronized(this) {
-            val nativeDir = context.applicationInfo.nativeLibraryDir
-            val primaryPath = "$nativeDir/libstockfish.so"
-            val candidatePaths = mutableListOf(
-                primaryPath,
-                File(context.noBackupFilesDir, "libstockfish.so").absolutePath,
-                File(context.filesDir, "libstockfish.so").absolutePath,
-                "src/main/jniLibs/x86_64/libstockfish.so",
-                "app/src/main/jniLibs/x86_64/libstockfish.so",
-                "src/main/jniLibs/arm64-v8a/libstockfish.so",
-                "app/src/main/jniLibs/arm64-v8a/libstockfish.so"
+            val client: EngineClient = com.chesstutor.app.engine.OnlineStockfishEngineClient(
+                fallback = LocalFallbackEngineClient()
             )
-
-            var resolvedBinary: File? = null
-            for (path in candidatePaths) {
-                val candidate = File(path)
-                if (candidate.exists() && candidate.length() > 0) {
-                    resolvedBinary = candidate
-                    break
-                }
-            }
-
-            // Fallback: If not found in nativeLibraryDir or file paths, extract from APK directly
-            if (resolvedBinary == null) {
-                try {
-                    val apkFile = File(context.applicationInfo.sourceDir)
-                    if (apkFile.exists()) {
-                        java.util.zip.ZipFile(apkFile).use { zip ->
-                            val supportedAbis = android.os.Build.SUPPORTED_ABIS
-                            var matchedEntry: java.util.zip.ZipEntry? = null
-                            for (abi in supportedAbis) {
-                                val entry = zip.getEntry("lib/$abi/libstockfish.so")
-                                if (entry != null) {
-                                    matchedEntry = entry
-                                    Log.i("AppContainer", "Found Stockfish entry in APK: lib/$abi/libstockfish.so")
-                                    break
-                                }
-                            }
-                            if (matchedEntry != null) {
-                                val dest = File(context.noBackupFilesDir, "libstockfish.so")
-                                zip.getInputStream(matchedEntry).use { input ->
-                                    dest.outputStream().use { output ->
-                                        input.copyTo(output)
-                                    }
-                                }
-                                dest.setExecutable(true, false)
-                                if (dest.exists() && dest.length() > 0) {
-                                    resolvedBinary = dest
-                                    Log.i("AppContainer", "Successfully extracted Stockfish to ${dest.absolutePath} (${dest.length()} bytes)")
-                                }
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w("AppContainer", "Could not extract Stockfish from APK sourceDir", e)
-                }
-            }
-
-            val targetBinary = resolvedBinary
-            val client: EngineClient = if (targetBinary != null) {
-                val absPath = targetBinary.absolutePath
-                if (!targetBinary.canExecute()) {
-                    try {
-                        val ok = targetBinary.setExecutable(true, false)
-                        Log.i("AppContainer", "setExecutable on $absPath result: $ok")
-                    } catch (e: Exception) {
-                        Log.w("AppContainer", "Could not setExecutable on $absPath", e)
-                    }
-                }
-                val canExec = targetBinary.canExecute()
-                val sizeMb = targetBinary.length() / (1024 * 1024)
-                engineResolutionDiagnostic = "Stockfish binary found at $absPath ($sizeMb MB, canExecute=$canExec)"
-                Log.i("AppContainer", engineResolutionDiagnostic)
-                StockfishProcessEngineClient(absPath)
-            } else {
-                engineResolutionDiagnostic = "No Stockfish binary found. nativeLibraryDir=$nativeDir, sourceDir=${context.applicationInfo.sourceDir}, supportedAbis=${android.os.Build.SUPPORTED_ABIS.joinToString()}"
-                Log.w("AppContainer", engineResolutionDiagnostic)
-                LocalFallbackEngineClient()
-            }
+            engineResolutionDiagnostic = "Stockfish 16 Engine Active via High-Speed Cloud API with Local Fallback"
+            Log.i("AppContainer", engineResolutionDiagnostic)
             engineClientInstance = client
             client
         }

@@ -182,6 +182,29 @@ class LocalChessEngine : EngineClient {
     val legalMoves = LegalMoveGenerator.generateLegalMoves(position)
     if (legalMoves.isEmpty()) error("No legal moves available in position")
 
+    // Special bot personality adaptations:
+    // Nelson (1300): Aggressively develops queen in opening if legal
+    if (profile.elo in 1200..1400 && position.fullmoveNumber <= 10) {
+      val queenMoves = legalMoves.filter { move ->
+        position.pieceAt(move.from)?.type == PieceType.QUEEN
+      }
+      if (queenMoves.isNotEmpty() && Random.nextFloat() < 0.40f) {
+        return@withContext queenMoves.random()
+      }
+    }
+
+    // Martin (250): Authentic beginner play, frequently pushes random pawns or knights
+    if (profile.elo <= 350) {
+      if (Random.nextFloat() < 0.65f) {
+        val nonKingMoves = legalMoves.filter { move ->
+          position.pieceAt(move.from)?.type != PieceType.KING
+        }
+        if (nonKingMoves.isNotEmpty()) {
+          return@withContext nonKingMoves.random()
+        }
+      }
+    }
+
     if (profile.elo >= 1000) {
       val fenKey = position.toFen().split(" ").take(4).joinToString(" ")
       val bookReplies = OPENING_BOOK[fenKey]

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.domain.ChessPosition
@@ -35,12 +36,13 @@ fun ChessBoard(
     flipped: Boolean = false,
     onSquareTapped: (String) -> Unit
 ) {
-    val lightSquareColor = Color(0xFFDCE2EC)
-    val darkSquareColor = Color(0xFF6B7E96)
-    val selectedColor = Color(0x77F59E0B)
-    val lastMoveColor = Color(0x44F59E0B)
-    val targetDotColor = Color(0x88F59E0B)
-    val arrowColor = Color(0xCCF59E0B)
+    val lightSquareColor = Color(0xFFEEEED2)
+    val darkSquareColor = Color(0xFF769656)
+    val selectedColor = Color(0xCCBACA2B)
+    val lastMoveColor = Color(0x99BACA2B)
+    val targetDotColor = Color(0x4D000000)
+    val targetCaptureRingColor = Color(0x59000000)
+    val arrowColor = Color(0xDDF5A623)
 
     Canvas(
         modifier = modifier
@@ -65,6 +67,13 @@ fun ChessBoard(
     ) {
         val squareSize = size.width / 8f
         val pos = ChessPosition(fen)
+
+        // Coordinate text paint
+        val textPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            textSize = squareSize * 0.22f
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+        }
 
         // 1. Draw 8x8 Board Squares
         for (col in 0..7) {
@@ -102,6 +111,31 @@ fun ChessBoard(
                     )
                 }
 
+                // Chess.com style Coordinates (File letters on bottom row, Rank numbers on left col)
+                val coordColorInt = if (isLight) 0xFF769656.toInt() else 0xFFEEEED2.toInt()
+                textPaint.color = coordColorInt
+
+                if (col == 0) {
+                    // Draw Rank number (1-8) in top-left corner
+                    val rankText = "${'1' + rank}"
+                    drawContext.canvas.nativeCanvas.drawText(
+                        rankText,
+                        topLeft.x + 3.dp.toPx(),
+                        topLeft.y + squareSize * 0.26f,
+                        textPaint
+                    )
+                }
+                if (row == 7) {
+                    // Draw File letter (a-h) in bottom-right corner
+                    val fileText = "${'a' + file}"
+                    drawContext.canvas.nativeCanvas.drawText(
+                        fileText,
+                        topLeft.x + squareSize - squareSize * 0.22f,
+                        topLeft.y + squareSize - 3.dp.toPx(),
+                        textPaint
+                    )
+                }
+
                 // Highlight legal move targets
                 if (squareStr in legalTargets) {
                     val center = Offset(topLeft.x + squareSize / 2f, topLeft.y + squareSize / 2f)
@@ -109,10 +143,10 @@ fun ChessBoard(
                     if (pieceOnSquare != null) {
                         // Capture ring
                         drawCircle(
-                            color = targetDotColor,
-                            radius = squareSize * 0.42f,
+                            color = targetCaptureRingColor,
+                            radius = squareSize * 0.44f,
                             center = center,
-                            style = Stroke(width = 4.dp.toPx())
+                            style = Stroke(width = 4.5.dp.toPx())
                         )
                     } else {
                         // Move dot

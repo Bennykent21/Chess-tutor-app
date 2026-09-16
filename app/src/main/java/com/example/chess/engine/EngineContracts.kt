@@ -75,20 +75,20 @@ data class StockfishProfile(
 ) {
   companion object {
     val PRESETS = listOf(
-      StockfishProfile(600, "Novice", "Beginner", 1, 0.48f, 6),
-      StockfishProfile(900, "Casual", "Beginner", 1, 0.35f, 5),
-      StockfishProfile(1200, "Intermediate", "Club", 2, 0.20f, 4),
-      StockfishProfile(1500, "Advanced", "Club", 2, 0.10f, 3),
-      StockfishProfile(1800, "Expert", "Tournament", 3, 0.04f, 2),
-      StockfishProfile(2100, "Master", "FIDE Master", 3, 0.01f, 2),
-      StockfishProfile(2400, "Grandmaster", "GM", 4, 0.00f, 1),
-      StockfishProfile(2600, "Stockfish Max", "Engine", 4, 0.00f, 1)
+      StockfishProfile(250, "Martin (Beginner)", "Beginner", 1, 0.70f, 8),
+      StockfishProfile(600, "Wayne (Novice)", "Casual", 1, 0.45f, 6),
+      StockfishProfile(1000, "Casual", "Club", 2, 0.28f, 4),
+      StockfishProfile(1300, "Nelson (Intermediate)", "Club", 2, 0.15f, 3),
+      StockfishProfile(1600, "Club Player", "Tournament", 3, 0.08f, 2),
+      StockfishProfile(2000, "Elena (Advanced)", "Expert", 3, 0.02f, 2),
+      StockfishProfile(2400, "Master", "FIDE Master", 4, 0.00f, 1),
+      StockfishProfile(3200, "Stockfish 16", "Grandmaster", 5, 0.00f, 1)
     )
 
     fun forElo(elo: Int): StockfishProfile {
-      val clamped = elo.coerceIn(600, 2600)
+      val clamped = elo.coerceIn(250, 3200)
       return PRESETS.minByOrNull { kotlin.math.abs(it.elo - clamped) }
-        ?: PRESETS[2]
+        ?: PRESETS[3]
     }
   }
 }
