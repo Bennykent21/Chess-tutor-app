@@ -56,7 +56,7 @@ class AppViewModel(
         viewModelScope.launch {
             runCatching { engine.initialize() }
             loadReviews()
-            loadCoachPosition(FEN_MATE_IN_ONE)
+            selectDrill(0)
             observeLinkedProfile()
         }
     }
@@ -339,20 +339,47 @@ class AppViewModel(
                 }
             }
         } else {
-            _state.update {
-                it.copy(
-                    fen = afterFen,
-                    message = "Move ${move.san} played.",
-                    lastMove = Pair(move.from, move.to)
-                )
-            }
-            if (!afterPos.isOver) {
-                triggerOpponentResponseInCoach(afterFen)
+            val rec = _state.value.activeCoachRecommendedMove
+            if (rec != null && rec.length >= 4) {
+                if (move.uci == rec || isMatePlayed) {
+                    _state.update {
+                        it.copy(
+                            fen = afterFen,
+                            message = "Correct! Well done.",
+                            mistakeDetected = false,
+                            canRetryMistake = false,
+                            lastMove = Pair(move.from, move.to),
+                            recommendedArrow = null
+                        )
+                    }
+                } else {
+                    _state.update {
+                        it.copy(
+                            fen = afterFen,
+                            message = "Incorrect move. Try again!",
+                            mistakeDetected = true,
+                            mistakeFen = beforeFen,
+                            canRetryMistake = true,
+                            lastMove = Pair(move.from, move.to)
+                        )
+                    }
+                }
             } else {
                 _state.update {
                     it.copy(
-                        message = if (afterPos.isCheckmate) "Checkmate! Game Over." else "Draw! Game Over."
+                        fen = afterFen,
+                        message = "Move ${move.san} played.",
+                        lastMove = Pair(move.from, move.to)
                     )
+                }
+                if (!afterPos.isOver) {
+                    triggerOpponentResponseInCoach(afterFen)
+                } else {
+                    _state.update {
+                        it.copy(
+                            message = if (afterPos.isCheckmate) "Checkmate! Game Over." else "Draw! Game Over."
+                        )
+                    }
                 }
             }
         }
@@ -363,38 +390,99 @@ class AppViewModel(
         loadCoachPosition(mistakeFen)
         _state.update {
             it.copy(
-                message = "Guided Retry: The position is reset. Look carefully for the winning move!",
+                message = "Position reset. Find the winning move!",
                 mistakeDetected = false,
                 canRetryMistake = false
             )
         }
     }
 
+    fun setDrillSheetVisible(visible: Boolean) {
+        _state.update { it.copy(isDrillSheetVisible = visible) }
+    }
+
+    fun selectDrill(index: Int) {
+        val drills = com.chesstutor.app.domain.TrainDrillsRepository.drills
+        if (index in drills.indices) {
+            val drill = drills[index]
+            _state.update {
+                it.copy(
+                    currentDrillIndex = index,
+                    fen = drill.fen,
+                    activeCoachTitle = drill.title,
+                    activeCoachSubtitle = "Drill ${index + 1} of ${drills.size}",
+                    activeCoachCategory = drill.category,
+                    activeCoachRecommendedMove = drill.solutionUci,
+                    message = drill.prompt,
+                    hintLevel = 0,
+                    hintText = "",
+                    mistakeDetected = false,
+                    mistakeFen = drill.fen,
+                    canRetryMistake = false,
+                    assessment = null,
+                    selectedSquare = null,
+                    legalTargets = emptySet(),
+                    recommendedArrow = null,
+                    lastMove = null,
+                    isDrillSheetVisible = false
+                )
+            }
+        }
+    }
+
+    fun nextDrill() {
+        val drills = com.chesstutor.app.domain.TrainDrillsRepository.drills
+        val nextIdx = (_state.value.currentDrillIndex + 1) % drills.size
+        selectDrill(nextIdx)
+    }
+
     fun showHint() {
         val currentLevel = _state.value.hintLevel
-        val nextLevel = (currentLevel + 1).coerceAtMost(4)
+        val nextLevel = if (currentLevel >= 3) 1 else currentLevel + 1
 
         val pos = ChessPosition(_state.value.fen)
-        val bestMove = pos.matesInOne.firstOrNull() ?: pos.legalMoves.firstOrNull()
-
-        val hintDescription = when (nextLevel) {
-            1 -> "Concept Hint: Look for an unprotected square directly touching the opposing King."
-            2 -> "Piece Hint: Focus your attention on the piece on ${bestMove?.from?.uppercase() ?: "the board"}."
-            3 -> "Target Hint: Look at the target square ${bestMove?.to?.uppercase() ?: "where the King is vulnerable"}."
-            4 -> "Direct Move Hint: Play ${bestMove?.san ?: "the decisive move"}."
-            else -> ""
-        }
-
-        val arrow = if (nextLevel == 4 && bestMove != null) {
-            Pair(bestMove.from, bestMove.to)
+        val targetUci = _state.value.activeCoachRecommendedMove
+        val targetMove = if (targetUci != null && targetUci.length >= 4) {
+            pos.legalMoves.firstOrNull { it.uci == targetUci }
         } else null
+        val bestMove = targetMove ?: pos.matesInOne.firstOrNull() ?: pos.legalMoves.firstOrNull()
 
-        _state.update {
-            it.copy(
-                hintLevel = nextLevel,
-                hintText = hintDescription,
-                recommendedArrow = arrow
-            )
+        if (bestMove == null) return
+
+        when (nextLevel) {
+            1 -> {
+                // Level 1: Highlight piece
+                _state.update {
+                    it.copy(
+                        hintLevel = 1,
+                        selectedSquare = bestMove.from,
+                        legalTargets = emptySet(),
+                        recommendedArrow = null
+                    )
+                }
+            }
+            2 -> {
+                // Level 2: Highlight piece and target square
+                _state.update {
+                    it.copy(
+                        hintLevel = 2,
+                        selectedSquare = bestMove.from,
+                        legalTargets = setOf(bestMove.to),
+                        recommendedArrow = null
+                    )
+                }
+            }
+            3 -> {
+                // Level 3: Draw arrow
+                _state.update {
+                    it.copy(
+                        hintLevel = 3,
+                        selectedSquare = bestMove.from,
+                        legalTargets = setOf(bestMove.to),
+                        recommendedArrow = Pair(bestMove.from, bestMove.to)
+                    )
+                }
+            }
         }
     }
 
@@ -410,6 +498,7 @@ class AppViewModel(
             it.copy(
                 fen = afterFen,
                 lastMove = Pair(move.from, move.to),
+                moveHistory = it.moveHistory + move.san,
                 busy = true,
                 message = "Move ${move.san} played. Analyzing..."
             )
@@ -497,11 +586,12 @@ class AppViewModel(
                             it.copy(
                                 fen = engineMovePos.fen,
                                 lastMove = Pair(engineMove.from, engineMove.to),
+                                moveHistory = it.moveHistory + engineMove.san,
                                 busy = false,
                                 opponentThinking = false,
                                 evaluationCp = analysisAfter.centipawns?.unaryMinus(),
                                 mateIn = analysisAfter.mateInMoves,
-                                arenaStatusText = "${it.botTuningDescription} responded with ${engineMove.san}."
+                                arenaStatusText = "${it.botTuningDescription} played ${engineMove.san}."
                             )
                         }
                     } else {
@@ -844,6 +934,7 @@ class AppViewModel(
                 fen = ChessPosition.STARTING_FEN,
                 message = "New game against Stockfish (${it.arenaDifficulty}). Make your first move!",
                 lastMove = null,
+                moveHistory = emptyList(),
                 recommendedArrow = null,
                 assessment = null,
                 arenaStatusText = ""

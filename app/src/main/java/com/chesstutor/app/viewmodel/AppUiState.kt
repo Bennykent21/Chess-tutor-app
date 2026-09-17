@@ -50,7 +50,10 @@ data class AppUiState(
     val linkingError: String? = null,
     val linkingSuccessMessage: String? = null,
     val isAutoOpponentEnabled: Boolean = true,
-    val opponentThinking: Boolean = false
+    val opponentThinking: Boolean = false,
+    val currentDrillIndex: Int = 0,
+    val moveHistory: List<String> = emptyList(),
+    val isDrillSheetVisible: Boolean = false
 ) {
     val effectiveBotElo: Int
         get() {
