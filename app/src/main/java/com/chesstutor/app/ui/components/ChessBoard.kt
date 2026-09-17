@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.domain.ChessPosition
+import com.chesstutor.app.ui.theme.ChessTutorColors
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -32,23 +33,24 @@ fun ChessBoard(
     selectedSquare: String? = null,
     legalTargets: Set<String> = emptySet(),
     lastMove: Pair<String, String>? = null,
+    badSquare: String? = null,
     recommendedArrow: Pair<String, String>? = null,
     flipped: Boolean = false,
     onSquareTapped: (String) -> Unit
 ) {
-    val lightSquareColor = Color(0xFFEEEED2)
-    val darkSquareColor = Color(0xFF769656)
-    val selectedColor = Color(0xCCBACA2B)
-    val lastMoveColor = Color(0x99BACA2B)
-    val targetDotColor = Color(0x4D000000)
-    val targetCaptureRingColor = Color(0x59000000)
-    val arrowColor = Color(0xDDF5A623)
+    val lightSquareColor = ChessTutorColors.SqLight
+    val darkSquareColor = ChessTutorColors.SqDark
+    val selectedColor = ChessTutorColors.SquareSelected
+    val lastMoveColor = ChessTutorColors.SquareLastMove
+    val badColor = ChessTutorColors.SquareBad
+    val targetDotColor = Color(0x4D121A20)
+    val arrowColor = ChessTutorColors.Brass.copy(alpha = 0.92f)
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(0.dp))
             .pointerInput(flipped, fen) {
                 detectTapGestures { offset ->
                     val squareSize = size.width / 8f
@@ -71,8 +73,8 @@ fun ChessBoard(
         // Coordinate text paint
         val textPaint = android.graphics.Paint().apply {
             isAntiAlias = true
-            textSize = squareSize * 0.22f
-            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+            textSize = squareSize * 0.18f
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
         }
 
         // 1. Draw 8x8 Board Squares
@@ -111,27 +113,37 @@ fun ChessBoard(
                     )
                 }
 
-                // Chess.com style Coordinates (File letters on bottom row, Rank numbers on left col)
-                val coordColorInt = if (isLight) 0xFF769656.toInt() else 0xFFEEEED2.toInt()
-                textPaint.color = coordColorInt
+                // Highlight bad square (e.g. missed move or blunder)
+                if (badSquare == squareStr) {
+                    drawRect(
+                        color = badColor,
+                        topLeft = topLeft,
+                        size = Size(squareSize, squareSize)
+                    )
+                }
 
+                // Board Coordinates matching mockup:
+                // Rank number at left-top of leftmost column
                 if (col == 0) {
-                    // Draw Rank number (1-8) in top-left corner
+                    val coordColorInt = if (isLight) 0xFF6E5F44.toInt() else 0xFFD5E2E9.toInt()
+                    textPaint.color = coordColorInt
                     val rankText = "${'1' + rank}"
                     drawContext.canvas.nativeCanvas.drawText(
                         rankText,
-                        topLeft.x + 3.dp.toPx(),
-                        topLeft.y + squareSize * 0.26f,
+                        topLeft.x + 4.dp.toPx(),
+                        topLeft.y + squareSize * 0.22f,
                         textPaint
                     )
                 }
+                // File letter at bottom-right of bottom row
                 if (row == 7) {
-                    // Draw File letter (a-h) in bottom-right corner
+                    val coordColorInt = if (isLight) 0xFF6E5F44.toInt() else 0xFFD5E2E9.toInt()
+                    textPaint.color = coordColorInt
                     val fileText = "${'a' + file}"
                     drawContext.canvas.nativeCanvas.drawText(
                         fileText,
-                        topLeft.x + squareSize - squareSize * 0.22f,
-                        topLeft.y + squareSize - 3.dp.toPx(),
+                        topLeft.x + squareSize - 12.dp.toPx(),
+                        topLeft.y + squareSize - 4.dp.toPx(),
                         textPaint
                     )
                 }
@@ -141,18 +153,18 @@ fun ChessBoard(
                     val center = Offset(topLeft.x + squareSize / 2f, topLeft.y + squareSize / 2f)
                     val pieceOnSquare = pos.pieceAt(squareStr)
                     if (pieceOnSquare != null) {
-                        // Capture ring
-                        drawCircle(
-                            color = targetCaptureRingColor,
-                            radius = squareSize * 0.44f,
-                            center = center,
-                            style = Stroke(width = 4.5.dp.toPx())
-                        )
-                    } else {
-                        // Move dot
+                        // Capture ring (82% size)
                         drawCircle(
                             color = targetDotColor,
-                            radius = squareSize * 0.16f,
+                            radius = squareSize * 0.41f,
+                            center = center,
+                            style = Stroke(width = 3.5.dp.toPx())
+                        )
+                    } else {
+                        // Move dot (21% size)
+                        drawCircle(
+                            color = targetDotColor,
+                            radius = squareSize * 0.105f,
                             center = center
                         )
                     }
@@ -198,20 +210,26 @@ fun ChessBoard(
 
 private fun DrawScope.drawArrow(start: Offset, end: Offset, color: Color, squareSize: Float) {
     val angle = atan2(end.y - start.y, end.x - start.x)
-    val strokeWidth = squareSize * 0.12f
-    val headLength = squareSize * 0.35f
+    val headLength = squareSize * 0.32f
+    val shaftStroke = squareSize * 0.12f
 
-    // Line shaft
+    // Line shaft stops slightly before the tip
+    val backOffset = headLength * 0.85f
+    val shaftEnd = Offset(
+        (end.x - cos(angle) * backOffset).toFloat(),
+        (end.y - sin(angle) * backOffset).toFloat()
+    )
+
     drawLine(
         color = color,
         start = start,
-        end = end,
-        strokeWidth = strokeWidth,
+        end = shaftEnd,
+        strokeWidth = shaftStroke,
         cap = StrokeCap.Round
     )
 
-    // Arrowhead
-    val headAngle = PI / 6.0
+    // Arrowhead triangle
+    val headAngle = PI / 5.5
     val path = Path().apply {
         moveTo(end.x, end.y)
         lineTo(
@@ -228,8 +246,9 @@ private fun DrawScope.drawArrow(start: Offset, end: Offset, color: Color, square
 }
 
 /**
- * Pure vector piece drawing that renders crisp vector silhouettes with high contrast
- * outlines on any screen density without relying on system font emojis or unicode traps.
+ * Clean vector piece drawing with mockup colors:
+ * White pieces: #F7F3EA with #2A3138 outline
+ * Black pieces: #232B33 with #0C1014 outline
  */
 private fun DrawScope.drawVectorPiece(
     piece: Char,
@@ -237,9 +256,8 @@ private fun DrawScope.drawVectorPiece(
     topLeft: Offset,
     squareSize: Float
 ) {
-    val primaryColor = if (isWhite) Color(0xFFF8FAFC) else Color(0xFF1E293B)
-    val strokeColor = if (isWhite) Color(0xFF0F172A) else Color(0xFFE2E8F0)
-    val accentColor = if (isWhite) Color(0xFF94A3B8) else Color(0xFFF59E0B)
+    val primaryColor = if (isWhite) ChessTutorColors.PcWhite else ChessTutorColors.PcBlack
+    val strokeColor = if (isWhite) ChessTutorColors.PcWhiteInk else ChessTutorColors.PcBlackInk
 
     val cx = topLeft.x + squareSize / 2f
     val cy = topLeft.y + squareSize / 2f
@@ -247,7 +265,6 @@ private fun DrawScope.drawVectorPiece(
 
     when (piece) {
         'p' -> { // Pawn
-            // Base
             val basePath = Path().apply {
                 moveTo(cx - r * 0.65f, cy + r * 0.85f)
                 lineTo(cx + r * 0.65f, cy + r * 0.85f)
@@ -256,9 +273,8 @@ private fun DrawScope.drawVectorPiece(
                 close()
             }
             drawPath(basePath, primaryColor)
-            drawPath(basePath, strokeColor, style = Stroke(width = 2.dp.toPx()))
+            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
 
-            // Body
             val bodyPath = Path().apply {
                 moveTo(cx - r * 0.35f, cy + r * 0.5f)
                 lineTo(cx + r * 0.35f, cy + r * 0.5f)
@@ -267,134 +283,177 @@ private fun DrawScope.drawVectorPiece(
                 close()
             }
             drawPath(bodyPath, primaryColor)
-            drawPath(bodyPath, strokeColor, style = Stroke(width = 2.dp.toPx()))
+            drawPath(bodyPath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
 
-            // Head circle
-            drawCircle(primaryColor, r * 0.32f, Offset(cx, cy - r * 0.35f))
-            drawCircle(strokeColor, r * 0.32f, Offset(cx, cy - r * 0.35f), style = Stroke(width = 2.dp.toPx()))
+            drawCircle(primaryColor, r * 0.36f, Offset(cx, cy - r * 0.38f))
+            drawCircle(strokeColor, r * 0.36f, Offset(cx, cy - r * 0.38f), style = Stroke(width = 1.8.dp.toPx()))
         }
-
-        'n' -> { // Knight
-            val knightPath = Path().apply {
-                moveTo(cx - r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.4f, cy + r * 0.3f)
-                lineTo(cx + r * 0.6f, cy - r * 0.1f)
-                lineTo(cx + r * 0.45f, cy - r * 0.7f)
-                lineTo(cx + r * 0.2f, cy - r * 0.85f)
-                lineTo(cx - r * 0.1f, cy - r * 0.65f)
-                lineTo(cx - r * 0.5f, cy - r * 0.35f)
-                lineTo(cx - r * 0.65f, cy - r * 0.1f)
-                lineTo(cx - r * 0.45f, cy)
-                lineTo(cx - r * 0.35f, cy + r * 0.4f)
-                close()
-            }
-            drawPath(knightPath, primaryColor)
-            drawPath(knightPath, strokeColor, style = Stroke(width = 2.dp.toPx()))
-
-            // Mane / Eye detail
-            drawCircle(accentColor, r * 0.08f, Offset(cx - r * 0.15f, cy - r * 0.35f))
-        }
-
-        'b' -> { // Bishop
-            // Base
+        'r' -> { // Rook
             val basePath = Path().apply {
-                moveTo(cx - r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.4f, cy + r * 0.5f)
-                lineTo(cx - r * 0.4f, cy + r * 0.5f)
+                moveTo(cx - r * 0.75f, cy + r * 0.85f)
+                lineTo(cx + r * 0.75f, cy + r * 0.85f)
+                lineTo(cx + r * 0.6f, cy + r * 0.5f)
+                lineTo(cx - r * 0.6f, cy + r * 0.5f)
                 close()
             }
             drawPath(basePath, primaryColor)
-            drawPath(basePath, strokeColor, style = Stroke(width = 2.dp.toPx()))
+            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
 
-            // Miter oval
-            drawOval(
-                color = primaryColor,
-                topLeft = Offset(cx - r * 0.36f, cy - r * 0.65f),
-                size = Size(r * 0.72f, r * 1.15f)
-            )
-            drawOval(
-                color = strokeColor,
-                topLeft = Offset(cx - r * 0.36f, cy - r * 0.65f),
-                size = Size(r * 0.72f, r * 1.15f),
-                style = Stroke(width = 2.dp.toPx())
-            )
+            val towerPath = Path().apply {
+                moveTo(cx - r * 0.48f, cy + r * 0.5f)
+                lineTo(cx + r * 0.48f, cy + r * 0.5f)
+                lineTo(cx + r * 0.42f, cy - r * 0.4f)
+                lineTo(cx - r * 0.42f, cy - r * 0.4f)
+                close()
+            }
+            drawPath(towerPath, primaryColor)
+            drawPath(towerPath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
 
-            // Top cross dot
-            drawCircle(accentColor, r * 0.10f, Offset(cx, cy - r * 0.75f))
+            val battlementsPath = Path().apply {
+                moveTo(cx - r * 0.55f, cy - r * 0.4f)
+                lineTo(cx + r * 0.55f, cy - r * 0.4f)
+                lineTo(cx + r * 0.55f, cy - r * 0.75f)
+                lineTo(cx + r * 0.32f, cy - r * 0.75f)
+                lineTo(cx + r * 0.32f, cy - r * 0.58f)
+                lineTo(cx + r * 0.12f, cy - r * 0.58f)
+                lineTo(cx + r * 0.12f, cy - r * 0.75f)
+                lineTo(cx - r * 0.12f, cy - r * 0.75f)
+                lineTo(cx - r * 0.12f, cy - r * 0.58f)
+                lineTo(cx - r * 0.32f, cy - r * 0.58f)
+                lineTo(cx - r * 0.32f, cy - r * 0.75f)
+                lineTo(cx - r * 0.55f, cy - r * 0.75f)
+                close()
+            }
+            drawPath(battlementsPath, primaryColor)
+            drawPath(battlementsPath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
         }
+        'n' -> { // Knight
+            val basePath = Path().apply {
+                moveTo(cx - r * 0.75f, cy + r * 0.85f)
+                lineTo(cx + r * 0.75f, cy + r * 0.85f)
+                lineTo(cx + r * 0.55f, cy + r * 0.55f)
+                lineTo(cx - r * 0.55f, cy + r * 0.55f)
+                close()
+            }
+            drawPath(basePath, primaryColor)
+            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
 
-        'r' -> { // Rook
-            // Castle body
-            val rookPath = Path().apply {
+            val horsePath = Path().apply {
+                moveTo(cx + r * 0.5f, cy + r * 0.55f)
+                lineTo(cx + r * 0.5f, cy - r * 0.15f)
+                cubicTo(cx + r * 0.5f, cy - r * 0.7f, cx + r * 0.15f, cy - r * 0.85f, cx - r * 0.2f, cy - r * 0.85f)
+                lineTo(cx - r * 0.55f, cy - r * 0.55f)
+                lineTo(cx - r * 0.65f, cy - r * 0.2f)
+                lineTo(cx - r * 0.4f, cy - r * 0.2f)
+                lineTo(cx - r * 0.25f, cy - r * 0.05f)
+                cubicTo(cx - r * 0.35f, cy + r * 0.2f, cx - r * 0.5f, cy + r * 0.4f, cx - r * 0.5f, cy + r * 0.55f)
+                close()
+            }
+            drawPath(horsePath, primaryColor)
+            drawPath(horsePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
+
+            val eyeColor = if (isWhite) strokeColor else Color(0xFFF7F3EA)
+            drawCircle(eyeColor, r * 0.08f, Offset(cx - r * 0.15f, cy - r * 0.48f))
+        }
+        'b' -> { // Bishop
+            val basePath = Path().apply {
                 moveTo(cx - r * 0.65f, cy + r * 0.85f)
                 lineTo(cx + r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.5f, cy + r * 0.45f)
-                lineTo(cx + r * 0.4f, cy - r * 0.35f)
-                lineTo(cx + r * 0.65f, cy - r * 0.45f)
-                // Crenellations
-                lineTo(cx + r * 0.65f, cy - r * 0.8f)
-                lineTo(cx + r * 0.35f, cy - r * 0.8f)
-                lineTo(cx + r * 0.35f, cy - r * 0.6f)
-                lineTo(cx + r * 0.12f, cy - r * 0.6f)
-                lineTo(cx + r * 0.12f, cy - r * 0.8f)
-                lineTo(cx - r * 0.12f, cy - r * 0.8f)
-                lineTo(cx - r * 0.12f, cy - r * 0.6f)
-                lineTo(cx - r * 0.35f, cy - r * 0.6f)
-                lineTo(cx - r * 0.35f, cy - r * 0.8f)
-                lineTo(cx - r * 0.65f, cy - r * 0.8f)
-                lineTo(cx - r * 0.65f, cy - r * 0.45f)
-                lineTo(cx - r * 0.4f, cy - r * 0.35f)
-                lineTo(cx - r * 0.5f, cy + r * 0.45f)
+                lineTo(cx + r * 0.45f, cy + r * 0.55f)
+                lineTo(cx - r * 0.45f, cy + r * 0.55f)
                 close()
             }
-            drawPath(rookPath, primaryColor)
-            drawPath(rookPath, strokeColor, style = Stroke(width = 2.dp.toPx()))
-        }
+            drawPath(basePath, primaryColor)
+            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
 
+            val mitrePath = Path().apply {
+                moveTo(cx, cy - r * 0.75f)
+                cubicTo(cx + r * 0.58f, cy - r * 0.5f, cx + r * 0.58f, cy + r * 0.4f, cx, cy + r * 0.55f)
+                cubicTo(cx - r * 0.58f, cy + r * 0.4f, cx - r * 0.58f, cy - r * 0.5f, cx, cy - r * 0.75f)
+                close()
+            }
+            drawPath(mitrePath, primaryColor)
+            drawPath(mitrePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
+
+            drawCircle(primaryColor, r * 0.13f, Offset(cx, cy - r * 0.83f))
+            drawCircle(strokeColor, r * 0.13f, Offset(cx, cy - r * 0.83f), style = Stroke(width = 1.8.dp.toPx()))
+
+            // Cross slit
+            drawLine(
+                strokeColor,
+                Offset(cx - r * 0.18f, cy - r * 0.15f),
+                Offset(cx + r * 0.22f, cy + r * 0.05f),
+                strokeWidth = 1.8.dp.toPx()
+            )
+        }
         'q' -> { // Queen
-            val queenPath = Path().apply {
-                moveTo(cx - r * 0.7f, cy + r * 0.85f)
-                lineTo(cx + r * 0.7f, cy + r * 0.85f)
-                lineTo(cx + r * 0.45f, cy + r * 0.45f)
-                // Crown spikes
-                lineTo(cx + r * 0.75f, cy - r * 0.5f)
-                lineTo(cx + r * 0.35f, cy - r * 0.2f)
-                lineTo(cx, cy - r * 0.75f)
-                lineTo(cx - r * 0.35f, cy - r * 0.2f)
-                lineTo(cx - r * 0.75f, cy - r * 0.5f)
-                lineTo(cx - r * 0.45f, cy + r * 0.45f)
+            val basePath = Path().apply {
+                moveTo(cx - r * 0.75f, cy + r * 0.85f)
+                lineTo(cx + r * 0.75f, cy + r * 0.85f)
+                lineTo(cx + r * 0.55f, cy + r * 0.55f)
+                lineTo(cx - r * 0.55f, cy + r * 0.55f)
                 close()
             }
-            drawPath(queenPath, primaryColor)
-            drawPath(queenPath, strokeColor, style = Stroke(width = 2.dp.toPx()))
+            drawPath(basePath, primaryColor)
+            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
 
-            // Crown jewels
-            drawCircle(accentColor, r * 0.09f, Offset(cx - r * 0.72f, cy - r * 0.53f))
-            drawCircle(accentColor, r * 0.10f, Offset(cx, cy - r * 0.78f))
-            drawCircle(accentColor, r * 0.09f, Offset(cx + r * 0.72f, cy - r * 0.53f))
+            val crownPath = Path().apply {
+                moveTo(cx - r * 0.65f, cy + r * 0.55f)
+                lineTo(cx + r * 0.65f, cy + r * 0.55f)
+                lineTo(cx + r * 0.8f, cy - r * 0.45f)
+                lineTo(cx + r * 0.4f, cy - r * 0.15f)
+                lineTo(cx, cy - r * 0.65f)
+                lineTo(cx - r * 0.4f, cy - r * 0.15f)
+                lineTo(cx - r * 0.8f, cy - r * 0.45f)
+                close()
+            }
+            drawPath(crownPath, primaryColor)
+            drawPath(crownPath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
+
+            drawCircle(primaryColor, r * 0.11f, Offset(cx - r * 0.8f, cy - r * 0.48f))
+            drawCircle(strokeColor, r * 0.11f, Offset(cx - r * 0.8f, cy - r * 0.48f), style = Stroke(width = 1.5.dp.toPx()))
+
+            drawCircle(primaryColor, r * 0.11f, Offset(cx, cy - r * 0.68f))
+            drawCircle(strokeColor, r * 0.11f, Offset(cx, cy - r * 0.68f), style = Stroke(width = 1.5.dp.toPx()))
+
+            drawCircle(primaryColor, r * 0.11f, Offset(cx + r * 0.8f, cy - r * 0.48f))
+            drawCircle(strokeColor, r * 0.11f, Offset(cx + r * 0.8f, cy - r * 0.48f), style = Stroke(width = 1.5.dp.toPx()))
         }
-
         'k' -> { // King
-            val kingPath = Path().apply {
-                moveTo(cx - r * 0.7f, cy + r * 0.85f)
-                lineTo(cx + r * 0.7f, cy + r * 0.85f)
-                lineTo(cx + r * 0.45f, cy + r * 0.45f)
-                lineTo(cx + r * 0.6f, cy - r * 0.3f)
-                lineTo(cx + r * 0.25f, cy - r * 0.55f)
-                lineTo(cx - r * 0.25f, cy - r * 0.55f)
-                lineTo(cx - r * 0.6f, cy - r * 0.3f)
-                lineTo(cx - r * 0.45f, cy + r * 0.45f)
+            val basePath = Path().apply {
+                moveTo(cx - r * 0.75f, cy + r * 0.85f)
+                lineTo(cx + r * 0.75f, cy + r * 0.85f)
+                lineTo(cx + r * 0.55f, cy + r * 0.55f)
+                lineTo(cx - r * 0.55f, cy + r * 0.55f)
                 close()
             }
-            drawPath(kingPath, primaryColor)
-            drawPath(kingPath, strokeColor, style = Stroke(width = 2.dp.toPx()))
+            drawPath(basePath, primaryColor)
+            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
 
-            // Cross
-            drawLine(strokeColor, Offset(cx, cy - r * 0.55f), Offset(cx, cy - r * 0.9f), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Square)
-            drawLine(strokeColor, Offset(cx - r * 0.2f, cy - r * 0.75f), Offset(cx + r * 0.2f, cy - r * 0.75f), strokeWidth = 3.dp.toPx(), cap = StrokeCap.Square)
-            drawLine(accentColor, Offset(cx, cy - r * 0.55f), Offset(cx, cy - r * 0.9f), strokeWidth = 1.5.dp.toPx())
+            val robePath = Path().apply {
+                moveTo(cx - r * 0.55f, cy + r * 0.55f)
+                lineTo(cx + r * 0.55f, cy + r * 0.55f)
+                cubicTo(cx + r * 0.7f, cy + r * 0.2f, cx + r * 0.7f, cy - r * 0.4f, cx + r * 0.4f, cy - r * 0.45f)
+                lineTo(cx - r * 0.4f, cy - r * 0.45f)
+                cubicTo(cx - r * 0.7f, cy - r * 0.4f, cx - r * 0.7f, cy + r * 0.2f, cx - r * 0.55f, cy + r * 0.55f)
+                close()
+            }
+            drawPath(robePath, primaryColor)
+            drawPath(robePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
+
+            // Cross on top
+            drawLine(
+                strokeColor,
+                Offset(cx, cy - r * 0.45f),
+                Offset(cx, cy - r * 0.85f),
+                strokeWidth = 2.dp.toPx()
+            )
+            drawLine(
+                strokeColor,
+                Offset(cx - r * 0.2f, cy - r * 0.68f),
+                Offset(cx + r * 0.2f, cy - r * 0.68f),
+                strokeWidth = 2.dp.toPx()
+            )
         }
     }
 }

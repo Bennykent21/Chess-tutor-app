@@ -4,6 +4,12 @@ import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.ReviewItem
 
+data class TacticalIssueSummary(
+    val tacticalIssue: String,
+    val explanation: String,
+    val bestAlternativeMove: Pair<String, String>?
+)
+
 data class AppUiState(
     val loading: Boolean = false,
     val tab: Int = 0, // 0: Coach, 1: Curriculum, 2: Arena, 3: Review
@@ -25,7 +31,10 @@ data class AppUiState(
     val mistakeDetected: Boolean = false,
     val mistakeFen: String? = null,
     val canRetryMistake: Boolean = false,
-    val arenaDifficulty: String = "Casual", // Beginner, Casual, Intermediate, Advanced
+    val arenaDifficulty: String = "Casual", // Beginner, Casual, Intermediate, Advanced, Master, Custom
+    val arenaBotName: String = "Wayne",
+    val customBotElo: Int = 600,
+    val analysis: TacticalIssueSummary? = null,
     val arenaPlayerSide: Char = 'w',
     val arenaStatusText: String = "",
     val evaluationCp: Int? = null,
@@ -57,16 +66,20 @@ data class AppUiState(
 ) {
     val effectiveBotElo: Int
         get() {
+            if (arenaDifficulty.equals("Custom", ignoreCase = true)) {
+                return customBotElo
+            }
             if (useLinkedRatingForBot && linkedProfile?.activeRating != null) {
                 return linkedProfile.activeRating!!.coerceIn(250, 3200)
             }
             return when (arenaDifficulty.lowercase()) {
                 "beginner" -> 250
                 "casual" -> 600
-                "intermediate" -> 1300
-                "advanced" -> 2000
+                "intermediate" -> 1100
+                "advanced" -> 1600
+                "master" -> 2100
                 "grandmaster" -> 3200
-                else -> 1300
+                else -> 600
             }
         }
 
@@ -76,14 +89,6 @@ data class AppUiState(
                 val prof = linkedProfile
                 return "Calibrated to your ${prof.platform.displayName} ${prof.selectedTimeControl.displayName} rating (${prof.activeRating})"
             }
-            return when (arenaDifficulty.lowercase()) {
-                "beginner" -> "Martin (250 Elo Beginner)"
-                "casual" -> "Wayne (600 Elo Casual)"
-                "intermediate" -> "Nelson (1300 Elo Intermediate)"
-                "advanced" -> "Elena (2000 Elo Advanced)"
-                "grandmaster" -> "Stockfish 16 (3200 Elo Grandmaster)"
-                else -> "$arenaDifficulty (~${effectiveBotElo} Elo)"
-            }
+            return "$arenaBotName ($effectiveBotElo Elo)"
         }
 }
-

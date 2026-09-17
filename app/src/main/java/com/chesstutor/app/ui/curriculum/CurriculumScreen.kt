@@ -1,5 +1,8 @@
 package com.chesstutor.app.ui.curriculum
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,27 +24,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.domain.LearnCategory
@@ -60,301 +62,354 @@ fun CurriculumScreen(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
-    var selectedTopicForDetail by remember { mutableStateOf<LearnTopic?>(null) }
-    val detailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selectedLesson by remember { mutableStateOf<LearnTopic?>(null) }
+    val lessonSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val allTopics = LearnCurriculumRepository.topics
     val totalCount = allTopics.size
     val completedCount = allTopics.count { it.id in state.practicedModules || it.id in state.masteredModules }
     val progressRatio = if (totalCount > 0) completedCount.toFloat() / totalCount.toFloat() else 0f
 
+    // Accordion state: Openings open by default
+    val openSections = remember {
+        mutableStateMapOf(
+            LearnCategory.OPENING to true,
+            LearnCategory.TACTICS to false,
+            LearnCategory.MIDDLEGAME to false,
+            LearnCategory.ENDGAME to false,
+            LearnCategory.BLUNDER_PATTERNS to false
+        )
+    }
+
+    val categories = listOf(
+        Pair(LearnCategory.OPENING, "Openings"),
+        Pair(LearnCategory.TACTICS, "Tactics"),
+        Pair(LearnCategory.MIDDLEGAME, "Middlegame"),
+        Pair(LearnCategory.ENDGAME, "Endgame"),
+        Pair(LearnCategory.BLUNDER_PATTERNS, "Blunder patterns")
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(ChessTutorColors.Background)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // 1. Clean Title Header (§1.1: 28sp Semibold)
-        Row(
+        // ==================== HEAD ====================
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 10.dp)
         ) {
-            Column {
+            Text(
+                text = "Learn",
+                fontSize = 19.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.015).sp,
+                color = ChessTutorColors.TextPrimary
+            )
+            Text(
+                text = "Principles, patterns and technique",
+                fontSize = 12.5.sp,
+                letterSpacing = (-0.005).sp,
+                color = ChessTutorColors.TextSecondary,
+                modifier = Modifier.padding(top = 3.dp)
+            )
+
+            // Progress Bar (.prog)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(ChessTutorColors.Surface2)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progressRatio.coerceIn(0.04f, 1f))
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(ChessTutorColors.Brass)
+                    )
+                }
+
                 Text(
-                    text = "Learn",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ChessTutorColors.TextPrimary
-                )
-                Text(
-                    text = "$completedCount of $totalCount completed",
-                    fontSize = 13.sp,
-                    color = ChessTutorColors.TextSecondary
+                    text = "$completedCount / $totalCount",
+                    fontSize = 11.5.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = ChessTutorColors.TextTertiary
                 )
             }
-
-            // Compact Progress Badge
-            Text(
-                text = "${(progressRatio * 100).toInt()}%",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = ChessTutorColors.Accent
-            )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Progress Bar
-        LinearProgressIndicator(
-            progress = { progressRatio },
+        // ==================== ACCORDION LIST (#learn-list) ====================
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp)),
-            color = ChessTutorColors.Accent,
-            trackColor = ChessTutorColors.SurfaceElevated
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 2. Grouped Sections: Openings, Tactics, Middlegame, Endgame, Blunder Patterns (§4.3)
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .weight(1f)
+                .padding(horizontal = 16.dp)
         ) {
-            LearnCategory.entries.forEach { category ->
-                val categoryTopics = allTopics.filter { it.category == category }
-                if (categoryTopics.isNotEmpty()) {
-                    item(key = "header_${category.name}") {
+            categories.forEach { (category, title) ->
+                val topicsForCategory = allTopics.filter { it.category == category }
+                val doneInCategory = topicsForCategory.count { it.id in state.practicedModules || it.id in state.masteredModules }
+                val isOpen = openSections[category] ?: false
+
+                item(key = category.name) {
+                    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                        // Section Header (.sec-h)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                                .clip(RoundedCornerShape(6.dp))
+                                .bouncyClickable {
+                                    openSections[category] = !isOpen
+                                }
+                                .padding(vertical = 11.dp, horizontal = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = category.displayName,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = ChessTutorColors.TextPrimary
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (isOpen) "Collapse" else "Expand",
+                                tint = ChessTutorColors.TextTertiary,
+                                modifier = Modifier
+                                    .size(13.dp)
+                                    .rotate(if (isOpen) 0f else -90f)
                             )
+
+                            Spacer(modifier = Modifier.width(9.dp))
+
                             Text(
-                                text = "${categoryTopics.count { it.id in state.practicedModules }}/${categoryTopics.size}",
+                                text = title,
                                 fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = (-0.005).sp,
+                                color = ChessTutorColors.TextSecondary
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Text(
+                                text = "$doneInCategory/${topicsForCategory.size}",
+                                fontSize = 11.5.sp,
+                                fontFamily = FontFamily.Monospace,
                                 color = ChessTutorColors.TextTertiary
                             )
                         }
-                    }
 
-                    items(
-                        items = categoryTopics,
-                        key = { it.id }
-                    ) { topic ->
-                        val isCompleted = topic.id in state.practicedModules || topic.id in state.masteredModules
-
-                        // §4.3: One row per lesson, one line of text. Title only.
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(ChessTutorColors.Surface)
-                                .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(8.dp))
-                                .bouncyClickable { selectedTopicForDetail = topic }
-                                .padding(horizontal = 14.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        // Rows (.rows)
+                        AnimatedVisibility(
+                            visible = isOpen,
+                            enter = expandVertically(),
+                            exit = shrinkVertically()
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(ChessTutorColors.LineSoft)
                             ) {
-                                // Status Indicator (Checked or Hollow Dot)
-                                Box(
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isCompleted) ChessTutorColors.Accent.copy(alpha = 0.2f)
-                                            else Color.Transparent
+                                topicsForCategory.forEachIndexed { index, topic ->
+                                    val isDone = topic.id in state.masteredModules || topic.id in state.practicedModules
+                                    val isDoing = !isDone && index == 0
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(ChessTutorColors.Surface)
+                                            .bouncyClickable { selectedLesson = topic }
+                                            .padding(13.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Status dot (.st)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(15.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (isDone) ChessTutorColors.Sage
+                                                    else Color.Transparent
+                                                )
+                                                .border(
+                                                    1.5.dp,
+                                                    if (isDone) Color.Transparent
+                                                    else if (isDoing) ChessTutorColors.Brass
+                                                    else ChessTutorColors.Surface3,
+                                                    CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isDone) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Completed",
+                                                    tint = Color(0xFF11261B),
+                                                    modifier = Modifier.size(9.dp)
+                                                )
+                                            } else if (isDoing) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(5.dp)
+                                                        .clip(CircleShape)
+                                                        .background(ChessTutorColors.Brass)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(11.dp))
+
+                                        Text(
+                                            text = topic.title,
+                                            fontSize = 14.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            letterSpacing = (-0.01).sp,
+                                            color = if (isDone) ChessTutorColors.TextSecondary else ChessTutorColors.TextPrimary,
+                                            modifier = Modifier.weight(1f)
                                         )
-                                        .border(
-                                            width = 1.5.dp,
-                                            color = if (isCompleted) ChessTutorColors.Accent else ChessTutorColors.TextTertiary,
-                                            shape = CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isCompleted) {
+
                                         Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = ChessTutorColors.Accent,
-                                            modifier = Modifier.size(12.dp)
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = "Open",
+                                            tint = ChessTutorColors.TextTertiary,
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
+
+                                    if (index < topicsForCategory.size - 1) {
+                                        Spacer(modifier = Modifier.height(1.dp))
+                                    }
                                 }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Text(
-                                    text = topic.title,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = ChessTutorColors.TextPrimary,
-                                    maxLines = 1
-                                )
                             }
-
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = ChessTutorColors.TextTertiary,
-                                modifier = Modifier.size(18.dp)
-                            )
                         }
                     }
                 }
             }
 
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Puzzle library drawn from the Lichess open puzzle database, CC0",
+                    fontSize = 11.5.sp,
+                    color = ChessTutorColors.TextTertiary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp, bottom = 20.dp, start = 20.dp, end = 20.dp)
+                )
             }
         }
     }
 
-    // 3. Lesson Detail View (§4.3: Tapping a lesson opens a detail sheet with board, 2-3 bullets, and Practice button)
-    selectedTopicForDetail?.let { topic ->
+    // ==================== LESSON BOTTOM SHEET (#sheet-lesson) ====================
+    if (selectedLesson != null) {
+        val topic = selectedLesson!!
+
         ModalBottomSheet(
-            onDismissRequest = { selectedTopicForDetail = null },
-            sheetState = detailSheetState,
+            onDismissRequest = { selectedLesson = null },
+            sheetState = lessonSheetState,
             containerColor = ChessTutorColors.Surface,
-            dragHandle = null
+            contentColor = ChessTutorColors.TextPrimary,
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 10.dp, bottom = 4.dp)
+                        .size(width = 34.dp, height = 4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(ChessTutorColors.Surface3)
+                )
+            }
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
-                // Header Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = topic.title,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ChessTutorColors.TextPrimary
-                        )
-                        Text(
-                            text = topic.subtitle,
-                            fontSize = 13.sp,
-                            color = ChessTutorColors.TextSecondary
-                        )
-                    }
+                Text(
+                    text = topic.title,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.015).sp,
+                    color = ChessTutorColors.TextPrimary
+                )
+                Text(
+                    text = topic.subtitle,
+                    fontSize = 12.5.sp,
+                    color = ChessTutorColors.TextSecondary,
+                    modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
+                )
 
-                    IconButton(
-                        onClick = { selectedTopicForDetail = null },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = ChessTutorColors.TextSecondary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Interactive Board showing the key position (~220dp height)
+                // Demo Board
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, ChessTutorColors.Border, RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(0.dp))
                 ) {
-                    val arrow = if (topic.recommendedMoveUci.length >= 4) {
-                        Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.substring(2, 4))
-                    } else null
-
                     ChessBoard(
                         fen = topic.demoFen,
-                        selectedSquare = null,
-                        legalTargets = emptySet(),
-                        lastMove = null,
-                        recommendedArrow = arrow,
                         flipped = false,
                         onSquareTapped = {}
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // §4.3: Maximum 3 bullets, maximum 12 words each
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    topic.keyPrinciples.take(3).forEach { principle ->
+                // Key Principles Bullet List (.keys)
+                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    topic.keyPrinciples.forEach { principle ->
                         Row(
                             verticalAlignment = Alignment.Top,
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.padding(vertical = 2.dp)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .padding(top = 7.dp)
-                                    .size(6.dp)
+                                    .size(5.dp)
                                     .clip(CircleShape)
-                                    .background(ChessTutorColors.Accent)
+                                    .background(ChessTutorColors.Brass)
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = principle,
                                 fontSize = 14.sp,
-                                color = ChessTutorColors.TextPrimary,
-                                lineHeight = 20.sp
+                                letterSpacing = (-0.008).sp,
+                                lineHeight = 20.sp,
+                                color = ChessTutorColors.TextPrimary
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Single "Practice" Action Button
-                Button(
-                    onClick = {
-                        val chosen = topic
-                        selectedTopicForDetail = null
-                        viewModel.exploreLearnTopic(chosen)
-                    },
+                // Primary Button: Practise this
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ChessTutorColors.Accent,
-                        contentColor = ChessTutorColors.Background
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(ChessTutorColors.Brass)
+                        .bouncyClickable {
+                            viewModel.practiceLesson(topic)
+                            selectedLesson = null
+                            viewModel.selectTab(0) // Switch to Train tab!
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Practice",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = "Practise this",
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-0.008).sp,
+                        color = ChessTutorColors.BrassInk
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }

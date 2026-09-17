@@ -928,18 +928,102 @@ class AppViewModel(
         applyBotElo()
     }
 
-    fun resetArenaGame() {
+    fun setArenaBot(tierKey: String, name: String, elo: Int) {
+        _state.update {
+            it.copy(
+                arenaDifficulty = tierKey,
+                arenaBotName = name,
+                customBotElo = elo,
+                useLinkedRatingForBot = false
+            )
+        }
+        applyBotElo()
+    }
+
+    fun startNewArenaGame() {
         _state.update {
             it.copy(
                 fen = ChessPosition.STARTING_FEN,
-                message = "New game against Stockfish (${it.arenaDifficulty}). Make your first move!",
+                message = "New game against ${it.arenaBotName}. Make your first move!",
                 lastMove = null,
                 moveHistory = emptyList(),
                 recommendedArrow = null,
                 assessment = null,
+                analysis = null,
+                mistakeDetected = false,
                 arenaStatusText = ""
             )
         }
+    }
+
+    fun showAnalysisArrow(from: String, to: String) {
+        _state.update { it.copy(recommendedArrow = Pair(from, to)) }
+    }
+
+    fun practiceLesson(topic: com.chesstutor.app.domain.LearnTopic) {
+        exploreLearnTopic(topic)
+    }
+
+    fun showReviewAnswer(item: ReviewItem) {
+        if (item.bestMoveUci.length >= 4) {
+            val from = item.bestMoveUci.take(2)
+            val to = item.bestMoveUci.substring(2, 4)
+            _state.update {
+                it.copy(
+                    recommendedArrow = Pair(from, to),
+                    message = "Best move: ${item.bestMoveUci}. ${item.explanation}"
+                )
+            }
+        }
+    }
+
+    fun onReviewSquareTapped(square: String, item: ReviewItem) {
+        val selected = _state.value.selectedSquare
+        val pos = ChessPosition(_state.value.fen)
+        if (selected == null) {
+            val piece = pos.pieceAt(square)
+            if (piece != null && (pos.sideToMove == 'w' && piece.isUpperCase() || pos.sideToMove == 'b' && piece.isLowerCase())) {
+                val targets = pos.legalMoves.filter { it.from == square }.map { it.to }.toSet()
+                _state.update { it.copy(selectedSquare = square, legalTargets = targets) }
+            }
+        } else {
+            if (square in _state.value.legalTargets) {
+                val move = pos.legalMoves.firstOrNull { it.from == selected && it.to == square }
+                if (move != null) {
+                    val isCorrect = move.uci == item.bestMoveUci
+                    pos.play(move)
+                    val afterFen = pos.fen
+                    _state.update {
+                        it.copy(
+                            fen = afterFen,
+                            selectedSquare = null,
+                            legalTargets = emptySet(),
+                            lastMove = Pair(move.from, move.to),
+                            reviewSolved = isCorrect,
+                            message = if (isCorrect) "Well played! Mistake resolved." else "Incorrect move. Try again!"
+                        )
+                    }
+                    if (isCorrect) {
+                        viewModelScope.launch {
+                            ReviewScheduler.recordAttempt(
+                                item = item,
+                                correct = true,
+                                usedHint = _state.value.hintLevel > 0,
+                                now = Instant.now()
+                            )
+                            repository.upsert(item)
+                            loadReviews()
+                        }
+                    }
+                }
+            } else {
+                _state.update { it.copy(selectedSquare = null, legalTargets = emptySet()) }
+            }
+        }
+    }
+
+    fun resetArenaGame() {
+        startNewArenaGame()
     }
 
     fun runEngineDiagnostics() {
