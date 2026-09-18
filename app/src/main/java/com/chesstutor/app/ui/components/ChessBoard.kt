@@ -8,14 +8,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -170,11 +173,11 @@ fun ChessBoard(
                     }
                 }
 
-                // Draw Vector Piece
+                // Draw Piece (accurate Staunton-style silhouette)
                 val pieceChar = pos.pieceAt(squareStr)
                 if (pieceChar != null) {
                     val isWhite = pos.internalPosition.pieceAt(com.example.chess.core.Square.fromAlgebraic(squareStr))?.color == com.example.chess.core.PieceColor.WHITE
-                    drawVectorPiece(
+                    drawSvgPiece(
                         piece = pieceChar.lowercaseChar(),
                         isWhite = isWhite,
                         topLeft = topLeft,
@@ -245,215 +248,191 @@ private fun DrawScope.drawArrow(start: Offset, end: Offset, color: Color, square
     drawPath(path = path, color = color, style = Fill)
 }
 
+// ============================================================================
+// Accurate piece geometry, traced from the mockup's SVG <defs> (viewBox 0 0 45 45).
+// Paths are built once in that fixed 45x45 coordinate space; each draw call
+// wraps them in a translate+scale transform so they land on the right square
+// at the right size, matching the mockup's silhouettes exactly rather than
+// the earlier hand-approximated shapes.
+// ============================================================================
+
+private const val PIECE_STROKE_WIDTH = 1.15f
+
+private val pawnBodyPath = Path().apply {
+    moveTo(17.1f, 18.4f)
+    lineTo(27.9f, 18.4f)
+    cubicTo(27.5f, 20.5f, 26.3f, 21.5f, 25.5f, 22.2f)
+    cubicTo(27.6f, 25.2f, 28.5f, 28.8f, 28.7f, 32.4f)
+    lineTo(16.3f, 32.4f)
+    cubicTo(16.5f, 28.8f, 17.4f, 25.2f, 19.5f, 22.2f)
+    cubicTo(18.7f, 21.5f, 17.5f, 20.5f, 17.1f, 18.4f)
+    close()
+}
+
+private val rookCrownPath = Path().apply {
+    moveTo(12.9f, 13.4f)
+    lineTo(17.2f, 13.4f)
+    lineTo(17.2f, 16.5f)
+    lineTo(20.6f, 16.5f)
+    lineTo(20.6f, 13.4f)
+    lineTo(24.4f, 13.4f)
+    lineTo(24.4f, 16.5f)
+    lineTo(27.8f, 16.5f)
+    lineTo(27.8f, 13.4f)
+    lineTo(32.1f, 13.4f)
+    lineTo(32.1f, 21f)
+    lineTo(12.9f, 21f)
+    close()
+}
+
+private val rookBodyPath = Path().apply {
+    moveTo(15.4f, 21f)
+    lineTo(29.6f, 21f)
+    lineTo(28.5f, 32f)
+    lineTo(16.5f, 32f)
+    close()
+}
+
+private val knightPath = Path().apply {
+    moveTo(24.6f, 7.8f)
+    cubicTo(26.6f, 10.4f, 27.6f, 13.0f, 28.1f, 15.5f)
+    cubicTo(30.7f, 18.1f, 31.7f, 22.1f, 31.7f, 31.6f)
+    lineTo(13.4f, 31.6f)
+    cubicTo(13.4f, 27.1f, 14.6f, 23.8f, 16.5f, 21.0f)
+    lineTo(12.8f, 23.1f)
+    cubicTo(11.0f, 24.1f, 9.7f, 23.4f, 10.0f, 21.5f)
+    cubicTo(10.5f, 17.9f, 13.3f, 14.3f, 16.9f, 12.2f)
+    cubicTo(18.4f, 11.3f, 19.9f, 10.1f, 20.5f, 8.5f)
+    close()
+}
+
+private val bishopBodyPath = Path().apply {
+    moveTo(22.5f, 11.8f)
+    cubicTo(27.2f, 14.5f, 29.7f, 18.6f, 29.7f, 22.5f)
+    cubicTo(29.7f, 24.9f, 28.5f, 26.8f, 27.0f, 27.8f)
+    lineTo(18.0f, 27.8f)
+    cubicTo(16.5f, 26.8f, 15.3f, 24.9f, 15.3f, 22.5f)
+    cubicTo(15.3f, 18.6f, 17.8f, 14.5f, 22.5f, 11.8f)
+    close()
+}
+
+private val queenCrownPath = Path().apply {
+    moveTo(11f, 16.6f)
+    lineTo(14.5f, 28.0f)
+    lineTo(30.5f, 28.0f)
+    lineTo(34f, 16.6f)
+    lineTo(28.25f, 21.2f)
+    lineTo(25.5f, 13.8f)
+    lineTo(23.0f, 21.2f)
+    lineTo(20.5f, 13.8f)
+    lineTo(17.75f, 21.2f)
+    close()
+}
+
+private val kingCrossPath = Path().apply {
+    moveTo(21.1f, 4.6f)
+    lineTo(23.9f, 4.6f)
+    lineTo(23.9f, 7.9f)
+    lineTo(27.2f, 7.9f)
+    lineTo(27.2f, 10.7f)
+    lineTo(23.9f, 10.7f)
+    lineTo(23.9f, 14.0f)
+    lineTo(21.1f, 14.0f)
+    lineTo(21.1f, 10.7f)
+    lineTo(17.8f, 10.7f)
+    lineTo(17.8f, 7.9f)
+    lineTo(21.1f, 7.9f)
+    close()
+}
+
+private val kingBodyPath = Path().apply {
+    moveTo(22.5f, 13.6f)
+    cubicTo(17.3f, 13.6f, 13.2f, 17.3f, 13.2f, 21.9f)
+    cubicTo(13.2f, 24.5f, 14.5f, 26.6f, 16.2f, 28.0f)
+    lineTo(28.8f, 28.0f)
+    cubicTo(30.5f, 26.6f, 31.8f, 24.5f, 31.8f, 21.9f)
+    cubicTo(31.8f, 17.3f, 27.7f, 13.6f, 22.5f, 13.6f)
+    close()
+}
+
+private fun DrawScope.fillAndStroke(path: Path, fill: Color, stroke: Color) {
+    drawPath(path, color = fill, style = Fill)
+    drawPath(path, color = stroke, style = Stroke(width = PIECE_STROKE_WIDTH, join = StrokeJoin.Round))
+}
+
+private fun DrawScope.roundedBase(fill: Color, stroke: Color, x: Float, y: Float, w: Float, h: Float, r: Float) {
+    val topLeft = Offset(x, y)
+    val size = Size(w, h)
+    val corner = CornerRadius(r, r)
+    drawRoundRect(color = fill, topLeft = topLeft, size = size, cornerRadius = corner, style = Fill)
+    drawRoundRect(color = stroke, topLeft = topLeft, size = size, cornerRadius = corner, style = Stroke(width = PIECE_STROKE_WIDTH, join = StrokeJoin.Round))
+}
+
 /**
- * Clean vector piece drawing with mockup colors:
- * White pieces: #F7F3EA with #2A3138 outline
- * Black pieces: #232B33 with #0C1014 outline
+ * Draws one piece at [topLeft] scaled to fill a [squareSize] square, using
+ * the exact silhouette geometry from the mockup's SVG defs (0..45 viewBox).
  */
-private fun DrawScope.drawVectorPiece(
+private fun DrawScope.drawSvgPiece(
     piece: Char,
     isWhite: Boolean,
     topLeft: Offset,
     squareSize: Float
 ) {
-    val primaryColor = if (isWhite) ChessTutorColors.PcWhite else ChessTutorColors.PcBlack
+    val fillColor = if (isWhite) ChessTutorColors.PcWhite else ChessTutorColors.PcBlack
     val strokeColor = if (isWhite) ChessTutorColors.PcWhiteInk else ChessTutorColors.PcBlackInk
+    val scale = squareSize / 45f
 
-    val cx = topLeft.x + squareSize / 2f
-    val cy = topLeft.y + squareSize / 2f
-    val r = squareSize * 0.36f
-
-    when (piece) {
-        'p' -> { // Pawn
-            val basePath = Path().apply {
-                moveTo(cx - r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.45f, cy + r * 0.5f)
-                lineTo(cx - r * 0.45f, cy + r * 0.5f)
-                close()
+    withTransform({
+        translate(left = topLeft.x, top = topLeft.y)
+        scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero)
+    }) {
+        when (piece) {
+            'p' -> {
+                drawCircle(fillColor, radius = 5.9f, center = Offset(22.5f, 12.6f), style = Fill)
+                drawCircle(strokeColor, radius = 5.9f, center = Offset(22.5f, 12.6f), style = Stroke(PIECE_STROKE_WIDTH))
+                fillAndStroke(pawnBodyPath, fillColor, strokeColor)
+                roundedBase(fillColor, strokeColor, 12.4f, 31.9f, 20.2f, 4.9f, 1.7f)
             }
-            drawPath(basePath, primaryColor)
-            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            val bodyPath = Path().apply {
-                moveTo(cx - r * 0.35f, cy + r * 0.5f)
-                lineTo(cx + r * 0.35f, cy + r * 0.5f)
-                lineTo(cx + r * 0.18f, cy - r * 0.1f)
-                lineTo(cx - r * 0.18f, cy - r * 0.1f)
-                close()
+            'r' -> {
+                fillAndStroke(rookCrownPath, fillColor, strokeColor)
+                fillAndStroke(rookBodyPath, fillColor, strokeColor)
+                roundedBase(fillColor, strokeColor, 11.7f, 31.5f, 21.6f, 5.1f, 1.7f)
             }
-            drawPath(bodyPath, primaryColor)
-            drawPath(bodyPath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            drawCircle(primaryColor, r * 0.36f, Offset(cx, cy - r * 0.38f))
-            drawCircle(strokeColor, r * 0.36f, Offset(cx, cy - r * 0.38f), style = Stroke(width = 1.8.dp.toPx()))
-        }
-        'r' -> { // Rook
-            val basePath = Path().apply {
-                moveTo(cx - r * 0.75f, cy + r * 0.85f)
-                lineTo(cx + r * 0.75f, cy + r * 0.85f)
-                lineTo(cx + r * 0.6f, cy + r * 0.5f)
-                lineTo(cx - r * 0.6f, cy + r * 0.5f)
-                close()
+            'n' -> {
+                fillAndStroke(knightPath, fillColor, strokeColor)
+                drawCircle(Color.Black.copy(alpha = 0.5f), radius = 1.15f, center = Offset(24.4f, 14.6f), style = Fill)
+                roundedBase(fillColor, strokeColor, 11.7f, 31.5f, 21.6f, 5.1f, 1.7f)
             }
-            drawPath(basePath, primaryColor)
-            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            val towerPath = Path().apply {
-                moveTo(cx - r * 0.48f, cy + r * 0.5f)
-                lineTo(cx + r * 0.48f, cy + r * 0.5f)
-                lineTo(cx + r * 0.42f, cy - r * 0.4f)
-                lineTo(cx - r * 0.42f, cy - r * 0.4f)
-                close()
+            'b' -> {
+                drawCircle(fillColor, radius = 2.7f, center = Offset(22.5f, 9.2f), style = Fill)
+                drawCircle(strokeColor, radius = 2.7f, center = Offset(22.5f, 9.2f), style = Stroke(PIECE_STROKE_WIDTH))
+                fillAndStroke(bishopBodyPath, fillColor, strokeColor)
+                drawLine(strokeColor, start = Offset(19.7f, 16.3f), end = Offset(25.3f, 21.9f), strokeWidth = 1.7f, cap = StrokeCap.Round)
+                roundedBase(fillColor, strokeColor, 15.9f, 27.6f, 13.2f, 3.5f, 1.2f)
+                roundedBase(fillColor, strokeColor, 11.9f, 31.5f, 21.2f, 5.1f, 1.7f)
             }
-            drawPath(towerPath, primaryColor)
-            drawPath(towerPath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            val battlementsPath = Path().apply {
-                moveTo(cx - r * 0.55f, cy - r * 0.4f)
-                lineTo(cx + r * 0.55f, cy - r * 0.4f)
-                lineTo(cx + r * 0.55f, cy - r * 0.75f)
-                lineTo(cx + r * 0.32f, cy - r * 0.75f)
-                lineTo(cx + r * 0.32f, cy - r * 0.58f)
-                lineTo(cx + r * 0.12f, cy - r * 0.58f)
-                lineTo(cx + r * 0.12f, cy - r * 0.75f)
-                lineTo(cx - r * 0.12f, cy - r * 0.75f)
-                lineTo(cx - r * 0.12f, cy - r * 0.58f)
-                lineTo(cx - r * 0.32f, cy - r * 0.58f)
-                lineTo(cx - r * 0.32f, cy - r * 0.75f)
-                lineTo(cx - r * 0.55f, cy - r * 0.75f)
-                close()
+            'q' -> {
+                val crownCircles = listOf(
+                    Offset(11f, 15.4f) to 2.2f,
+                    Offset(16.75f, 12.4f) to 2.2f,
+                    Offset(22.5f, 11.2f) to 2.4f,
+                    Offset(28.25f, 12.4f) to 2.2f,
+                    Offset(34f, 15.4f) to 2.2f
+                )
+                crownCircles.forEach { (center, radius) ->
+                    drawCircle(fillColor, radius = radius, center = center, style = Fill)
+                    drawCircle(strokeColor, radius = radius, center = center, style = Stroke(PIECE_STROKE_WIDTH))
+                }
+                fillAndStroke(queenCrownPath, fillColor, strokeColor)
+                roundedBase(fillColor, strokeColor, 13.4f, 27.7f, 18.2f, 3.5f, 1.2f)
+                roundedBase(fillColor, strokeColor, 11.5f, 31.6f, 22f, 5.1f, 1.7f)
             }
-            drawPath(battlementsPath, primaryColor)
-            drawPath(battlementsPath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-        }
-        'n' -> { // Knight
-            val basePath = Path().apply {
-                moveTo(cx - r * 0.75f, cy + r * 0.85f)
-                lineTo(cx + r * 0.75f, cy + r * 0.85f)
-                lineTo(cx + r * 0.55f, cy + r * 0.55f)
-                lineTo(cx - r * 0.55f, cy + r * 0.55f)
-                close()
+            'k' -> {
+                fillAndStroke(kingCrossPath, fillColor, strokeColor)
+                fillAndStroke(kingBodyPath, fillColor, strokeColor)
+                roundedBase(fillColor, strokeColor, 13.4f, 27.7f, 18.2f, 3.5f, 1.2f)
+                roundedBase(fillColor, strokeColor, 11.5f, 31.6f, 22f, 5.1f, 1.7f)
             }
-            drawPath(basePath, primaryColor)
-            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            val horsePath = Path().apply {
-                moveTo(cx + r * 0.5f, cy + r * 0.55f)
-                lineTo(cx + r * 0.5f, cy - r * 0.15f)
-                cubicTo(cx + r * 0.5f, cy - r * 0.7f, cx + r * 0.15f, cy - r * 0.85f, cx - r * 0.2f, cy - r * 0.85f)
-                lineTo(cx - r * 0.55f, cy - r * 0.55f)
-                lineTo(cx - r * 0.65f, cy - r * 0.2f)
-                lineTo(cx - r * 0.4f, cy - r * 0.2f)
-                lineTo(cx - r * 0.25f, cy - r * 0.05f)
-                cubicTo(cx - r * 0.35f, cy + r * 0.2f, cx - r * 0.5f, cy + r * 0.4f, cx - r * 0.5f, cy + r * 0.55f)
-                close()
-            }
-            drawPath(horsePath, primaryColor)
-            drawPath(horsePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            val eyeColor = if (isWhite) strokeColor else Color(0xFFF7F3EA)
-            drawCircle(eyeColor, r * 0.08f, Offset(cx - r * 0.15f, cy - r * 0.48f))
-        }
-        'b' -> { // Bishop
-            val basePath = Path().apply {
-                moveTo(cx - r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.65f, cy + r * 0.85f)
-                lineTo(cx + r * 0.45f, cy + r * 0.55f)
-                lineTo(cx - r * 0.45f, cy + r * 0.55f)
-                close()
-            }
-            drawPath(basePath, primaryColor)
-            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            val mitrePath = Path().apply {
-                moveTo(cx, cy - r * 0.75f)
-                cubicTo(cx + r * 0.58f, cy - r * 0.5f, cx + r * 0.58f, cy + r * 0.4f, cx, cy + r * 0.55f)
-                cubicTo(cx - r * 0.58f, cy + r * 0.4f, cx - r * 0.58f, cy - r * 0.5f, cx, cy - r * 0.75f)
-                close()
-            }
-            drawPath(mitrePath, primaryColor)
-            drawPath(mitrePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            drawCircle(primaryColor, r * 0.13f, Offset(cx, cy - r * 0.83f))
-            drawCircle(strokeColor, r * 0.13f, Offset(cx, cy - r * 0.83f), style = Stroke(width = 1.8.dp.toPx()))
-
-            // Cross slit
-            drawLine(
-                strokeColor,
-                Offset(cx - r * 0.18f, cy - r * 0.15f),
-                Offset(cx + r * 0.22f, cy + r * 0.05f),
-                strokeWidth = 1.8.dp.toPx()
-            )
-        }
-        'q' -> { // Queen
-            val basePath = Path().apply {
-                moveTo(cx - r * 0.75f, cy + r * 0.85f)
-                lineTo(cx + r * 0.75f, cy + r * 0.85f)
-                lineTo(cx + r * 0.55f, cy + r * 0.55f)
-                lineTo(cx - r * 0.55f, cy + r * 0.55f)
-                close()
-            }
-            drawPath(basePath, primaryColor)
-            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            val crownPath = Path().apply {
-                moveTo(cx - r * 0.65f, cy + r * 0.55f)
-                lineTo(cx + r * 0.65f, cy + r * 0.55f)
-                lineTo(cx + r * 0.8f, cy - r * 0.45f)
-                lineTo(cx + r * 0.4f, cy - r * 0.15f)
-                lineTo(cx, cy - r * 0.65f)
-                lineTo(cx - r * 0.4f, cy - r * 0.15f)
-                lineTo(cx - r * 0.8f, cy - r * 0.45f)
-                close()
-            }
-            drawPath(crownPath, primaryColor)
-            drawPath(crownPath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            drawCircle(primaryColor, r * 0.11f, Offset(cx - r * 0.8f, cy - r * 0.48f))
-            drawCircle(strokeColor, r * 0.11f, Offset(cx - r * 0.8f, cy - r * 0.48f), style = Stroke(width = 1.5.dp.toPx()))
-
-            drawCircle(primaryColor, r * 0.11f, Offset(cx, cy - r * 0.68f))
-            drawCircle(strokeColor, r * 0.11f, Offset(cx, cy - r * 0.68f), style = Stroke(width = 1.5.dp.toPx()))
-
-            drawCircle(primaryColor, r * 0.11f, Offset(cx + r * 0.8f, cy - r * 0.48f))
-            drawCircle(strokeColor, r * 0.11f, Offset(cx + r * 0.8f, cy - r * 0.48f), style = Stroke(width = 1.5.dp.toPx()))
-        }
-        'k' -> { // King
-            val basePath = Path().apply {
-                moveTo(cx - r * 0.75f, cy + r * 0.85f)
-                lineTo(cx + r * 0.75f, cy + r * 0.85f)
-                lineTo(cx + r * 0.55f, cy + r * 0.55f)
-                lineTo(cx - r * 0.55f, cy + r * 0.55f)
-                close()
-            }
-            drawPath(basePath, primaryColor)
-            drawPath(basePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            val robePath = Path().apply {
-                moveTo(cx - r * 0.55f, cy + r * 0.55f)
-                lineTo(cx + r * 0.55f, cy + r * 0.55f)
-                cubicTo(cx + r * 0.7f, cy + r * 0.2f, cx + r * 0.7f, cy - r * 0.4f, cx + r * 0.4f, cy - r * 0.45f)
-                lineTo(cx - r * 0.4f, cy - r * 0.45f)
-                cubicTo(cx - r * 0.7f, cy - r * 0.4f, cx - r * 0.7f, cy + r * 0.2f, cx - r * 0.55f, cy + r * 0.55f)
-                close()
-            }
-            drawPath(robePath, primaryColor)
-            drawPath(robePath, strokeColor, style = Stroke(width = 1.8.dp.toPx()))
-
-            // Cross on top
-            drawLine(
-                strokeColor,
-                Offset(cx, cy - r * 0.45f),
-                Offset(cx, cy - r * 0.85f),
-                strokeWidth = 2.dp.toPx()
-            )
-            drawLine(
-                strokeColor,
-                Offset(cx - r * 0.2f, cy - r * 0.68f),
-                Offset(cx + r * 0.2f, cy - r * 0.68f),
-                strokeWidth = 2.dp.toPx()
-            )
         }
     }
 }
