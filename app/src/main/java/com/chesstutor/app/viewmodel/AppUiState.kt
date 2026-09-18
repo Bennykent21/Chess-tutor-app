@@ -4,6 +4,12 @@ import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.ReviewItem
 
+data class PromotionRequest(
+    val from: String,
+    val to: String,
+    val choices: List<Char>
+)
+
 data class TacticalIssueSummary(
     val tacticalIssue: String,
     val explanation: String,
@@ -26,6 +32,7 @@ data class AppUiState(
     val assessment: MoveAssessment? = null,
     val selectedSquare: String? = null,
     val legalTargets: Set<String> = emptySet(),
+    val pendingPromotion: PromotionRequest? = null,
     val recommendedArrow: Pair<String, String>? = null,
     val lastMove: Pair<String, String>? = null,
     val mistakeDetected: Boolean = false,
