@@ -97,4 +97,64 @@ class ChessCoreTest {
     val pos = Position.fromFen(fen)
     assertEquals(fen, pos.toFen())
   }
+
+  @Test
+  fun testFenParserRejectsMalformedFields() {
+    val malformed = listOf(
+      "8/8/8/8/8/8/8/K6k w - - 0",
+      "8/8/8/8/8/8/8/K6k x - - 0 1",
+      "8/8/8/8/8/8/8/K6k w KK - 0 1",
+      "8/8/8/8/8/8/8/K6k w - -1 1",
+      "8/8/8/8/8/8/8/K6k w - - 0 0",
+      "8/8/8/8/8/8/8/K7 w - - 0 1",
+      "9/8/8/8/8/8/8/K6k w - - 0 1"
+    )
+
+    malformed.forEach { fen ->
+      assertFalse("FEN should be rejected: $fen", Position.tryFromFen(fen).isSuccess)
+    }
+  }
+
+  @Test
+  fun testPromotionGeneratesAllFourChoices() {
+    val pos = Position.fromFen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
+    val promotions = LegalMoveGenerator.generateLegalMoves(pos)
+      .filter { it.from == Square.fromAlgebraic("a7") && it.to == Square.fromAlgebraic("a8") }
+
+    assertEquals(4, promotions.size)
+    assertTrue(promotions.any { it.promotion == PieceType.QUEEN })
+    assertTrue(promotions.any { it.promotion == PieceType.ROOK })
+    assertTrue(promotions.any { it.promotion == PieceType.BISHOP })
+    assertTrue(promotions.any { it.promotion == PieceType.KNIGHT })
+  }
+
+  @Test
+  fun testCastlingRequiresActualRook() {
+    val pos = Position.fromFen("4k3/8/8/8/8/8/8/4K3 w KQ - 0 1")
+    val moves = LegalMoveGenerator.generateLegalMoves(pos)
+
+    assertFalse(moves.any { it.isCastling })
+  }
+
+  @Test
+  fun testKingCannotBeCapturedAsALegalMove() {
+    val pos = Position.fromFen("4k3/8/8/8/8/8/8/4R1K1 w - - 0 1")
+    val moves = LegalMoveGenerator.generateLegalMoves(pos)
+
+    assertFalse(
+      moves.any {
+        it.to == Square.fromAlgebraic("e8")
+      }
+    )
+  }
+
+  @Test
+  fun testSameColorBishopsAreInsufficientMaterial() {
+    val pos = Position.fromFen("4k3/8/8/8/8/8/6B1/4K2b w - - 0 1")
+    assertEquals(
+      GameStatus.DRAW_INSUFFICIENT_MATERIAL,
+      LegalMoveGenerator.getGameStatus(pos)
+    )
+  }
+
 }
