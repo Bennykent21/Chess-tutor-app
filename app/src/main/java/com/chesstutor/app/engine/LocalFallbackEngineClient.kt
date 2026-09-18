@@ -21,13 +21,16 @@ class LocalFallbackEngineClient : EngineClient {
         val legalMoves = LegalMoveGenerator.generateLegalMoves(pos)
 
         if (legalMoves.isEmpty()) {
-            return@withContext PositionAnalysis(
-                requestId = request.requestId,
-                bestMoveUci = "0000",
-                centipawns = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) -10000 else 0,
-                mateInMoves = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) 0 else null,
-                principalVariation = emptyList(),
-                depth = request.depth ?: 3
+            return@withContext EngineResultValidator.validate(
+                request = request,
+                analysis = PositionAnalysis(
+                    requestId = request.requestId,
+                    bestMoveUci = "0000",
+                    centipawns = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) 10000 else 0,
+                    mateInMoves = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) -0 else null,
+                    principalVariation = emptyList(),
+                    depth = request.depth ?: 3
+                )
             )
         }
 
