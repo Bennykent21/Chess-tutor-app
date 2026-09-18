@@ -96,7 +96,7 @@ class StockfishProcessEngineClient(
             send("setoption name UCI_LimitStrength value true")
             send("setoption name UCI_Elo value ${elo.coerceIn(1320, 3190)}")
         } else {
-            // For sub-1320, disable Elo mode and use Skill Level 0..4
+            // For sub-1320, disable Elo mode and use Skill Level 0..5
             send("setoption name UCI_LimitStrength value false")
             val skillLevel = ((elo - 400).coerceAtLeast(0) / 180).coerceIn(0, 5)
             send("setoption name Skill Level value $skillLevel")
