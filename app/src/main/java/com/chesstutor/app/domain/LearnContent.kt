@@ -156,8 +156,8 @@ object LearnCurriculumRepository {
                 "Sacrifice queen to force blocking capture",
                 "Knight leaps in for decisive checkmate"
             ),
-            demoFen = "6k1/5ppp/8/8/8/2Q5/5PPP/5RK1 w - - 0 1",
-            recommendedMoveUci = "c3c8",
+            demoFen = "6nk/6pR/8/4N3/8/8/8/6K1 w - - 0 1",
+            recommendedMoveUci = "e5g6",
             moveExplanation = "Qc8# delivers back-rank mate with zero escape squares."
         ),
 
