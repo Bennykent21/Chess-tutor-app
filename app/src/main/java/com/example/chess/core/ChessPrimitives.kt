@@ -19,7 +19,13 @@ enum class PieceType(val notation: Char, val value: Int) {
   BISHOP('B', 330),
   ROOK('R', 500),
   QUEEN('Q', 900),
-  KING('K', 20000)
+  KING('K', 20000);
+
+  companion object {
+    fun fromNotation(notation: Char): PieceType =
+      entries.firstOrNull { it.notation.equals(notation, ignoreCase = true) }
+        ?: throw IllegalArgumentException("Unknown piece notation: $notation")
+  }
 }
 
 /**
