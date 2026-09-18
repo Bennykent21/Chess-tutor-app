@@ -30,6 +30,7 @@ class StockfishProcessEngineClient(
     private var activeRequest: AnalysisRequest? = null
     private var pendingResult: CompletableDeferred<PositionAnalysis>? = null
     private var latestInfo: UciInfoLine? = null
+    private val uciWaiters = ArrayDeque<CompletableDeferred<Unit>>()
     private val readyWaiters = ArrayDeque<CompletableDeferred<Unit>>()
     private var engineIdName: String = "Stockfish"
 
@@ -55,10 +56,26 @@ class StockfishProcessEngineClient(
             stdinWriter = proc.outputStream.bufferedWriter()
             readerJob = scope.launch { readLoop() }
 
+            val uciReady = CompletableDeferred<Unit>()
+            uciWaiters.add(uciReady)
+            if (!send("uci")) {
+                throw IllegalStateException("Failed to send UCI initialization command")
+            }
+
+            val uciOk = withTimeoutOrNull(4000) { uciReady.await() }
+            if (uciOk == null) {
+                val err = "Stockfish process started, but did not respond with uciok within 4000ms"
+                lastStartupError = err
+                dispose()
+                throw IllegalStateException(err)
+            }
+
             val ready = CompletableDeferred<Unit>()
             readyWaiters.add(ready)
-            send("uci")
-            send("isready")
+            if (!send("isready")) {
+                throw IllegalStateException("Failed to send isready command")
+            }
+
             val isReady = withTimeoutOrNull(4000) { ready.await() }
             if (isReady == null) {
                 val err = "Stockfish process started, but did not respond to isready within 4000ms"
@@ -131,6 +148,10 @@ class StockfishProcessEngineClient(
         val trimmed = line.trim()
         if (trimmed.startsWith("id name ")) {
             engineIdName = trimmed.removePrefix("id name ").trim()
+        }
+        if (trimmed == "uciok") {
+            uciWaiters.removeFirstOrNull()?.complete(Unit)
+            return
         }
         if (trimmed == "readyok") {
             readyWaiters.removeFirstOrNull()?.complete(Unit)
