@@ -11,7 +11,6 @@ import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import com.chesstutor.app.engine.OnlineStockfishEngineClient
 import com.chesstutor.app.engine.StockfishProcessEngineClient
-import java.io.File
 
 object AppContainer {
     @Volatile
@@ -49,7 +48,13 @@ object AppContainer {
         return engineClientInstance ?: synchronized(this) {
             val deterministicFallback = LocalFallbackEngineClient()
             val cloudFallback = OnlineStockfishEngineClient(fallback = deterministicFallback)
-            val binaryPath = File(context.applicationInfo.nativeLibraryDir, "libstockfish.so")
+            val binaryPath = runCatching {
+                com.chesstutor.app.engine.StockfishBinaryProvider.resolve(context)
+            }.getOrElse { error ->
+                engineResolutionDiagnostic = "Bundled Stockfish unavailable: " + error.message
+                Log.e("AppContainer", engineResolutionDiagnostic, error)
+                throw error
+            }
 
             val client: EngineClient = StockfishProcessEngineClient(
                 binaryPath = binaryPath.absolutePath,
@@ -57,7 +62,7 @@ object AppContainer {
             )
 
             engineResolutionDiagnostic =
-                "Engine chain: local Stockfish (${binaryPath.absolutePath}) -> cloud Stockfish -> deterministic local fallback"
+                "Engine chain: bundled Stockfish (${binaryPath.absolutePath}) -> cloud Stockfish -> deterministic local fallback"
             Log.i("AppContainer", engineResolutionDiagnostic)
             engineClientInstance = client
             client
