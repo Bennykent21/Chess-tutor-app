@@ -19,13 +19,26 @@ class AnalysisService(
     @Volatile
     private var latestRequestId: Int = 0
 
+    @Volatile
+    private var activeRequestId: Int? = null
+
     suspend fun analyze(
         fen: String,
         depth: Int? = null,
         movetimeMs: Int? = null,
     ): PositionAnalysis? {
         val requestId = requestCounter.incrementAndGet()
+        val previousActiveRequest = activeRequestId
         latestRequestId = requestId
+        activeRequestId = requestId
+
+        // Do not leave an older engine search running while a newer request is
+        // waiting for the result. This is especially important for serialized
+        // process-backed engines, where an old search can otherwise block the
+        // newer request.
+        if (previousActiveRequest != null && previousActiveRequest != requestId) {
+            runCatching { engine.stop() }
+        }
 
         val request = AnalysisRequest(
             requestId = requestId,
@@ -48,6 +61,10 @@ class AnalysisService(
         } catch (cancelled: CancellationException) {
             runCatching { engine.stop() }
             throw cancelled
+        } finally {
+            if (activeRequestId == requestId) {
+                activeRequestId = null
+            }
         }
     }
 
