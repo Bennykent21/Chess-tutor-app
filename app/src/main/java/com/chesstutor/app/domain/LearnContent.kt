@@ -265,7 +265,7 @@ object LearnCurriculumRepository {
                 "Drop rook to back rank when pawn pushes",
                 "Deliver endless vertical checks from behind"
             ),
-            demoFen = "8/8/8/4P3/8/2r5/4K3/1k1R4 b - - 0 1",
+            demoFen = "7k/8/8/4P3/8/2r5/4K3/3R4 b - - 0 1",
             recommendedMoveUci = "c3c6",
             moveExplanation = "Rc6 establishes the classic 6th-rank blockade."
         ),
