@@ -47,7 +47,7 @@ object TrainDrillsRepository {
             id = "drill_knight_fork",
             title = "Royal Knight Fork",
             category = "Fork & Double Attack",
-            fen = "r1b1k3/pp3ppp/8/8/1n6/2N5/PP3PPP/R2K1B1R b q - 0 12",
+            fen = "r1b1k3/pp3ppp/8/8/1n6/2N5/PP3PPP/R3K2R b q - 0 12",
             solutionUci = "b4c2",
             prompt = "Black to move · Fork King and Rook"
         ),
