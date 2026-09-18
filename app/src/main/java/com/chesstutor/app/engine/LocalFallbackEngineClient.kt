@@ -26,11 +26,12 @@ class LocalFallbackEngineClient : EngineClient {
                 analysis = PositionAnalysis(
                     requestId = request.requestId,
                     bestMoveUci = "0000",
-                    centipawns = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) 10000 else 0,
-                    mateInMoves = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) -0 else null,
+                    centipawns = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) -10000 else 0,
+                    mateInMoves = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) 0 else null,
                     principalVariation = emptyList(),
                     depth = request.depth ?: 3
-                )
+                ),
+                scorePerspective = EngineResultValidator.ScorePerspective.SIDE_TO_MOVE
             )
         }
 
