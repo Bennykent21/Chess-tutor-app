@@ -28,6 +28,7 @@ object ReviewScheduler {
             1 -> "3 Days"
             2 -> "7 Days"
             3 -> "14 Days"
+            4 -> "30 Days"
             else -> "Mastered"
         }
     }
