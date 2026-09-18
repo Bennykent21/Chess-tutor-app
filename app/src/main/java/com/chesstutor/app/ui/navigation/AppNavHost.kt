@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.ui.arena.ArenaScreen
+import com.chesstutor.app.ui.components.PromotionDialog
 import com.chesstutor.app.ui.coach.CoachScreen
 import com.chesstutor.app.ui.curriculum.CurriculumScreen
 import com.chesstutor.app.ui.review.ReviewScreen
@@ -128,6 +129,14 @@ fun AppNavHost(
                 state = state,
                 viewModel = viewModel,
                 onDismiss = { viewModel.setSettingsVisible(false) }
+            )
+        }
+
+        state.pendingPromotion?.let { request ->
+            PromotionDialog(
+                request = request,
+                onChoose = viewModel::choosePromotion,
+                onDismiss = viewModel::cancelPromotion
             )
         }
     }
