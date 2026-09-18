@@ -10,20 +10,27 @@ import com.example.chess.core.Square
 class ChessPosition(fen: String? = null) {
 
     private var currentPosition: Position = if (fen != null) {
-        Position.tryFromFen(fen).getOrElse { Position.initial() }
+        Position.tryFromFen(fen).getOrElse {
+            throw IllegalArgumentException("Invalid FEN: $fen")
+        }
     } else {
         Position.initial()
     }
 
-    val internalPosition: Position get() = currentPosition
+    val internalPosition: Position
+        get() = currentPosition
 
-    val fen: String get() = currentPosition.toFen()
+    val fen: String
+        get() = currentPosition.toFen()
 
     val sideToMove: Char
         get() = if (currentPosition.sideToMove == PieceColor.WHITE) 'w' else 'b'
 
     val isCheck: Boolean
-        get() = LegalMoveGenerator.isKingInCheck(currentPosition, currentPosition.sideToMove)
+        get() = LegalMoveGenerator.isKingInCheck(
+            currentPosition,
+            currentPosition.sideToMove
+        )
 
     val legalMoves: List<MoveChoice> by lazy {
         computeLegalMoves()
@@ -72,7 +79,9 @@ class ChessPosition(fen: String? = null) {
 
     fun play(move: MoveChoice): Boolean {
         val allLegal = LegalMoveGenerator.generateLegalMoves(currentPosition)
-        val matched = allLegal.firstOrNull { it.uci == move.uci } ?: return false
+
+        val matched = allLegal.firstOrNull { it.uci == move.uci }
+            ?: return false
 
         currentPosition = LegalMoveGenerator.makeMove(currentPosition, matched)
         return true
@@ -80,7 +89,9 @@ class ChessPosition(fen: String? = null) {
 
     fun play(uci: String): Boolean {
         val allLegal = LegalMoveGenerator.generateLegalMoves(currentPosition)
-        val matched = allLegal.firstOrNull { it.uci == uci } ?: return false
+
+        val matched = allLegal.firstOrNull { it.uci == uci }
+            ?: return false
 
         currentPosition = LegalMoveGenerator.makeMove(currentPosition, matched)
         return true
@@ -88,24 +99,27 @@ class ChessPosition(fen: String? = null) {
 
     fun pieceAt(squareAlgebraic: String): Char? {
         if (squareAlgebraic.length != 2) return null
-        val sq = runCatching { Square.fromAlgebraic(squareAlgebraic) }.getOrNull() ?: return null
+
+        val sq = runCatching {
+            Square.fromAlgebraic(squareAlgebraic)
+        }.getOrNull() ?: return null
+
         val piece = currentPosition.pieceAt(sq) ?: return null
-        return if (piece.color == PieceColor.WHITE) {
-            piece.type.notation.lowercaseChar()
-        } else {
-            piece.type.notation.lowercaseChar()
-        }
+
+        return piece.type.notation.lowercaseChar()
     }
 
     private fun computeLegalMoves(): List<MoveChoice> {
         val moves = LegalMoveGenerator.generateLegalMoves(currentPosition)
+
         return moves.map { move ->
             val piece = currentPosition.pieceAt(move.from)
-            val pieceChar = piece?.type?.notation?.lowercaseChar() ?: 'p'
+            val pieceType = piece?.type ?: PieceType.PAWN
+            val pieceChar = pieceType.notation.lowercaseChar()
             val promoChar = move.promotion?.notation?.lowercaseChar()
 
-            // Compute standard algebraic notation (SAN)
-            val san = computeSan(move, piece?.type ?: PieceType.PAWN)
+            val san = computeSan(move, pieceType)
+
             MoveChoice(
                 from = move.from.algebraic,
                 to = move.to.algebraic,
@@ -116,15 +130,38 @@ class ChessPosition(fen: String? = null) {
         }
     }
 
+    /**
+     * Generates Standard Algebraic Notation (SAN) for a legal move.
+     *
+     * Handles:
+     * - normal moves
+     * - captures
+     * - pawn captures
+     * - castling
+     * - promotion
+     * - check
+     * - checkmate
+     * - piece disambiguation
+     *
+     * Example:
+     *     Nbd2
+     *     R1e2
+     *     Qxd5+
+     */
     private fun computeSan(move: Move, pieceType: PieceType): String {
         val nextPos = LegalMoveGenerator.makeMove(currentPosition, move)
-        val isMate = LegalMoveGenerator.isKingInCheck(nextPos, nextPos.sideToMove) &&
-                LegalMoveGenerator.generateLegalMoves(nextPos).isEmpty()
-        val isCheck = !isMate && LegalMoveGenerator.isKingInCheck(nextPos, nextPos.sideToMove)
+
+        val opponentInCheck = LegalMoveGenerator.isKingInCheck(
+            nextPos,
+            nextPos.sideToMove
+        )
+
+        val opponentHasNoMoves =
+            LegalMoveGenerator.generateLegalMoves(nextPos).isEmpty()
 
         val suffix = when {
-            isMate -> "#"
-            isCheck -> "+"
+            opponentInCheck && opponentHasNoMoves -> "#"
+            opponentInCheck -> "+"
             else -> ""
         }
 
@@ -134,9 +171,16 @@ class ChessPosition(fen: String? = null) {
         }
 
         val target = move.to.algebraic
-        val isCapture = currentPosition.pieceAt(move.to) != null || move.isEnPassant
 
-        val promoSuffix = if (move.promotion != null) "=${move.promotion.notation.uppercaseChar()}" else ""
+        val isCapture =
+            currentPosition.pieceAt(move.to) != null || move.isEnPassant
+
+        val promoSuffix =
+            if (move.promotion != null) {
+                "=${move.promotion.notation.uppercaseChar()}"
+            } else {
+                ""
+            }
 
         if (pieceType == PieceType.PAWN) {
             return if (isCapture) {
@@ -147,11 +191,73 @@ class ChessPosition(fen: String? = null) {
         }
 
         val piecePrefix = pieceType.notation.uppercaseChar().toString()
+
+        val disambiguation = computeDisambiguation(
+            move = move,
+            pieceType = pieceType
+        )
+
         val captureChar = if (isCapture) "x" else ""
-        return "$piecePrefix$captureChar$target$promoSuffix$suffix"
+
+        return "$piecePrefix$disambiguation$captureChar$target$promoSuffix$suffix"
+    }
+
+    /**
+     * Determines the SAN disambiguation required when more than one
+     * piece of the same type can legally move to the same destination.
+     *
+     * Examples:
+     *
+     *     Nbd2
+     *     Nfd2
+     *
+     * or, when files are identical:
+     *
+     *     R1e2
+     *     R3e2
+     */
+    private fun computeDisambiguation(
+        move: Move,
+        pieceType: PieceType
+    ): String {
+        val allLegalMoves =
+            LegalMoveGenerator.generateLegalMoves(currentPosition)
+
+        val competingMoves = allLegalMoves.filter { candidate ->
+            candidate != move &&
+                    candidate.to == move.to &&
+                    currentPosition.pieceAt(candidate.from)?.type == pieceType
+        }
+
+        if (competingMoves.isEmpty()) {
+            return ""
+        }
+
+        val sameFile = competingMoves.any {
+            it.from.file == move.from.file
+        }
+
+        val sameRank = competingMoves.any {
+            it.from.rank == move.from.rank
+        }
+
+        return when {
+            !sameFile -> {
+                move.from.fileChar.toString()
+            }
+
+            !sameRank -> {
+                move.from.rank.toString()
+            }
+
+            else -> {
+                move.from.algebraic
+            }
+        }
     }
 
     companion object {
-        const val STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        const val STARTING_FEN =
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     }
 }
