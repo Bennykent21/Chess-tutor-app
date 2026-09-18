@@ -272,7 +272,7 @@ fun CoachScreen(
                             color = ChessTutorColors.TextPrimary
                         )
                         Text(
-                            text = "${state.hintLevel}/3",
+                            text = "${state.hintLevel}/4",
                             fontSize = 12.5.sp,
                             fontFamily = FontFamily.Monospace,
                             color = ChessTutorColors.TextTertiary
