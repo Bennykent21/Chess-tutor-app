@@ -128,6 +128,12 @@ class OnlineStockfishEngineClient(
         fallback.analyze(request)
     }
 
+    override suspend fun setStrengthRating(rating: Int) {
+        // The public cloud APIs used here do not expose a stable UCI_Elo control.
+        // Keep the capability explicit and forward it to the offline fallback.
+        fallback.setStrengthRating(rating)
+    }
+
     override suspend fun stop() {
         fallback.stop()
     }
