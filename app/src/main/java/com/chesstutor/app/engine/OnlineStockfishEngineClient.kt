@@ -56,13 +56,17 @@ class OnlineStockfishEngineClient(
                         if (bestMoveUci.isNotBlank() && bestMoveUci != "0000") {
                             val cp = evalDouble?.let { (it * 100).toInt() }
                             logD("stockfish.online success: bestMove=$bestMoveUci, cp=$cp, mate=$mateVal")
-                            return@withContext PositionAnalysis(
-                                requestId = request.requestId,
-                                bestMoveUci = bestMoveUci,
-                                centipawns = cp,
-                                mateInMoves = mateVal,
-                                principalVariation = if (pvList.isNotEmpty()) pvList else listOf(bestMoveUci),
-                                depth = targetDepth
+                            return@withContext EngineResultValidator.validate(
+                                request = request,
+                                analysis = PositionAnalysis(
+                                    requestId = request.requestId,
+                                    bestMoveUci = bestMoveUci,
+                                    centipawns = cp,
+                                    mateInMoves = mateVal,
+                                    principalVariation = if (pvList.isNotEmpty()) pvList else listOf(bestMoveUci),
+                                    depth = targetDepth
+                                ),
+                                scorePerspective = EngineResultValidator.ScorePerspective.WHITE
                             )
                         }
                     }
@@ -108,13 +112,17 @@ class OnlineStockfishEngineClient(
 
                     if (move.isNotBlank()) {
                         logD("chess-api.com success: bestMove=$move, cp=$cp, mate=$mate")
-                        return@withContext PositionAnalysis(
-                            requestId = request.requestId,
-                            bestMoveUci = move,
-                            centipawns = cp,
-                            mateInMoves = mate,
-                            principalVariation = pv,
-                            depth = targetDepth
+                        return@withContext EngineResultValidator.validate(
+                            request = request,
+                            analysis = PositionAnalysis(
+                                requestId = request.requestId,
+                                bestMoveUci = move,
+                                centipawns = cp,
+                                mateInMoves = mate,
+                                principalVariation = pv,
+                                depth = targetDepth
+                            ),
+                            scorePerspective = EngineResultValidator.ScorePerspective.WHITE
                         )
                     }
                 }
