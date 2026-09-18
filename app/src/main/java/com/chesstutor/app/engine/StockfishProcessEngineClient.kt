@@ -107,15 +107,15 @@ class StockfishProcessEngineClient(
      * Stockfish supports UCI_Elo in range 1320..3190. For ratings below 1320,
      * it falls back to Skill Level 0..5 to avoid the artificial 1320 floor.
      */
-    override suspend fun setStrengthRating(elo: Int) = withContext(Dispatchers.IO) {
+    override suspend fun setStrengthRating(rating: Int) = withContext(Dispatchers.IO) {
         if (!isAlive) return@withContext
-        if (elo >= 1320) {
+        if (rating >= 1320) {
             send("setoption name UCI_LimitStrength value true")
-            send("setoption name UCI_Elo value ${elo.coerceIn(1320, 3190)}")
+            send("setoption name UCI_Elo value ${rating.coerceIn(1320, 3190)}")
         } else {
             // For sub-1320, disable Elo mode and use Skill Level 0..5
             send("setoption name UCI_LimitStrength value false")
-            val skillLevel = ((elo - 400).coerceAtLeast(0) / 180).coerceIn(0, 5)
+            val skillLevel = ((rating - 400).coerceAtLeast(0) / 180).coerceIn(0, 5)
             send("setoption name Skill Level value $skillLevel")
         }
     }
