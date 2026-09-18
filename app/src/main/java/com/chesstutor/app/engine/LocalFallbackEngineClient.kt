@@ -33,13 +33,16 @@ class LocalFallbackEngineClient : EngineClient {
 
         val bestMove = localEngine.selectMove(pos, TrainingLevel.EXPERT_1800)
 
-        PositionAnalysis(
-            requestId = request.requestId,
-            bestMoveUci = bestMove.uci,
-            centipawns = null,
-            mateInMoves = null,
-            principalVariation = listOf(bestMove.uci),
-            depth = request.depth ?: 3
+        EngineResultValidator.validate(
+            request = request,
+            analysis = PositionAnalysis(
+                requestId = request.requestId,
+                bestMoveUci = bestMove.uci,
+                centipawns = null,
+                mateInMoves = null,
+                principalVariation = listOf(bestMove.uci),
+                depth = request.depth ?: 3
+            )
         )
     }
 
