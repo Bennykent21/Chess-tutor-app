@@ -142,36 +142,43 @@ object LegalMoveGenerator {
   }
 
   private fun isInsufficientMaterial(position: Position): Boolean {
-    var whitePieces = 0
-    var blackPieces = 0
-    var whiteMinor: PieceType? = null
-    var blackMinor: PieceType? = null
+    val nonKings = mutableListOf<Pair<Piece, Square>>()
 
     for (i in 0 until 64) {
-      val p = position.squares[i] ?: continue
-      when (p.type) {
-        PieceType.PAWN, PieceType.ROOK, PieceType.QUEEN -> return false
-        PieceType.BISHOP, PieceType.KNIGHT -> {
-          if (p.color == PieceColor.WHITE) {
-            whitePieces++
-            whiteMinor = p.type
-          } else {
-            blackPieces++
-            blackMinor = p.type
-          }
-        }
-        PieceType.KING -> Unit
+      val piece = position.squares[i] ?: continue
+      if (piece.type != PieceType.KING) {
+        nonKings += piece to Square(i)
       }
     }
 
-    // King vs King
-    if (whitePieces == 0 && blackPieces == 0) return true
-    // King + Minor vs King
-    if ((whitePieces == 1 && blackPieces == 0) || (whitePieces == 0 && blackPieces == 1)) return true
-    // King + Bishop vs King + Bishop on same color squares is also draw, but simplified rule holds
+    // Any pawn, rook, or queen means checkmate/stalemate may still be possible.
+    if (nonKings.any { it.first.type in setOf(PieceType.PAWN, PieceType.ROOK, PieceType.QUEEN) }) {
+      return false
+    }
+
+    // K vs K
+    if (nonKings.isEmpty()) return true
+
+    // K+B vs K or K+N vs K
+    if (nonKings.size == 1) {
+      return nonKings[0].first.type == PieceType.BISHOP ||
+        nonKings[0].first.type == PieceType.KNIGHT
+    }
+
+    // K+B vs K+B is dead only when both bishops live on the same color complex.
+    if (nonKings.size == 2 &&
+      nonKings.all { it.first.type == PieceType.BISHOP }
+    ) {
+      val first = nonKings[0].second
+      val second = nonKings[1].second
+      return first.isLightSquare == second.isLightSquare
+    }
+
+    // K+N vs K+N, K+B vs K+N, and positions with multiple minors
+    // are not classified as dead here; proving all dead positions is a
+    // separate rule-engine concern.
     return false
   }
-
   /**
    * Applies a legal move to a position, returning the new resulting Position.
    */
@@ -322,7 +329,7 @@ object LegalMoveGenerator {
         val targetSq = Square.of(targetFile, nextRank)
         val occupant = position.pieceAt(targetSq)
 
-        if (occupant != null && occupant.color == color.opposite()) {
+        if (occupant != null && occupant.color == color.opposite() && occupant.type != PieceType.KING) {
           if (nextRank == promoRank) {
             addPromotionMoves(from, targetSq, outMoves)
           } else {
@@ -355,7 +362,7 @@ object LegalMoveGenerator {
       if (nf in 0..7 && nr in 0..7) {
         val targetSq = Square.of(nf, nr)
         val occupant = position.pieceAt(targetSq)
-        if (occupant == null || occupant.color != color) {
+        if (occupant == null || (occupant.color != color && occupant.type != PieceType.KING)) {
           outMoves.add(Move(from, targetSq))
         }
       }
@@ -378,7 +385,7 @@ object LegalMoveGenerator {
         if (occupant == null) {
           outMoves.add(Move(from, targetSq))
         } else {
-          if (occupant.color != color) {
+          if (occupant.color != color && occupant.type != PieceType.KING) {
             outMoves.add(Move(from, targetSq))
           }
           break // Ray stops when hitting a piece
@@ -402,7 +409,7 @@ object LegalMoveGenerator {
       if (kf in 0..7 && kr in 0..7) {
         val targetSq = Square.of(kf, kr)
         val occupant = position.pieceAt(targetSq)
-        if (occupant == null || occupant.color != color) {
+        if (occupant == null || (occupant.color != color && occupant.type != PieceType.KING)) {
           outMoves.add(Move(from, targetSq))
         }
       }
@@ -415,7 +422,9 @@ object LegalMoveGenerator {
       val canQueenside = if (color == PieceColor.WHITE) position.castlingRights.whiteQueenside else position.castlingRights.blackQueenside
       val enemyColor = color.opposite()
 
-      if (canKingside) {
+      if (canKingside &&
+        position.pieceAt(7, rank) == Piece(PieceType.ROOK, color)
+      ) {
         // Squares 5 and 6 must be empty
         if (position.pieceAt(5, rank) == null && position.pieceAt(6, rank) == null) {
           // King cannot castle out of, through, or into check
@@ -428,7 +437,9 @@ object LegalMoveGenerator {
         }
       }
 
-      if (canQueenside) {
+      if (canQueenside &&
+        position.pieceAt(0, rank) == Piece(PieceType.ROOK, color)
+      ) {
         // Squares 1, 2, and 3 must be empty
         if (position.pieceAt(1, rank) == null && position.pieceAt(2, rank) == null && position.pieceAt(3, rank) == null) {
           // King cannot castle out of, through, or into check
