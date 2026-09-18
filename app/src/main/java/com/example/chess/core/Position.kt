@@ -117,8 +117,8 @@ data class Position(
     }
 
     fun fromFen(fen: String): Position {
-      val parts = fen.trim().split("\\s+".toRegex())
-      require(parts.isNotEmpty()) { "Empty FEN string" }
+      val parts = fen.trim().split(Regex("\\s+"))
+      require(parts.size == 6) { "FEN must contain exactly 6 fields" }
 
       val boardArray = arrayOfNulls<Piece>(64)
       val ranks = parts[0].split('/')
@@ -129,23 +129,58 @@ data class Position(
         var fileIdx = 0
         for (char in ranks[r]) {
           if (char.isDigit()) {
-            fileIdx += char.digitToInt()
+            val empty = char.digitToInt()
+            require(empty in 1..8) { "Invalid empty-square count in rank ${8 - r}: $char" }
+            fileIdx += empty
           } else {
-            val piece = Piece.fromFenChar(char) ?: error("Invalid piece char in FEN: $char")
+            require(fileIdx in 0..7) { "Rank ${8 - r} contains too many squares" }
+            val piece = Piece.fromFenChar(char)
+              ?: error("Invalid piece char in FEN: $char")
             boardArray[rankIdx * 8 + fileIdx] = piece
             fileIdx++
           }
+          require(fileIdx <= 8) { "Rank ${8 - r} contains too many squares" }
         }
-        require(fileIdx == 8) { "Rank $r does not equal 8 squares" }
+        require(fileIdx == 8) { "Rank ${8 - r} does not equal 8 squares" }
       }
 
-      val activeColor = if (parts.size > 1 && parts[1] == "b") PieceColor.BLACK else PieceColor.WHITE
-      val castling = if (parts.size > 2) CastlingRights.fromFen(parts[2]) else CastlingRights.NONE
-      val epSquare = if (parts.size > 3 && parts[3] != "-") Square.fromAlgebraic(parts[3]) else null
-      val halfmove = if (parts.size > 4) parts[4].toIntOrNull() ?: 0 else 0
-      val fullmove = if (parts.size > 5) parts[5].toIntOrNull() ?: 1 else 1
+      val activeColor = when (parts[1]) {
+        "w" -> PieceColor.WHITE
+        "b" -> PieceColor.BLACK
+        else -> error("Invalid active color in FEN: ${parts[1]}")
+      }
 
-      return Position(
+      val castlingField = parts[2]
+      require(
+        castlingField == "-" ||
+          castlingField.all { it in "KQkq" } &&
+          castlingField.toSet().size == castlingField.length
+      ) { "Invalid castling rights in FEN: $castlingField" }
+      val castling = CastlingRights.fromFen(castlingField)
+
+      val epField = parts[3]
+      val epSquare = if (epField == "-") {
+        null
+      } else {
+        require(epField.length == 2 && epField[0] in 'a'..'h') {
+          "Invalid en passant square in FEN: $epField"
+        }
+        require(
+          (activeColor == PieceColor.WHITE && epField[1] == '6') ||
+            (activeColor == PieceColor.BLACK && epField[1] == '3')
+        ) { "Invalid en passant rank in FEN: $epField" }
+        Square.fromAlgebraic(epField)
+      }
+
+      val halfmove = parts[4].toIntOrNull()
+        ?: error("Invalid halfmove clock in FEN: ${parts[4]}")
+      require(halfmove >= 0) { "Halfmove clock cannot be negative" }
+
+      val fullmove = parts[5].toIntOrNull()
+        ?: error("Invalid fullmove number in FEN: ${parts[5]}")
+      require(fullmove >= 1) { "Fullmove number must be at least 1" }
+
+      val position = Position(
         squares = boardArray,
         sideToMove = activeColor,
         castlingRights = castling,
@@ -153,6 +188,11 @@ data class Position(
         halfmoveClock = halfmove,
         fullmoveNumber = fullmove
       )
+
+      position.findKing(PieceColor.WHITE)
+      position.findKing(PieceColor.BLACK)
+
+      return position
     }
   }
 }
