@@ -24,15 +24,10 @@ class ChessCorePerftTest {
     @Test
     fun kiwipetePerft() {
         val position = Position.fromFen(
-            "r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1"
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
         )
 
-        val depth1Moves = LegalMoveGenerator.generateLegalMoves(position)
-        assertEquals(
-            "Kiwipete depth-1 legal moves: " + depth1Moves.joinToString { it.uci },
-            48,
-            depth1Moves.size
-        )
+        assertEquals(48L, perft(position, 1))
         assertEquals(2039L, perft(position, 2))
         assertEquals(97862L, perft(position, 3))
     }
