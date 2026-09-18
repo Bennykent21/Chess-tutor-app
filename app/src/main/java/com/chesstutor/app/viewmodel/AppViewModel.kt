@@ -242,7 +242,7 @@ class AppViewModel(
                             pendingPromotion = PromotionRequest(
                                 from = currentSelected,
                                 to = square,
-                                choices = matchingMoves.mapNotNull { it.promotion?.notation?.lowercaseChar() }.distinct()
+                                choices = matchingMoves.mapNotNull { it.promotion?.lowercaseChar() }.distinct()
                             )
                         )
                     }
