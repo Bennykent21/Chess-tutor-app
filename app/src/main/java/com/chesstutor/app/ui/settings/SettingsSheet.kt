@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
@@ -257,7 +258,7 @@ fun SettingsSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.VolumeUp,
+                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                         contentDescription = null,
                         tint = ChessTutorColors.TextSecondary,
                         modifier = Modifier.size(19.dp)
