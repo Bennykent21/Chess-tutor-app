@@ -228,6 +228,35 @@ class ChessCoreTest {
 
 
   @Test
+  fun testUciRoundTripPreservesPromotion() {
+    val move = Move.fromUci("a7a8q")
+    assertEquals(Square.fromAlgebraic("a7"), move.from)
+    assertEquals(Square.fromAlgebraic("a8"), move.to)
+    assertEquals(PieceType.QUEEN, move.promotion)
+    assertEquals("a7a8q", move.uci)
+  }
+
+  @Test
+  fun testUciParserRejectsInvalidPromotionSuffix() {
+    try {
+      Move.fromUci("a7a8x")
+      throw AssertionError("Expected invalid promotion suffix to be rejected")
+    } catch (_: IllegalArgumentException) {
+      // Expected.
+    }
+  }
+
+  @Test
+  fun testUciParserRejectsInvalidLength() {
+    try {
+      Move.fromUci("e2e")
+      throw AssertionError("Expected invalid UCI length to be rejected")
+    } catch (_: IllegalArgumentException) {
+      // Expected.
+    }
+  }
+
+  @Test
   fun testSanUsesFileDisambiguation() {
     val pos = Position.fromFen("4k3/8/8/8/8/1N3N2/8/4K3 w - - 0 1")
     val move = LegalMoveGenerator.generateLegalMoves(pos).first {
