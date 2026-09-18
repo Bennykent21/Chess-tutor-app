@@ -23,7 +23,7 @@ data class MoveChoice(
     fun toCoreMove(): Move = Move(
         from = Square.fromAlgebraic(from),
         to = Square.fromAlgebraic(to),
-        promotion = promotion?.let(PieceType::fromNotation)
+        promotion = promotion?.let { PieceType.fromNotation(it) }
     )
 
     companion object {
