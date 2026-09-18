@@ -229,7 +229,7 @@ class ChessCoreTest {
 
   @Test
   fun testSanUsesFileDisambiguation() {
-    val pos = Position.fromFen("4k3/8/8/8/8/1N2N3/8/4K3 w - - 0 1")
+    val pos = Position.fromFen("4k3/8/8/8/8/1N3N2/8/4K3 w - - 0 1")
     val move = LegalMoveGenerator.generateLegalMoves(pos).first {
       it.from == Square.fromAlgebraic("b3") && it.to == Square.fromAlgebraic("d2")
     }
