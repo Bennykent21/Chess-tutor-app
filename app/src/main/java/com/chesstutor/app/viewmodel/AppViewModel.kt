@@ -215,7 +215,7 @@ class AppViewModel(
 
     fun onSquareTapped(square: String) {
         val currentState = _state.value
-        if (currentState.busy) return
+        if (currentState.busy || currentState.pendingPromotion != null) return
 
         val currentSelected = currentState.selectedSquare
         val pos = ChessPosition(currentState.fen)
@@ -234,14 +234,25 @@ class AppViewModel(
         } else {
             if (square in currentState.legalTargets) {
                 // Execute move
-                val move = pos.legalMoves.firstOrNull { it.from == currentSelected && it.to == square }
-                if (move != null) {
-                    when (currentState.tab) {
-                        0 -> playCoachMove(move)
-                        1 -> playCurriculumMove(move)
-                        2 -> playArenaMove(move)
-                        3 -> playReviewMove(move)
+                val matchingMoves = pos.legalMoves.filter {
+                    it.from == currentSelected && it.to == square
+                }
+                if (matchingMoves.size > 1 && matchingMoves.all { it.promotion != null }) {
+                    _state.update {
+                        it.copy(
+                            pendingPromotion = PromotionRequest(
+                                from = currentSelected,
+                                to = square,
+                                choices = matchingMoves.mapNotNull { it.promotion?.notation?.lowercaseChar() }.distinct()
+                            )
+                        )
                     }
+                    return
+                }
+
+                val move = matchingMoves.firstOrNull()
+                if (move != null) {
+                    playSelectedMove(move)
                 }
                 _state.update { it.copy(selectedSquare = null, legalTargets = emptySet()) }
             } else {
@@ -258,6 +269,47 @@ class AppViewModel(
                     _state.update { it.copy(selectedSquare = null, legalTargets = emptySet()) }
                 }
             }
+        }
+    }
+
+    private fun playSelectedMove(move: MoveChoice) {
+        when (_state.value.tab) {
+            0 -> playCoachMove(move)
+            1 -> playCurriculumMove(move)
+            2 -> playArenaMove(move)
+            3 -> playReviewMove(move)
+        }
+    }
+
+    fun choosePromotion(piece: Char) {
+        val request = _state.value.pendingPromotion ?: return
+        val choice = piece.lowercaseChar()
+        if (choice !in request.choices) return
+
+        val pos = ChessPosition(_state.value.fen)
+        val move = pos.legalMoves.firstOrNull {
+            it.from == request.from &&
+                it.to == request.to &&
+                it.promotion?.notation?.lowercaseChar() == choice
+        } ?: return
+
+        _state.update {
+            it.copy(
+                pendingPromotion = null,
+                selectedSquare = null,
+                legalTargets = emptySet()
+            )
+        }
+        playSelectedMove(move)
+    }
+
+    fun cancelPromotion() {
+        _state.update {
+            it.copy(
+                pendingPromotion = null,
+                selectedSquare = null,
+                legalTargets = emptySet()
+            )
         }
     }
 
