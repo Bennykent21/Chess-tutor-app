@@ -250,8 +250,8 @@ object LearnCurriculumRepository {
                 "Lift rook to 4th rank",
                 "Shield king from checks with the rook"
             ),
-            demoFen = "4K3/2k1P3/8/8/8/8/5r2/6R1 w - - 0 1",
-            recommendedMoveUci = "g1c1",
+            demoFen = "4K3/4P2k/8/8/8/8/r7/3R4 w - - 0 1",
+            recommendedMoveUci = "d1d4",
             moveExplanation = "Rd4 sets up the 4th-rank bridge to block rook checks."
         ),
         LearnTopic(
