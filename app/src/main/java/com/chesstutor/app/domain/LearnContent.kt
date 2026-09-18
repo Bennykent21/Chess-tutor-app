@@ -126,7 +126,7 @@ object LearnCurriculumRepository {
                 "Look for undefended pieces on same-color squares",
                 "Knight checks cannot be blocked"
             ),
-            demoFen = "r1b1k3/pp3ppp/8/8/1n6/2N5/PP3PPP/R2K1B1R b q - 0 12",
+            demoFen = "r1b1k3/pp3ppp/8/8/1n6/2N5/PP3PPP/R3K2R b q - 0 12",
             recommendedMoveUci = "b4c2",
             moveExplanation = "Nc2 forks White's a1 rook and d1 king."
         ),
