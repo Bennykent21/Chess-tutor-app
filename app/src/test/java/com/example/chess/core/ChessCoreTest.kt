@@ -294,4 +294,110 @@ class ChessCoreTest {
   }
 
 
+  @Test
+  fun testGameStateDetectsThreefoldRepetitionWithoutEndingGame() {
+    var state = GameState()
+
+    repeat(2) {
+      state = state.play(Move.fromUci("g1f3"))
+      state = state.play(Move.fromUci("g8f6"))
+      state = state.play(Move.fromUci("f3g1"))
+      state = state.play(Move.fromUci("f6g8"))
+    }
+
+    assertEquals(3, state.currentPositionOccurrences)
+    assertTrue(state.canClaimThreefoldRepetition)
+    assertEquals(GameStatus.DRAW_THREEFOLD_REPETITION, state.status)
+    assertFalse(state.isOver)
+  }
+
+  @Test
+  fun testGameStateDetectsFivefoldRepetitionAsAutomaticDraw() {
+    var state = GameState()
+
+    repeat(4) {
+      state = state.play(Move.fromUci("g1f3"))
+      state = state.play(Move.fromUci("g8f6"))
+      state = state.play(Move.fromUci("f3g1"))
+      state = state.play(Move.fromUci("f6g8"))
+    }
+
+    assertEquals(5, state.currentPositionOccurrences)
+    assertTrue(state.isFivefoldRepetition)
+    assertEquals(GameStatus.DRAW_FIVEFOLD_REPETITION, state.status)
+    assertTrue(state.isOver)
+  }
+
+  @Test
+  fun testRepetitionKeyIgnoresMoveCounters() {
+    val first = Position.fromFen(
+      "4k3/8/8/8/8/8/4R3/4K3 w - - 0 1"
+    )
+    val second = Position.fromFen(
+      "4k3/8/8/8/8/8/4R3/4K3 w - - 47 24"
+    )
+
+    assertEquals(first.repetitionKey(), second.repetitionKey())
+  }
+
+  @Test
+  fun testRepetitionKeyIgnoresNonCapturableEnPassantSquare() {
+    val withoutEp = Position.fromFen(
+      "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1"
+    )
+    val withIrrelevantEp = Position.fromFen(
+      "4k3/8/8/8/8/8/4P3/4K3 w - e6 0 1"
+    )
+
+    assertEquals(withoutEp.repetitionKey(), withIrrelevantEp.repetitionKey())
+  }
+
+  @Test
+  fun testRepetitionKeyIncludesLegalEnPassantSquare() {
+    val withoutEp = Position.fromFen(
+      "4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1"
+    )
+    val withEp = Position.fromFen(
+      "4k3/8/8/3p4/4P3/8/8/4K3 w - d6 0 1"
+    )
+
+    assertTrue(
+      LegalMoveGenerator.generateLegalMoves(withEp).any { it.isEnPassant }
+    )
+    assertFalse(withoutEp.repetitionKey() == withEp.repetitionKey())
+  }
+
+  @Test
+  fun testFiftyMoveRuleIsClaimableAt100HalfMoves() {
+    val state = GameState(
+      Position.fromFen("7k/8/8/8/8/8/6R1/6K1 w - - 100 50")
+    )
+
+    assertTrue(state.canClaimFiftyMoveRule)
+    assertEquals(GameStatus.DRAW_50_MOVES, state.status)
+    assertFalse(state.isOver)
+  }
+
+  @Test
+  fun testSeventyFiveMoveRuleIsAutomaticAt150HalfMoves() {
+    val state = GameState(
+      Position.fromFen("7k/8/8/8/8/8/6R1/6K1 w - - 150 75")
+    )
+
+    assertTrue(state.isSeventyFiveMoveDraw)
+    assertEquals(GameStatus.DRAW_75_MOVES, state.status)
+    assertTrue(state.isOver)
+  }
+
+  @Test
+  fun testCheckmateTakesPrecedenceOverSeventyFiveMoveRule() {
+    val state = GameState(
+      Position.fromFen("7k/6Q1/7K/8/8/8/8/8 b - - 150 100")
+    )
+
+    assertEquals(GameStatus.CHECKMATE, state.status)
+    assertTrue(state.isOver)
+  }
+
+
 }
