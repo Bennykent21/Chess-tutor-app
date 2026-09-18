@@ -163,17 +163,27 @@ class StockfishProcessEngineClient(
         }
         UciProtocol.parseBestMove(line)?.let { move ->
             val req = activeRequest
-            val reqId = req?.requestId ?: 0
-            pendingResult?.complete(
-                PositionAnalysis(
-                    requestId = reqId,
-                    bestMoveUci = move,
-                    centipawns = latestInfo?.centipawns,
-                    mateInMoves = latestInfo?.mateInMoves,
-                    principalVariation = latestInfo?.pv ?: emptyList(),
-                    depth = latestInfo?.depth,
-                )
-            )
+            val deferred = pendingResult
+            if (req != null && deferred != null) {
+                try {
+                    val raw = PositionAnalysis(
+                        requestId = req.requestId,
+                        bestMoveUci = move,
+                        centipawns = latestInfo?.centipawns,
+                        mateInMoves = latestInfo?.mateInMoves,
+                        principalVariation = latestInfo?.pv ?: emptyList(),
+                        depth = latestInfo?.depth,
+                    )
+                    val validated = EngineResultValidator.validate(
+                        request = req,
+                        analysis = raw,
+                        scorePerspective = EngineResultValidator.ScorePerspective.SIDE_TO_MOVE,
+                    )
+                    deferred.complete(validated)
+                } catch (e: Exception) {
+                    deferred.completeExceptionally(e)
+                }
+            }
             activeRequest = null
             pendingResult = null
             latestInfo = null
