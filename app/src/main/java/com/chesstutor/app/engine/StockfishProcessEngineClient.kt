@@ -8,6 +8,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.BufferedWriter
 import java.io.File
 
@@ -23,6 +25,7 @@ class StockfishProcessEngineClient(
     private var stdinWriter: BufferedWriter? = null
     private var readerJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val analysisMutex = Mutex()
 
     private var activeRequest: AnalysisRequest? = null
     private var pendingResult: CompletableDeferred<PositionAnalysis>? = null
@@ -87,7 +90,7 @@ class StockfishProcessEngineClient(
      * Stockfish supports UCI_Elo in range 1320..3190. For ratings below 1320,
      * it falls back to Skill Level 0..5 to avoid the artificial 1320 floor.
      */
-    suspend fun setElo(elo: Int) = withContext(Dispatchers.IO) {
+    override suspend fun setStrengthRating(elo: Int) = withContext(Dispatchers.IO) {
         if (!isAlive) return@withContext
         if (elo >= 1320) {
             send("setoption name UCI_LimitStrength value true")
@@ -156,7 +159,9 @@ class StockfishProcessEngineClient(
         }
     }
 
-    override suspend fun analyze(request: AnalysisRequest): PositionAnalysis = withContext(Dispatchers.IO) {
+    override suspend fun analyze(request: AnalysisRequest): PositionAnalysis =
+        analysisMutex.withLock {
+            withContext(Dispatchers.IO) {
         // If process is dead, fail over immediately to fallback without hanging
         if (process == null || process?.isAlive != true) {
             return@withContext fallbackClient.analyze(request)
@@ -192,7 +197,8 @@ class StockfishProcessEngineClient(
             pendingResult = null
             fallbackClient.analyze(request)
         }
-    }
+            }
+        }
 
     override suspend fun stop() {
         send("stop")
@@ -209,11 +215,10 @@ class StockfishProcessEngineClient(
 
     private fun send(command: String): Boolean {
         return try {
-            stdinWriter?.apply {
-                write(command)
-                newLine()
-                flush()
-            }
+            val writer = stdinWriter ?: return false
+            writer.write(command)
+            writer.newLine()
+            writer.flush()
             true
         } catch (_: Exception) {
             false
