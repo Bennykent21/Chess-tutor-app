@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.ui.theme.ChessTutorColors
@@ -31,16 +32,20 @@ import kotlin.math.exp
 /**
  * Vertical evaluation bar.
  *
- * Fill: proportion of the bar filled white vs. black. A forced mate for
- * either side saturates the fill completely (100%/0%) for the winning side —
- * there is no "almost full" state for mate, only for ordinary centipawn
- * evaluations.
+ * FILL - 0f (top) vs 1f (bottom) of the bar filled white vs. black, computed
+ * as `whiteRatioTarget` below. A forced mate for either side saturates the
+ * fill completely (1.0f / 0.0f) - never an "almost full" state for mate.
+ * For an ordinary centipawn score, this is a sigmoid centered on 0: negative
+ * centipawns (Black ahead) push the ratio toward 0f, meaning LESS of the bar
+ * is white and MORE of it is black. Positive centipawns push it toward 1f
+ * (more white). This is standard signed White-POV scoring - nothing here is
+ * inverted.
  *
- * Label: a single signed number in standard White-POV convention (positive =
- * White ahead, negative = Black ahead). Its position is pinned to whichever
- * physical edge of the bar — top or bottom — the currently-ahead side
- * occupies. It never drifts along the fill boundary and never animates
- * between the two edges: it is always flush against one of them.
+ * LABEL - a single signed number, same White-POV convention (+ = White
+ * ahead, - = Black ahead). It docks flush against whichever physical edge
+ * (top or bottom) the *currently ahead* side occupies, and never drifts
+ * along the fill boundary or cross-fades between edges - it's always fully
+ * at one edge or the other.
  */
 @Composable
 fun EvalBar(
@@ -81,24 +86,27 @@ fun EvalBar(
         else -> true
     }
 
-    // 3. Which physical edge the label docks to: whichever edge the
-    // currently-ahead side occupies. This is the only thing that decides
-    // top-vs-bottom, and it's a hard snap, not a slide or a cross-fade.
+    // 3. Which physical edge the label docks to - the only thing that
+    // decides top-vs-bottom. Hard snap, no slide, no cross-fade.
     val labelAtBottom = if (isWhiteOnBottom) isWhiteWinning else !isWhiteWinning
 
-    // Text color follows whichever fill sits behind that docked edge.
     val textColor = if (isWhiteWinning) Color(0xFF14181D) else Color(0xFFF2F1EC)
     val textShadow = if (!isWhiteWinning) {
         Shadow(color = Color.Black.copy(alpha = 0.4f), offset = Offset(0f, 2f), blurRadius = 4f)
     } else null
 
+    // White fill grows from White's edge: if White is on the bottom, the
+    // white rectangle is anchored to the bottom and grows upward as White's
+    // ratio increases. If Black is winning (lower ratio), that rectangle is
+    // shorter, leaving more of the (already-dark) background exposed at the
+    // top - i.e. visibly more black.
     val whitePortion = if (isWhiteOnBottom) animatedWhiteRatio else (1f - animatedWhiteRatio)
 
     Box(
         modifier = modifier
             .width(22.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(Color(0xFF14181D)) // Dark base fill
+            .background(Color(0xFF14181D)) // dark base = "black" side, always visible underneath
             .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(3.dp))
     ) {
         // White fill layer, anchored to whichever edge White occupies.
@@ -118,17 +126,17 @@ fun EvalBar(
             Text(
                 text = displayText,
                 color = textColor,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
                 style = TextStyle(
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 9.5.sp,
+                    fontSize = 8.5.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.03).sp,
+                    letterSpacing = (-0.05).sp,
                     shadow = textShadow
                 ),
-                modifier = Modifier.padding(
-                    top = if (!labelAtBottom) 5.dp else 0.dp,
-                    bottom = if (labelAtBottom) 5.dp else 0.dp
-                )
+                modifier = Modifier.padding(horizontal = 1.dp, vertical = 3.dp)
             )
         }
     }
