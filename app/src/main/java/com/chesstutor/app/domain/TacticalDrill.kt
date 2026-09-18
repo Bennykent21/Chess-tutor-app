@@ -23,7 +23,7 @@ object TrainDrillsRepository {
             id = "drill_back_rank",
             title = "Back-Rank Checkmate",
             category = "King Safety",
-            fen = "3r2k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+            fen = "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
             solutionUci = "e1e8",
             prompt = "White to move · Deliver back-rank mate"
         ),
