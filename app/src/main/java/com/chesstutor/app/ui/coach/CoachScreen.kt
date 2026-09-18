@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -65,8 +64,13 @@ fun CoachScreen(
 
     val drills = TrainDrillsRepository.drills
     val drillSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val currentDrill = drills.getOrNull(state.currentDrillIndex) ?: drills[0]
 
+    // NOTE: `state.activeCoachTitle` / `state.activeCoachSubtitle` are the
+    // single source of truth for what's actually loaded on the board right
+    // now - they're kept in sync whether you got here via a drill, a
+    // curriculum lesson, or "Practise this" from Learn. We never read the
+    // raw `drills` list for display text; it's only used to populate the
+    // "choose a drill" sheet below.
     val isSolved = state.message.contains("Correct", ignoreCase = true) ||
             state.message.contains("Checkmate", ignoreCase = true)
 
@@ -93,7 +97,7 @@ fun CoachScreen(
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Text(
-                        text = currentDrill.title,
+                        text = state.activeCoachTitle,
                         fontSize = 19.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = (-0.015).sp,
@@ -107,7 +111,7 @@ fun CoachScreen(
                     )
                 }
                 Text(
-                    text = "Drill ${state.currentDrillIndex + 1} of ${drills.size}",
+                    text = state.activeCoachSubtitle,
                     fontSize = 12.5.sp,
                     letterSpacing = (-0.005).sp,
                     color = ChessTutorColors.TextSecondary,
@@ -154,12 +158,13 @@ fun CoachScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 16.dp, vertical = 0.dp),
+                .weight(1f),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                // Board Row: Eval Bar (22dp) + Board
+                // Board Row: Eval Bar (22dp) + Board, spanning the FULL screen
+                // width edge-to-edge (no horizontal padding here - only the
+                // eval bar and the board live in this row).
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -197,11 +202,12 @@ fun CoachScreen(
                     }
                 }
 
-                // Prompt line with Dot
+                // Prompt line with Dot - back to being inset by 16dp.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 2.dp, vertical = 2.dp),
+                        .padding(horizontal = 16.dp)
+                        .padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
@@ -216,7 +222,7 @@ fun CoachScreen(
                         isSolved -> "That's mate. Next drill..."
                         state.mistakeDetected -> "Incorrect move. Try again."
                         state.message.isNotBlank() -> state.message
-                        else -> currentDrill.prompt
+                        else -> state.activeCoachSubtitle
                     }
 
                     Text(
@@ -229,14 +235,15 @@ fun CoachScreen(
                 }
             }
 
-            // Actions Row: [ Hint 0/3 ] and [ Skip ]
+            // Actions Row: [ Hint 0/3 ] and [ Skip ] - inset by 16dp.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp, top = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
-                // Hint Button (Mockup styling: Surface2 background, Line border, radius 11dp, 48dp high)
+                // Hint Button
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -273,7 +280,7 @@ fun CoachScreen(
                     }
                 }
 
-                // Skip / Next Button (Mockup styling: Quiet transparent button with Line border, or Brass if solved)
+                // Skip / Next Button
                 Box(
                     modifier = Modifier
                         .weight(1f)
