@@ -54,6 +54,7 @@ class AppViewModel(
     init {
         viewModelScope.launch {
             runCatching { engine.initialize() }
+            applyBotElo()
             loadReviews()
             selectDrill(0)
             observeLinkedProfile()
@@ -1066,14 +1067,14 @@ private fun playReviewMove(move: MoveChoice) {
                 )
                 val latency = System.currentTimeMillis() - start
                 val diag = com.chesstutor.app.engine.EngineDiagnostics(
-                    engineName = "Stockfish 16 Online Cloud Engine",
+                    engineName = "Chess engine",
                     isAlive = true,
                     bestMove = res.bestMoveUci,
                     centipawns = res.centipawns,
                     depth = res.depth,
                     pv = res.principalVariation.joinToString(" "),
                     latencyMs = latency,
-                    resolvedBinaryPath = "Cloud Stockfish API (stockfish.online & chess-api.com)",
+                    resolvedBinaryPath = "Configured engine chain",
                     launchError = null
                 )
                 android.util.Log.i("StockfishDiagnostics", "Engine diagnostics: $diag")
