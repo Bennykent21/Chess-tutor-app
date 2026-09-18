@@ -7,6 +7,12 @@ data class AnalysisRequest(
     val depth: Int? = null,
 )
 
+/**
+ * Engine analysis normalized at the application boundary.
+ *
+ * [centipawns] and [mateInMoves] use White's perspective:
+ * positive means an advantage for White, negative means an advantage for Black.
+ */
 data class PositionAnalysis(
     val requestId: Int,
     val bestMoveUci: String,
