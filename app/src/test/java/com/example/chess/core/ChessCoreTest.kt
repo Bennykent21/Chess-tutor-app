@@ -227,4 +227,42 @@ class ChessCoreTest {
   }
 
 
+  @Test
+  fun testSanUsesFileDisambiguation() {
+    val pos = Position.fromFen("4k3/8/8/8/8/1N6/8/N3K3 w - - 0 1")
+    val move = LegalMoveGenerator.generateLegalMoves(pos).first {
+      it.from == Square.fromAlgebraic("b3") && it.to == Square.fromAlgebraic("d2")
+    }
+
+    assertEquals("Nbd2", SanFormatter.format(pos, move))
+  }
+
+  @Test
+  fun testSanUsesRankDisambiguation() {
+    val pos = Position.fromFen("4k3/8/8/8/8/8/N7/4K1N1 w - - 0 1")
+    val move = LegalMoveGenerator.generateLegalMoves(pos).first {
+      it.from == Square.fromAlgebraic("a2") && it.to == Square.fromAlgebraic("c3")
+    }
+
+    assertEquals("N2c3", SanFormatter.format(pos, move))
+  }
+
+  @Test
+  fun testSanFormatsCastlingAndPromotion() {
+    val castlePos = Position.fromFen("4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1")
+    val castle = LegalMoveGenerator.generateLegalMoves(castlePos).first {
+      it.from == Square.fromAlgebraic("e1") && it.to == Square.fromAlgebraic("g1")
+    }
+    assertEquals("O-O", SanFormatter.format(castlePos, castle))
+
+    val promotionPos = Position.fromFen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
+    val promotion = LegalMoveGenerator.generateLegalMoves(promotionPos).first {
+      it.from == Square.fromAlgebraic("a7") &&
+        it.to == Square.fromAlgebraic("a8") &&
+        it.promotion == PieceType.QUEEN
+    }
+    assertEquals("a8=Q+", SanFormatter.format(promotionPos, promotion))
+  }
+
+
 }
