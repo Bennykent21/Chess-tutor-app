@@ -51,16 +51,9 @@ class AnalysisService(
         }
     }
 
-    /**
-     * Invalidates the current request and asks the underlying engine to stop.
-     *
-     * This is intentionally non-suspending so UI cancellation can call it from
-     * event handlers without creating an extra coroutine solely for invalidation.
-     */
-    fun cancelActiveAnalysis() {
+    /** Invalidates the current request and stops any active engine search. */
+    suspend fun cancelActiveAnalysis() {
         latestRequestId = requestCounter.incrementAndGet()
-        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            runCatching { engine.stop() }
-        }
+        runCatching { engine.stop() }
     }
 }
