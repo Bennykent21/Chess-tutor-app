@@ -44,6 +44,7 @@ class AnalysisServiceTest {
 
         engine.complete(2, depth = 8)
         assertEquals(8, second.await()?.depth)
+        assertEquals(1, engine.stopCalls)
     }
 
     @Test
@@ -62,6 +63,8 @@ class AnalysisServiceTest {
 
     private class ControlledEngine : EngineClient {
         private val requests = mutableMapOf<Int, CompletableDeferred<PositionAnalysis>>()
+        var stopCalls: Int = 0
+            private set
 
         override suspend fun initialize() = Unit
 
@@ -88,7 +91,9 @@ class AnalysisServiceTest {
             )
         }
 
-        override suspend fun stop() = Unit
+        override suspend fun stop() {
+            stopCalls++
+        }
         override suspend fun dispose() = Unit
     }
 }
