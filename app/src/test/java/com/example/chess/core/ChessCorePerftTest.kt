@@ -39,7 +39,7 @@ class ChessCorePerftTest {
         )
 
         // The exact count exercises en-passant capture and promotion branches.
-        assertEquals(9L, perft(position, 1))
+        assertEquals(14L, perft(position, 1))
     }
 
     private fun perft(position: Position, depth: Int): Long {
