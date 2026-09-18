@@ -289,7 +289,7 @@ class AppViewModel(
         val move = pos.legalMoves.firstOrNull {
             it.from == request.from &&
                 it.to == request.to &&
-                it.promotion?.notation?.lowercaseChar() == choice
+                it.promotion?.lowercaseChar() == choice
         } ?: return
 
         _state.update {
