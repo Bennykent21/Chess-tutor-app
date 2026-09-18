@@ -88,6 +88,10 @@ value class Square(val index: Int) {
 
 /**
  * Move representation.
+ *
+ * UCI is the machine-readable move form. SAN is produced separately by
+ * [SanFormatter] because SAN depends on the complete position and all
+ * competing legal moves.
  */
 data class Move(
   val from: Square,
@@ -98,9 +102,6 @@ data class Move(
 ) {
   val uci: String
     get() = "${from.algebraic}${to.algebraic}${promotion?.notation?.lowercaseChar() ?: ""}"
-
-  val san: String
-    get() = uci
 
   companion object {
     fun fromUci(uci: String): Move {
@@ -113,7 +114,7 @@ data class Move(
           'r' -> PieceType.ROOK
           'b' -> PieceType.BISHOP
           'n' -> PieceType.KNIGHT
-          else -> null
+          else -> throw IllegalArgumentException("Invalid UCI promotion suffix: $uci")
         }
       } else null
       return Move(from, to, promo)
