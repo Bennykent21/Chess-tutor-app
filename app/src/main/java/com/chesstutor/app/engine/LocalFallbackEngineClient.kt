@@ -11,11 +11,13 @@ class LocalFallbackEngineClient : EngineClient {
     private val localEngine = LocalChessEngine()
 
     override suspend fun initialize() {
-        // Ready immediately
+        // Ready immediately.
     }
 
     override suspend fun analyze(request: AnalysisRequest): PositionAnalysis = withContext(Dispatchers.Default) {
-        val pos = Position.tryFromFen(request.fen).getOrElse { Position.initial() }
+        val pos = Position.tryFromFen(request.fen).getOrElse {
+            throw IllegalArgumentException("Invalid FEN supplied to fallback engine")
+        }
         val legalMoves = LegalMoveGenerator.generateLegalMoves(pos)
 
         if (legalMoves.isEmpty()) {
@@ -29,11 +31,8 @@ class LocalFallbackEngineClient : EngineClient {
             )
         }
 
-        val eval = localEngine.evaluatePosition(pos, depth = request.depth ?: 3)
         val bestMove = localEngine.selectMove(pos, TrainingLevel.EXPERT_1800)
 
-        // The fallback engine is strictly for move generation when Stockfish is unavailable.
-        // We do NOT export shallow alpha-beta centipawns to avoid unverified coaching claims.
         PositionAnalysis(
             requestId = request.requestId,
             bestMoveUci = bestMove.uci,
@@ -45,8 +44,10 @@ class LocalFallbackEngineClient : EngineClient {
     }
 
     override suspend fun stop() {
+        // No active process to stop.
     }
 
     override suspend fun dispose() {
+        // Nothing to dispose.
     }
 }
