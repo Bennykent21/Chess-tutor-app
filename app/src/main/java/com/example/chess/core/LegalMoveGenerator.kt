@@ -141,7 +141,7 @@ object LegalMoveGenerator {
     return GameStatus.IN_PROGRESS
   }
 
-  private fun isInsufficientMaterial(position: Position): Boolean {
+  fun isInsufficientMaterial(position: Position): Boolean {
     val nonKings = mutableListOf<Pair<Piece, Square>>()
 
     for (i in 0 until 64) {
