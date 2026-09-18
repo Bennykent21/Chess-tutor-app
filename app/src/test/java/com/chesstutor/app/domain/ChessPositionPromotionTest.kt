@@ -16,7 +16,7 @@ class ChessPositionPromotionTest {
             assertTrue("Promotion $promotion should be legal", position.play(move))
             assertTrue(
                 "Promotion $promotion should place the promoted piece on a8",
-                position.pieceAt("a8") == promotion.uppercaseChar()
+                position.pieceAt("a8") == promotion
             )
         }
     }
