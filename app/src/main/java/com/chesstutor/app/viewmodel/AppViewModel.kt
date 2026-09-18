@@ -438,7 +438,7 @@ class AppViewModel(
 
     fun showHint() {
         val currentLevel = _state.value.hintLevel
-        val nextLevel = if (currentLevel >= 3) 1 else currentLevel + 1
+        val nextLevel = if (currentLevel >= 4) 0 else currentLevel + 1
 
         val pos = ChessPosition(_state.value.fen)
         val targetUci = _state.value.activeCoachRecommendedMove
@@ -450,33 +450,55 @@ class AppViewModel(
         if (bestMove == null) return
 
         when (nextLevel) {
+            0 -> {
+                _state.update {
+                    it.copy(
+                        hintLevel = 0,
+                        hintText = "",
+                        selectedSquare = null,
+                        legalTargets = emptySet(),
+                        recommendedArrow = null
+                    )
+                }
+            }
             1 -> {
-                // Level 1: Highlight piece
                 _state.update {
                     it.copy(
                         hintLevel = 1,
-                        selectedSquare = bestMove.from,
+                        hintText = "Look for a forcing move: checks, captures, or threats.",
+                        selectedSquare = null,
                         legalTargets = emptySet(),
                         recommendedArrow = null
                     )
                 }
             }
             2 -> {
-                // Level 2: Highlight piece and target square
                 _state.update {
                     it.copy(
                         hintLevel = 2,
+                        hintText = "Start with the ${bestMove.from} piece.",
+                        selectedSquare = bestMove.from,
+                        legalTargets = emptySet(),
+                        recommendedArrow = null
+                    )
+                }
+            }
+            3 -> {
+                _state.update {
+                    it.copy(
+                        hintLevel = 3,
+                        hintText = "The key piece should move to ${bestMove.to}.",
                         selectedSquare = bestMove.from,
                         legalTargets = setOf(bestMove.to),
                         recommendedArrow = null
                     )
                 }
             }
-            3 -> {
-                // Level 3: Draw arrow
+            4 -> {
                 _state.update {
                     it.copy(
-                        hintLevel = 3,
+                        hintLevel = 4,
+                        hintText = "The move is ${bestMove.san}.",
                         selectedSquare = bestMove.from,
                         legalTargets = setOf(bestMove.to),
                         recommendedArrow = Pair(bestMove.from, bestMove.to)
@@ -1017,48 +1039,15 @@ private fun playReviewMove(move: MoveChoice) {
     }
 
     fun onReviewSquareTapped(square: String, item: ReviewItem) {
-        val selected = _state.value.selectedSquare
-        val pos = ChessPosition(_state.value.fen)
-        if (selected == null) {
-            val piece = pos.pieceAt(square)
-            if (piece != null && (pos.sideToMove == 'w' && piece.isUpperCase() || pos.sideToMove == 'b' && piece.isLowerCase())) {
-                val targets = pos.legalMoves.filter { it.from == square }.map { it.to }.toSet()
-                _state.update { it.copy(selectedSquare = square, legalTargets = targets) }
-            }
-        } else {
-            if (square in _state.value.legalTargets) {
-                val move = pos.legalMoves.firstOrNull { it.from == selected && it.to == square }
-                if (move != null) {
-                    val isCorrect = move.uci == item.bestMoveUci
-                    pos.play(move)
-                    val afterFen = pos.fen
-                    _state.update {
-                        it.copy(
-                            fen = afterFen,
-                            selectedSquare = null,
-                            legalTargets = emptySet(),
-                            lastMove = Pair(move.from, move.to),
-                            reviewSolved = isCorrect,
-                            message = if (isCorrect) "Well played! Mistake resolved." else "Incorrect move. Try again!"
-                        )
-                    }
-                    if (isCorrect) {
-                        viewModelScope.launch {
-                            ReviewScheduler.recordAttempt(
-                                item = item,
-                                correct = true,
-                                usedHint = _state.value.hintLevel > 0,
-                                now = Instant.now()
-                            )
-                            repository.upsert(item)
-                            loadReviews()
-                        }
-                    }
-                }
-            } else {
-                _state.update { it.copy(selectedSquare = null, legalTargets = emptySet()) }
-            }
+        // Review uses the same move-selection and attempt-recording path as
+        // the main board. This keeps retries, wrong answers, hints, and
+        // scheduler updates consistent.
+        if (_state.value.activeReviewItem?.id != item.id) {
+            val index = _state.value.reviews.indexOfFirst { it.id == item.id }
+            if (index < 0) return
+            selectReviewItem(index)
         }
+        onSquareTapped(square)
     }
 
     fun resetArenaGame() {
