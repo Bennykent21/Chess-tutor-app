@@ -312,7 +312,7 @@ object LearnCurriculumRepository {
                 "Guard vulnerable back ranks with rooks",
                 "Infiltrate undefended enemy 1st or 8th ranks"
             ),
-            demoFen = "3r2k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+            demoFen = "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
             recommendedMoveUci = "e1e8",
             moveExplanation = "Re8# delivers decisive back-rank mate."
         ),
