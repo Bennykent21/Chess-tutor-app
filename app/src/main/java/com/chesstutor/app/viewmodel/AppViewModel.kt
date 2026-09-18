@@ -735,41 +735,80 @@ class AppViewModel(
         }
     }
 
-    private fun playReviewMove(move: MoveChoice) {
-        val activeItem = _state.value.activeReviewItem ?: return
-        val pos = ChessPosition(_state.value.fen)
-        val played = pos.play(move)
-        if (!played) return
+private fun playReviewMove(move: MoveChoice) {
+    val activeItem = _state.value.activeReviewItem ?: return
 
-        val isBest = move.uci == activeItem.bestMoveUci || (pos.isCheckmate && activeItem.explanation.contains("mate", ignoreCase = true))
-        val usedHint = _state.value.hintLevel > 0
+    // Always start from the review position, not whatever position
+    // may currently be displayed after a previous attempt.
+    val reviewFen = activeItem.fen
+    val pos = ChessPosition(reviewFen)
 
+    val played = pos.play(move)
+    if (!played) return
+
+    val isBest =
+        move.uci == activeItem.bestMoveUci ||
+        (
+            pos.isCheckmate &&
+                activeItem.explanation.contains("mate", ignoreCase = true)
+        )
+
+    val usedHint = _state.value.hintLevel > 0
+
+    if (isBest) {
         viewModelScope.launch {
-            ReviewScheduler.recordAttempt(activeItem, correct = isBest, usedHint = usedHint, now = Instant.now())
+            ReviewScheduler.recordAttempt(
+                activeItem,
+                correct = true,
+                usedHint = usedHint,
+                now = Instant.now()
+            )
+
             repository.upsert(activeItem)
             loadReviews()
         }
 
-        if (isBest) {
-            _state.update {
-                it.copy(
-                    fen = pos.fen,
-                    lastMove = Pair(move.from, move.to),
-                    reviewSolved = true,
-                    message = "★ Correct! Spaced repetition updated: Next review in ${ReviewScheduler.intervalsDays.getOrNull(activeItem.stage) ?: 1} days."
-                )
-            }
-        } else {
-            _state.update {
-                it.copy(
-                    fen = pos.fen,
-                    lastMove = Pair(move.from, move.to),
-                    reviewSolved = false,
-                    message = "Incorrect move! Review stage reset to immediate review. Try again!"
-                )
-            }
+        _state.update {
+            it.copy(
+                fen = pos.fen,
+                lastMove = Pair(move.from, move.to),
+                reviewSolved = true,
+                message = "★ Correct! Spaced repetition updated: Next review in ${
+                    ReviewScheduler.intervalsDays.getOrNull(activeItem.stage) ?: 1
+                } days.",
+                selectedSquare = null,
+                legalTargets = emptySet()
+            )
+        }
+    } else {
+        viewModelScope.launch {
+            ReviewScheduler.recordAttempt(
+                activeItem,
+                correct = false,
+                usedHint = usedHint,
+                now = Instant.now()
+            )
+
+            repository.upsert(activeItem)
+            loadReviews()
+        }
+
+        _state.update {
+            it.copy(
+                // IMPORTANT:
+                // Do not leave the board on the incorrect position.
+                // Return immediately to the original review position.
+                fen = reviewFen,
+                lastMove = null,
+                reviewSolved = false,
+                message = "Incorrect move! Review stage reset to immediate review. Try again!",
+                selectedSquare = null,
+                legalTargets = emptySet(),
+                recommendedArrow = null
+            )
         }
     }
+}
 
     // Curriculum practice & progress
     fun setCurriculumTab(tab: Int) {
