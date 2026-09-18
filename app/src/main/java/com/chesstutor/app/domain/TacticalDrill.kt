@@ -14,7 +14,7 @@ object TrainDrillsRepository {
         TacticalDrill(
             id = "drill_mate_1",
             title = "Missed Mate in 1",
-            category = "Forced Mate",
+            category = "Tactical Setup",
             fen = "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4",
             solutionUci = "f3f7",
             prompt = "White to move · Find mate in 1"
@@ -60,12 +60,12 @@ object TrainDrillsRepository {
             prompt = "White to move · Shield the King"
         ),
         TacticalDrill(
-            id = "drill_queen_mate",
-            title = "Queen Battery Mate",
+            id = "drill_queen_battery",
+            title = "Bishop Battery Setup",
             category = "Forced Mate",
             fen = "r1b2rk1/pp3ppp/2n5/3p4/3P4/2Q2N2/PP1B1PPP/R3KB1R w - - 0 1",
-            solutionUci = "f1d3",
-            prompt = "White to move · Line up the battery"
+            solutionUci = "d2h6",
+            prompt = "White to move · Set up the kingside attack"
         ),
         TacticalDrill(
             id = "drill_pin_skewer",
