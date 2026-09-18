@@ -27,7 +27,8 @@ class ChessCorePerftTest {
             "r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1"
         )
 
-        assertEquals(48L, perft(position, 1))
+        val depth1 = perft(position, 1)
+        assertEquals("Kiwipete depth-1 legal move count = $depth1", 48L, depth1)
         assertEquals(2039L, perft(position, 2))
         assertEquals(97862L, perft(position, 3))
     }
