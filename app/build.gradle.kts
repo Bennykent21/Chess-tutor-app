@@ -32,7 +32,8 @@ android {
       keyPassword = System.getenv("KEY_PASSWORD")
     }
     create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
+      // Use the standard Android Studio debug keystore for the current developer machine.
+      storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
       storePassword = "android"
       keyAlias = "androiddebugkey"
       keyPassword = "android"
