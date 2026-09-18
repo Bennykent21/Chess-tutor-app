@@ -125,12 +125,10 @@ class ChessPosition(fen: String? = null) {
             val pieceChar = pieceType.notation.lowercaseChar()
             val promoChar = move.promotion?.notation?.lowercaseChar()
 
-            MoveChoice(
-                from = move.from.algebraic,
-                to = move.to.algebraic,
+            MoveChoice.fromCoreMove(
+                move = move,
                 san = SanFormatter.format(position, move),
-                piece = pieceChar,
-                promotion = promoChar
+                piece = pieceChar
             )
         }
     }
