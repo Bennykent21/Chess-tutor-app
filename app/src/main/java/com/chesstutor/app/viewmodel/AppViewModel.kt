@@ -40,7 +40,7 @@ class AppViewModel(
 
     private val blunderClassifier = BlunderClassifier(thresholdCentipawns = 150)
     private val localBotMoveSelector = com.chesstutor.app.engine.LocalBotMoveSelector()
-    private var analysisCounter = 0
+    private val analysisService = com.chesstutor.app.engine.AnalysisService(engine)
 
     // Curated tactical positions featuring verifiable mistakes
     companion object {
@@ -93,10 +93,10 @@ class AppViewModel(
         // If Grandmaster (Stockfish 16, 3200) -> query online Stockfish first
         if (elo >= 2600 || botDifficulty.equals("Grandmaster", ignoreCase = true)) {
             try {
-                val res = engine.analyze(
-                    AnalysisRequest(requestId = ++analysisCounter, fen = fen, depth = 10, movetimeMs = 500)
-                )
-                val matching = chessPos.legalMoves.firstOrNull { it.uci == res.bestMoveUci }
+                val res = analysisService.analyze(fen = fen, depth = 10, movetimeMs = 500)
+                val matching = res?.let { result ->
+                    chessPos.legalMoves.firstOrNull { it.uci == result.bestMoveUci }
+                }
                 if (matching != null) return matching
             } catch (_: Exception) {}
         }
@@ -576,7 +576,6 @@ class AppViewModel(
         }
 
         viewModelScope.launch {
-            val reqId = ++analysisCounter
             val depth = when (_state.value.arenaDifficulty) {
                 "Beginner" -> 1
                 "Casual" -> 2
@@ -584,8 +583,19 @@ class AppViewModel(
                 else -> 4
             }
 
-            val analysisBefore = engine.analyze(AnalysisRequest(reqId, beforeFen, depth = depth))
-            val analysisAfter = engine.analyze(AnalysisRequest(reqId + 1, afterFen, depth = depth))
+            val analysisBefore = analysisService.analyze(fen = beforeFen, depth = depth)
+            val analysisAfter = analysisService.analyze(fen = afterFen, depth = depth)
+
+            if (analysisBefore == null || analysisAfter == null) {
+                _state.update {
+                    it.copy(
+                        busy = false,
+                        opponentThinking = false,
+                        message = "Analysis superseded by a newer position."
+                    )
+                }
+                return@launch
+            }
 
             val verdict = blunderClassifier.classify(analysisBefore, analysisAfter)
             val consequences = mutableListOf<VerifiedConsequence>()
@@ -1109,13 +1119,10 @@ private fun playReviewMove(move: MoveChoice) {
         viewModelScope.launch {
             try {
                 val start = System.currentTimeMillis()
-                val res = engine.analyze(
-                    AnalysisRequest(
-                        requestId = 9999,
-                        fen = ChessPosition.STARTING_FEN,
-                        movetimeMs = 1000
-                    )
-                )
+                val res = analysisService.analyze(
+                    fen = ChessPosition.STARTING_FEN,
+                    movetimeMs = 1000
+                ) ?: throw IllegalStateException("Engine diagnostics result became stale")
                 val latency = System.currentTimeMillis() - start
                 val diag = com.chesstutor.app.engine.EngineDiagnostics(
                     engineName = "Chess engine",
