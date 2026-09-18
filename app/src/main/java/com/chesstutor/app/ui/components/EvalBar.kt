@@ -104,7 +104,7 @@ fun EvalBar(
 
     Box(
         modifier = modifier
-            .width(22.dp)
+            .width(25.dp)
             .clip(RoundedCornerShape(3.dp))
             .background(Color(0xFF14181D)) // dark base = "black" side, always visible underneath
             .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(3.dp))
