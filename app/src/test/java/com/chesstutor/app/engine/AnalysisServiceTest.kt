@@ -17,7 +17,11 @@ class AnalysisServiceTest {
         val engine = ControlledEngine()
         val service = AnalysisService(engine)
 
-        val result = service.analyze(startFen, depth = 8)
+        val pending = async { service.analyze(startFen, depth = 8) }
+        engine.awaitRequest(1)
+        engine.complete(1, depth = 8)
+
+        val result = pending.await()
 
         assertEquals("e2e4", result?.bestMoveUci)
         assertEquals(35, result?.centipawns)
