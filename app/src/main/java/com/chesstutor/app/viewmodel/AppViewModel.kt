@@ -15,7 +15,6 @@ import com.chesstutor.app.domain.ReviewItem
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.domain.SearchConfidence
 import com.chesstutor.app.domain.VerifiedConsequence
-import com.chesstutor.app.engine.AnalysisRequest
 import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.EngineClient
