@@ -157,4 +157,74 @@ class ChessCoreTest {
     )
   }
 
+  @Test
+  fun testCastlingOutOfCheckIsIllegal() {
+    val pos = Position.fromFen("4k3/8/8/8/8/8/4r3/R3K2R w KQ - 0 1")
+    val moves = LegalMoveGenerator.generateLegalMoves(pos)
+
+    assertFalse(moves.any { it.isCastling })
+  }
+
+  @Test
+  fun testCastlingThroughCheckIsIllegal() {
+    val pos = Position.fromFen("4k3/8/8/8/8/8/5r2/R3K2R w KQ - 0 1")
+    val moves = LegalMoveGenerator.generateLegalMoves(pos)
+
+    assertFalse(moves.any { it.from == Square.fromAlgebraic("e1") && it.to == Square.fromAlgebraic("g1") })
+  }
+
+  @Test
+  fun testCastlingIntoCheckIsIllegal() {
+    val pos = Position.fromFen("4k3/8/8/8/8/8/6r1/R3K2R w KQ - 0 1")
+    val moves = LegalMoveGenerator.generateLegalMoves(pos)
+
+    assertFalse(moves.any { it.from == Square.fromAlgebraic("e1") && it.to == Square.fromAlgebraic("g1") })
+  }
+
+  @Test
+  fun testPinnedPieceCannotExposeOwnKing() {
+    val pos = Position.fromFen("4r1k1/8/8/8/8/8/4R3/4K3 w - - 0 1")
+    val moves = LegalMoveGenerator.generateLegalMoves(pos)
+
+    assertFalse(
+      moves.any {
+        it.from == Square.fromAlgebraic("e2") &&
+          it.to == Square.fromAlgebraic("a2")
+      }
+    )
+  }
+
+  @Test
+  fun testEnPassantCannotExposeOwnKing() {
+    val pos = Position.fromFen("4r1k1/3p4/8/4P3/8/8/8/4K3 w - d6 0 1")
+    val moves = LegalMoveGenerator.generateLegalMoves(pos)
+
+    assertFalse(
+      moves.any {
+        it.from == Square.fromAlgebraic("e5") &&
+          it.to == Square.fromAlgebraic("d6") &&
+          it.isEnPassant
+      }
+    )
+  }
+
+  @Test
+  fun testPromotionMoveUpdatesBoard() {
+    val pos = Position.fromFen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
+    val promotion = LegalMoveGenerator.generateLegalMoves(pos)
+      .first { it.from == Square.fromAlgebraic("a7") &&
+        it.to == Square.fromAlgebraic("a8") &&
+        it.promotion == PieceType.KNIGHT }
+
+    val next = LegalMoveGenerator.makeMove(pos, promotion)
+
+    assertEquals(
+      Piece(PieceType.KNIGHT, PieceColor.WHITE),
+      next.pieceAt(Square.fromAlgebraic("a8"))
+    )
+    assertEquals(null, next.pieceAt(Square.fromAlgebraic("a7")))
+    assertEquals(PieceColor.BLACK, next.sideToMove)
+  }
+
+
 }
