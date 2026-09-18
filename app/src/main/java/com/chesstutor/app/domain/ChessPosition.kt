@@ -1,7 +1,7 @@
 package com.chesstutor.app.domain
 
 import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.Move
+import com.example.chess.core.SanFormatter
 import com.example.chess.core.PieceColor
 import com.example.chess.core.PieceType
 import com.example.chess.core.Position
@@ -118,7 +118,7 @@ class ChessPosition(fen: String? = null) {
             val pieceChar = pieceType.notation.lowercaseChar()
             val promoChar = move.promotion?.notation?.lowercaseChar()
 
-            val san = computeSan(move, pieceType)
+            val san = SanFormatter.format(currentPosition, move)
 
             MoveChoice(
                 from = move.from.algebraic,
@@ -130,131 +130,6 @@ class ChessPosition(fen: String? = null) {
         }
     }
 
-    /**
-     * Generates Standard Algebraic Notation (SAN) for a legal move.
-     *
-     * Handles:
-     * - normal moves
-     * - captures
-     * - pawn captures
-     * - castling
-     * - promotion
-     * - check
-     * - checkmate
-     * - piece disambiguation
-     *
-     * Example:
-     *     Nbd2
-     *     R1e2
-     *     Qxd5+
-     */
-    private fun computeSan(move: Move, pieceType: PieceType): String {
-        val nextPos = LegalMoveGenerator.makeMove(currentPosition, move)
-
-        val opponentInCheck = LegalMoveGenerator.isKingInCheck(
-            nextPos,
-            nextPos.sideToMove
-        )
-
-        val opponentHasNoMoves =
-            LegalMoveGenerator.generateLegalMoves(nextPos).isEmpty()
-
-        val suffix = when {
-            opponentInCheck && opponentHasNoMoves -> "#"
-            opponentInCheck -> "+"
-            else -> ""
-        }
-
-        if (move.isCastling) {
-            val isKingside = move.to.file > move.from.file
-            return (if (isKingside) "O-O" else "O-O-O") + suffix
-        }
-
-        val target = move.to.algebraic
-
-        val isCapture =
-            currentPosition.pieceAt(move.to) != null || move.isEnPassant
-
-        val promoSuffix =
-            if (move.promotion != null) {
-                "=${move.promotion.notation.uppercaseChar()}"
-            } else {
-                ""
-            }
-
-        if (pieceType == PieceType.PAWN) {
-            return if (isCapture) {
-                "${move.from.fileChar}x$target$promoSuffix$suffix"
-            } else {
-                "$target$promoSuffix$suffix"
-            }
-        }
-
-        val piecePrefix = pieceType.notation.uppercaseChar().toString()
-
-        val disambiguation = computeDisambiguation(
-            move = move,
-            pieceType = pieceType
-        )
-
-        val captureChar = if (isCapture) "x" else ""
-
-        return "$piecePrefix$disambiguation$captureChar$target$promoSuffix$suffix"
-    }
-
-    /**
-     * Determines the SAN disambiguation required when more than one
-     * piece of the same type can legally move to the same destination.
-     *
-     * Examples:
-     *
-     *     Nbd2
-     *     Nfd2
-     *
-     * or, when files are identical:
-     *
-     *     R1e2
-     *     R3e2
-     */
-    private fun computeDisambiguation(
-        move: Move,
-        pieceType: PieceType
-    ): String {
-        val allLegalMoves =
-            LegalMoveGenerator.generateLegalMoves(currentPosition)
-
-        val competingMoves = allLegalMoves.filter { candidate ->
-            candidate != move &&
-                    candidate.to == move.to &&
-                    currentPosition.pieceAt(candidate.from)?.type == pieceType
-        }
-
-        if (competingMoves.isEmpty()) {
-            return ""
-        }
-
-        val sameFile = competingMoves.any {
-            it.from.file == move.from.file
-        }
-
-        val sameRank = competingMoves.any {
-            it.from.rank == move.from.rank
-        }
-
-        return when {
-            !sameFile -> {
-                move.from.fileChar.toString()
-            }
-
-            !sameRank -> {
-                move.from.rank.toString()
-            }
-
-            else -> {
-                move.from.algebraic
-            }
-        }
-    }
 
     companion object {
         const val STARTING_FEN =
