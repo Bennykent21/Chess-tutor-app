@@ -20,7 +20,6 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.EngineClient
 import com.example.chess.core.Position
-import com.example.chess.engine.LocalChessEngine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +39,7 @@ class AppViewModel(
     val state: StateFlow<AppUiState> = _state.asStateFlow()
 
     private val blunderClassifier = BlunderClassifier(thresholdCentipawns = 150)
-    private val localEngine = LocalChessEngine()
+    private val localBotMoveSelector = com.chesstutor.app.engine.LocalBotMoveSelector()
     private var analysisCounter = 0
 
     // Curated tactical positions featuring verifiable mistakes
@@ -104,7 +103,7 @@ class AppViewModel(
 
         // Calibrated bot move using LocalChessEngine's calibrated blunder & profile logic
         return try {
-            val chosenCoreMove = localEngine.selectMoveForElo(corePos, elo)
+            val chosenCoreMove = localBotMoveSelector.selectMove(corePos, elo)
             chessPos.legalMoves.firstOrNull { it.uci == chosenCoreMove.uci }
                 ?: chessPos.legalMoves.firstOrNull()
         } catch (_: Exception) {
