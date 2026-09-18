@@ -176,15 +176,15 @@ fun ArenaScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 16.dp, vertical = 0.dp),
+                .weight(1f),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                // Opponent strip (.player #opp-strip)
+                // Opponent strip (.player #opp-strip) - inset by 16dp.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .bouncyClickable { isBotSheetOpen = true }
                         .padding(vertical = 9.dp, horizontal = 2.dp),
@@ -258,11 +258,12 @@ fun ArenaScreen(
                     }
                 }
 
-                // Board Row: Eval Bar (22dp) + Board
+                // Board Row: Eval Bar (22dp) + Board, spanning the FULL
+                // screen width edge-to-edge - no horizontal padding here.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp)
+                        .padding(top = 8.dp, bottom = 8.dp)
                         .height(IntrinsicSize.Min),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -296,10 +297,11 @@ fun ArenaScreen(
                     }
                 }
 
-                // Move Notation Strip (.moves #mv-play)
+                // Move Notation Strip (.moves #mv-play) - inset by 16dp.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
                         .horizontalScroll(moveScrollState)
                         .padding(vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -339,11 +341,12 @@ fun ArenaScreen(
                     }
                 }
 
-                // Player Strip ("You")
+                // Player Strip ("You") - inset by 16dp.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp, horizontal = 2.dp),
+                        .padding(horizontal = 16.dp)
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -406,7 +409,7 @@ fun ArenaScreen(
                     }
                 }
 
-                // Flag / Missed Tactic Card (.flag #flag-play)
+                // Flag / Missed Tactic Card (.flag #flag-play) - inset by 16dp.
                 if (state.mistakeDetected || state.analysis?.tacticalIssue != null) {
                     val issue = state.analysis?.tacticalIssue
                     val title = if (state.mateIn != null && state.mateIn > 0) "You missed mate in one" else "Tactical mistake detected"
@@ -415,6 +418,7 @@ fun ArenaScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0x1ADC7466))
                             .border(1.dp, Color(0x4DDC7466), RoundedCornerShape(12.dp))
@@ -461,10 +465,11 @@ fun ArenaScreen(
                 }
             }
 
-            // Actions: [ New Game ] Primary Brass Button
+            // Actions: [ New Game ] Primary Brass Button - inset by 16dp.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp, top = 10.dp)
                     .height(48.dp)
                     .clip(RoundedCornerShape(11.dp))
@@ -698,7 +703,6 @@ data class CapturedInfo(
 
 private fun calculateCaptures(fen: String): CapturedInfo {
     val boardPart = fen.split(" ").firstOrNull() ?: ""
-    val pieceValues = mapOf('p' to 1, 'n' to 3, 'b' to 3, 'r' to 5, 'q' to 9)
 
     var whiteP = 8; var whiteN = 2; var whiteB = 2; var whiteR = 2; var whiteQ = 1
     var blackP = 8; var blackN = 2; var blackB = 2; var blackR = 2; var blackQ = 1
