@@ -79,8 +79,8 @@ object TrainDrillsRepository {
             id = "drill_lucena",
             title = "Lucena Position",
             category = "Endgame Technique",
-            fen = "1K1R4/3P1k2/8/8/8/8/8/2r5 w - - 0 1",
-            solutionUci = "d8d4",
+            fen = "4K3/2k1P3/8/8/8/8/5r2/6R1 w - - 0 1",
+            solutionUci = "g1c1",
             prompt = "White to move · Build the 4th-rank bridge"
         ),
         TacticalDrill(
