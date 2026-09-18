@@ -19,7 +19,6 @@ import com.chesstutor.app.engine.AnalysisRequest
 import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.EngineClient
-import com.chesstutor.app.engine.StockfishProcessEngineClient
 import com.example.chess.core.Position
 import com.example.chess.engine.LocalChessEngine
 import kotlinx.coroutines.delay
@@ -78,9 +77,7 @@ class AppViewModel(
     private fun applyBotElo() {
         val elo = _state.value.effectiveBotElo
         viewModelScope.launch {
-            if (engine is StockfishProcessEngineClient) {
-                engine.setElo(elo)
-            }
+            runCatching { engine.setStrengthRating(elo) }
         }
     }
 
