@@ -358,7 +358,7 @@ class ChessCoreTest {
       "4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1"
     )
     val withEp = Position.fromFen(
-      "4k3/8/8/3p4/4P3/8/8/4K3 w - d6 0 1"
+      "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"
     )
 
     assertTrue(
