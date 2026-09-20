@@ -2,17 +2,13 @@ package com.chesstutor.app.engine
 
 import com.example.chess.core.LegalMoveGenerator
 import com.example.chess.core.Position
-import com.example.chess.engine.LocalChessEngine
-import com.example.chess.engine.TrainingLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class LocalFallbackEngineClient : EngineClient {
-    private val localEngine = LocalChessEngine()
-
-    override suspend fun initialize() {
-        // Ready immediately.
-    }
+class LocalFallbackEngineClient(
+    private val heuristicEngine: HeuristicEngineAdapter = HeuristicEngineAdapter()
+) : EngineClient {
+    override suspend fun initialize() = Unit
 
     override suspend fun analyze(request: AnalysisRequest): PositionAnalysis = withContext(Dispatchers.Default) {
         val pos = Position.tryFromFen(request.fen).getOrElse {
@@ -22,8 +18,8 @@ class LocalFallbackEngineClient : EngineClient {
 
         if (legalMoves.isEmpty()) {
             return@withContext EngineResultValidator.validate(
-                request = request,
-                analysis = PositionAnalysis(
+                request,
+                PositionAnalysis(
                     requestId = request.requestId,
                     bestMoveUci = "0000",
                     centipawns = if (LegalMoveGenerator.isKingInCheck(pos, pos.sideToMove)) -10000 else 0,
@@ -31,15 +27,14 @@ class LocalFallbackEngineClient : EngineClient {
                     principalVariation = emptyList(),
                     depth = request.depth ?: 3
                 ),
-                scorePerspective = EngineResultValidator.ScorePerspective.SIDE_TO_MOVE
+                EngineResultValidator.ScorePerspective.SIDE_TO_MOVE
             )
         }
 
-        val bestMove = localEngine.selectMove(pos, TrainingLevel.EXPERT_1800)
-
+        val bestMove = heuristicEngine.selectMove(pos, rating = 1800)
         EngineResultValidator.validate(
-            request = request,
-            analysis = PositionAnalysis(
+            request,
+            PositionAnalysis(
                 requestId = request.requestId,
                 bestMoveUci = bestMove.uci,
                 centipawns = null,
@@ -50,11 +45,6 @@ class LocalFallbackEngineClient : EngineClient {
         )
     }
 
-    override suspend fun stop() {
-        // No active process to stop.
-    }
-
-    override suspend fun dispose() {
-        // Nothing to dispose.
-    }
+    override suspend fun stop() = Unit
+    override suspend fun dispose() = Unit
 }
