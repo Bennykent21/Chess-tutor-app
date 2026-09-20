@@ -10,9 +10,9 @@ An interactive, tactical chess tutor and sparring engine for Android powered by 
 - **Android Studio**: Ladybug / Meerkat (or newer)
 - **JDK**: JDK 17 or JDK 21 (Gradle toolchain compatible)
 - **Android SDK**:
-  - `compileSdk = 35`
-  - `targetSdk = 35`
-  - `minSdk = 26` (Android 8.0 Oreo or higher)
+  - `compileSdk = 36`
+  - `targetSdk = 36`
+  - `minSdk = 24` (Android 7.0 Nougat or higher)
 - **NDK (for Stockfish cross-compilation)**:
   - Pinned NDK version: **r26d** (or 25.2.9519653+)
   - Toolchain: Clang with Android API 26 target headers (`aarch64-linux-android26-clang++`, `x86_64-linux-android26-clang++`)
@@ -20,14 +20,14 @@ An interactive, tactical chess tutor and sparring engine for Android powered by 
 ### Build Commands
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/chess-tutor.git
+git clone https://github.com/Bennykent21/Chess-tutor.git
 cd chess-tutor
 
 # Run unit and local verification tests
-gradle testDebugUnitTest
+./gradlew test --no-configuration-cache
 
 # Build the debug APK
-gradle assembleDebug
+./gradlew assembleDebug --no-configuration-cache
 
 # Install on an active device or emulator via adb
 adb install app/build/outputs/apk/debug/app-debug.apk
@@ -98,11 +98,11 @@ app/src/main/java/com/chesstutor/app/
 ### Running JVM Tests (Desktop / CI)
 The primary unit and integration test suite runs on the desktop JVM using Gradle:
 ```bash
-gradle testDebugUnitTest
+./gradlew test --no-configuration-cache
 ```
 Or to run only the primary specification verification test:
 ```bash
-gradle testDebugUnitTest --tests com.chesstutor.app.ChessTutorSpecVerificationTest
+./gradlew test --no-configuration-cache --tests com.chesstutor.app.ChessTutorSpecVerificationTest
 ```
 
 ### Test Target Distinction: JVM vs. Real Android Device
@@ -116,10 +116,12 @@ gradle testDebugUnitTest --tests com.chesstutor.app.ChessTutorSpecVerificationTe
 
 ## 4. Engine Bundling & Native Binaries
 
-### Native Binaries in `jniLibs`
-Real Stockfish 19 binaries are bundled inside:
-- `app/src/main/jniLibs/arm64-v8a/libstockfish.so` (Target: Android 64-bit ARM devices)
-- `app/src/main/jniLibs/x86_64/libstockfish.so` (Target: Android x86_64 emulators and desktop JVM test runners)
+### Native Binaries in `assets/stockfish`
+Real Stockfish binaries are bundled inside:
+- `app/src/main/assets/stockfish/arm64-v8a/libstockfish.so` (Target: Android 64-bit ARM devices)
+- `app/src/main/assets/stockfish/x86_64/libstockfish.so` (Target: Android x86_64 emulators)
+
+`StockfishBinaryProvider` copies the architecture-matched binary from the APK assets into the app's private files directory and the process client launches that copied executable. The app therefore does not depend on `nativeLibraryDir` for Stockfish execution.
 
 ### Why Named `.so`?
 Android's package manager extracts files from the APK into `nativeLibraryDir` if they adhere to the `lib<name>.so` naming convention. `AppContainer.kt` inspects `context.applicationInfo.nativeLibraryDir + "/libstockfish.so"`, ensures execute permissions, and launches Stockfish via `ProcessBuilder`. If the process fails or the architecture is unsupported, the system gracefully falls back to `LocalFallbackEngineClient`.
@@ -127,7 +129,7 @@ Android's package manager extracts files from the APK into `nativeLibraryDir` if
 ### GPL-3.0 Compliance & Licensing Notice
 Stockfish is distributed under the **GNU General Public License v3.0 (GPL-3.0)**.
 - **Process Boundary**: The application communicates with Stockfish strictly via standard input/output pipes using the open UCI (Universal Chess Interface) protocol as an independent subprocess.
-- **Distribution Notice**: Any public release or APK distribution containing the bundled Stockfish executable **must**:
+- **Distribution Notice**: Any public release or APK distribution containing the bundled Stockfish executable **should**:
   1. Include the full GNU GPL-3.0 license text and copyright notices in the application's Open Source Licenses section.
   2. Provide access to the exact source code corresponding to the bundled Stockfish build, available at: [https://github.com/official-stockfish/Stockfish](https://github.com/official-stockfish/Stockfish).
 
@@ -138,7 +140,7 @@ Stockfish is distributed under the **GNU General Public License v3.0 (GPL-3.0)**
 ### Implemented & Verified
 - [x] **Full Chess Domain Engine**: FEN parser, pseudo-legal and legal move generator, SAN notation generator, castling, en passant, promotion, and check/checkmate detection.
 - [x] **Tactical Analysis (SEE & Forks)**: Static Exchange Evaluation (SEE) to detect hanging pieces and geometric double-attacks/forks.
-- [x] **Centipawn & Mate Blunder Taxonomy**: Blunder, Mistake, Inaccuracy, Missed Mate, and Walked into Mate detection.
+- [x] **Centipawn & Mate Blunder Taxonomy**: move-quality classification at the application analysis boundary.
 - [x] **Subprocess Stockfish Engine**: Real UCI process runner with automatic recovery, fallback safety, and CCRL-calibrated `setElo()`.
 - [x] **Online Rating Linking**:
   - Read-only public lookups for **Chess.com** (`GET api.chess.com/pub/player/{username}/stats`) and **Lichess** (`GET lichess.org/api/user/{username}`).
@@ -147,7 +149,7 @@ Stockfish is distributed under the **GNU General Public License v3.0 (GPL-3.0)**
   - Automatic `setElo()` feeding to tune Stockfish against the user's approximate rating.
   - Strict UI copy compliance: *"Tuned to approximate your [Platform] [Format] rating"*.
   - Preset bot tiers fallback (Beginner, Casual, Intermediate, Advanced) for unlinked users.
-- [x] **Spaced Repetition Review System**: SuperMemo SM-2 interval scheduling with Room persistence for blunder drills.
+- [x] **Spaced Repetition Review System**: staged 1/3/7/14/30-day review scheduling with Room persistence for blunder drills.
 
 ### Roadmap / Intentionally Out of Scope for Now
 - **User Accounts & Cloud Sync**: Firebase/Supabase synchronization across multiple devices.
