@@ -118,9 +118,9 @@ object LearnCurriculumRepository {
                 "Absolute pins freeze pieces before the king",
                 "Force high-value targets to flee skewers"
             ),
-            demoFen = "r1b1k2r/pppp1ppp/8/4q3/1bP5/2N1P3/PP1Q1PPP/R3KB1R w KQkq - 0 10",
+            demoFen = "4k3/8/8/8/1b6/2N5/8/R3K3 w - - 0 1",
             recommendedMoveUci = "a1c1",
-            moveExplanation = "Rc1 adds a defender to the knight on c3 while the bishop on b4 keeps it pinned to the king."
+            moveExplanation = "Rc1 supports the pinned knight on c3 while the bishop on b4 keeps it pinned to the king."
         ),
         LearnTopic(
             id = "tactics_knight_fork",
