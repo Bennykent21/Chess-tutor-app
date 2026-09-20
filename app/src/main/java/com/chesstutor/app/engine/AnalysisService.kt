@@ -7,9 +7,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * Application-facing analysis boundary.
  *
  * The ViewModel asks for analysis by position, not by engine implementation.
- * This service owns request IDs, stale-result protection, score normalization,
- * and cancellation semantics. Engine failures still propagate so callers can
- * decide how to present them.
+ * This service owns request IDs and stale-result protection. Engine clients are
+ * responsible for validating their own output and returning scores normalized
+ * to White's perspective.
  */
 class AnalysisService(
     private val engine: EngineClient,
@@ -48,16 +48,15 @@ class AnalysisService(
         )
 
         return try {
-            val raw = engine.analyze(request)
-            val validated = EngineResultValidator.validate(
-                request = request,
-                analysis = raw,
-                scorePerspective = EngineResultValidator.ScorePerspective.WHITE,
-            )
+            // EngineClient implementations validate UCI output and normalize
+            // their score to White's perspective. Do not validate/normalize a
+            // second time here: doing so would invert an already-normalized
+            // Black-to-move score.
+            val result = engine.analyze(request)
 
             // A newer request may have started while this engine call was in flight.
             // Never let an older answer overwrite newer UI state.
-            if (requestId != latestRequestId) null else validated
+            if (requestId != latestRequestId) null else result
         } catch (cancelled: CancellationException) {
             runCatching { engine.stop() }
             throw cancelled
