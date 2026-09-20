@@ -71,9 +71,9 @@ object TrainDrillsRepository {
             id = "drill_pin_skewer",
             title = "Absolute Pin Defense",
             category = "Pins & Skewers",
-            fen = "r1b1k2r/pppp1ppp/8/4q3/1bP5/2N1P3/PP1Q1PPP/R3KB1R w KQkq - 0 10",
+            fen = "4k3/8/8/8/1b6/2N5/8/R3K3 w - - 0 1",
             solutionUci = "a1c1",
-            prompt = "White to move · Support the pinned piece"
+            prompt = "White to move · Support the pinned knight"
         ),
         TacticalDrill(
             id = "drill_lucena",
