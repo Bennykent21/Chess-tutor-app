@@ -26,6 +26,7 @@ class StockfishProcessEngineClient(
     private var readerJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val analysisMutex = Mutex()
+    private val lifecycleMutex = Mutex()
 
     private var activeRequest: AnalysisRequest? = null
     private var pendingResult: CompletableDeferred<PositionAnalysis>? = null
@@ -37,7 +38,12 @@ class StockfishProcessEngineClient(
     val isAlive: Boolean
         get() = process?.isAlive == true
 
-    override suspend fun initialize() = withContext(Dispatchers.IO) {
+    override suspend fun initialize() = lifecycleMutex.withLock {
+        withContext(Dispatchers.IO) {
+        if (isAlive) return@withContext
+        disposeInternal()
+        uciWaiters.clear()
+        readyWaiters.clear()
         val file = File(binaryPath)
         if (!file.exists()) {
             val err = "Stockfish binary not found at $binaryPath"
@@ -87,8 +93,9 @@ class StockfishProcessEngineClient(
         } catch (e: Exception) {
             val err = "${e::class.java.simpleName}: ${e.message}"
             lastStartupError = err
-            dispose()
+            disposeInternal()
             throw e
+        }
         }
     }
 
@@ -119,7 +126,12 @@ class StockfishProcessEngineClient(
             send("setoption name Skill Level value $skillLevel")
         }
         // UCI options are guaranteed to take effect before the next search.
-        send("isready")
+        val ready = CompletableDeferred<Unit>()
+        readyWaiters.add(ready)
+        if (!send("isready")) {
+            throw IllegalStateException("Failed to send isready after strength change")
+        }
+        withTimeoutOrNull(4000) { ready.await() }
     }
 
     private suspend fun readLoop() {
@@ -243,13 +255,25 @@ class StockfishProcessEngineClient(
         send("stop")
     }
 
-    override suspend fun dispose() = withContext(Dispatchers.IO) {
+    override suspend fun dispose() = lifecycleMutex.withLock {
+        withContext(Dispatchers.IO) { disposeInternal() }
+    }
+
+    private fun disposeInternal() {
         readerJob?.cancel()
+        readerJob = null
         try {
             stdinWriter?.close()
         } catch (_: Exception) {}
+        stdinWriter = null
         process?.destroy()
         process = null
+        activeRequest = null
+        pendingResult?.cancel()
+        pendingResult = null
+        latestInfo = null
+        uciWaiters.clear()
+        readyWaiters.clear()
     }
 
     private fun send(command: String): Boolean {
