@@ -17,7 +17,7 @@ object EngineResultValidator {
         /** UCI Stockfish scores are relative to the side to move. */
         SIDE_TO_MOVE,
 
-        /** Cloud API scores are documented as positive for White. */
+        /** AnalysisService and cloud clients use a normalized White perspective. */
         WHITE
     }
 
