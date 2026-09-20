@@ -17,8 +17,15 @@ data class LearnTopic(
     val keyPrinciples: List<String>,
     val demoFen: String,
     val recommendedMoveUci: String,
-    val moveExplanation: String
+    val moveExplanation: String,
+    val validation: TopicValidation = TopicValidation.LEGAL_MOVE
 )
+
+enum class TopicValidation {
+    LEGAL_MOVE,
+    CHECKMATE,
+    KNIGHT_FORK
+}
 
 object LearnCurriculumRepository {
     val topics: List<LearnTopic> = listOf(
@@ -103,7 +110,7 @@ object LearnCurriculumRepository {
         LearnTopic(
             id = "tactics_pin_and_skewer",
             category = LearnCategory.TACTICS,
-            title = "The Absolute Pin & Skewer",
+            title = "Defending a Pinned Knight",
             subtitle = "Paralyzing Enemy Pieces Along Lines",
             summary = "Pins freeze pieces in place; skewers force valuable pieces to abandon defenders.",
             keyPrinciples = listOf(
@@ -113,7 +120,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1b1k2r/pppp1ppp/8/4q3/1bP5/2N1P3/PP1Q1PPP/R3KB1R w KQkq - 0 10",
             recommendedMoveUci = "a1c1",
-            moveExplanation = "Rc1 defends the pinned knight on c3."
+            moveExplanation = "Rc1 adds a defender to the knight on c3 while the bishop on b4 keeps it pinned to the king."
         ),
         LearnTopic(
             id = "tactics_knight_fork",
@@ -128,7 +135,8 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1b1k3/pp3ppp/8/8/1n6/2N5/PP3PPP/R3K2R b q - 0 12",
             recommendedMoveUci = "b4c2",
-            moveExplanation = "Nc2 forks White's a1 rook and d1 king."
+            moveExplanation = "Nc2 forks White's a1 rook and e1 king.",
+            validation = TopicValidation.KNIGHT_FORK
         ),
         LearnTopic(
             id = "tactics_discovered_attack",
@@ -158,7 +166,8 @@ object LearnCurriculumRepository {
             ),
             demoFen = "6nk/6pR/8/4N3/8/8/8/6K1 w - - 0 1",
             recommendedMoveUci = "e5g6",
-            moveExplanation = "Qc8# delivers back-rank mate with zero escape squares."
+            moveExplanation = "Nf7# is a smothered mate: the knight checks while Black's own rook and pawns remove every king escape.",
+            validation = TopicValidation.CHECKMATE
         ),
 
         // MIDDLEGAME
@@ -284,7 +293,8 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4",
             recommendedMoveUci = "f3f7",
-            moveExplanation = "Qxf7# delivers immediate checkmate on the weak f7 square."
+            moveExplanation = "Qxf7# delivers immediate checkmate on the weak f7 square.",
+            validation = TopicValidation.CHECKMATE
         ),
         LearnTopic(
             id = "lesson_hanging_piece",
@@ -314,7 +324,8 @@ object LearnCurriculumRepository {
             ),
             demoFen = "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
             recommendedMoveUci = "e1e8",
-            moveExplanation = "Re8# delivers decisive back-rank mate."
+            moveExplanation = "Re8# delivers decisive back-rank mate.",
+            validation = TopicValidation.CHECKMATE
         ),
         LearnTopic(
             id = "lesson_overworked_piece",
