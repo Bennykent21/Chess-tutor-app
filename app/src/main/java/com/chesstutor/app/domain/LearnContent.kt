@@ -164,7 +164,7 @@ object LearnCurriculumRepository {
                 "Sacrifice queen to force blocking capture",
                 "Knight leaps in for decisive checkmate"
             ),
-            demoFen = "6nk/6pR/8/4N3/8/8/8/6K1 w - - 0 1",
+            demoFen = "6rk/6pp/8/4N3/8/8/8/6K1 w - - 0 1",
             recommendedMoveUci = "e5f7",
             moveExplanation = "Nf7# is a smothered mate: the knight checks while Black's own rook and pawns remove every king escape.",
             validation = TopicValidation.CHECKMATE
