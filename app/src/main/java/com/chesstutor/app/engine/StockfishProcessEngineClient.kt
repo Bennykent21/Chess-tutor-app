@@ -113,11 +113,13 @@ class StockfishProcessEngineClient(
             send("setoption name UCI_LimitStrength value true")
             send("setoption name UCI_Elo value ${rating.coerceIn(1320, 3190)}")
         } else {
-            // For sub-1320, disable Elo mode and use Skill Level 0..5
+            // For sub-1320, disable Elo mode and use Skill Level 0..5.
             send("setoption name UCI_LimitStrength value false")
             val skillLevel = ((rating - 400).coerceAtLeast(0) / 180).coerceIn(0, 5)
             send("setoption name Skill Level value $skillLevel")
         }
+        // UCI options are guaranteed to take effect before the next search.
+        send("isready")
     }
 
     private suspend fun readLoop() {
@@ -219,7 +221,13 @@ class StockfishProcessEngineClient(
             return@withContext fallbackClient.analyze(request)
         }
 
-        val timeoutMs = (request.movetimeMs?.toLong() ?: 1000L) + 2500L
+        // Depth searches have no engine-provided wall-clock bound, so allow a
+        // realistic budget instead of the old fixed 2.5s cutoff.
+        val timeoutMs = when {
+            request.movetimeMs != null -> request.movetimeMs.toLong() + 3000L
+            request.depth != null -> (request.depth * 1500L).coerceIn(5000L, 30000L)
+            else -> 5000L
+        }
         val result = withTimeoutOrNull(timeoutMs) { deferred.await() }
         result ?: run {
             // Timed out: stop engine and return fallback
