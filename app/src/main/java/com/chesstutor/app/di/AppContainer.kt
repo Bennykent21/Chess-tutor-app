@@ -41,32 +41,40 @@ object AppContainer {
     }
 
     @Volatile
-    var engineResolutionDiagnostic: String = "Local Stockfish primary; cloud Stockfish fallback; deterministic fallback last"
+    var engineResolutionDiagnostic: String =
+        "Local Stockfish primary; cloud Stockfish fallback; deterministic fallback last"
         private set
 
     fun provideEngineClient(context: Context): EngineClient {
         return engineClientInstance ?: synchronized(this) {
             val deterministicFallback = LocalFallbackEngineClient()
             val cloudFallback = OnlineStockfishEngineClient(fallback = deterministicFallback)
-            val binaryPath = runCatching {
-                com.chesstutor.app.engine.StockfishBinaryProvider.resolve(context)
+
+            val client: EngineClient = runCatching {
+                val binaryPath =
+                    com.chesstutor.app.engine.StockfishBinaryProvider.resolve(context)
+
+                StockfishProcessEngineClient(
+                    binaryPath = binaryPath.absolutePath,
+                    fallbackClient = cloudFallback
+                ).also {
+                    engineResolutionDiagnostic =
+                        "Engine chain: bundled Stockfish (" +
+                            binaryPath.absolutePath +
+                            ") -> cloud Stockfish -> deterministic local fallback"
+                    Log.i("AppContainer", engineResolutionDiagnostic)
+                }
             }.getOrElse { error ->
-                engineResolutionDiagnostic = "Bundled Stockfish unavailable: " + error.message
+                engineResolutionDiagnostic =
+                    "Bundled Stockfish unavailable: " +
+                        error.message +
+                        "; using cloud Stockfish -> deterministic local fallback"
                 Log.e("AppContainer", engineResolutionDiagnostic, error)
-                throw error
+                cloudFallback
             }
 
-            val client: EngineClient = StockfishProcessEngineClient(
-                binaryPath = binaryPath.absolutePath,
-                fallbackClient = cloudFallback
-            )
-
-            engineResolutionDiagnostic =
-                "Engine chain: bundled Stockfish (${binaryPath.absolutePath}) -> cloud Stockfish -> deterministic local fallback"
-            Log.i("AppContainer", engineResolutionDiagnostic)
             engineClientInstance = client
             client
         }
     }
 }
-
