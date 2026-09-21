@@ -144,33 +144,33 @@ enum class TrainingLevel(
   val blunderProbability: Float, // chance of picking a sub-optimal move
   val maxCandidatePool: Int
 ) {
-  BEGINNER_800(
-    elo = 800,
-    title = "Level 1 (800)",
+  BEGINNER_250(
+    elo = 250,
+    title = "Level 1 (250)",
     description = "Casual learner, misses simple hanging pieces and tactical forks",
     depth = 1,
     blunderProbability = 0.45f,
     maxCandidatePool = 5
   ),
-  CASUAL_1000(
-    elo = 1000,
-    title = "Level 2 (1000)",
+  CASUAL_600(
+    elo = 600,
+    title = "Level 2 (600)",
     description = "Understands piece values, but leaves occasional tactical openings",
     depth = 2,
     blunderProbability = 0.30f,
     maxCandidatePool = 4
   ),
-  INTERMEDIATE_1200(
-    elo = 1200,
-    title = "Level 3 (1200)",
+  INTERMEDIATE_1000(
+    elo = 1000,
+    title = "Level 3 (1000)",
     description = "Solid fundamentals, struggles with pawn structures and king safety",
     depth = 2,
     blunderProbability = 0.16f,
     maxCandidatePool = 3
   ),
-  CLUB_1400(
-    elo = 1400,
-    title = "Level 4 (1400)",
+  CLUB_1300(
+    elo = 1300,
+    title = "Level 4 (1300)",
     description = "Disciplined tactical vision, solid opening development",
     depth = 3,
     blunderProbability = 0.08f,
@@ -184,9 +184,9 @@ enum class TrainingLevel(
     blunderProbability = 0.03f,
     maxCandidatePool = 2
   ),
-  EXPERT_1800(
-    elo = 1800,
-    title = "Level 6 (1800)",
+  EXPERT_2000(
+    elo = 2000,
+    title = "Level 6 (2000)",
     description = "Positional mastery, sharp tactical vision with quiescence calculation",
     depth = 4,
     blunderProbability = 0.0f,
