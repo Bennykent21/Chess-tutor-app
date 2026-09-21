@@ -24,7 +24,7 @@ class LocalFallbackEngineClientTest {
 
     @Test
     fun returnsCheckmateAs0000WithMateScore() = runTest {
-        val checkmateFen = "7k/5Q2/7K/8/8/8/8/8 b - - 0 1"
+        val checkmateFen = "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"
 
         val result = LocalFallbackEngineClient().analyze(
             AnalysisRequest(requestId = 2, fen = checkmateFen)
