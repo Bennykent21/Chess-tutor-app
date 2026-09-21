@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.chesstutor.app.data.local.AppDatabase
 import com.chesstutor.app.data.repository.RatingRepository
+import com.chesstutor.app.data.repository.LearningRepository
+import com.chesstutor.app.data.repository.RoomLearningRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.data.repository.RoomRatingRepository
 import com.chesstutor.app.data.repository.RoomReviewRepository
@@ -20,6 +22,9 @@ object AppContainer {
     private var ratingRepositoryInstance: RatingRepository? = null
 
     @Volatile
+    private var learningRepositoryInstance: LearningRepository? = null
+
+    @Volatile
     private var engineClientInstance: EngineClient? = null
 
     fun provideReviewRepository(context: Context): ReviewRepository {
@@ -27,6 +32,15 @@ object AppContainer {
             val db = AppDatabase.getInstance(context)
             val repo = RoomReviewRepository(db.reviewItemDao())
             repositoryInstance = repo
+            repo
+        }
+    }
+
+    fun provideLearningRepository(context: Context): LearningRepository {
+        return learningRepositoryInstance ?: synchronized(this) {
+            val db = AppDatabase.getInstance(context)
+            val repo = RoomLearningRepository(db.learningDao())
+            learningRepositoryInstance = repo
             repo
         }
     }
