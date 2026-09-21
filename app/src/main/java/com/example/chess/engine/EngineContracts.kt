@@ -126,51 +126,74 @@ enum class TrainingLevel(
   BEGINNER_250(
     elo = 250,
     title = "Level 1 (250)",
-    description = "Casual learner, misses simple hanging pieces and tactical forks",
+    description = "Frequent simple mistakes",
     depth = 1,
-    blunderProbability = 0.45f,
-    maxCandidatePool = 5
+    blunderProbability = 0.70f,
+    maxCandidatePool = 8
   ),
   CASUAL_600(
     elo = 600,
     title = "Level 2 (600)",
-    description = "Understands piece values, but leaves occasional tactical openings",
-    depth = 2,
-    blunderProbability = 0.30f,
-    maxCandidatePool = 4
+    description = "Misses many basic tactics",
+    depth = 1,
+    blunderProbability = 0.45f,
+    maxCandidatePool = 6
   ),
   INTERMEDIATE_1000(
     elo = 1000,
     title = "Level 3 (1000)",
-    description = "Solid fundamentals, struggles with pawn structures and king safety",
+    description = "Understands fundamentals",
     depth = 2,
-    blunderProbability = 0.16f,
-    maxCandidatePool = 3
+    blunderProbability = 0.28f,
+    maxCandidatePool = 4
   ),
   CLUB_1300(
     elo = 1300,
     title = "Level 4 (1300)",
-    description = "Disciplined tactical vision, solid opening development",
-    depth = 3,
-    blunderProbability = 0.08f,
-    maxCandidatePool = 2
+    description = "Solid club-level challenge",
+    depth = 2,
+    blunderProbability = 0.15f,
+    maxCandidatePool = 3
   ),
   ADVANCED_1600(
     elo = 1600,
     title = "Level 5 (1600)",
-    description = "Sharp attacking calculation, punishes structural mistakes quickly",
+    description = "Strong practical play",
     depth = 3,
-    blunderProbability = 0.03f,
+    blunderProbability = 0.08f,
     maxCandidatePool = 2
   ),
   EXPERT_2000(
     elo = 2000,
     title = "Level 6 (2000)",
-    description = "Positional mastery, sharp tactical vision with quiescence calculation",
+    description = "Punishes most inaccuracies",
+    depth = 4,
+    blunderProbability = 0.02f,
+    maxCandidatePool = 1
+  ),
+  MASTER_2400(
+    elo = 2400,
+    title = "Level 7 (2400)",
+    description = "Very strong tactical play",
     depth = 4,
     blunderProbability = 0.0f,
     maxCandidatePool = 1
-  )
+  ),
+  GRANDMASTER_3200(
+    elo = 3200,
+    title = "Level 8 (3200)",
+    description = "Maximum preset strength",
+    depth = 5,
+    blunderProbability = 0.0f,
+    maxCandidatePool = 1
+  );
+
+  companion object {
+    fun forElo(elo: Int): TrainingLevel {
+      val clamped = elo.coerceIn(250, 3200)
+      return entries.minByOrNull { kotlin.math.abs(it.elo - clamped) } ?: BEGINNER_250
+    }
+  }
 }
 
 data class ScoredMove(
