@@ -63,6 +63,7 @@ import com.chesstutor.app.ui.components.ChessBoard
 import com.chesstutor.app.ui.components.EvalBar
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
+import com.example.chess.engine.BotStrength
 import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
 import kotlin.math.roundToInt
@@ -74,13 +75,9 @@ data class MockupBot(
     val tierKey: String
 )
 
-val MOCKUP_BOTS = listOf(
-    MockupBot("Martin", 250, "Hangs pieces freely", "Beginner"),
-    MockupBot("Wayne", 600, "Misses most tactics", "Casual"),
-    MockupBot("Nadia", 1100, "Punishes loose pieces", "Intermediate"),
-    MockupBot("Elena", 1600, "Solid, few mistakes", "Advanced"),
-    MockupBot("Viktor", 2100, "Rarely gives you anything", "Master")
-)
+val MOCKUP_BOTS = BotStrength.presets.map {
+    MockupBot(it.name, it.rating, it.description, it.key)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -616,7 +613,7 @@ fun ArenaScreen(
                     Slider(
                         value = customEloSlider,
                         onValueChange = { customEloSlider = it },
-                        valueRange = 400f..3000f,
+                        valueRange = 250f..3200f,
                         steps = 25,
                         colors = SliderDefaults.colors(
                             thumbColor = ChessTutorColors.Brass,
