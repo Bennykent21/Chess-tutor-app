@@ -74,15 +74,36 @@ data class StockfishProfile(
   val maxCandidatePool: Int
 ) {
   companion object {
-    val PRESETS = listOf(
-      StockfishProfile(250, "Martin (Beginner)", "Beginner", 1, 0.70f, 8),
-      StockfishProfile(600, "Wayne (Novice)", "Casual", 1, 0.45f, 6),
-      StockfishProfile(1000, "Casual", "Club", 2, 0.28f, 4),
-      StockfishProfile(1300, "Nelson (Intermediate)", "Club", 2, 0.15f, 3),
-      StockfishProfile(1600, "Club Player", "Tournament", 3, 0.08f, 2),
-      StockfishProfile(2000, "Elena (Advanced)", "Expert", 3, 0.02f, 2),
-      StockfishProfile(2400, "Master", "FIDE Master", 4, 0.00f, 1),
-      StockfishProfile(3200, "Stockfish 16", "Grandmaster", 5, 0.00f, 1)
+    val PRESETS = BotStrength.presets.map { preset ->
+      StockfishProfile(
+        elo = preset.rating,
+        title = "${preset.name} (${preset.key })",
+        category = preset.key,
+        depth = when {
+          preset.rating <= 600 -> 1
+          preset.rating <= 1300 -> 2
+          preset.rating <= 1600 -> 3
+          preset.rating <= 2400 -> 4
+          else -> 5
+        },
+        blunderProbability = when {
+          preset.rating <= 250 -> 0.70f
+          preset.rating <= 600 -> 0.45f
+          preset.rating <= 1000 -> 0.28f
+          preset.rating <= 1300 -> 0.15f
+          preset.rating <= 1600 -> 0.08f
+          preset.rating <= 2000 -> 0.02f
+          else -> 0.0f
+        },
+        maxCandidatePool = when {
+          preset.rating <= 250 -> 8
+          preset.rating <= 600 -> 6
+          preset.rating <= 1000 -> 4
+          preset.rating <= 1300 -> 3
+          preset.rating <= 1600 -> 2
+          else -> 1
+        }
+      )
     )
 
     fun forElo(elo: Int): StockfishProfile {
