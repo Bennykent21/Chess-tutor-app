@@ -6,6 +6,7 @@ import com.chesstutor.app.data.model.LinkedChessProfile
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.data.repository.InMemoryRatingRepository
+import com.chesstutor.app.data.repository.LearningRepository
 import com.chesstutor.app.data.repository.RatingRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.domain.ChessPosition
@@ -31,7 +32,8 @@ import java.util.UUID
 class AppViewModel(
     private val repository: ReviewRepository,
     private val engine: EngineClient,
-    private val ratingRepository: RatingRepository = InMemoryRatingRepository()
+    private val ratingRepository: RatingRepository = InMemoryRatingRepository(),
+    private val learningRepository: LearningRepository = com.chesstutor.app.data.repository.InMemoryLearningRepository()
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
@@ -54,6 +56,7 @@ class AppViewModel(
             runCatching { engine.initialize() }
             applyBotElo()
             loadReviews()
+            loadLearningState()
             selectDrill(0)
             observeLinkedProfile()
         }
@@ -175,6 +178,55 @@ class AppViewModel(
             }
         }.onFailure { ex ->
             _state.update { it.copy(storageWarning = "Local storage note: ${ex.message}") }
+        }
+    }
+
+    private suspend fun loadLearningState() {
+        runCatching {
+            val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            _state.update { current ->
+                current.copy(
+                    estimatedRating = profile.estimatedRating,
+                    assessmentState = profile.assessmentState,
+                    assessmentPositionIndex = profile.assessmentPositionIndex,
+                    assessmentCorrect = profile.assessmentCorrect,
+                    assessmentTotal = profile.assessmentTotal,
+                    learningGoal = profile.learningGoal,
+                    tacticalAttempts = profile.totalTacticalAttempts,
+                    tacticalCorrect = profile.totalTacticalCorrect,
+                    isSoundEnabled = profile.soundEnabled,
+                    practicedModules = progress.filter { it.practiced }.map { it.moduleId }.toSet(),
+                    masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet()
+                )
+            }
+        }.onFailure { ex ->
+            _state.update { it.copy(storageWarning = "Learning state storage note: ${ex.message}") }
+        }
+    }
+
+    private fun persistProfile(update: (com.chesstutor.app.data.model.LearningProfile) -> com.chesstutor.app.data.model.LearningProfile) {
+        viewModelScope.launch {
+            val current = learningRepository.getProfile()
+            learningRepository.saveProfile(update(current).copy(updatedAt = System.currentTimeMillis()))
+        }
+    }
+
+    private fun recordTacticalAttempt(correct: Boolean) {
+        viewModelScope.launch {
+            val current = learningRepository.getProfile()
+            val updated = current.copy(
+                totalTacticalAttempts = current.totalTacticalAttempts + 1,
+                totalTacticalCorrect = current.totalTacticalCorrect + if (correct) 1 else 0,
+                updatedAt = System.currentTimeMillis()
+            )
+            learningRepository.saveProfile(updated)
+            _state.update {
+                it.copy(
+                    tacticalAttempts = updated.totalTacticalAttempts,
+                    tacticalCorrect = updated.totalTacticalCorrect
+                )
+            }
         }
     }
 
@@ -326,6 +378,7 @@ class AppViewModel(
         if (matesBefore.isNotEmpty()) {
             // Verifiable category: Missed Mate in One
             if (isMatePlayed) {
+                recordTacticalAttempt(correct = true)
                 _state.update {
                     it.copy(
                         fen = afterFen,
@@ -358,6 +411,7 @@ class AppViewModel(
                     coachingLabel = "Missed Forced Mate: You had checkmate in 1 on the board."
                 )
 
+                recordTacticalAttempt(correct = false)
                 _state.update {
                     it.copy(
                         fen = afterFen,
@@ -903,6 +957,7 @@ private fun playReviewMove(move: MoveChoice) {
         description: String = "Spot the key tactical motif and find the winning move.",
         recommendedMoveUci: String? = null
     ) {
+        viewModelScope.launch { learningRepository.markPracticed(lessonId) }
         _state.update {
             it.copy(
                 tab = 0, // open in Coach for interactive guided retry
@@ -977,6 +1032,7 @@ private fun playReviewMove(move: MoveChoice) {
 
     fun setSoundEnabled(enabled: Boolean) {
         _state.update { it.copy(isSoundEnabled = enabled) }
+        persistProfile { it.copy(soundEnabled = enabled) }
     }
 
     fun setSettingsVisible(visible: Boolean) {
@@ -984,6 +1040,7 @@ private fun playReviewMove(move: MoveChoice) {
     }
 
     fun resetCurriculumProgress() {
+        viewModelScope.launch { learningRepository.resetModuleProgress() }
         _state.update {
             it.copy(
                 practicedModules = emptySet(),
@@ -993,6 +1050,7 @@ private fun playReviewMove(move: MoveChoice) {
     }
 
     fun markModuleMastered(lessonId: String) {
+        viewModelScope.launch { learningRepository.markMastered(lessonId) }
         _state.update {
             it.copy(
                 masteredModules = it.masteredModules + lessonId,
