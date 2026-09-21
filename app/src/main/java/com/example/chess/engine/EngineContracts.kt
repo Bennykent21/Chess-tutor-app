@@ -4,49 +4,35 @@ import com.example.chess.core.Move
 import com.example.chess.core.PieceColor
 import com.example.chess.core.Position
 
-/**
- * Engine Evaluation representing either Centipawns (+150 = +1.50 pawns for White)
- * or Mate in N moves (e.g. +3 for White mate in 3, -2 for Black mate in 2).
- */
 data class Evaluation(
   val centipawns: Int? = null,
   val mateInMoves: Int? = null
 ) {
   val isMate: Boolean get() = mateInMoves != null
 
-  /**
-   * Returns formatted human string (e.g. "+1.4", "-0.8", "M2", "-M4")
-   */
   fun format(): String {
-    if (mateInMoves != null) {
-      return if (mateInMoves > 0) "M$mateInMoves" else "-M${kotlin.math.abs(mateInMoves)}"
+    val mate = mateInMoves
+    if (mate != null) {
+      return if (mate > 0) "M$mate" else "-M${kotlin.math.abs(mate)}"
     }
     val cp = centipawns ?: 0
     val pawns = cp / 100.0
     return if (pawns > 0) "+${String.format("%.1f", pawns)}" else String.format("%.1f", pawns)
   }
 
-  /**
-   * Returns a 0.0 to 1.0 fraction representing White's advantage for the Eval Bar.
-   * 0.5 = dead equal, 1.0 = White crushing/mate, 0.0 = Black crushing/mate.
-   */
   fun winningPercentageWhite(): Float {
-    if (mateInMoves != null) {
-      return if (mateInMoves > 0) 0.98f else 0.02f
-    }
+    val mate = mateInMoves
+    if (mate != null) return if (mate > 0) 0.98f else 0.02f
     val cp = centipawns ?: 0
-    // Standard chess engine sigmoid: 1 / (1 + 10^(-cp / 400))
     val exponent = -cp.toDouble() / 400.0
     val winRate = 1.0 / (1.0 + Math.pow(10.0, exponent))
     return winRate.toFloat().coerceIn(0.04f, 0.96f)
   }
 
-  /**
-   * Returns evaluation score relative to active player
-   */
   fun scoreForSide(color: PieceColor): Float {
-    if (mateInMoves != null) {
-      val base = if (mateInMoves > 0) 10000f else -10000f
+    val mate = mateInMoves
+    if (mate != null) {
+      val base = if (mate > 0) 10000f else -10000f
       return if (color == PieceColor.WHITE) base else -base
     }
     val cp = centipawns ?: 0
@@ -61,10 +47,6 @@ data class Evaluation(
   }
 }
 
-/**
- * Adjustable Stockfish Engine Profile with calibrated skill level,
- * depth, candidate move selection, and human-like inaccuracy chance.
- */
 data class StockfishProfile(
   val elo: Int,
   val title: String,
@@ -74,10 +56,10 @@ data class StockfishProfile(
   val maxCandidatePool: Int
 ) {
   companion object {
-    val PRESETS = BotStrength.presets.map { preset ->
+    val PRESETS: List<StockfishProfile> = BotStrength.presets.map { preset ->
       StockfishProfile(
         elo = preset.rating,
-        title = "${preset.name} (${preset.key })",
+        title = "${preset.name} (${preset.key})",
         category = preset.key,
         depth = when {
           preset.rating <= 600 -> 1
@@ -104,12 +86,12 @@ data class StockfishProfile(
           else -> 1
         }
       )
-    )
+    }
 
     fun forElo(elo: Int): StockfishProfile {
       val clamped = elo.coerceIn(250, 3200)
-      return PRESETS.minByOrNull { kotlin.math.abs(it.elo - clamped) }
-        ?: PRESETS[3]
+      return PRESETS.minByOrNull { profile -> kotlin.math.abs(profile.elo - clamped) }
+        ?: PRESETS.first()
     }
   }
 }
@@ -133,15 +115,12 @@ data class MoveAnalysisResult(
   val explanation: String
 )
 
-/**
- * Training Levels with calibrated ELO ratings and top-N move probability distribution.
- */
 enum class TrainingLevel(
   val elo: Int,
   val title: String,
   val description: String,
   val depth: Int,
-  val blunderProbability: Float, // chance of picking a sub-optimal move
+  val blunderProbability: Float,
   val maxCandidatePool: Int
 ) {
   BEGINNER_250(
