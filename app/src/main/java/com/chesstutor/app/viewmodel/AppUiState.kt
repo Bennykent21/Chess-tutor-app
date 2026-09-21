@@ -19,6 +19,14 @@ data class TacticalIssueSummary(
 
 data class AppUiState(
     val loading: Boolean = false,
+    val estimatedRating: Int = 600,
+    val assessmentState: String = "NOT_STARTED",
+    val assessmentPositionIndex: Int = 0,
+    val assessmentCorrect: Int = 0,
+    val assessmentTotal: Int = 0,
+    val learningGoal: String = "GENERAL_IMPROVEMENT",
+    val tacticalAttempts: Int = 0,
+    val tacticalCorrect: Int = 0,
     val tab: Int = 0, // 0: Coach, 1: Curriculum, 2: Arena, 3: Review
     val fen: String = ChessPosition.STARTING_FEN,
     val message: String = "",
