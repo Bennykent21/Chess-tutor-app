@@ -3,6 +3,7 @@ package com.chesstutor.app.viewmodel
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.ReviewItem
+import com.example.chess.engine.BotStrength
 
 data class PromotionRequest(
     val from: String,
@@ -79,15 +80,8 @@ data class AppUiState(
             if (useLinkedRatingForBot && linkedProfile?.activeRating != null) {
                 return linkedProfile.activeRating!!.coerceIn(250, 3200)
             }
-            return when (arenaDifficulty.lowercase()) {
-                "beginner" -> 250
-                "casual" -> 600
-                "intermediate" -> 1100
-                "advanced" -> 1600
-                "master" -> 2100
-                "grandmaster" -> 3200
-                else -> 600
-            }
+            return BotStrength.presetForKey(arenaDifficulty)?.rating
+                ?: BotStrength.presets.first().rating
         }
 
     val botTuningDescription: String
