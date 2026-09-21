@@ -132,6 +132,7 @@ class StockfishProcessEngineClient(
             throw IllegalStateException("Failed to send isready after strength change")
         }
         withTimeoutOrNull(4000) { ready.await() }
+        Unit
     }
 
     private suspend fun readLoop() {
