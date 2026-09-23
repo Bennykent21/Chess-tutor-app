@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LearningProfileEntity::class,
         ModuleProgressEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -31,6 +31,12 @@ abstract class AppDatabase : RoomDatabase() {
                         "rapidRating INTEGER, blitzRating INTEGER, bulletRating INTEGER, " +
                         "selectedTimeControl TEXT NOT NULL, lastUpdated INTEGER NOT NULL, PRIMARY KEY(id))"
                 )
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE learning_profile ADD COLUMN assessmentCompletedAt INTEGER")
             }
         }
 
@@ -64,7 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "chess_tutor_reviews.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance
