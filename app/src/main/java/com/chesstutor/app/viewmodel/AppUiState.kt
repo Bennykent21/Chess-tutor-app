@@ -24,6 +24,7 @@ data class AppUiState(
     val assessmentPositionIndex: Int = 0,
     val assessmentCorrect: Int = 0,
     val assessmentTotal: Int = 0,
+    val assessmentCompletedAt: Long? = null,
     val learningGoal: String = "GENERAL_IMPROVEMENT",
     val tacticalAttempts: Int = 0,
     val tacticalCorrect: Int = 0,
