@@ -3,6 +3,7 @@ package com.chesstutor.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chesstutor.app.data.model.LinkedChessProfile
+import com.chesstutor.app.data.model.PlacementAssessment
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.data.repository.InMemoryRatingRepository
@@ -206,6 +207,7 @@ class AppViewModel(
                     assessmentPositionIndex = profile.assessmentPositionIndex,
                     assessmentCorrect = profile.assessmentCorrect,
                     assessmentTotal = profile.assessmentTotal,
+                    assessmentCompletedAt = profile.assessmentCompletedAt,
                     learningGoal = profile.learningGoal,
                     tacticalAttempts = profile.totalTacticalAttempts,
                     tacticalCorrect = profile.totalTacticalCorrect,
@@ -244,6 +246,33 @@ class AppViewModel(
         }
     }
 
+    fun startPlacementAssessment() {
+        persistProfile { it.copy(assessmentState = "IN_PROGRESS", assessmentPositionIndex = 0, assessmentCorrect = 0, assessmentTotal = 0, assessmentCompletedAt = null) }
+        val question = PlacementAssessment.questions.first()
+        _state.update { it.copy(tab = 0, fen = question.fen, message = "Placement 1/" + PlacementAssessment.questions.size + ": " + question.skill + ". Find the best move.", assessmentState = "IN_PROGRESS", assessmentPositionIndex = 0, assessmentCorrect = 0, assessmentTotal = 0, assessmentCompletedAt = null, selectedSquare = null, legalTargets = emptySet(), recommendedArrow = null, lastMove = null, mistakeDetected = false, assessment = null) }
+    }
+
+    fun answerPlacementAssessment(move: MoveChoice) {
+        if (_state.value.assessmentState != "IN_PROGRESS") return
+        val index = _state.value.assessmentPositionIndex
+        val question = PlacementAssessment.questions.getOrNull(index) ?: return
+        val correct = move.uci == question.expectedMoveUci
+        val nextCorrect = _state.value.assessmentCorrect + if (correct) 1 else 0
+        val nextTotal = _state.value.assessmentTotal + 1
+        val nextIndex = index + 1
+        if (nextIndex >= PlacementAssessment.questions.size) {
+            val estimate = PlacementAssessment.estimateRating(nextCorrect, nextTotal)
+            val completedAt = System.currentTimeMillis()
+            persistProfile { it.copy(estimatedRating = estimate, assessmentState = "COMPLETE", assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal, assessmentCompletedAt = completedAt) }
+            _state.update { it.copy(estimatedRating = estimate, assessmentState = "COMPLETE", assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal, assessmentCompletedAt = completedAt, message = "Assessment complete. Estimated training rating: " + estimate + ".", lastMove = Pair(move.from, move.to), selectedSquare = null, legalTargets = emptySet(), recommendedArrow = null) }
+            return
+        }
+        val next = PlacementAssessment.questions[nextIndex]
+        persistProfile { it.copy(assessmentState = "IN_PROGRESS", assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal) }
+        _state.update { it.copy(assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal, fen = next.fen, message = if (correct) "Correct. Next: " + next.skill + "." else "Not quite. Next: " + next.skill + ".", selectedSquare = null, legalTargets = emptySet(), recommendedArrow = null, lastMove = null) }
+    }
+
+    fun resetPlacementAssessment() { startPlacementAssessment() }
     fun loadCoachPosition(
         fen: String,
         title: String = "Forced Mate & Consequence Retry",
@@ -337,6 +366,10 @@ class AppViewModel(
     }
 
     private fun playSelectedMove(move: MoveChoice) {
+        if (_state.value.assessmentState == "IN_PROGRESS") {
+            answerPlacementAssessment(move)
+            return
+        }
         when (_state.value.tab) {
             0 -> playCoachMove(move)
             1 -> playCurriculumMove(move)
