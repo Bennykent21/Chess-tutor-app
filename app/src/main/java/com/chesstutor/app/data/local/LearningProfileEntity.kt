@@ -12,6 +12,7 @@ data class LearningProfileEntity(
     val assessmentPositionIndex: Int,
     val assessmentCorrect: Int,
     val assessmentTotal: Int,
+    val assessmentCompletedAt: Long?,
     val learningGoal: String,
     val totalTacticalAttempts: Int,
     val totalTacticalCorrect: Int,
@@ -20,7 +21,7 @@ data class LearningProfileEntity(
 ) {
     fun toDomain() = LearningProfile(
         estimatedRating, assessmentState, assessmentPositionIndex, assessmentCorrect,
-        assessmentTotal, learningGoal, totalTacticalAttempts, totalTacticalCorrect,
+        assessmentTotal, assessmentCompletedAt, learningGoal, totalTacticalAttempts, totalTacticalCorrect,
         soundEnabled, updatedAt
     )
 
@@ -32,6 +33,7 @@ data class LearningProfileEntity(
             assessmentPositionIndex = profile.assessmentPositionIndex,
             assessmentCorrect = profile.assessmentCorrect,
             assessmentTotal = profile.assessmentTotal,
+            assessmentCompletedAt = profile.assessmentCompletedAt,
             learningGoal = profile.learningGoal,
             totalTacticalAttempts = profile.totalTacticalAttempts,
             totalTacticalCorrect = profile.totalTacticalCorrect,
