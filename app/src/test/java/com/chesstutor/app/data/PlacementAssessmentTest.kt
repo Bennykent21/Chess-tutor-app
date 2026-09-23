@@ -1,6 +1,7 @@
 package com.chesstutor.app.data
 
 import com.chesstutor.app.data.model.PlacementAssessment
+import com.example.chess.core.LegalMoveGenerator
 import com.example.chess.core.Position
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -14,7 +15,7 @@ class PlacementAssessmentTest {
             val position = Position.tryFromFen(question.fen).getOrThrow()
             assertTrue(
                 "Expected move is not legal for " + question.id,
-                position.legalMoves().any { it.uci == question.expectedMoveUci }
+                LegalMoveGenerator.generateLegalMoves(position).any { it.uci == question.expectedMoveUci }
             )
         }
     }
