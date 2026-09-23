@@ -92,24 +92,38 @@ class AppViewModel(
         if (chessPos.isOver) return null
         val corePos = Position.tryFromFen(fen).getOrNull() ?: return null
 
-        // If Grandmaster (Stockfish 16, 3200) -> query online Stockfish first
-        if (elo >= 2600 || botDifficulty.equals("Grandmaster", ignoreCase = true)) {
-            try {
-                val res = analysisService.analyze(fen = fen, depth = 10, movetimeMs = 500)
-                val matching = res?.let { result ->
-                    chessPos.legalMoves.firstOrNull { it.uci == result.bestMoveUci }
-                }
-                if (matching != null) return matching
-            } catch (_: Exception) {}
-        }
-
-        // Calibrated bot move using LocalChessEngine's calibrated blunder & profile logic
+        // Use the configured engine chain for every bot tier. This keeps the
+        // real bundled Stockfish path primary instead of silently bypassing it
+        // for most ratings. The engine strength is calibrated from the same
+        // canonical BotStrength scale used by the Arena UI.
         return try {
-            val chosenCoreMove = localBotMoveSelector.selectMove(corePos, elo)
-            chessPos.legalMoves.firstOrNull { it.uci == chosenCoreMove.uci }
-                ?: chessPos.legalMoves.firstOrNull()
+            engine.setStrengthRating(elo)
+            val preset = com.example.chess.engine.BotStrength.presets.minByOrNull {
+                kotlin.math.abs(it.rating - elo)
+            }
+            val depth = when {
+                preset == null -> 3
+                preset.rating <= 600 -> 2
+                preset.rating <= 1300 -> 3
+                preset.rating <= 2000 -> 4
+                preset.rating <= 2400 -> 5
+                else -> 6
+            }
+            val result = analysisService.analyze(fen = fen, depth = depth, movetimeMs = 800)
+            val matching = result?.let { analysis ->
+                chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci }
+            }
+            matching ?: localBotMoveSelector.selectMove(corePos, elo).let { fallback ->
+                chessPos.legalMoves.firstOrNull { it.uci == fallback.uci }
+                    ?: chessPos.legalMoves.firstOrNull()
+            }
         } catch (_: Exception) {
-            chessPos.legalMoves.firstOrNull()
+            // Deterministic local selector is the final bot-move fallback.
+            runCatching {
+                localBotMoveSelector.selectMove(corePos, elo)
+            }.getOrNull()?.let { fallback ->
+                chessPos.legalMoves.firstOrNull { it.uci == fallback.uci }
+            } ?: chessPos.legalMoves.firstOrNull()
         }
     }
 
