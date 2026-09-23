@@ -6,6 +6,7 @@ data class LearningProfile(
     val assessmentPositionIndex: Int = 0,
     val assessmentCorrect: Int = 0,
     val assessmentTotal: Int = 0,
+    val assessmentCompletedAt: Long? = null,
     val learningGoal: String = "GENERAL_IMPROVEMENT",
     val totalTacticalAttempts: Int = 0,
     val totalTacticalCorrect: Int = 0,
