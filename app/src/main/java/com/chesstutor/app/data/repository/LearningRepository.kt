@@ -6,6 +6,8 @@ import com.chesstutor.app.data.local.ModuleProgressEntity
 import com.chesstutor.app.data.model.LearningProfile
 import com.chesstutor.app.data.model.ModuleProgress
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
 interface LearningRepository {
@@ -76,20 +78,29 @@ class RoomLearningRepository(private val dao: LearningDao) : LearningRepository 
 class InMemoryLearningRepository(initial: LearningProfile = LearningProfile()) : LearningRepository {
     private var profile = initial
     private val modules = mutableMapOf<String, ModuleProgress>()
+    private val moduleProgressFlow = MutableStateFlow<List<ModuleProgress>>(emptyList())
 
     override suspend fun getProfile() = profile
     override suspend fun saveProfile(profile: LearningProfile) { this.profile = profile }
     override suspend fun getModuleProgress() = modules.values.toList()
-    override fun observeModuleProgress(): Flow<List<ModuleProgress>> =
-        kotlinx.coroutines.flow.MutableStateFlow(modules.values.toList())
+    override fun observeModuleProgress(): Flow<List<ModuleProgress>> = moduleProgressFlow.asStateFlow()
+
+    private fun publishModules() {
+        moduleProgressFlow.value = modules.values.toList()
+    }
+
     override suspend fun markPracticed(moduleId: String) {
         val current = modules[moduleId] ?: ModuleProgress(moduleId)
         modules[moduleId] = current.copy(practiced = true, lastPracticedAt = System.currentTimeMillis())
+        publishModules()
     }
+
     override suspend fun markMastered(moduleId: String) {
         val current = modules[moduleId] ?: ModuleProgress(moduleId)
         modules[moduleId] = current.copy(practiced = true, mastered = true, lastPracticedAt = System.currentTimeMillis())
+        publishModules()
     }
+
     override suspend fun recordModuleAttempt(moduleId: String, correct: Boolean) {
         val current = modules[moduleId] ?: ModuleProgress(moduleId)
         modules[moduleId] = current.copy(
@@ -98,6 +109,11 @@ class InMemoryLearningRepository(initial: LearningProfile = LearningProfile()) :
             correctAttempts = current.correctAttempts + if (correct) 1 else 0,
             lastPracticedAt = System.currentTimeMillis()
         )
+        publishModules()
     }
-    override suspend fun resetModuleProgress() { modules.clear() }
+
+    override suspend fun resetModuleProgress() {
+        modules.clear()
+        publishModules()
+    }
 }
