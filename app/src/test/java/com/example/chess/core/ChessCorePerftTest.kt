@@ -19,6 +19,7 @@ class ChessCorePerftTest {
         assertEquals(20L, perft(position, 1))
         assertEquals(400L, perft(position, 2))
         assertEquals(8902L, perft(position, 3))
+        assertEquals(197281L, perft(position, 4))
     }
 
     @Test
@@ -30,6 +31,7 @@ class ChessCorePerftTest {
         assertEquals(48L, perft(position, 1))
         assertEquals(2039L, perft(position, 2))
         assertEquals(97862L, perft(position, 3))
+        assertEquals(4085603L, perft(position, 4))
     }
 
     @Test
