@@ -149,6 +149,16 @@ class ChessCoreTest {
   }
 
   @Test
+  fun testInsufficientMaterialTakesPrecedenceOverFiftyMoveClaim() {
+    val pos = Position.fromFen("7k/8/8/8/8/8/8/6K1 w - - 100 50")
+
+    assertEquals(
+      GameStatus.DRAW_INSUFFICIENT_MATERIAL,
+      LegalMoveGenerator.getGameStatus(pos)
+    )
+  }
+
+  @Test
   fun testSameColorBishopsAreInsufficientMaterial() {
     val pos = Position.fromFen("4k3/8/8/8/8/8/6B1/4K2b w - - 0 1")
     assertEquals(
