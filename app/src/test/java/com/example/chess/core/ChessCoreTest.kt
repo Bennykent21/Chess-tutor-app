@@ -129,6 +129,20 @@ class ChessCoreTest {
   }
 
   @Test
+  fun testFenParserRejectsMultipleKingsAndBackRankPawns() {
+    val malformed = listOf(
+      "4k3/8/8/8/8/8/4K3/4K3 w - - 0 1",
+      "4k3/8/8/8/8/8/8/K6k w - - 0 1".replace("K6k", "KK5k"),
+      "4k3/8/8/8/8/8/8/K6P w - - 0 1",
+      "4k2P/8/8/8/8/8/8/K7 w - - 0 1"
+    )
+
+    malformed.forEach { fen ->
+      assertFalse("FEN should be rejected: $fen", Position.tryFromFen(fen).isSuccess)
+    }
+  }
+
+  @Test
   fun testCastlingRequiresActualRook() {
     val pos = Position.fromFen("4k3/8/8/8/8/8/8/4K3 w KQ - 0 1")
     val moves = LegalMoveGenerator.generateLegalMoves(pos)
