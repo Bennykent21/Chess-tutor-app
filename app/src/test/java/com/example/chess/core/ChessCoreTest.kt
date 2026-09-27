@@ -399,5 +399,16 @@ class ChessCoreTest {
     assertTrue(state.isOver)
   }
 
+  @Test
+  fun testSanCanonicalizesUciCastlingMove() {
+    val pos = Position.fromFen("4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1")
+    assertEquals("O-O", SanFormatter.format(pos, Move.fromUci("e1g1")))
+  }
+
+  @Test
+  fun testSanCanonicalizesUciEnPassantMove() {
+    val pos = Position.fromFen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1")
+    assertEquals("exd6", SanFormatter.format(pos, Move.fromUci("e5d6")))
+  }
 
 }
