@@ -116,6 +116,27 @@ data class Position(
       }
     }
 
+    private fun validateKingsAndPawns(position: Position) {
+      var whiteKings = 0
+      var blackKings = 0
+
+      for (rank in 0..7) {
+        for (file in 0..7) {
+          val piece = position.pieceAt(file, rank) ?: continue
+          when (piece.type) {
+            PieceType.KING -> if (piece.color == PieceColor.WHITE) whiteKings++ else blackKings++
+            PieceType.PAWN -> require(rank in 1..6) {
+              "Pawn cannot be on first or eighth rank"
+            }
+            else -> Unit
+          }
+        }
+      }
+
+      require(whiteKings == 1) { "Position must contain exactly one white king" }
+      require(blackKings == 1) { "Position must contain exactly one black king" }
+    }
+
     fun fromFen(fen: String): Position {
       val parts = fen.trim().split(Regex("\\s+"))
       require(parts.size == 6) { "FEN must contain exactly 6 fields" }
@@ -189,8 +210,7 @@ data class Position(
         fullmoveNumber = fullmove
       )
 
-      position.findKing(PieceColor.WHITE)
-      position.findKing(PieceColor.BLACK)
+      validateKingsAndPawns(position)
 
       return position
     }
