@@ -4,9 +4,12 @@ package com.example.chess.core
 object SanFormatter {
 
   fun format(position: Position, move: Move): String {
-    val movingPiece = position.pieceAt(move.from)
-      ?: error("No piece at source square " + move.from.algebraic)
-    val nextPosition = LegalMoveGenerator.makeMove(position, move)
+    val canonicalMove = LegalMoveGenerator.generateLegalMoves(position)
+      .firstOrNull { it.uci == move.uci }
+      ?: throw IllegalArgumentException("Illegal move " + move.uci)
+    val movingPiece = position.pieceAt(canonicalMove.from)
+      ?: error("No piece at source square " + canonicalMove.from.algebraic)
+    val nextPosition = LegalMoveGenerator.makeMove(position, canonicalMove)
     val opponent = nextPosition.sideToMove
     val opponentInCheck = LegalMoveGenerator.isKingInCheck(nextPosition, opponent)
     val opponentHasNoMoves = LegalMoveGenerator.generateLegalMoves(nextPosition).isEmpty()
@@ -15,16 +18,16 @@ object SanFormatter {
       opponentInCheck -> "+"
       else -> ""
     }
-    if (move.isCastling) return (if (move.to.file > move.from.file) "O-O" else "O-O-O") + suffix
-    val isCapture = position.pieceAt(move.to) != null || move.isEnPassant
-    val promotion = move.promotion?.let { "=" + it.notation } ?: ""
+    if (canonicalMove.isCastling) return (if (canonicalMove.to.file > canonicalMove.from.file) "O-O" else "O-O-O") + suffix
+    val isCapture = position.pieceAt(canonicalMove.to) != null || canonicalMove.isEnPassant
+    val promotion = canonicalMove.promotion?.let { "=" + it.notation } ?: ""
     if (movingPiece.type == PieceType.PAWN) {
-      return if (isCapture) move.from.fileChar.toString() + "x" + move.to.algebraic + promotion + suffix
-      else move.to.algebraic + promotion + suffix
+      return if (isCapture) canonicalMove.from.fileChar.toString() + "x" + canonicalMove.to.algebraic + promotion + suffix
+      else canonicalMove.to.algebraic + promotion + suffix
     }
-    val disambiguation = disambiguation(position, move, movingPiece.type)
+    val disambiguation = disambiguation(position, canonicalMove, movingPiece.type)
     val capture = if (isCapture) "x" else ""
-    return movingPiece.type.notation.toString() + disambiguation + capture + move.to.algebraic + promotion + suffix
+    return movingPiece.type.notation.toString() + disambiguation + capture + canonicalMove.to.algebraic + promotion + suffix
   }
 
   private fun disambiguation(position: Position, move: Move, pieceType: PieceType): String {
