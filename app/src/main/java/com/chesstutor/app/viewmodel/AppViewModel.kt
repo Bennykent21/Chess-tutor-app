@@ -410,6 +410,13 @@ class AppViewModel(
         }
     }
 
+    private fun recordCurriculumAttempt(correct: Boolean) {
+        val moduleId = _state.value.curriculumLessonId ?: return
+        viewModelScope.launch {
+            learningRepository.recordModuleAttempt(moduleId, correct)
+        }
+    }
+
     private fun playCoachMove(move: MoveChoice) {
         val beforeFen = _state.value.fen
         val beforePos = ChessPosition(beforeFen)
@@ -426,6 +433,7 @@ class AppViewModel(
             // Verifiable category: Missed Mate in One
             if (isMatePlayed) {
                 recordTacticalAttempt(correct = true)
+                recordCurriculumAttempt(correct = true)
                 _state.update {
                     it.copy(
                         fen = afterFen,
@@ -459,6 +467,7 @@ class AppViewModel(
                 )
 
                 recordTacticalAttempt(correct = false)
+                recordCurriculumAttempt(correct = false)
                 _state.update {
                     it.copy(
                         fen = afterFen,
@@ -491,6 +500,7 @@ class AppViewModel(
             val rec = _state.value.activeCoachRecommendedMove
             if (rec != null && rec.length >= 4) {
                 if (move.uci == rec || isMatePlayed) {
+                    recordCurriculumAttempt(correct = true)
                     _state.update {
                         it.copy(
                             fen = afterFen,
@@ -502,6 +512,7 @@ class AppViewModel(
                         )
                     }
                 } else {
+                    recordCurriculumAttempt(correct = false)
                     _state.update {
                         it.copy(
                             fen = afterFen,
