@@ -1048,6 +1048,7 @@ private fun playReviewMove(move: MoveChoice) {
     }
 
     fun exploreLearnTopic(topic: com.chesstutor.app.domain.LearnTopic) {
+        viewModelScope.launch { learningRepository.markPracticed(topic.id) }
         val arrow = if (topic.recommendedMoveUci.length >= 4) {
             Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.substring(2, 4))
         } else null
