@@ -61,6 +61,17 @@ class AppViewModel(
             selectDrill(0)
             observeLinkedProfile()
         }
+        viewModelScope.launch {
+            learningRepository.observeModuleProgress().collect { progress ->
+                _state.update { current ->
+                    current.copy(
+                        practicedModules = progress.filter { it.practiced }.map { it.moduleId }.toSet(),
+                        masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet()
+                    )
+                }
+            }
+        }
+        }
     }
 
     private fun observeLinkedProfile() {
