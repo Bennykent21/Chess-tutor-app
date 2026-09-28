@@ -22,6 +22,24 @@ class LearningRepositoryTest {
     }
 
     @Test
+    fun inMemoryObserverTracksAttemptAccuracy() {
+        val repository = InMemoryLearningRepository()
+
+        kotlinx.coroutines.runBlocking {
+            repository.recordModuleAttempt("forks", correct = true)
+            repository.recordModuleAttempt("forks", correct = false)
+        }
+
+        val progress = kotlinx.coroutines.runBlocking {
+            repository.getModuleProgress().single()
+        }
+
+        org.junit.Assert.assertEquals(2, progress.attempts)
+        org.junit.Assert.assertEquals(1, progress.correctAttempts)
+        org.junit.Assert.assertEquals(0.5f, progress.accuracy)
+    }
+
+    @Test
     fun inMemoryObserverReflectsReset() = runTest {
         val repository = InMemoryLearningRepository()
         repository.markPracticed("endgame_opposition")
