@@ -40,6 +40,17 @@ class LearningRepositoryTest {
     }
 
     @Test
+    fun inMemoryObserverReflectsMastery() = runTest {
+        val repository = InMemoryLearningRepository()
+
+        repository.markMastered("forks")
+
+        val progress = repository.observeModuleProgress().first().single()
+        assertEquals(true, progress.practiced)
+        assertEquals(true, progress.mastered)
+    }
+
+    @Test
     fun inMemoryObserverReflectsReset() = runTest {
         val repository = InMemoryLearningRepository()
         repository.markPracticed("endgame_opposition")
