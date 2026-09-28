@@ -71,7 +71,6 @@ class AppViewModel(
                 }
             }
         }
-        }
     }
 
     private fun observeLinkedProfile() {
