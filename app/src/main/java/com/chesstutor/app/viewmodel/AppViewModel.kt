@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import java.util.UUID
 
@@ -43,6 +45,7 @@ class AppViewModel(
     private val blunderClassifier = BlunderClassifier(thresholdCentipawns = 150)
     private val localBotMoveSelector = com.chesstutor.app.engine.LocalBotMoveSelector()
     private val analysisService = com.chesstutor.app.engine.AnalysisService(engine)
+    private val learningProfileMutex = Mutex()
 
     // Curated tactical positions featuring verifiable mistakes
     companion object {
@@ -233,20 +236,25 @@ class AppViewModel(
 
     private fun persistProfile(update: (com.chesstutor.app.data.model.LearningProfile) -> com.chesstutor.app.data.model.LearningProfile) {
         viewModelScope.launch {
-            val current = learningRepository.getProfile()
-            learningRepository.saveProfile(update(current).copy(updatedAt = System.currentTimeMillis()))
+            learningProfileMutex.withLock {
+                val current = learningRepository.getProfile()
+                learningRepository.saveProfile(update(current).copy(updatedAt = System.currentTimeMillis()))
+            }
         }
     }
 
     private fun recordTacticalAttempt(correct: Boolean) {
         viewModelScope.launch {
-            val current = learningRepository.getProfile()
-            val updated = current.copy(
-                totalTacticalAttempts = current.totalTacticalAttempts + 1,
-                totalTacticalCorrect = current.totalTacticalCorrect + if (correct) 1 else 0,
-                updatedAt = System.currentTimeMillis()
-            )
-            learningRepository.saveProfile(updated)
+            val updated = learningProfileMutex.withLock {
+                val current = learningRepository.getProfile()
+                val next = current.copy(
+                    totalTacticalAttempts = current.totalTacticalAttempts + 1,
+                    totalTacticalCorrect = current.totalTacticalCorrect + if (correct) 1 else 0,
+                    updatedAt = System.currentTimeMillis()
+                )
+                learningRepository.saveProfile(next)
+                next
+            }
             _state.update {
                 it.copy(
                     tacticalAttempts = updated.totalTacticalAttempts,
