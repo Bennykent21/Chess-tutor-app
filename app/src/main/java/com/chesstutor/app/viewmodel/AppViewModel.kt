@@ -221,6 +221,11 @@ class AppViewModel(
                     assessmentCorrect = profile.assessmentCorrect,
                     assessmentTotal = profile.assessmentTotal,
                     assessmentCompletedAt = profile.assessmentCompletedAt,
+                    fen = if (profile.assessmentState == "IN_PROGRESS") {
+                        PlacementAssessment.questions
+                            .getOrNull(profile.assessmentPositionIndex)
+                            ?.fen ?: current.fen
+                    } else current.fen,
                     learningGoal = profile.learningGoal,
                     tacticalAttempts = profile.totalTacticalAttempts,
                     tacticalCorrect = profile.totalTacticalCorrect,
