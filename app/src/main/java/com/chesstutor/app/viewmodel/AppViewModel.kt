@@ -10,6 +10,7 @@ import com.chesstutor.app.data.repository.InMemoryRatingRepository
 import com.chesstutor.app.data.repository.LearningRepository
 import com.chesstutor.app.data.repository.RatingRepository
 import com.chesstutor.app.data.repository.ReviewRepository
+import com.chesstutor.app.domain.AdaptiveTrainingPlanner
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.MoveChoice
@@ -69,7 +70,9 @@ class AppViewModel(
                 _state.update { current ->
                     current.copy(
                         practicedModules = progress.filter { it.practiced }.map { it.moduleId }.toSet(),
-                        masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet()
+                        masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet(),
+                    trainingRecommendation = AdaptiveTrainingPlanner.recommend(profile, progress).topic.title,
+                    trainingRecommendationReason = AdaptiveTrainingPlanner.recommend(profile, progress).reason
                     )
                 }
             }
