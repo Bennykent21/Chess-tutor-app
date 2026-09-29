@@ -1,7 +1,10 @@
 package com.chesstutor.app.data.repository
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.coroutineScope
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -37,6 +40,23 @@ class LearningRepositoryTest {
         org.junit.Assert.assertEquals(2, progress.attempts)
         org.junit.Assert.assertEquals(1, progress.correctAttempts)
         org.junit.Assert.assertEquals(0.5f, progress.accuracy)
+    }
+
+    @Test
+    fun inMemoryConcurrentAttemptsAreNotLost() = runTest {
+        val repository = InMemoryLearningRepository()
+
+        coroutineScope {
+            (1..100).map { index ->
+                async {
+                    repository.recordModuleAttempt("forks", correct = index % 2 == 0)
+                }
+            }.awaitAll()
+        }
+
+        val progress = repository.getModuleProgress().single()
+        assertEquals(100, progress.attempts)
+        assertEquals(50, progress.correctAttempts)
     }
 
     @Test
