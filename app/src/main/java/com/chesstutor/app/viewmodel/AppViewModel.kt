@@ -67,12 +67,14 @@ class AppViewModel(
         }
         viewModelScope.launch {
             learningRepository.observeModuleProgress().collect { progress ->
+                val profile = learningRepository.getProfile()
+                val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
                 _state.update { current ->
                     current.copy(
                         practicedModules = progress.filter { it.practiced }.map { it.moduleId }.toSet(),
                         masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet(),
-                    trainingRecommendation = AdaptiveTrainingPlanner.recommend(profile, progress).topic.title,
-                    trainingRecommendationReason = AdaptiveTrainingPlanner.recommend(profile, progress).reason
+                        trainingRecommendation = recommendation.topic.title,
+                        trainingRecommendationReason = recommendation.reason
                     )
                 }
             }
@@ -295,24 +297,35 @@ class AppViewModel(
             val estimate = PlacementAssessment.estimateRating(nextCorrect, nextTotal)
             val completedAt = System.currentTimeMillis()
             persistProfile { it.copy(estimatedRating = estimate, assessmentState = "COMPLETE", assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal, assessmentCompletedAt = completedAt) }
-            val profile = learningRepository.getProfile().copy(estimatedRating = estimate, assessmentState = "COMPLETE", assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal, assessmentCompletedAt = completedAt)
-            val progress = learningRepository.getModuleProgress()
-            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
-            _state.update { it.copy(
-                estimatedRating = estimate,
-                assessmentState = "COMPLETE",
-                assessmentPositionIndex = nextIndex,
-                assessmentCorrect = nextCorrect,
-                assessmentTotal = nextTotal,
-                assessmentCompletedAt = completedAt,
-                trainingRecommendation = recommendation.topic.title,
-                trainingRecommendationReason = recommendation.reason,
-                message = "Assessment complete. Estimated training rating: " + estimate + ".",
-                lastMove = Pair(move.from, move.to),
-                selectedSquare = null,
-                legalTargets = emptySet(),
-                recommendedArrow = null
-            ) }
+            viewModelScope.launch {
+                val profile = learningRepository.getProfile().copy(
+                    estimatedRating = estimate,
+                    assessmentState = "COMPLETE",
+                    assessmentPositionIndex = nextIndex,
+                    assessmentCorrect = nextCorrect,
+                    assessmentTotal = nextTotal,
+                    assessmentCompletedAt = completedAt
+                )
+                val progress = learningRepository.getModuleProgress()
+                val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+                _state.update {
+                    it.copy(
+                        estimatedRating = estimate,
+                        assessmentState = "COMPLETE",
+                        assessmentPositionIndex = nextIndex,
+                        assessmentCorrect = nextCorrect,
+                        assessmentTotal = nextTotal,
+                        assessmentCompletedAt = completedAt,
+                        trainingRecommendation = recommendation.topic.title,
+                        trainingRecommendationReason = recommendation.reason,
+                        message = "Assessment complete. Estimated training rating: " + estimate + ".",
+                        lastMove = Pair(move.from, move.to),
+                        selectedSquare = null,
+                        legalTargets = emptySet(),
+                        recommendedArrow = null
+                    )
+                }
+            }
             return
         }
         val next = PlacementAssessment.questions[nextIndex]
