@@ -107,7 +107,7 @@ private fun Results(state: AppUiState) {
 
 @Composable
 private fun ActionButton(label: String, onClick: () -> Unit) {
-    Box(Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(13.dp)).background(ChessTutorColors.Brass).bouncyClickable(onClick).padding(horizontal = 18.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(13.dp)).background(ChessTutorColors.Brass).bouncyClickable(onClick = onClick).padding(horizontal = 18.dp), contentAlignment = Alignment.Center) {
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ChessTutorColors.BrassInk)
     }
 }
