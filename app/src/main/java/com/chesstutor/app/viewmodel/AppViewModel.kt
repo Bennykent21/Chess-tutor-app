@@ -295,7 +295,24 @@ class AppViewModel(
             val estimate = PlacementAssessment.estimateRating(nextCorrect, nextTotal)
             val completedAt = System.currentTimeMillis()
             persistProfile { it.copy(estimatedRating = estimate, assessmentState = "COMPLETE", assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal, assessmentCompletedAt = completedAt) }
-            _state.update { it.copy(estimatedRating = estimate, assessmentState = "COMPLETE", assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal, assessmentCompletedAt = completedAt, message = "Assessment complete. Estimated training rating: " + estimate + ".", lastMove = Pair(move.from, move.to), selectedSquare = null, legalTargets = emptySet(), recommendedArrow = null) }
+            val profile = learningRepository.getProfile().copy(estimatedRating = estimate, assessmentState = "COMPLETE", assessmentPositionIndex = nextIndex, assessmentCorrect = nextCorrect, assessmentTotal = nextTotal, assessmentCompletedAt = completedAt)
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+            _state.update { it.copy(
+                estimatedRating = estimate,
+                assessmentState = "COMPLETE",
+                assessmentPositionIndex = nextIndex,
+                assessmentCorrect = nextCorrect,
+                assessmentTotal = nextTotal,
+                assessmentCompletedAt = completedAt,
+                trainingRecommendation = recommendation.topic.title,
+                trainingRecommendationReason = recommendation.reason,
+                message = "Assessment complete. Estimated training rating: " + estimate + ".",
+                lastMove = Pair(move.from, move.to),
+                selectedSquare = null,
+                legalTargets = emptySet(),
+                recommendedArrow = null
+            ) }
             return
         }
         val next = PlacementAssessment.questions[nextIndex]
@@ -1229,6 +1246,15 @@ private fun playReviewMove(move: MoveChoice) {
 
     fun practiceLesson(topic: com.chesstutor.app.domain.LearnTopic) {
         exploreLearnTopic(topic)
+    }
+
+    fun practiceRecommendedTraining() {
+        viewModelScope.launch {
+            val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+            exploreLearnTopic(recommendation.topic)
+        }
     }
 
     fun showReviewAnswer(item: ReviewItem) {
