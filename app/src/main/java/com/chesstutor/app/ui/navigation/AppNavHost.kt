@@ -34,6 +34,7 @@ import com.chesstutor.app.ui.components.PromotionDialog
 import com.chesstutor.app.ui.coach.CoachScreen
 import com.chesstutor.app.ui.curriculum.CurriculumScreen
 import com.chesstutor.app.ui.review.ReviewScreen
+import com.chesstutor.app.ui.onboarding.OnboardingScreen
 import com.chesstutor.app.ui.settings.SettingsSheet
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
@@ -56,6 +57,11 @@ fun AppNavHost(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
+
+    if (state.assessmentState != "COMPLETE") {
+        OnboardingScreen(state = state, viewModel = viewModel, modifier = modifier)
+        return
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
