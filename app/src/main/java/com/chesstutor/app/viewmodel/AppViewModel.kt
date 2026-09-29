@@ -264,6 +264,11 @@ class AppViewModel(
         }
     }
 
+    fun setLearningGoal(goal: String) {
+        _state.update { it.copy(learningGoal = goal) }
+        persistProfile { it.copy(learningGoal = goal) }
+    }
+
     fun startPlacementAssessment() {
         persistProfile { it.copy(assessmentState = "IN_PROGRESS", assessmentPositionIndex = 0, assessmentCorrect = 0, assessmentTotal = 0, assessmentCompletedAt = null) }
         val question = PlacementAssessment.questions.first()
