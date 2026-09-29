@@ -61,6 +61,8 @@ data class AppUiState(
     val activeCoachTitle: String = "Forced Mate & Consequence Retry",
     val activeCoachSubtitle: String = "Every mistake is backed by a concrete, checkable fact.",
     val activeCoachCategory: String = "TODAY'S FOCUS",
+    val trainingRecommendation: String = "",
+    val trainingRecommendationReason: String = "",
     val activeCoachRecommendedMove: String? = null,
     val isSettingsVisible: Boolean = false,
     val isSoundEnabled: Boolean = true,
