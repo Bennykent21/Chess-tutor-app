@@ -16,8 +16,16 @@ object AdaptiveTrainingPlanner {
         }
         val filtered = candidates.filter { it.second in preferred }
         val source = if (filtered.isNotEmpty()) filtered else candidates
+        val remediation = source.filter { progress ->
+            val module = progress.third
+            module != null && module.attempts > 0 && module.accuracy < 0.8f
+        }
         val unpracticed = source.filter { it.third?.practiced != true }
-        val pool = if (unpracticed.isNotEmpty()) unpracticed else source
+        val pool = when {
+            remediation.isNotEmpty() -> remediation
+            unpracticed.isNotEmpty() -> unpracticed
+            else -> source
+        }
         val chosen = pool.minWithOrNull(compareBy<Triple<LearnTopic, SkillDomain, ModuleProgress?>> {
             val index = preferred.indexOf(it.second)
             if (index < 0) preferred.size else index
