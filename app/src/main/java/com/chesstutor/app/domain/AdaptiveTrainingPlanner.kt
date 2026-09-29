@@ -14,8 +14,15 @@ object AdaptiveTrainingPlanner {
             val domain = topicDomain(topic) ?: return@mapNotNull null
             Triple(topic, domain, modules.firstOrNull { it.moduleId == topic.id })
         }
-        val filtered = candidates.filter { it.second in preferred }
-        val source = if (filtered.isNotEmpty()) filtered else candidates
+        val preferredCandidates = candidates.filter { it.second in preferred }
+        val preferredUnmastered = preferredCandidates.filter { it.third?.mastered != true }
+        val unmastered = candidates.filter { it.third?.mastered != true }
+        val source = when {
+            preferredUnmastered.isNotEmpty() -> preferredUnmastered
+            unmastered.isNotEmpty() -> unmastered
+            preferredCandidates.isNotEmpty() -> preferredCandidates
+            else -> candidates
+        }
         val remediation = source.filter { progress ->
             val module = progress.third
             module != null && module.attempts > 0 && module.accuracy < 0.8f
