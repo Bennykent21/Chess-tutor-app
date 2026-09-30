@@ -607,10 +607,23 @@ class AppViewModel(
     }
 
     fun retryMistake() {
-        val mistakeFen = _state.value.mistakeFen ?: return
-        loadCoachPosition(mistakeFen)
+        val current = _state.value
+        val mistakeFen = current.mistakeFen ?: return
+        val lessonId = current.curriculumLessonId
+        val title = current.activeCoachTitle
+        val subtitle = current.activeCoachSubtitle
+        val category = current.activeCoachCategory
+        val recommendedMoveUci = current.activeCoachRecommendedMove
+        loadCoachPosition(
+            fen = mistakeFen,
+            title = title,
+            subtitle = subtitle,
+            category = category,
+            recommendedMoveUci = recommendedMoveUci
+        )
         _state.update {
             it.copy(
+                curriculumLessonId = lessonId,
                 message = "Position reset. Find the winning move!",
                 mistakeDetected = false,
                 canRetryMistake = false
