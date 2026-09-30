@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +91,7 @@ fun CoachScreen(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .testTag("coach_drill_selector")
                     .bouncyClickable { isDrillSheetOpen = true }
             ) {
                 Row(
@@ -125,6 +127,7 @@ fun CoachScreen(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
+                        .testTag("coach_flip_board_button")
                         .bouncyClickable { isBoardFlipped = !isBoardFlipped },
                     contentAlignment = Alignment.Center
                 ) {
@@ -141,6 +144,7 @@ fun CoachScreen(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
+                        .testTag("coach_settings_button")
                         .bouncyClickable { viewModel.setSettingsVisible(true) },
                     contentAlignment = Alignment.Center
                 ) {
@@ -251,6 +255,7 @@ fun CoachScreen(
                         .clip(RoundedCornerShape(11.dp))
                         .background(ChessTutorColors.Surface2)
                         .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
+                        .testTag("coach_hint_button")
                         .bouncyClickable { viewModel.showHint() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -292,6 +297,7 @@ fun CoachScreen(
                             if (isSolved) ChessTutorColors.Brass else ChessTutorColors.Line,
                             RoundedCornerShape(11.dp)
                         )
+                        .testTag("coach_next_drill_button")
                         .bouncyClickable { viewModel.nextDrill() },
                     contentAlignment = Alignment.Center
                 ) {

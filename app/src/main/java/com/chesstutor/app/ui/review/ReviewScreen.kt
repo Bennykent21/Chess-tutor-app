@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -118,6 +119,7 @@ fun ReviewScreen(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
+                        .testTag("review_flip_board_button")
                         .bouncyClickable { isBoardFlipped = !isBoardFlipped },
                     contentAlignment = Alignment.Center
                 ) {
@@ -136,6 +138,7 @@ fun ReviewScreen(
                         .clip(RoundedCornerShape(10.dp))
                         .background(ChessTutorColors.Surface2)
                         .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(10.dp))
+                        .testTag("review_profile_button")
                         .bouncyClickable { isProfileSheetOpen = true },
                     contentAlignment = Alignment.Center
                 ) {
@@ -200,6 +203,7 @@ fun ReviewScreen(
                         .clip(RoundedCornerShape(11.dp))
                         .background(ChessTutorColors.Surface2)
                         .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
+                        .testTag("review_load_sample_button")
                         .bouncyClickable { viewModel.loadSampleMistakeForReview() }
                         .padding(horizontal = 18.dp),
                     contentAlignment = Alignment.Center
@@ -318,6 +322,7 @@ fun ReviewScreen(
                                 .clip(RoundedCornerShape(11.dp))
                                 .background(ChessTutorColors.Surface2)
                                 .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
+                                .testTag("review_hint_button")
                                 .bouncyClickable { viewModel.showHint() },
                             contentAlignment = Alignment.Center
                         ) {
@@ -354,6 +359,7 @@ fun ReviewScreen(
                                 .clip(RoundedCornerShape(11.dp))
                                 .background(Color.Transparent)
                                 .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
+                                .testTag("review_show_answer_button")
                                 .bouncyClickable { viewModel.showReviewAnswer(activeItem) },
                             contentAlignment = Alignment.Center
                         ) {
@@ -566,7 +572,7 @@ fun ReviewScreen(
                             color = ChessTutorColors.TextSecondary
                         )
                         Text(
-                            text = "142",
+                            text = "${state.tacticalCorrect}",
                             fontSize = 20.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
@@ -587,14 +593,72 @@ fun ReviewScreen(
                             fontSize = 12.sp,
                             color = ChessTutorColors.TextSecondary
                         )
+                        val accuracyText = if (state.tacticalAttempts > 0) {
+                            "${(state.tacticalCorrect * 100 / state.tacticalAttempts)}%"
+                        } else {
+                            "—"
+                        }
                         Text(
-                            text = "78%",
+                            text = accuracyText,
                             fontSize = 20.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             color = ChessTutorColors.Sage,
                             modifier = Modifier.padding(top = 2.dp)
                         )
+                    }
+                }
+
+                if (state.recentGames.isNotEmpty()) {
+                    Text(
+                        text = "SAVED ARENA GAMES",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.06.sp,
+                        color = ChessTutorColors.TextTertiary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .padding(bottom = 20.dp)
+                    ) {
+                        state.recentGames.take(3).forEach { game ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .bouncyClickable {
+                                        isProfileSheetOpen = false
+                                        viewModel.selectGameForPgn(game)
+                                    }
+                                    .padding(12.dp, 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "vs. ${game.botName} (${game.botRating})",
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = ChessTutorColors.TextPrimary
+                                    )
+                                    Text(
+                                        text = "${game.moveCount} moves · ${game.result}",
+                                        fontSize = 11.5.sp,
+                                        color = ChessTutorColors.TextSecondary
+                                    )
+                                }
+                                Text(
+                                    text = "PGN",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ChessTutorColors.Brass
+                                )
+                            }
+                        }
                     }
                 }
             }

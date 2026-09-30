@@ -3,12 +3,15 @@ package com.chesstutor.app.di
 import android.content.Context
 import android.util.Log
 import com.chesstutor.app.data.local.AppDatabase
+import com.chesstutor.app.data.repository.GameRepository
+import com.chesstutor.app.data.repository.RoomGameRepository
 import com.chesstutor.app.data.repository.RatingRepository
 import com.chesstutor.app.data.repository.LearningRepository
 import com.chesstutor.app.data.repository.RoomLearningRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.data.repository.RoomRatingRepository
 import com.chesstutor.app.data.repository.RoomReviewRepository
+import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import com.chesstutor.app.engine.OnlineStockfishEngineClient
@@ -26,6 +29,21 @@ object AppContainer {
 
     @Volatile
     private var engineClientInstance: EngineClient? = null
+
+    @Volatile
+    private var engineManagerInstance: ChessEngineManager? = null
+
+    @Volatile
+    private var gameRepositoryInstance: GameRepository? = null
+
+    fun provideGameRepository(context: Context): GameRepository {
+        return gameRepositoryInstance ?: synchronized(this) {
+            val db = AppDatabase.getInstance(context)
+            val repo = RoomGameRepository(db.gameRecordDao())
+            gameRepositoryInstance = repo
+            repo
+        }
+    }
 
     fun provideReviewRepository(context: Context): ReviewRepository {
         return repositoryInstance ?: synchronized(this) {
@@ -89,6 +107,15 @@ object AppContainer {
 
             engineClientInstance = client
             client
+        }
+    }
+
+    fun provideChessEngineManager(context: Context): ChessEngineManager {
+        return engineManagerInstance ?: synchronized(this) {
+            val client = provideEngineClient(context)
+            val manager = ChessEngineManager(client)
+            engineManagerInstance = manager
+            manager
         }
     }
 }

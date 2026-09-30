@@ -17,7 +17,7 @@ data class AssessmentState(
 }
 
 object AdaptiveAssessment {
-    private val bands = intArrayOf(250, 600, 1000, 1300, 1600, 2000, 2400, 3200)
+    val bands = intArrayOf(250, 600, 1000, 1300, 1600, 2000, 2400, 3200)
 
     fun nextRatingBand(currentRating: Int, correct: Boolean): Int {
         val index = bands.indexOfFirst { it >= currentRating }.let { if (it < 0) bands.lastIndex else it }
