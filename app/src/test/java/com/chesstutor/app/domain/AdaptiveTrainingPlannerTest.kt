@@ -25,5 +25,5 @@ class AdaptiveTrainingPlannerTest {
   )
   assertTrue(r.topic.id != "tactics_knight_fork")
  }
- @Test fun generalGoalUsesTopicSkillRating() { val r=AdaptiveTrainingPlanner.recommend(LearningProfile(estimatedRating=2000),emptyList()); assertTrue(r.topic.skillRating >= 1600); assertEquals(2000, r.skillRating) }
+ @Test fun generalGoalUsesTopicSkillRating() { val r=AdaptiveTrainingPlanner.recommend(LearningProfile(estimatedRating=2000),emptyList()); assertEquals("tactics_smothered_mate", r.topic.id); assertEquals(1600, r.topic.skillRating); assertEquals(2000, r.skillRating) }
 }
