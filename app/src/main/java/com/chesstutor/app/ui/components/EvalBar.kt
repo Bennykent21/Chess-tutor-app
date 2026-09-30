@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -104,6 +105,7 @@ fun EvalBar(
 
     Box(
         modifier = modifier
+            .testTag("eval_bar")
             .width(30.dp)
             .clip(RoundedCornerShape(3.dp))
             .background(Color(0xFF14181D)) // dark base = "black" side, always visible underneath

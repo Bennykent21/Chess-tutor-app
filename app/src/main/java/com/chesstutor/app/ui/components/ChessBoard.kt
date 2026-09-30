@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.ui.theme.ChessTutorColors
@@ -48,12 +51,14 @@ fun ChessBoard(
     val badColor = ChessTutorColors.SquareBad
     val targetDotColor = Color(0x4D121A20)
     val arrowColor = ChessTutorColors.Brass.copy(alpha = 0.92f)
+    val haptic = LocalHapticFeedback.current
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(RoundedCornerShape(0.dp))
+            .testTag("chess_board")
             .pointerInput(flipped, fen) {
                 detectTapGestures { offset ->
                     val squareSize = size.width / 8f
@@ -66,6 +71,7 @@ fun ChessBoard(
                     val fileChar = ('a' + actualFile)
                     val rankChar = ('1' + actualRank)
                     val squareStr = "$fileChar$rankChar"
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onSquareTapped(squareStr)
                 }
             }
