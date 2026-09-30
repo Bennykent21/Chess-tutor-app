@@ -142,7 +142,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1b1k3/pp3ppp/8/8/1n6/2N5/PP3PPP/R3K2R b q - 0 12",
             recommendedMoveUci = "b4c2",
-            moveExplanation = "Nc2 forks White's a1 rook and e1 king.",,
+            moveExplanation = "Nc2 forks White's a1 rook and e1 king.",
             skillRating = 1000,
             validation = TopicValidation.KNIGHT_FORK
         ),
@@ -175,7 +175,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "6rk/6pp/8/4N3/8/8/8/6K1 w - - 0 1",
             recommendedMoveUci = "e5f7",
-            moveExplanation = "Nf7# is a smothered mate: the knight checks while Black's own rook and pawns remove every king escape.",,
+            moveExplanation = "Nf7# is a smothered mate: the knight checks while Black's own rook and pawns remove every king escape.",
             skillRating = 1600,
             validation = TopicValidation.CHECKMATE
         ),
@@ -310,7 +310,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4",
             recommendedMoveUci = "f3f7",
-            moveExplanation = "Qxf7# delivers immediate checkmate on the weak f7 square.",,
+            moveExplanation = "Qxf7# delivers immediate checkmate on the weak f7 square.",
             skillRating = 600,
             validation = TopicValidation.CHECKMATE
         ),
@@ -343,7 +343,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
             recommendedMoveUci = "e1e8",
-            moveExplanation = "Re8# delivers decisive back-rank mate.",,
+            moveExplanation = "Re8# delivers decisive back-rank mate.",
             skillRating = 1200,
             validation = TopicValidation.CHECKMATE
         ),
