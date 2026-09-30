@@ -60,6 +60,34 @@ class LearningRepositoryTest {
     }
 
     @Test
+    fun inMemoryAttemptsAutomaticallyMarkModuleMasteredAtThreshold() = runTest {
+        val repository = InMemoryLearningRepository()
+
+        repository.recordModuleAttempt("forks", correct = true)
+        repository.recordModuleAttempt("forks", correct = true)
+
+        assertEquals(false, repository.getModuleProgress().single().mastered)
+
+        repository.recordModuleAttempt("forks", correct = true)
+
+        val progress = repository.getModuleProgress().single()
+        assertEquals(3, progress.attempts)
+        assertEquals(3, progress.correctAttempts)
+        assertEquals(true, progress.mastered)
+    }
+
+    @Test
+    fun inMemoryWeakPerformanceDoesNotAutoMaster() = runTest {
+        val repository = InMemoryLearningRepository()
+
+        repository.recordModuleAttempt("forks", correct = true)
+        repository.recordModuleAttempt("forks", correct = false)
+        repository.recordModuleAttempt("forks", correct = false)
+
+        assertEquals(false, repository.getModuleProgress().single().mastered)
+    }
+
+    @Test
     fun inMemoryObserverReflectsMastery() = runTest {
         val repository = InMemoryLearningRepository()
 
