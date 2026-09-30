@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+private const val MASTERY_ACCURACY = 0.8f
+private const val MASTERY_MIN_ATTEMPTS = 3
+
 interface LearningRepository {
     suspend fun getProfile(): LearningProfile
     suspend fun saveProfile(profile: LearningProfile)
@@ -67,12 +70,19 @@ class RoomLearningRepository(private val dao: LearningDao) : LearningRepository 
     override suspend fun recordModuleAttempt(moduleId: String, correct: Boolean) {
         moduleProgressMutex.withLock {
             val current = currentModule(moduleId)
+            val nextAttempts = current.attempts + 1
+            val nextCorrect = current.correctAttempts + if (correct) 1 else 0
+            val mastered = current.mastered || (
+                nextAttempts >= MASTERY_MIN_ATTEMPTS &&
+                    nextCorrect.toFloat() / nextAttempts.toFloat() >= MASTERY_ACCURACY
+            )
             dao.upsertModuleProgress(
                 ModuleProgressEntity.fromDomain(
                     current.copy(
                         practiced = true,
-                        attempts = current.attempts + 1,
-                        correctAttempts = current.correctAttempts + if (correct) 1 else 0,
+                        mastered = mastered,
+                        attempts = nextAttempts,
+                        correctAttempts = nextCorrect,
                         lastPracticedAt = System.currentTimeMillis()
                     )
                 )
@@ -121,10 +131,17 @@ class InMemoryLearningRepository(initial: LearningProfile = LearningProfile()) :
     override suspend fun recordModuleAttempt(moduleId: String, correct: Boolean) {
         moduleProgressMutex.withLock {
             val current = modules[moduleId] ?: ModuleProgress(moduleId)
+            val nextAttempts = current.attempts + 1
+            val nextCorrect = current.correctAttempts + if (correct) 1 else 0
+            val mastered = current.mastered || (
+                nextAttempts >= MASTERY_MIN_ATTEMPTS &&
+                    nextCorrect.toFloat() / nextAttempts.toFloat() >= MASTERY_ACCURACY
+            )
             modules[moduleId] = current.copy(
                 practiced = true,
-                attempts = current.attempts + 1,
-                correctAttempts = current.correctAttempts + if (correct) 1 else 0,
+                mastered = mastered,
+                attempts = nextAttempts,
+                correctAttempts = nextCorrect,
                 lastPracticedAt = System.currentTimeMillis()
             )
             publishModules()
