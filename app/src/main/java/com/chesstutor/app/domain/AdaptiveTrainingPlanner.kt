@@ -36,7 +36,7 @@ object AdaptiveTrainingPlanner {
         val chosen = pool.minWithOrNull(compareBy<Triple<LearnTopic, SkillDomain, ModuleProgress?>> {
             val index = preferred.indexOf(it.second)
             if (index < 0) preferred.size else index
-        }.thenBy { abs(topicRatingBand(it.first) - skill.domain(it.second).rating) }
+        }.thenBy { abs(it.first.skillRating - skill.domain(it.second).rating) }
          .thenBy { it.third?.accuracy ?: 0f }.thenBy { it.first.id })
             ?: candidates.first()
         val domainSkill = skill.domain(chosen.second)
@@ -65,13 +65,4 @@ object AdaptiveTrainingPlanner {
         LearnCategory.ENDGAME -> SkillDomain.ENDGAME
     }
 
-    private fun topicRatingBand(topic: LearnTopic) = when (topic.id) {
-        "lesson_mate_1", "tactics_pin_and_skewer" -> 600
-        "tactics_knight_fork", "lesson_hanging_piece" -> 1000
-        "tactics_discovered_attack", "lesson_back_rank", "lesson_overworked_piece" -> 1300
-        "lesson_interpose_fail" -> 1600
-        "endgame_opposition", "endgame_lucena_bridge" -> 2000
-        "middlegame_pawn_breaks" -> 2400
-        else -> 1300
-    }
 }
