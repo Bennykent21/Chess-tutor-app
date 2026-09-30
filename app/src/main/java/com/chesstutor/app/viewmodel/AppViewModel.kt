@@ -274,9 +274,34 @@ class AppViewModel(
         }
     }
 
+    private fun refreshTrainingRecommendation() {
+        viewModelScope.launch {
+            val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+            _state.update {
+                it.copy(
+                    trainingRecommendation = recommendation.topic.title,
+                    trainingRecommendationReason = recommendation.reason
+                )
+            }
+        }
+    }
+
     fun setLearningGoal(goal: String) {
         _state.update { it.copy(learningGoal = goal) }
-        persistProfile { it.copy(learningGoal = goal) }
+        viewModelScope.launch {
+            learningProfileMutex.withLock {
+                val current = learningRepository.getProfile()
+                learningRepository.saveProfile(
+                    current.copy(
+                        learningGoal = goal,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            }
+            refreshTrainingRecommendation()
+        }
     }
 
     fun startPlacementAssessment() {
