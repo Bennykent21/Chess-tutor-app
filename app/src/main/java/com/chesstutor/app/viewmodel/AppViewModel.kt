@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.LearningProfile
+import com.chesstutor.app.data.model.PlacementAssessment
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.data.repository.GameRepository
@@ -83,8 +84,8 @@ class AppViewModel(
             runCatching { chessEngineManager.initialize() }
             applyBotElo()
             loadReviews()
-            loadLearningState()
             selectDrill(0)
+            loadLearningState()
             observeLinkedProfile()
         }
         viewModelScope.launch {
@@ -101,10 +102,14 @@ class AppViewModel(
         }
         viewModelScope.launch {
             learningRepository.observeModuleProgress().collect { progress ->
+                val profile = learningRepository.getProfile()
+                val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
                 _state.update { current ->
                     current.copy(
                         practicedModules = progress.filter { it.practiced }.map { it.moduleId }.toSet(),
-                        masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet()
+                        masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet(),
+                        trainingRecommendation = recommendation.topic.title,
+                        trainingRecommendationReason = recommendation.reason
                     )
                 }
             }
@@ -205,6 +210,13 @@ class AppViewModel(
     private suspend fun loadLearningState() {
         runCatching {
             val profile = learningRepository.getProfile()
+            val assessmentFen = if (profile.assessmentState == "IN_PROGRESS") {
+                PlacementAssessment.questions
+                    .getOrNull(profile.assessmentPositionIndex)
+                    ?.fen
+            } else null
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
             _state.update {
                 it.copy(
                     estimatedRating = profile.estimatedRating,
@@ -216,7 +228,10 @@ class AppViewModel(
                     learningGoal = profile.learningGoal,
                     tacticalAttempts = profile.totalTacticalAttempts,
                     tacticalCorrect = profile.totalTacticalCorrect,
-                    isSoundEnabled = profile.soundEnabled
+                    isSoundEnabled = profile.soundEnabled,
+                    fen = assessmentFen ?: it.fen,
+                    trainingRecommendation = recommendation.topic.title,
+                    trainingRecommendationReason = recommendation.reason
                 )
             }
         }.onFailure { ex ->
@@ -246,6 +261,36 @@ class AppViewModel(
 
     fun resetPlacementAssessment() {
         startPlacementAssessment()
+    }
+
+    fun setLearningGoal(goal: String) {
+        _state.update { it.copy(learningGoal = goal) }
+        viewModelScope.launch {
+            learningProfileMutex.withLock {
+                val current = learningRepository.getProfile()
+                learningRepository.saveProfile(
+                    current.copy(
+                        learningGoal = goal,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            }
+            refreshTrainingRecommendation()
+        }
+    }
+
+    private fun refreshTrainingRecommendation() {
+        viewModelScope.launch {
+            val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+            _state.update {
+                it.copy(
+                    trainingRecommendation = recommendation.topic.title,
+                    trainingRecommendationReason = recommendation.reason
+                )
+            }
+        }
     }
 
     fun loadCoachPosition(
@@ -515,10 +560,23 @@ class AppViewModel(
     }
 
     fun retryMistake() {
-        val mistakeFen = _state.value.mistakeFen ?: return
-        loadCoachPosition(mistakeFen)
+        val current = _state.value
+        val mistakeFen = current.mistakeFen ?: return
+        val lessonId = current.curriculumLessonId
+        val title = current.activeCoachTitle
+        val subtitle = current.activeCoachSubtitle
+        val category = current.activeCoachCategory
+        val recommendedMoveUci = current.activeCoachRecommendedMove
+        loadCoachPosition(
+            fen = mistakeFen,
+            title = title,
+            subtitle = subtitle,
+            category = category,
+            recommendedMoveUci = recommendedMoveUci
+        )
         _state.update {
             it.copy(
+                curriculumLessonId = lessonId,
                 message = "Position reset. Find the winning move!",
                 mistakeDetected = false,
                 canRetryMistake = false
@@ -795,6 +853,15 @@ class AppViewModel(
 
     fun practiceLesson(topic: LearnTopic) {
         exploreLearnTopic(topic)
+    }
+
+    fun practiceRecommendedTraining() {
+        viewModelScope.launch {
+            val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+            exploreLearnTopic(recommendation.topic)
+        }
     }
 
     fun showReviewAnswer(item: ReviewItem) {
