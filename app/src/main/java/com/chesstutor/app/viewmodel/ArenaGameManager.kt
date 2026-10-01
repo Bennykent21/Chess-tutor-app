@@ -214,7 +214,8 @@ class ArenaGameManager(
                     botName = currentState.arenaBotName,
                     botRating = currentState.effectiveBotElo,
                     result = result,
-                    finalFen = afterFen
+                    finalFen = afterFen,
+                    userColor = currentState.arenaPlayerSide
                 )
                 updateState {
                     it.copy(
