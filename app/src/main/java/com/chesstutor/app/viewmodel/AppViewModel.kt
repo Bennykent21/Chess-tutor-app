@@ -12,6 +12,7 @@ import com.chesstutor.app.data.repository.InMemoryRatingRepository
 import com.chesstutor.app.data.repository.LearningRepository
 import com.chesstutor.app.data.repository.RatingRepository
 import com.chesstutor.app.data.repository.ReviewRepository
+import com.chesstutor.app.domain.AdaptiveTrainingPlanner
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.LearnTopic
 import com.chesstutor.app.domain.MoveAssessment
@@ -101,10 +102,14 @@ class AppViewModel(
         }
         viewModelScope.launch {
             learningRepository.observeModuleProgress().collect { progress ->
+                val profile = learningRepository.getProfile()
+                val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
                 _state.update { current ->
                     current.copy(
                         practicedModules = progress.filter { it.practiced }.map { it.moduleId }.toSet(),
-                        masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet()
+                        masteredModules = progress.filter { it.mastered }.map { it.moduleId }.toSet(),
+                        trainingRecommendation = recommendation.topic.title,
+                        trainingRecommendationReason = recommendation.reason
                     )
                 }
             }
@@ -205,6 +210,13 @@ class AppViewModel(
     private suspend fun loadLearningState() {
         runCatching {
             val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+            val assessmentFen = if (profile.assessmentState == "IN_PROGRESS") {
+                com.chesstutor.app.data.model.PlacementAssessment.questions
+                    .getOrNull(profile.assessmentPositionIndex)
+                    ?.fen
+            } else null
             _state.update {
                 it.copy(
                     estimatedRating = profile.estimatedRating,
@@ -216,7 +228,10 @@ class AppViewModel(
                     learningGoal = profile.learningGoal,
                     tacticalAttempts = profile.totalTacticalAttempts,
                     tacticalCorrect = profile.totalTacticalCorrect,
-                    isSoundEnabled = profile.soundEnabled
+                    isSoundEnabled = profile.soundEnabled,
+                    trainingRecommendation = recommendation.topic.title,
+                    trainingRecommendationReason = recommendation.reason,
+                    fen = assessmentFen ?: it.fen
                 )
             }
         }.onFailure { ex ->
@@ -236,12 +251,52 @@ class AppViewModel(
         curriculumCoordinator.recordCurriculumAttempt(_state.value.curriculumLessonId, correct, _state::update)
     }
 
+    private fun refreshTrainingRecommendation() {
+        viewModelScope.launch {
+            val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+            _state.update {
+                it.copy(
+                    trainingRecommendation = recommendation.topic.title,
+                    trainingRecommendationReason = recommendation.reason
+                )
+            }
+        }
+    }
+
+    fun setLearningGoal(goal: String) {
+        _state.update { it.copy(learningGoal = goal) }
+        viewModelScope.launch {
+            learningProfileMutex.withLock {
+                val current = learningRepository.getProfile()
+                learningRepository.saveProfile(current.copy(
+                    learningGoal = goal,
+                    updatedAt = System.currentTimeMillis()
+                ))
+            }
+            refreshTrainingRecommendation()
+        }
+    }
+
+    fun practiceRecommendedTraining() {
+        viewModelScope.launch {
+            val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
+            curriculumCoordinator.exploreLearnTopic(recommendation.topic, _state::update)
+        }
+    }
+
     fun startPlacementAssessment() {
         placementAssessmentCoordinator.start(curriculumCoordinator::persistProfile, _state::update)
     }
 
     fun answerPlacementAssessment(move: MoveChoice) {
         placementAssessmentCoordinator.answer(move, _state.value, curriculumCoordinator::persistProfile, _state::update)
+        if (_state.value.assessmentState == "COMPLETE") {
+            refreshTrainingRecommendation()
+        }
     }
 
     fun resetPlacementAssessment() {

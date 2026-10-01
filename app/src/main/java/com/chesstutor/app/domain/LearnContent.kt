@@ -18,6 +18,7 @@ data class LearnTopic(
     val demoFen: String,
     val recommendedMoveUci: String,
     val moveExplanation: String,
+    val skillRating: Int = 1300,
     val validation: TopicValidation = TopicValidation.LEGAL_MOVE
 )
 
@@ -43,6 +44,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
             recommendedMoveUci = "f1c4",
+            skillRating = 800,
             moveExplanation = "Bc4 targets f7 and prepares rapid castling."
         ),
         LearnTopic(
@@ -58,6 +60,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
             recommendedMoveUci = "c2c3",
+            skillRating = 1000,
             moveExplanation = "3. c3 prepares to seize the full center with d4."
         ),
         LearnTopic(
@@ -73,6 +76,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2",
             recommendedMoveUci = "e7e6",
+            skillRating = 1100,
             moveExplanation = "2...e6 solidly defends d5 in the Queen's Gambit Declined."
         ),
         LearnTopic(
@@ -88,6 +92,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
             recommendedMoveUci = "g1f3",
+            skillRating = 1200,
             moveExplanation = "2. Nf3 prepares the central strike with 3. d4."
         ),
         LearnTopic(
@@ -103,6 +108,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
             recommendedMoveUci = "a7a6",
+            skillRating = 1300,
             moveExplanation = "3...a6 questions White's bishop immediately."
         ),
 
@@ -120,6 +126,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "4k3/8/8/8/1b6/2N5/8/R3K3 w - - 0 1",
             recommendedMoveUci = "a1c1",
+            skillRating = 700,
             moveExplanation = "Rc1 supports the pinned knight on c3 while the bishop on b4 keeps it pinned to the king."
         ),
         LearnTopic(
@@ -136,6 +143,7 @@ object LearnCurriculumRepository {
             demoFen = "r1b1k3/pp3ppp/8/8/1n6/2N5/PP3PPP/R3K2R b q - 0 12",
             recommendedMoveUci = "b4c2",
             moveExplanation = "Nc2 forks White's a1 rook and e1 king.",
+            skillRating = 1000,
             validation = TopicValidation.KNIGHT_FORK
         ),
         LearnTopic(
@@ -151,6 +159,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1b2rk1/pp3ppp/2n5/1B1p4/3P4/5N2/PP1B1PPP/R2QR1K1 w - - 0 13",
             recommendedMoveUci = "b5c6",
+            skillRating = 1200,
             moveExplanation = "Bxc6 damages pawn structure while clearing lines."
         ),
         LearnTopic(
@@ -167,6 +176,7 @@ object LearnCurriculumRepository {
             demoFen = "6rk/6pp/8/4N3/8/8/8/6K1 w - - 0 1",
             recommendedMoveUci = "e5f7",
             moveExplanation = "Nf7# is a smothered mate: the knight checks while Black's own rook and pawns remove every king escape.",
+            skillRating = 1600,
             validation = TopicValidation.CHECKMATE
         ),
 
@@ -184,6 +194,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r4rk1/pp1b1ppp/2n1pn2/3p4/3P4/2N1PN2/PP2BPPP/R2Q1RK1 w - - 0 11",
             recommendedMoveUci = "c3a4",
+            skillRating = 1200,
             moveExplanation = "Na4 routes the knight to the uncontested c5 outpost."
         ),
         LearnTopic(
@@ -199,6 +210,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "3r2k1/pp3ppp/2p5/8/8/2P1R3/PP3PPP/6K1 w - - 0 22",
             recommendedMoveUci = "e3e7",
+            skillRating = 1400,
             moveExplanation = "Re7 infiltrates the 7th rank directly."
         ),
         LearnTopic(
@@ -214,6 +226,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1b2rk1/ppq1bppp/2n1p3/3pP3/3P4/2PB1N2/P4PPP/R1BQ1RK1 w - - 0 12",
             recommendedMoveUci = "d3h7",
+            skillRating = 1600,
             moveExplanation = "Bxh7+ initiates the classic Greek Gift sacrifice."
         ),
 
@@ -231,6 +244,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "8/5pk1/4p1p1/8/8/4P1P1/5PK1/8 w - - 0 35",
             recommendedMoveUci = "g2f3",
+            skillRating = 1000,
             moveExplanation = "Kf3 centralizes the king toward the action."
         ),
         LearnTopic(
@@ -246,6 +260,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "8/8/8/4k3/8/4K3/8/8 w - - 0 1",
             recommendedMoveUci = "e3d3",
+            skillRating = 1400,
             moveExplanation = "Kd3 takes the opposition, forcing Black to step aside."
         ),
         LearnTopic(
@@ -261,6 +276,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "4K3/4P2k/8/8/8/8/r7/3R4 w - - 0 1",
             recommendedMoveUci = "d1d4",
+            skillRating = 1800,
             moveExplanation = "Rd4 sets up the 4th-rank bridge to block rook checks."
         ),
         LearnTopic(
@@ -276,6 +292,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "7k/8/8/4P3/8/2r5/4K3/3R4 b - - 0 1",
             recommendedMoveUci = "c3c6",
+            skillRating = 1700,
             moveExplanation = "Rc6 establishes the classic 6th-rank blockade."
         ),
 
@@ -294,6 +311,7 @@ object LearnCurriculumRepository {
             demoFen = "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4",
             recommendedMoveUci = "f3f7",
             moveExplanation = "Qxf7# delivers immediate checkmate on the weak f7 square.",
+            skillRating = 600,
             validation = TopicValidation.CHECKMATE
         ),
         LearnTopic(
@@ -309,6 +327,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1bqk2r/pppp1ppp/2n2n2/4p3/1b2P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 2 5",
             recommendedMoveUci = "c1d2",
+            skillRating = 900,
             moveExplanation = "Bd2 breaks the pin and defends the c3 knight."
         ),
         LearnTopic(
@@ -325,6 +344,7 @@ object LearnCurriculumRepository {
             demoFen = "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
             recommendedMoveUci = "e1e8",
             moveExplanation = "Re8# delivers decisive back-rank mate.",
+            skillRating = 1200,
             validation = TopicValidation.CHECKMATE
         ),
         LearnTopic(
@@ -340,6 +360,7 @@ object LearnCurriculumRepository {
             ),
             demoFen = "2r3k1/5ppp/8/3q4/8/8/5PPP/2R3K1 w - - 0 1",
             recommendedMoveUci = "c1c8",
+            skillRating = 1300,
             moveExplanation = "Rxc8# exploits the overworked back rank."
         ),
         LearnTopic(
@@ -355,7 +376,8 @@ object LearnCurriculumRepository {
             ),
             demoFen = "r1bqk2r/ppp2ppp/2n5/1B1p4/1b1Pn3/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 7",
             recommendedMoveUci = "c1d2",
-            moveExplanation = "Bd2 blocks the check and shields the king safely."
+            moveExplanation = "Bd2 blocks the check and shields the king safely.",
+            skillRating = 1500
         )
     )
 }
