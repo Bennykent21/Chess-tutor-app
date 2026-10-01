@@ -3,16 +3,18 @@ package com.chesstutor.app.di
 import android.content.Context
 import android.util.Log
 import com.chesstutor.app.data.local.AppDatabase
+import com.chesstutor.app.data.repository.GameRepository
+import com.chesstutor.app.data.repository.RoomGameRepository
 import com.chesstutor.app.data.repository.RatingRepository
 import com.chesstutor.app.data.repository.LearningRepository
 import com.chesstutor.app.data.repository.RoomLearningRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.data.repository.RoomRatingRepository
 import com.chesstutor.app.data.repository.RoomReviewRepository
+import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import com.chesstutor.app.engine.OnlineStockfishEngineClient
-import com.chesstutor.app.engine.StockfishProcessEngineClient
 
 object AppContainer {
     @Volatile
@@ -26,6 +28,32 @@ object AppContainer {
 
     @Volatile
     private var engineClientInstance: EngineClient? = null
+
+    @Volatile
+    private var engineManagerInstance: ChessEngineManager? = null
+
+    @Volatile
+    private var gameRepositoryInstance: GameRepository? = null
+
+    @Volatile
+    private var soundManagerInstance: com.chesstutor.app.audio.ChessSoundManager? = null
+
+    fun provideSoundManager(context: Context): com.chesstutor.app.audio.ChessSoundManager {
+        return soundManagerInstance ?: synchronized(this) {
+            val sm = com.chesstutor.app.audio.ChessSoundManager(context.applicationContext)
+            soundManagerInstance = sm
+            sm
+        }
+    }
+
+    fun provideGameRepository(context: Context): GameRepository {
+        return gameRepositoryInstance ?: synchronized(this) {
+            val db = AppDatabase.getInstance(context)
+            val repo = RoomGameRepository(db.gameRecordDao())
+            gameRepositoryInstance = repo
+            repo
+        }
+    }
 
     fun provideReviewRepository(context: Context): ReviewRepository {
         return repositoryInstance ?: synchronized(this) {
@@ -63,32 +91,20 @@ object AppContainer {
         return engineClientInstance ?: synchronized(this) {
             val deterministicFallback = LocalFallbackEngineClient()
             val cloudFallback = OnlineStockfishEngineClient(fallback = deterministicFallback)
+            engineResolutionDiagnostic =
+                "Engine: Cloud Stockfish with calibrated local Kotlin fallback"
+            Log.i("AppContainer", engineResolutionDiagnostic)
+            engineClientInstance = cloudFallback
+            cloudFallback
+        }
+    }
 
-            val client: EngineClient = runCatching {
-                val binaryPath =
-                    com.chesstutor.app.engine.StockfishBinaryProvider.resolve(context)
-
-                StockfishProcessEngineClient(
-                    binaryPath = binaryPath.absolutePath,
-                    fallbackClient = cloudFallback
-                ).also {
-                    engineResolutionDiagnostic =
-                        "Engine chain: bundled Stockfish (" +
-                            binaryPath.absolutePath +
-                            ") -> cloud Stockfish -> deterministic local fallback"
-                    Log.i("AppContainer", engineResolutionDiagnostic)
-                }
-            }.getOrElse { error ->
-                engineResolutionDiagnostic =
-                    "Bundled Stockfish unavailable: " +
-                        error.message +
-                        "; using cloud Stockfish -> deterministic local fallback"
-                Log.e("AppContainer", engineResolutionDiagnostic, error)
-                cloudFallback
-            }
-
-            engineClientInstance = client
-            client
+    fun provideChessEngineManager(context: Context): ChessEngineManager {
+        return engineManagerInstance ?: synchronized(this) {
+            val client = provideEngineClient(context)
+            val manager = ChessEngineManager(client)
+            engineManagerInstance = manager
+            manager
         }
     }
 }
