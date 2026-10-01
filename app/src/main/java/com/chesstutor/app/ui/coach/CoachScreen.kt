@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -60,7 +61,6 @@ fun CoachScreen(
     modifier: Modifier = Modifier
 ) {
     var isBoardFlipped by remember { mutableStateOf(false) }
-    var isDrillSheetOpen by remember { mutableStateOf(false) }
 
     val drills = TrainDrillsRepository.drills
     val drillSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -90,7 +90,8 @@ fun CoachScreen(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .bouncyClickable { isDrillSheetOpen = true }
+                    .testTag("coach_drill_selector")
+                    .bouncyClickable { viewModel.setDrillSheetVisible(true) }
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -125,6 +126,7 @@ fun CoachScreen(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
+                        .testTag("coach_flip_board_button")
                         .bouncyClickable { isBoardFlipped = !isBoardFlipped },
                     contentAlignment = Alignment.Center
                 ) {
@@ -141,6 +143,7 @@ fun CoachScreen(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
+                        .testTag("coach_settings_button")
                         .bouncyClickable { viewModel.setSettingsVisible(true) },
                     contentAlignment = Alignment.Center
                 ) {
@@ -167,32 +170,11 @@ fun CoachScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "NEXT TRAINING",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp,
-                        color = ChessTutorColors.Brass
-                    )
-                    Text(
-                        text = state.trainingRecommendation,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ChessTutorColors.TextPrimary
-                    )
-                    Text(
-                        text = state.trainingRecommendationReason,
-                        fontSize = 11.sp,
-                        color = ChessTutorColors.TextSecondary,
-                        maxLines = 2
-                    )
+                    Text(text = "NEXT TRAINING", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = ChessTutorColors.Brass)
+                    Text(text = state.trainingRecommendation, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ChessTutorColors.TextPrimary)
+                    Text(text = state.trainingRecommendationReason, fontSize = 11.sp, color = ChessTutorColors.TextSecondary, maxLines = 2)
                 }
-                Text(
-                    text = "START",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ChessTutorColors.Brass
-                )
+                Text(text = "START", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ChessTutorColors.Brass)
             }
         }
 
@@ -293,6 +275,7 @@ fun CoachScreen(
                         .clip(RoundedCornerShape(11.dp))
                         .background(ChessTutorColors.Surface2)
                         .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
+                        .testTag("coach_hint_button")
                         .bouncyClickable { viewModel.showHint() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -334,6 +317,7 @@ fun CoachScreen(
                             if (isSolved) ChessTutorColors.Brass else ChessTutorColors.Line,
                             RoundedCornerShape(11.dp)
                         )
+                        .testTag("coach_next_drill_button")
                         .bouncyClickable { viewModel.nextDrill() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -350,9 +334,9 @@ fun CoachScreen(
     }
 
     // ==================== CHOOSE A DRILL SHEET ====================
-    if (isDrillSheetOpen) {
+    if (state.isDrillSheetVisible) {
         ModalBottomSheet(
-            onDismissRequest = { isDrillSheetOpen = false },
+            onDismissRequest = { viewModel.setDrillSheetVisible(false) },
             sheetState = drillSheetState,
             containerColor = ChessTutorColors.Surface,
             contentColor = ChessTutorColors.TextPrimary,
@@ -414,7 +398,7 @@ fun CoachScreen(
                                 )
                                 .bouncyClickable {
                                     viewModel.selectDrill(index)
-                                    isDrillSheetOpen = false
+                                    viewModel.setDrillSheetVisible(false)
                                 }
                                 .padding(13.dp),
                             verticalAlignment = Alignment.CenterVertically,

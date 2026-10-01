@@ -31,6 +31,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SmartToy
@@ -53,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -141,6 +144,23 @@ fun ArenaScreen(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
+                        .testTag("arena_history_button")
+                        .bouncyClickable { viewModel.setGameHistorySheetVisible(true) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "Game History",
+                        tint = ChessTutorColors.TextSecondary,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .testTag("arena_flip_board_button")
                         .bouncyClickable { isBoardFlipped = !isBoardFlipped },
                     contentAlignment = Alignment.Center
                 ) {
@@ -156,6 +176,7 @@ fun ArenaScreen(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
+                        .testTag("arena_settings_button")
                         .bouncyClickable { viewModel.setSettingsVisible(true) },
                     contentAlignment = Alignment.Center
                 ) {
@@ -183,6 +204,7 @@ fun ArenaScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                         .clip(RoundedCornerShape(8.dp))
+                        .testTag("arena_bot_selector")
                         .bouncyClickable { isBotSheetOpen = true }
                         .padding(vertical = 9.dp, horizontal = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -406,6 +428,62 @@ fun ArenaScreen(
                     }
                 }
 
+                // Status Text / Game Over Banner
+                if (state.arenaStatusText.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .border(1.dp, ChessTutorColors.BrassDim, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = state.arenaStatusText,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = ChessTutorColors.Brass,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (state.moveHistory.isNotEmpty()) {
+                                Text(
+                                    text = "View PGN",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ChessTutorColors.Sage,
+                                    modifier = Modifier
+                                        .bouncyClickable {
+                                            val currentRecord = state.recentGames.firstOrNull() ?: com.chesstutor.app.data.model.GameRecord(
+                                                id = "current",
+                                                dateMillis = System.currentTimeMillis(),
+                                                botName = state.arenaBotName,
+                                                botRating = state.effectiveBotElo,
+                                                result = if (state.arenaStatusText.contains("Checkmate")) "1-0" else "1/2-1/2",
+                                                pgn = com.chesstutor.app.domain.PgnFormatter.formatPgn(
+                                                    moves = state.moveHistory,
+                                                    whitePlayer = "You",
+                                                    blackPlayer = state.arenaBotName,
+                                                    blackElo = state.effectiveBotElo
+                                                ),
+                                                moveCount = state.moveHistory.size,
+                                                userColor = "white",
+                                                finalFen = state.fen
+                                            )
+                                            viewModel.selectGameForPgn(currentRecord)
+                                        }
+                                        .padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Flag / Missed Tactic Card (.flag #flag-play) - inset by 16dp.
                 if (state.mistakeDetected || state.analysis?.tacticalIssue != null) {
                     val issue = state.analysis?.tacticalIssue
@@ -462,31 +540,89 @@ fun ArenaScreen(
                 }
             }
 
-            // Actions: [ New Game ] Primary Brass Button - inset by 16dp.
-            Box(
+            // Actions: [ New Game ] and [ PGN ] Buttons - inset by 16dp.
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp, top = 10.dp)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(11.dp))
-                    .background(ChessTutorColors.Brass)
-                    .bouncyClickable { viewModel.startNewArenaGame() },
-                contentAlignment = Alignment.Center
+                    .padding(bottom = 16.dp, top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "New game",
-                    fontSize = 14.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = (-0.008).sp,
-                    color = ChessTutorColors.BrassInk
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(ChessTutorColors.Brass)
+                        .testTag("arena_new_game_button")
+                        .bouncyClickable { viewModel.startNewArenaGame() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "New game",
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-0.008).sp,
+                        color = ChessTutorColors.BrassInk
+                    )
+                }
+
+                if (state.moveHistory.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
+                            .testTag("arena_view_pgn_button")
+                            .bouncyClickable {
+                                val currentRecord = state.recentGames.firstOrNull() ?: com.chesstutor.app.data.model.GameRecord(
+                                    id = "current",
+                                    dateMillis = System.currentTimeMillis(),
+                                    botName = state.arenaBotName,
+                                    botRating = state.effectiveBotElo,
+                                    result = "*",
+                                    pgn = com.chesstutor.app.domain.PgnFormatter.formatPgn(
+                                        moves = state.moveHistory,
+                                        whitePlayer = "You",
+                                        blackPlayer = state.arenaBotName,
+                                        blackElo = state.effectiveBotElo
+                                    ),
+                                    moveCount = state.moveHistory.size,
+                                    userColor = "white",
+                                    finalFen = state.fen
+                                )
+                                viewModel.selectGameForPgn(currentRecord)
+                            }
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = "PGN",
+                                tint = ChessTutorColors.TextPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "PGN",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ChessTutorColors.TextPrimary
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 
     // ==================== CHOOSE AN OPPONENT SHEET (#sheet-bot) ====================
     if (isBotSheetOpen) {
+        androidx.activity.compose.BackHandler { isBotSheetOpen = false }
         ModalBottomSheet(
             onDismissRequest = { isBotSheetOpen = false },
             sheetState = botSheetState,
@@ -647,6 +783,16 @@ fun ArenaScreen(
                 Spacer(modifier = Modifier.height(20.dp))
             }
         }
+    }
+
+    if (state.isGameHistorySheetOpen) {
+        GameHistorySheet(
+            games = state.recentGames,
+            onSelectGame = { game ->
+                viewModel.selectGameForPgn(game)
+            },
+            onDismiss = { viewModel.setGameHistorySheetVisible(false) }
+        )
     }
 }
 

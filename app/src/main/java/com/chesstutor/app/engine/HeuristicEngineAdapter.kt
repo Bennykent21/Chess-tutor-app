@@ -15,4 +15,10 @@ class HeuristicEngineAdapter(
 ) {
     suspend fun selectMove(position: Position, rating: Int): Move =
         engine.selectMoveForElo(position, rating)
+
+    suspend fun findBestMove(position: Position, depth: Int = 3): Pair<Move, com.example.chess.engine.Evaluation> =
+        engine.findBestMove(position, depth)
+
+    suspend fun evaluatePosition(position: Position, depth: Int = 3): com.example.chess.engine.Evaluation =
+        engine.evaluatePosition(position, depth)
 }

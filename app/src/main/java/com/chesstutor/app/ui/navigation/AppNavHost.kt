@@ -1,5 +1,7 @@
 package com.chesstutor.app.ui.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -30,11 +33,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.ui.arena.ArenaScreen
+import com.chesstutor.app.ui.components.PgnViewerDialog
 import com.chesstutor.app.ui.components.PromotionDialog
 import com.chesstutor.app.ui.coach.CoachScreen
+import com.chesstutor.app.ui.onboarding.OnboardingScreen
 import com.chesstutor.app.ui.curriculum.CurriculumScreen
 import com.chesstutor.app.ui.review.ReviewScreen
-import com.chesstutor.app.ui.onboarding.OnboardingScreen
 import com.chesstutor.app.ui.settings.SettingsSheet
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
@@ -77,6 +81,7 @@ fun AppNavHost(
                         color = ChessTutorColors.Line,
                         shape = androidx.compose.ui.graphics.RectangleShape
                     )
+                    .navigationBarsPadding()
             ) {
                 Row(
                     modifier = Modifier
@@ -92,6 +97,7 @@ fun AppNavHost(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxSize()
+                                .testTag("nav_tab_${tab.title.lowercase()}")
                                 .bouncyClickable { viewModel.selectTab(tab.index) },
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
@@ -130,20 +136,36 @@ fun AppNavHost(
             }
         }
 
-        if (state.isSettingsVisible) {
+        if (state.selectedGameForPgn != null) {
+            BackHandler { viewModel.selectGameForPgn(null) }
+            PgnViewerDialog(
+                game = state.selectedGameForPgn!!,
+                onDismiss = { viewModel.selectGameForPgn(null) },
+                onDelete = {
+                    viewModel.deleteSavedGame(state.selectedGameForPgn!!.id)
+                    viewModel.selectGameForPgn(null)
+                }
+            )
+        } else if (state.isGameHistorySheetOpen) {
+            BackHandler { viewModel.setGameHistorySheetVisible(false) }
+        } else if (state.isDrillSheetVisible) {
+            BackHandler { viewModel.setDrillSheetVisible(false) }
+        } else if (state.isSettingsVisible) {
+            BackHandler { viewModel.setSettingsVisible(false) }
             SettingsSheet(
                 state = state,
                 viewModel = viewModel,
                 onDismiss = { viewModel.setSettingsVisible(false) }
             )
-        }
-
-        state.pendingPromotion?.let { request ->
+        } else if (state.pendingPromotion != null) {
+            BackHandler { viewModel.cancelPromotion() }
             PromotionDialog(
-                request = request,
+                request = state.pendingPromotion!!,
                 onChoose = viewModel::choosePromotion,
                 onDismiss = viewModel::cancelPromotion
             )
+        } else if (state.tab != 0) {
+            BackHandler { viewModel.selectTab(0) }
         }
     }
 }

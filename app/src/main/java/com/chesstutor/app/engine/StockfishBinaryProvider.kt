@@ -17,23 +17,7 @@ object StockfishBinaryProvider {
     fun resolve(context: Context): File {
         val abi = selectAbi()
         val targetDir = File(context.filesDir, "stockfish/$abi")
-        val target = File(targetDir, FILE_NAME)
-
-        if (!target.exists() || target.length() == 0L) {
-            targetDir.mkdirs()
-            val assetPath = "$ASSET_ROOT/$abi/$FILE_NAME"
-            context.assets.open(assetPath).use { input ->
-                target.outputStream().use { output -> input.copyTo(output) }
-            }
-        }
-
-        check(target.exists() && target.length() > 0L) {
-            "Bundled Stockfish binary was not copied to ${target.absolutePath}"
-        }
-        check(target.setExecutable(true, true) || target.canExecute()) {
-            "Stockfish binary could not be marked executable at ${target.absolutePath}"
-        }
-        return target
+        return File(targetDir, FILE_NAME)
     }
 
     private fun selectAbi(): String {

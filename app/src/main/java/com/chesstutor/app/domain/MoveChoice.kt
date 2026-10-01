@@ -20,6 +20,12 @@ data class MoveChoice(
     val uci: String
         get() = toCoreMove().uci
 
+    val isCapture: Boolean
+        get() = san.contains("x")
+
+    val isCheck: Boolean
+        get() = san.contains("+") || san.contains("#")
+
     fun toCoreMove(): Move = Move(
         from = Square.fromAlgebraic(from),
         to = Square.fromAlgebraic(to),

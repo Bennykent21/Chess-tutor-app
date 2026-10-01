@@ -81,7 +81,10 @@ data class AppUiState(
     val opponentThinking: Boolean = false,
     val currentDrillIndex: Int = 0,
     val moveHistory: List<String> = emptyList(),
-    val isDrillSheetVisible: Boolean = false
+    val isDrillSheetVisible: Boolean = false,
+    val recentGames: List<com.chesstutor.app.data.model.GameRecord> = emptyList(),
+    val selectedGameForPgn: com.chesstutor.app.data.model.GameRecord? = null,
+    val isGameHistorySheetOpen: Boolean = false
 ) {
     val effectiveBotElo: Int
         get() {
