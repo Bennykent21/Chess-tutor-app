@@ -60,6 +60,8 @@ data class AppUiState(
     val curriculumTab: Int = 0, // 0: Mistake Patterns, 1: Learn (Openings, Middlegame, Endgame)
     val activeCoachTitle: String = "Forced Mate & Consequence Retry",
     val activeCoachSubtitle: String = "Every mistake is backed by a concrete, checkable fact.",
+    val trainingRecommendation: String = "",
+    val trainingRecommendationReason: String = "",
     val activeCoachCategory: String = "TODAY'S FOCUS",
     val activeCoachRecommendedMove: String? = null,
     val isSettingsVisible: Boolean = false,
