@@ -306,6 +306,7 @@ fun CurriculumScreen(
 
     // ==================== LESSON BOTTOM SHEET (#sheet-lesson) ====================
     if (selectedLesson != null) {
+        androidx.activity.compose.BackHandler { selectedLesson = null }
         val topic = selectedLesson!!
 
         ModalBottomSheet(

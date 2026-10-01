@@ -21,12 +21,29 @@ class OnlineStockfishEngineClient(
         .writeTimeout(4, TimeUnit.SECONDS)
         .build()
 
+    private val evaluationCache = androidx.collection.LruCache<String, PositionAnalysis>(256)
+
+    @Volatile
+    private var rateLimitCooldownUntil: Long = 0L
+
     override suspend fun initialize() {
         fallback.initialize()
     }
 
     override suspend fun analyze(request: AnalysisRequest): PositionAnalysis = withContext(Dispatchers.IO) {
         val targetDepth = (request.depth ?: 10).coerceIn(6, 15)
+        val cacheKey = "${request.fen}|$targetDepth"
+
+        evaluationCache.get(cacheKey)?.let { cached ->
+            logD("OnlineStockfish cache hit for position: ${request.fen.take(20)}...")
+            return@withContext cached
+        }
+
+        // If recently rate-limited, skip external calls and use fast deterministic fallback
+        if (System.currentTimeMillis() < rateLimitCooldownUntil) {
+            logD("OnlineStockfish in rate-limit cooldown; using local fallback")
+            return@withContext fallback.analyze(request)
+        }
 
         // Strategy 1: stockfish.online (fast GET API)
         try {
@@ -38,10 +55,19 @@ class OnlineStockfishEngineClient(
                 .get()
                 .build()
 
-            val response = httpClient.newCall(httpRequest).execute()
-            if (response.isSuccessful) {
-                val body = response.body?.string()
-                if (!body.isNullOrBlank()) {
+            val call = httpClient.newCall(httpRequest)
+            call.execute().use { response ->
+                val body = runCatching { response.body?.string() }.getOrNull()
+                val isRateLimited = response.code == 429 ||
+                    body?.contains("rate limit", ignoreCase = true) == true
+
+                if (isRateLimited) {
+                    logW("stockfish.online rate limit encountered; activating 2-minute cooldown")
+                    rateLimitCooldownUntil = System.currentTimeMillis() + 120_000L
+                    return@withContext fallback.analyze(request)
+                }
+
+                if (response.isSuccessful && !body.isNullOrBlank()) {
                     val json = JSONObject(body)
                     if (json.optBoolean("success", false)) {
                         val evalDouble = if (json.isNull("evaluation")) null else json.optDouble("evaluation")
@@ -56,7 +82,7 @@ class OnlineStockfishEngineClient(
                         if (bestMoveUci.isNotBlank() && bestMoveUci != "0000") {
                             val cp = evalDouble?.let { (it * 100).toInt() }
                             logD("stockfish.online success: bestMove=$bestMoveUci, cp=$cp, mate=$mateVal")
-                            return@withContext EngineResultValidator.validate(
+                            val validated = EngineResultValidator.validate(
                                 request = request,
                                 analysis = PositionAnalysis(
                                     requestId = request.requestId,
@@ -68,12 +94,19 @@ class OnlineStockfishEngineClient(
                                 ),
                                 scorePerspective = EngineResultValidator.ScorePerspective.WHITE
                             )
+                            evaluationCache.put(cacheKey, validated)
+                            return@withContext validated
                         }
                     }
                 }
             }
         } catch (e: Exception) {
             logW("stockfish.online failed: ${e.message}, attempting secondary API...")
+        }
+
+        // If cooldown was triggered by Strategy 1, don't spam Strategy 2
+        if (System.currentTimeMillis() < rateLimitCooldownUntil) {
+            return@withContext fallback.analyze(request)
         }
 
         // Strategy 2: chess-api.com (POST API)
@@ -90,10 +123,19 @@ class OnlineStockfishEngineClient(
                 .post(requestBody)
                 .build()
 
-            val response = httpClient.newCall(httpRequest).execute()
-            if (response.isSuccessful) {
-                val body = response.body?.string()
-                if (!body.isNullOrBlank()) {
+            val call = httpClient.newCall(httpRequest)
+            call.execute().use { response ->
+                val body = runCatching { response.body?.string() }.getOrNull()
+                val isRateLimited = response.code == 429 ||
+                    body?.contains("rate limit", ignoreCase = true) == true
+
+                if (isRateLimited) {
+                    logW("chess-api.com rate limit encountered; activating 2-minute cooldown")
+                    rateLimitCooldownUntil = System.currentTimeMillis() + 120_000L
+                    return@withContext fallback.analyze(request)
+                }
+
+                if (response.isSuccessful && !body.isNullOrBlank()) {
                     val json = JSONObject(body)
                     val move = json.optString("move", "")
                     val cp = if (json.isNull("centipawns")) {
@@ -112,7 +154,7 @@ class OnlineStockfishEngineClient(
 
                     if (move.isNotBlank()) {
                         logD("chess-api.com success: bestMove=$move, cp=$cp, mate=$mate")
-                        return@withContext EngineResultValidator.validate(
+                        val validated = EngineResultValidator.validate(
                             request = request,
                             analysis = PositionAnalysis(
                                 requestId = request.requestId,
@@ -124,6 +166,8 @@ class OnlineStockfishEngineClient(
                             ),
                             scorePerspective = EngineResultValidator.ScorePerspective.WHITE
                         )
+                        evaluationCache.put(cacheKey, validated)
+                        return@withContext validated
                     }
                 }
             }
@@ -133,7 +177,9 @@ class OnlineStockfishEngineClient(
 
         // Strategy 3: Reliable Local Engine Fallback (Offline safe)
         logI("Using offline local chess engine fallback for analysis")
-        fallback.analyze(request)
+        val fallbackAnalysis = fallback.analyze(request)
+        evaluationCache.put(cacheKey, fallbackAnalysis)
+        fallbackAnalysis
     }
 
     override suspend fun setStrengthRating(rating: Int) {

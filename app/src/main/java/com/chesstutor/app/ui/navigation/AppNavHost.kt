@@ -142,6 +142,8 @@ fun AppNavHost(
             )
         } else if (state.isGameHistorySheetOpen) {
             BackHandler { viewModel.setGameHistorySheetVisible(false) }
+        } else if (state.isDrillSheetVisible) {
+            BackHandler { viewModel.setDrillSheetVisible(false) }
         } else if (state.isSettingsVisible) {
             BackHandler { viewModel.setSettingsVisible(false) }
             SettingsSheet(

@@ -622,6 +622,7 @@ fun ArenaScreen(
 
     // ==================== CHOOSE AN OPPONENT SHEET (#sheet-bot) ====================
     if (isBotSheetOpen) {
+        androidx.activity.compose.BackHandler { isBotSheetOpen = false }
         ModalBottomSheet(
             onDismissRequest = { isBotSheetOpen = false },
             sheetState = botSheetState,

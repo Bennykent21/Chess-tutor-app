@@ -399,6 +399,7 @@ fun ReviewScreen(
 
     // ==================== PROFILE BOTTOM SHEET (#sheet-profile) ====================
     if (isProfileSheetOpen) {
+        androidx.activity.compose.BackHandler { isProfileSheetOpen = false }
         ModalBottomSheet(
             onDismissRequest = { isProfileSheetOpen = false },
             sheetState = profileSheetState,

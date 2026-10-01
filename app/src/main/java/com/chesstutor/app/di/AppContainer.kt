@@ -15,7 +15,6 @@ import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import com.chesstutor.app.engine.OnlineStockfishEngineClient
-import com.chesstutor.app.engine.StockfishProcessEngineClient
 
 object AppContainer {
     @Volatile
@@ -35,6 +34,17 @@ object AppContainer {
 
     @Volatile
     private var gameRepositoryInstance: GameRepository? = null
+
+    @Volatile
+    private var soundManagerInstance: com.chesstutor.app.audio.ChessSoundManager? = null
+
+    fun provideSoundManager(context: Context): com.chesstutor.app.audio.ChessSoundManager {
+        return soundManagerInstance ?: synchronized(this) {
+            val sm = com.chesstutor.app.audio.ChessSoundManager(context.applicationContext)
+            soundManagerInstance = sm
+            sm
+        }
+    }
 
     fun provideGameRepository(context: Context): GameRepository {
         return gameRepositoryInstance ?: synchronized(this) {
@@ -81,32 +91,11 @@ object AppContainer {
         return engineClientInstance ?: synchronized(this) {
             val deterministicFallback = LocalFallbackEngineClient()
             val cloudFallback = OnlineStockfishEngineClient(fallback = deterministicFallback)
-
-            val client: EngineClient = runCatching {
-                val binaryPath =
-                    com.chesstutor.app.engine.StockfishBinaryProvider.resolve(context)
-
-                StockfishProcessEngineClient(
-                    binaryPath = binaryPath.absolutePath,
-                    fallbackClient = cloudFallback
-                ).also {
-                    engineResolutionDiagnostic =
-                        "Engine chain: bundled Stockfish (" +
-                            binaryPath.absolutePath +
-                            ") -> cloud Stockfish -> deterministic local fallback"
-                    Log.i("AppContainer", engineResolutionDiagnostic)
-                }
-            }.getOrElse { error ->
-                engineResolutionDiagnostic =
-                    "Bundled Stockfish unavailable: " +
-                        error.message +
-                        "; using cloud Stockfish -> deterministic local fallback"
-                Log.e("AppContainer", engineResolutionDiagnostic, error)
-                cloudFallback
-            }
-
-            engineClientInstance = client
-            client
+            engineResolutionDiagnostic =
+                "Engine: Cloud Stockfish with calibrated local Kotlin fallback"
+            Log.i("AppContainer", engineResolutionDiagnostic)
+            engineClientInstance = cloudFallback
+            cloudFallback
         }
     }
 

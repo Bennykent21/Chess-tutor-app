@@ -27,7 +27,8 @@ class MainActivity : ComponentActivity() {
         val learningRepo = AppContainer.provideLearningRepository(context)
         val engineManager = AppContainer.provideChessEngineManager(context)
         val gameRepo = AppContainer.provideGameRepository(context)
-        AppViewModel(repo, engine, ratingRepo, learningRepo, engineManager, gameRepo)
+        val soundManager = AppContainer.provideSoundManager(context)
+        AppViewModel(repo, engine, ratingRepo, learningRepo, engineManager, gameRepo, soundManager)
       }
 
       ChessTutorTheme {
