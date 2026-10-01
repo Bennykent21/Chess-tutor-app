@@ -253,7 +253,7 @@ class ArenaGameManager(
                 result = result,
                 pgn = pgn,
                 moveCount = moves.size,
-                userColor = "white",
+                userColor = if (userIsWhite) "white" else "black",
                 finalFen = finalFen
             )
             gameRepository.saveGame(record)
