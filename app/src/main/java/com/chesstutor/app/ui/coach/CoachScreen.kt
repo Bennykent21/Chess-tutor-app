@@ -157,6 +157,48 @@ fun CoachScreen(
             }
         }
 
+        if (state.trainingRecommendation.isNotBlank()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ChessTutorColors.Surface2)
+                    .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(12.dp))
+                    .bouncyClickable { viewModel.practiceRecommendedTraining() }
+                    .padding(horizontal = 13.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "NEXT TRAINING",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp,
+                        color = ChessTutorColors.Brass
+                    )
+                    Text(
+                        text = state.trainingRecommendation,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ChessTutorColors.TextPrimary
+                    )
+                    Text(
+                        text = state.trainingRecommendationReason,
+                        fontSize = 11.sp,
+                        color = ChessTutorColors.TextSecondary,
+                        maxLines = 2
+                    )
+                }
+                Text(
+                    text = "START",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ChessTutorColors.Brass
+                )
+            }
+        }
+
         // ==================== BODY ====================
         Column(
             modifier = Modifier
