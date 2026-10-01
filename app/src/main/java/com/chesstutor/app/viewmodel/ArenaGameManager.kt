@@ -46,7 +46,9 @@ class ArenaGameManager(
                 assessment = null,
                 analysis = null,
                 mistakeDetected = false,
-                arenaStatusText = ""
+                arenaStatusText = "",
+                busy = false,
+                opponentThinking = false
             )
         }
         chessEngineManager.startEvaluation(ChessPosition.STARTING_FEN)
@@ -172,13 +174,28 @@ class ArenaGameManager(
 
                         if (engineMovePos.isOver) {
                             val result = if (engineMovePos.isCheckmate) "0-1" else "1/2-1/2"
+                            if (engineMovePos.isCheckmate) {
+                                soundManager?.playBlunder(currentState.isSoundEnabled)
+                            }
                             saveMatchRecord(
                                 moves = updatedHistory,
                                 botName = currentState.arenaBotName,
                                 botRating = elo,
                                 result = result,
-                                finalFen = engineMovePos.fen
+                                finalFen = engineMovePos.fen,
+                                userColor = currentState.arenaPlayerSide
                             )
+                            updateState {
+                                it.copy(
+                                    busy = false,
+                                    opponentThinking = false,
+                                    arenaStatusText = if (engineMovePos.isCheckmate) {
+                                        "Game Over by Checkmate!"
+                                    } else {
+                                        "Draw!"
+                                    }
+                                )
+                            }
                         }
                     } else {
                         updateState { it.copy(busy = false, opponentThinking = false) }
@@ -197,7 +214,8 @@ class ArenaGameManager(
                     botName = currentState.arenaBotName,
                     botRating = currentState.effectiveBotElo,
                     result = result,
-                    finalFen = afterFen
+                    finalFen = afterFen,
+                    userColor = currentState.arenaPlayerSide
                 )
                 updateState {
                     it.copy(
@@ -215,14 +233,17 @@ class ArenaGameManager(
         botName: String,
         botRating: Int,
         result: String,
-        finalFen: String
+        finalFen: String,
+        userColor: Char
     ) {
         scope.launch {
+            val userIsWhite = userColor.lowercaseChar() == 'w'
             val pgn = PgnFormatter.formatPgn(
                 moves = moves,
-                whitePlayer = "You",
-                blackPlayer = botName,
-                blackElo = botRating,
+                whitePlayer = if (userIsWhite) "You" else botName,
+                blackPlayer = if (userIsWhite) botName else "You",
+                whiteElo = if (userIsWhite) null else botRating,
+                blackElo = if (userIsWhite) botRating else null,
                 result = result
             )
             val record = GameRecord(
@@ -233,7 +254,7 @@ class ArenaGameManager(
                 result = result,
                 pgn = pgn,
                 moveCount = moves.size,
-                userColor = "white",
+                userColor = if (userIsWhite) "white" else "black",
                 finalFen = finalFen
             )
             gameRepository.saveGame(record)
