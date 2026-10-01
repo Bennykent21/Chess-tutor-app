@@ -31,17 +31,18 @@ class LocalFallbackEngineClient(
             )
         }
 
-        val bestMove = heuristicEngine.selectMove(pos, rating = 1800)
+        val (bestMove, eval) = heuristicEngine.findBestMove(pos, depth = (request.depth ?: 3).coerceIn(2, 4))
         EngineResultValidator.validate(
             request,
             PositionAnalysis(
                 requestId = request.requestId,
                 bestMoveUci = bestMove.uci,
-                centipawns = null,
-                mateInMoves = null,
+                centipawns = eval.centipawns,
+                mateInMoves = eval.mateInMoves,
                 principalVariation = listOf(bestMove.uci),
                 depth = request.depth ?: 3
-            )
+            ),
+            EngineResultValidator.ScorePerspective.WHITE
         )
     }
 

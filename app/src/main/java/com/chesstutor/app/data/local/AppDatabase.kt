@@ -12,15 +12,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ReviewItemEntity::class,
         LinkedProfileEntity::class,
         LearningProfileEntity::class,
-        ModuleProgressEntity::class
+        ModuleProgressEntity::class,
+        GameRecordEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun reviewItemDao(): ReviewItemDao
     abstract fun linkedProfileDao(): LinkedProfileDao
     abstract fun learningDao(): LearningDao
+    abstract fun gameRecordDao(): GameRecordDao
 
     companion object {
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -37,6 +39,18 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE learning_profile ADD COLUMN assessmentCompletedAt INTEGER")
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS game_records (" +
+                        "id TEXT NOT NULL, dateMillis INTEGER NOT NULL, botName TEXT NOT NULL, " +
+                        "botRating INTEGER NOT NULL, result TEXT NOT NULL, pgn TEXT NOT NULL, " +
+                        "moveCount INTEGER NOT NULL, userColor TEXT NOT NULL, finalFen TEXT NOT NULL, " +
+                        "PRIMARY KEY(id))"
+                )
             }
         }
 
@@ -70,7 +84,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "chess_tutor_reviews.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                 INSTANCE = instance
                 instance
