@@ -17,6 +17,11 @@ class StockfishProcessEngineClient(
     private val binaryPath: String,
     private val fallbackClient: EngineClient = LocalFallbackEngineClient()
 ) : EngineClient {
+    companion object {
+        @Volatile
+        var isProcessExecutionPermanentlyDisabled: Boolean = true
+    }
+
     val targetPath: String get() = binaryPath
     var lastStartupError: String? = null
         private set
@@ -36,71 +41,89 @@ class StockfishProcessEngineClient(
     private var engineIdName: String = "Stockfish"
 
     val isAlive: Boolean
-        get() = process?.isAlive == true
+        get() = !isProcessExecutionPermanentlyDisabled && process?.isAlive == true
 
     override suspend fun initialize() = lifecycleMutex.withLock {
         withContext(Dispatchers.IO) {
-        if (isAlive) return@withContext
-        disposeInternal()
-        uciWaiters.clear()
-        readyWaiters.clear()
-        val file = File(binaryPath)
-        if (!file.exists()) {
-            val err = "Stockfish binary not found at $binaryPath"
-            lastStartupError = err
-            throw IllegalStateException(err)
-        }
-        if (!file.canExecute()) {
-            val err = "Stockfish binary exists but does not have execute permission at $binaryPath"
-            lastStartupError = err
-            throw IllegalStateException(err)
-        }
-
-        try {
-            val proc = ProcessBuilder(binaryPath).redirectErrorStream(true).start()
-            process = proc
-            stdinWriter = proc.outputStream.bufferedWriter()
-            readerJob = scope.launch { readLoop() }
-
-            val uciReady = CompletableDeferred<Unit>()
-            uciWaiters.add(uciReady)
-            if (!send("uci")) {
-                throw IllegalStateException("Failed to send UCI initialization command")
+            if (isAlive) return@withContext
+            if (isProcessExecutionPermanentlyDisabled) {
+                lastStartupError = "Local process execution is disabled by OS security policy on this device"
+                fallbackClient.initialize()
+                return@withContext
             }
-
-            val uciOk = withTimeoutOrNull(4000) { uciReady.await() }
-            if (uciOk == null) {
-                val err = "Stockfish process started, but did not respond with uciok within 4000ms"
-                lastStartupError = err
-                dispose()
-                throw IllegalStateException(err)
-            }
-
-            val ready = CompletableDeferred<Unit>()
-            readyWaiters.add(ready)
-            if (!send("isready")) {
-                throw IllegalStateException("Failed to send isready command")
-            }
-
-            val isReady = withTimeoutOrNull(4000) { ready.await() }
-            if (isReady == null) {
-                val err = "Stockfish process started, but did not respond to isready within 4000ms"
-                lastStartupError = err
-                dispose()
-                throw IllegalStateException(err)
-            }
-            lastStartupError = null
-        } catch (e: Exception) {
-            val err = "${e::class.java.simpleName}: ${e.message}"
-            lastStartupError = err
             disposeInternal()
-            throw e
-        }
+            uciWaiters.clear()
+            readyWaiters.clear()
+            val file = File(binaryPath)
+            if (!file.exists()) {
+                val err = "Stockfish binary not found at $binaryPath"
+                lastStartupError = err
+                isProcessExecutionPermanentlyDisabled = true
+                fallbackClient.initialize()
+                return@withContext
+            }
+            if (!file.canExecute()) {
+                val err = "Stockfish binary exists but does not have execute permission at $binaryPath"
+                lastStartupError = err
+                isProcessExecutionPermanentlyDisabled = true
+                fallbackClient.initialize()
+                return@withContext
+            }
+
+            try {
+                val proc = ProcessBuilder(binaryPath).redirectErrorStream(true).start()
+                process = proc
+                stdinWriter = proc.outputStream.bufferedWriter()
+                readerJob = scope.launch { readLoop() }
+
+                val uciReady = CompletableDeferred<Unit>()
+                uciWaiters.add(uciReady)
+                if (!send("uci")) {
+                    throw IllegalStateException("Failed to send UCI initialization command")
+                }
+
+                val uciOk = withTimeoutOrNull(4000) { uciReady.await() }
+                if (uciOk == null) {
+                    val err = "Stockfish process started, but did not respond with uciok within 4000ms"
+                    lastStartupError = err
+                    dispose()
+                    throw IllegalStateException(err)
+                }
+
+                val ready = CompletableDeferred<Unit>()
+                readyWaiters.add(ready)
+                if (!send("isready")) {
+                    throw IllegalStateException("Failed to send isready command")
+                }
+
+                val isReady = withTimeoutOrNull(4000) { ready.await() }
+                if (isReady == null) {
+                    val err = "Stockfish process started, but did not respond to isready within 4000ms"
+                    lastStartupError = err
+                    dispose()
+                    throw IllegalStateException(err)
+                }
+                lastStartupError = null
+            } catch (e: Exception) {
+                val err = "${e::class.java.simpleName}: ${e.message}"
+                lastStartupError = err
+                val msg = e.message ?: ""
+                if (e is SecurityException || msg.contains("Permission denied", ignoreCase = true) ||
+                    msg.contains("error=13") || msg.contains("EACCES", ignoreCase = true) ||
+                    msg.contains("Cannot run program", ignoreCase = true)
+                ) {
+                    isProcessExecutionPermanentlyDisabled = true
+                    android.util.Log.w("StockfishProcess", "Process execution denied by OS policy; permanently disabling local process spawn to prevent audit spam.")
+                }
+                disposeInternal()
+                fallbackClient.initialize()
+            }
         }
     }
 
     suspend fun ensureInitialized(): Boolean = withContext(Dispatchers.IO) {
         if (isAlive) return@withContext true
+        if (isProcessExecutionPermanentlyDisabled) return@withContext false
         try {
             initialize()
             isAlive
@@ -115,7 +138,10 @@ class StockfishProcessEngineClient(
      * it falls back to Skill Level 0..5 to avoid the artificial 1320 floor.
      */
     override suspend fun setStrengthRating(rating: Int) = withContext(Dispatchers.IO) {
-        if (!isAlive) return@withContext
+        if (isProcessExecutionPermanentlyDisabled || !isAlive) {
+            fallbackClient.setStrengthRating(rating)
+            return@withContext
+        }
         if (rating >= 1320) {
             send("setoption name UCI_LimitStrength value true")
             send("setoption name UCI_Elo value ${rating.coerceIn(1320, 3190)}")
@@ -205,13 +231,16 @@ class StockfishProcessEngineClient(
         }
     }
 
-    override suspend fun analyze(request: AnalysisRequest): PositionAnalysis =
-        analysisMutex.withLock {
-            withContext(Dispatchers.IO) {
-        // If process is dead, fail over immediately to fallback without hanging
-        if (process == null || process?.isAlive != true) {
-            return@withContext fallbackClient.analyze(request)
+    override suspend fun analyze(request: AnalysisRequest): PositionAnalysis {
+        if (isProcessExecutionPermanentlyDisabled || process == null || process?.isAlive != true) {
+            return fallbackClient.analyze(request)
         }
+        return analysisMutex.withLock {
+            withContext(Dispatchers.IO) {
+                // If process is dead, fail over immediately to fallback without hanging
+                if (process == null || process?.isAlive != true) {
+                    return@withContext fallbackClient.analyze(request)
+                }
 
         check(pendingResult == null) { "Analysis already in progress" }
         activeRequest = request
@@ -251,6 +280,7 @@ class StockfishProcessEngineClient(
         }
             }
         }
+    }
 
     override suspend fun stop() {
         send("stop")

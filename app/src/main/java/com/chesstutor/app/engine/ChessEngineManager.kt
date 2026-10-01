@@ -302,18 +302,19 @@ class ChessEngineManager(
         val corePos = Position.tryFromFen(fen).getOrNull() ?: return@withContext null
 
         return@withContext try {
+            // For sub-2600 levels, use calibrated local bot move selector directly (no network lag or rate limits)
+            if (elo < 2600) {
+                val fallback = localBotMoveSelector.selectMove(corePos, elo)
+                val chosen = chessPos.legalMoves.firstOrNull { it.uci == fallback.uci }
+                    ?: chessPos.legalMoves.firstOrNull()
+                if (chosen != null) {
+                    _state.update { it.copy(lastCalculatedMove = chosen) }
+                }
+                return@withContext chosen
+            }
+
             runCatching { engineClient.setStrengthRating(elo) }
-            val preset = BotStrength.presets.minByOrNull {
-                kotlin.math.abs(it.rating - elo)
-            }
-            val depth = when {
-                preset == null -> 3
-                preset.rating <= 600 -> 2
-                preset.rating <= 1300 -> 3
-                preset.rating <= 2000 -> 4
-                preset.rating <= 2400 -> 5
-                else -> 6
-            }
+            val depth = 6
             val result = analysisService.analyze(fen = fen, depth = depth, movetimeMs = 800)
             val matching = result?.let { analysis ->
                 chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci }

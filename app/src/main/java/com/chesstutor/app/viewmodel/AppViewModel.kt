@@ -39,7 +39,8 @@ class AppViewModel(
     private val ratingRepository: RatingRepository = InMemoryRatingRepository(),
     private val learningRepository: LearningRepository = com.chesstutor.app.data.repository.InMemoryLearningRepository(),
     private val chessEngineManager: ChessEngineManager = ChessEngineManager(engine),
-    private val gameRepository: GameRepository = InMemoryGameRepository()
+    private val gameRepository: GameRepository = InMemoryGameRepository(),
+    private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
@@ -66,7 +67,8 @@ class AppViewModel(
         reviewRepository = repository,
         gameRepository = gameRepository,
         blunderClassifier = blunderClassifier,
-        scope = viewModelScope
+        scope = viewModelScope,
+        soundManager = soundManager
     )
 
     companion object {
@@ -158,6 +160,7 @@ class AppViewModel(
             if (opponentMove != null) {
                 val nextPos = ChessPosition(afterFen)
                 nextPos.play(opponentMove)
+                soundManager?.playMove(_state.value.isSoundEnabled, isCapture = opponentMove.isCapture, isCheck = nextPos.isCheck)
                 _state.update {
                     it.copy(
                         fen = nextPos.fen,
@@ -391,10 +394,12 @@ class AppViewModel(
 
         val afterFen = afterPos.fen
         val isMatePlayed = afterPos.isCheckmate
+        soundManager?.playMove(_state.value.isSoundEnabled, isCapture = move.isCapture, isCheck = afterPos.isCheck)
         chessEngineManager.startEvaluation(afterFen)
 
         if (matesBefore.isNotEmpty()) {
             if (isMatePlayed) {
+                soundManager?.playSuccess(_state.value.isSoundEnabled)
                 recordTacticalAttempt(correct = true)
                 recordCurriculumAttempt(correct = true)
                 _state.update {
@@ -417,6 +422,7 @@ class AppViewModel(
                     )
                 }
             } else {
+                soundManager?.playBlunder(_state.value.isSoundEnabled)
                 val bestMateMove = matesBefore.first()
                 val assessment = MoveAssessment(
                     evaluationBeforeCp = 10000,
@@ -461,6 +467,7 @@ class AppViewModel(
             val rec = _state.value.activeCoachRecommendedMove
             if (rec != null && rec.length >= 4) {
                 if (move.uci == rec || isMatePlayed) {
+                    soundManager?.playSuccess(_state.value.isSoundEnabled)
                     recordCurriculumAttempt(correct = true)
                     _state.update {
                         it.copy(
@@ -473,6 +480,7 @@ class AppViewModel(
                         )
                     }
                 } else {
+                    soundManager?.playBlunder(_state.value.isSoundEnabled)
                     recordCurriculumAttempt(correct = false)
                     _state.update {
                         it.copy(

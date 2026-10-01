@@ -61,7 +61,6 @@ fun CoachScreen(
     modifier: Modifier = Modifier
 ) {
     var isBoardFlipped by remember { mutableStateOf(false) }
-    var isDrillSheetOpen by remember { mutableStateOf(false) }
 
     val drills = TrainDrillsRepository.drills
     val drillSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -92,7 +91,7 @@ fun CoachScreen(
                 modifier = Modifier
                     .weight(1f)
                     .testTag("coach_drill_selector")
-                    .bouncyClickable { isDrillSheetOpen = true }
+                    .bouncyClickable { viewModel.setDrillSheetVisible(true) }
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -314,9 +313,9 @@ fun CoachScreen(
     }
 
     // ==================== CHOOSE A DRILL SHEET ====================
-    if (isDrillSheetOpen) {
+    if (state.isDrillSheetVisible) {
         ModalBottomSheet(
-            onDismissRequest = { isDrillSheetOpen = false },
+            onDismissRequest = { viewModel.setDrillSheetVisible(false) },
             sheetState = drillSheetState,
             containerColor = ChessTutorColors.Surface,
             contentColor = ChessTutorColors.TextPrimary,
@@ -378,7 +377,7 @@ fun CoachScreen(
                                 )
                                 .bouncyClickable {
                                     viewModel.selectDrill(index)
-                                    isDrillSheetOpen = false
+                                    viewModel.setDrillSheetVisible(false)
                                 }
                                 .padding(13.dp),
                             verticalAlignment = Alignment.CenterVertically,

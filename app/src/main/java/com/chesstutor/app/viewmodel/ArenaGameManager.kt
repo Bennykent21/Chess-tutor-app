@@ -10,9 +10,11 @@ import com.chesstutor.app.domain.PgnFormatter
 import com.chesstutor.app.domain.ReviewItem
 import com.chesstutor.app.domain.SearchConfidence
 import com.chesstutor.app.domain.VerifiedConsequence
+import com.chesstutor.app.engine.AnalysisRequest
 import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.ChessEngineManager
+import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -24,7 +26,8 @@ class ArenaGameManager(
     private val reviewRepository: ReviewRepository,
     private val gameRepository: GameRepository,
     private val blunderClassifier: BlunderClassifier,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null
 ) {
 
     fun startNewGame(
@@ -62,6 +65,8 @@ class ArenaGameManager(
         val afterFen = afterPos.fen
         val newHistory = currentState.moveHistory + move.san
 
+        soundManager?.playMove(currentState.isSoundEnabled, isCapture = move.isCapture, isCheck = afterPos.isCheck)
+
         updateState {
             it.copy(
                 fen = afterFen,
@@ -75,25 +80,15 @@ class ArenaGameManager(
 
         scope.launch {
             val depth = when (currentState.arenaDifficulty) {
-                "Beginner" -> 1
+                "Beginner" -> 2
                 "Casual" -> 2
                 "Intermediate" -> 3
-                else -> 4
+                else -> 3
             }
 
-            val analysisBefore = chessEngineManager.analysisService.analyze(fen = beforeFen, depth = depth)
-            val analysisAfter = chessEngineManager.analysisService.analyze(fen = afterFen, depth = depth)
-
-            if (analysisBefore == null || analysisAfter == null) {
-                updateState {
-                    it.copy(
-                        busy = false,
-                        opponentThinking = false,
-                        message = "Analysis superseded by a newer position."
-                    )
-                }
-                return@launch
-            }
+            val localEngine = LocalFallbackEngineClient()
+            val analysisBefore = localEngine.analyze(AnalysisRequest(1001, beforeFen, depth = depth))
+            val analysisAfter = localEngine.analyze(AnalysisRequest(1002, afterFen, depth = depth))
 
             val verdict = blunderClassifier.classify(analysisBefore, analysisAfter)
             val consequences = mutableListOf<VerifiedConsequence>()
@@ -123,6 +118,7 @@ class ArenaGameManager(
             )
 
             if (verdict.isBlunder) {
+                soundManager?.playBlunder(currentState.isSoundEnabled)
                 val item = ReviewItem(
                     id = UUID.randomUUID().toString(),
                     fen = beforeFen,
@@ -159,6 +155,9 @@ class ArenaGameManager(
                         val engineMovePos = ChessPosition(afterFen)
                         engineMovePos.play(engineMove)
                         val updatedHistory = newHistory + engineMove.san
+
+                        soundManager?.playMove(currentState.isSoundEnabled, isCapture = engineMove.isCapture, isCheck = engineMovePos.isCheck)
+
                         updateState {
                             it.copy(
                                 fen = engineMovePos.fen,
@@ -189,6 +188,9 @@ class ArenaGameManager(
                 }
             } else {
                 chessEngineManager.startEvaluation(afterFen)
+                if (afterPos.isCheckmate) {
+                    soundManager?.playSuccess(currentState.isSoundEnabled)
+                }
                 val result = if (afterPos.isCheckmate) "1-0" else "1/2-1/2"
                 saveMatchRecord(
                     moves = newHistory,
