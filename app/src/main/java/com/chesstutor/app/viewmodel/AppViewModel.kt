@@ -251,6 +251,7 @@ class AppViewModel(
         curriculumCoordinator.recordCurriculumAttempt(_state.value.curriculumLessonId, correct, _state::update)
     }
 
+    // Refreshes the next lesson after persisted learning-profile changes.
     private fun refreshTrainingRecommendation() {
         viewModelScope.launch {
             val profile = learningRepository.getProfile()
