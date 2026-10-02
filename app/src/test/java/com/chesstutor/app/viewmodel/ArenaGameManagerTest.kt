@@ -98,4 +98,90 @@ class ArenaGameManagerTest {
         repo.deleteGame("test-1")
         assertEquals(0, repo.getRecentGames(10).size)
     }
+    @Test
+    fun completedUserMoveSavesArenaGameRecord() = runTest {
+        val engineManager = ChessEngineManager(LocalFallbackEngineClient())
+        val reviewRepo = InMemoryReviewRepository()
+        val gameRepo = InMemoryGameRepository()
+        val manager = ArenaGameManager(
+            chessEngineManager = engineManager,
+            reviewRepository = reviewRepo,
+            gameRepository = gameRepo,
+            blunderClassifier = BlunderClassifier(),
+            scope = this
+        )
+
+        val position = ChessPosition(AppViewModel.FEN_BACK_RANK_MATE)
+        val mateMove = position.legalMoves.firstOrNull { it.san.contains("#") }
+        assertNotNull(mateMove)
+
+        var state = AppUiState(
+            fen = AppViewModel.FEN_BACK_RANK_MATE,
+            arenaBotName = "Wayne",
+            customBotElo = 600,
+            arenaPlayerSide = 'w',
+            isAutoOpponentEnabled = false
+        )
+
+        manager.playArenaMove(
+            move = mateMove!!,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update ->
+                state = update(state)
+            }
+        )
+
+        advanceUntilIdle()
+
+        val saved = gameRepo.getRecentGames(10)
+        assertEquals(1, saved.size)
+        assertEquals("1-0", saved.first().result)
+        assertEquals(1, saved.first().moveCount)
+        assertTrue(saved.first().pgn.contains("#"))
+        assertEquals(false, state.busy)
+        assertEquals(false, state.opponentThinking)
+    }
+
+    @Test
+    fun automaticBotResponseCompletesItsTurnWithoutLeavingThinkingState() = runTest {
+        val engineManager = ChessEngineManager(LocalFallbackEngineClient())
+        val reviewRepo = InMemoryReviewRepository()
+        val gameRepo = InMemoryGameRepository()
+        val manager = ArenaGameManager(
+            chessEngineManager = engineManager,
+            reviewRepository = reviewRepo,
+            gameRepository = gameRepo,
+            blunderClassifier = BlunderClassifier(),
+            scope = this
+        )
+
+        val position = ChessPosition(ChessPosition.STARTING_FEN)
+        val playerMove = position.legalMoves.first { it.uci == "e2e4" }
+
+        var state = AppUiState(
+            fen = ChessPosition.STARTING_FEN,
+            arenaBotName = "Wayne",
+            customBotElo = 600,
+            arenaPlayerSide = 'w',
+            isAutoOpponentEnabled = true
+        )
+
+        manager.playArenaMove(
+            move = playerMove,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update ->
+                state = update(state)
+            }
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(2, state.moveHistory.size)
+        assertEquals(false, state.opponentThinking)
+        assertEquals(false, state.busy)
+        assertTrue(state.fen != ChessPosition.STARTING_FEN)
+    }
+
 }
