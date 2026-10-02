@@ -9,7 +9,7 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -98,6 +98,7 @@ class ArenaGameManagerTest {
         repo.deleteGame("test-1")
         assertEquals(0, repo.getRecentGames(10).size)
     }
+
     @Test
     fun completedUserMoveSavesArenaGameRecord() = runTest {
         val engineManager = ChessEngineManager(LocalFallbackEngineClient())
@@ -183,5 +184,4 @@ class ArenaGameManagerTest {
         assertEquals(false, state.busy)
         assertTrue(state.fen != ChessPosition.STARTING_FEN)
     }
-
 }
