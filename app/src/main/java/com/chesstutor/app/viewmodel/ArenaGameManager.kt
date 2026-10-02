@@ -89,60 +89,80 @@ class ArenaGameManager(
             }
 
             val localEngine = LocalFallbackEngineClient()
-            val analysisBefore = localEngine.analyze(AnalysisRequest(1001, beforeFen, depth = depth))
-            val analysisAfter = localEngine.analyze(AnalysisRequest(1002, afterFen, depth = depth))
-
-            val verdict = blunderClassifier.classify(analysisBefore, analysisAfter)
-            val consequences = mutableListOf<VerifiedConsequence>()
-
-            when (verdict.kind) {
-                BlunderKind.MISSED_FORCED_MATE -> consequences.add(VerifiedConsequence.MISSED_FORCED_MATE)
-                BlunderKind.WALKED_INTO_FORCED_MATE -> consequences.add(VerifiedConsequence.WALKED_INTO_FORCED_MATE)
-                BlunderKind.CENTIPAWN_LOSS -> consequences.add(VerifiedConsequence.MATERIAL_LOST_BY_FORCE)
-                else -> {}
-            }
-
-            val coachingLabel = when (verdict.kind) {
-                BlunderKind.MISSED_FORCED_MATE -> "Verified Fact: Missed forced checkmate!"
-                BlunderKind.WALKED_INTO_FORCED_MATE -> "Verified Fact: Walked into opponent forced checkmate!"
-                BlunderKind.CENTIPAWN_LOSS -> "Verified Blunder: Material or evaluation drop of ${verdict.centipawnLoss} cp."
-                else -> "Solid move: Position maintained."
-            }
-
-            val assessment = MoveAssessment(
-                evaluationBeforeCp = analysisBefore.centipawns,
-                evaluationAfterCp = analysisAfter.centipawns,
-                mateInMovesBefore = analysisBefore.mateInMoves,
-                mateInMovesAfter = analysisAfter.mateInMoves,
-                verifiedConsequences = consequences,
-                confidence = SearchConfidence(depth = depth, nodes = null),
-                coachingLabel = coachingLabel
-            )
-
-            if (verdict.isBlunder) {
-                soundManager?.playBlunder(currentState.isSoundEnabled)
-                val item = ReviewItem(
-                    id = UUID.randomUUID().toString(),
-                    fen = beforeFen,
-                    dueAt = Instant.now(),
-                    stage = -1,
-                    attempts = 0,
-                    mistakeUci = move.uci,
-                    bestMoveUci = analysisBefore.bestMoveUci,
-                    explanation = coachingLabel
+            val analysisResult = runCatching {
+                val analysisBefore = localEngine.analyze(AnalysisRequest(1001, beforeFen, depth = depth))
+                val analysisAfter = localEngine.analyze(AnalysisRequest(1002, afterFen, depth = depth))
+                analysisBefore to analysisAfter
+            }.onFailure {
+                android.util.Log.w(
+                    "ArenaGameManager",
+                    "Move analysis failed; continuing game without coaching analysis.",
+                    it
                 )
-                reviewRepository.upsert(item)
-                loadReviews()
-            }
+            }.getOrNull()
 
-            updateState {
-                it.copy(
-                    assessment = assessment,
-                    message = coachingLabel,
-                    mistakeDetected = verdict.isBlunder,
-                    mistakeFen = if (verdict.isBlunder) beforeFen else null,
-                    canRetryMistake = verdict.isBlunder
+            if (analysisResult != null) {
+                val analysisBefore = analysisResult.first
+                val analysisAfter = analysisResult.second
+                val verdict = blunderClassifier.classify(analysisBefore, analysisAfter)
+                val consequences = mutableListOf<VerifiedConsequence>()
+
+                when (verdict.kind) {
+                    BlunderKind.MISSED_FORCED_MATE -> consequences.add(VerifiedConsequence.MISSED_FORCED_MATE)
+                    BlunderKind.WALKED_INTO_FORCED_MATE -> consequences.add(VerifiedConsequence.WALKED_INTO_FORCED_MATE)
+                    BlunderKind.CENTIPAWN_LOSS -> consequences.add(VerifiedConsequence.MATERIAL_LOST_BY_FORCE)
+                    else -> {}
+                }
+
+                val coachingLabel = when (verdict.kind) {
+                    BlunderKind.MISSED_FORCED_MATE -> "Verified Fact: Missed forced checkmate!"
+                    BlunderKind.WALKED_INTO_FORCED_MATE -> "Verified Fact: Walked into opponent forced checkmate!"
+                    BlunderKind.CENTIPAWN_LOSS -> "Verified Blunder: Material or evaluation drop of ${verdict.centipawnLoss} cp."
+                    else -> "Solid move: Position maintained."
+                }
+
+                val assessment = MoveAssessment(
+                    evaluationBeforeCp = analysisBefore.centipawns,
+                    evaluationAfterCp = analysisAfter.centipawns,
+                    mateInMovesBefore = analysisBefore.mateInMoves,
+                    mateInMovesAfter = analysisAfter.mateInMoves,
+                    verifiedConsequences = consequences,
+                    confidence = SearchConfidence(depth = depth, nodes = null),
+                    coachingLabel = coachingLabel
                 )
+
+                if (verdict.isBlunder) {
+                    soundManager?.playBlunder(currentState.isSoundEnabled)
+                    val item = ReviewItem(
+                        id = UUID.randomUUID().toString(),
+                        fen = beforeFen,
+                        dueAt = Instant.now(),
+                        stage = -1,
+                        attempts = 0,
+                        mistakeUci = move.uci,
+                        bestMoveUci = analysisBefore.bestMoveUci,
+                        explanation = coachingLabel
+                    )
+                    reviewRepository.upsert(item)
+                    loadReviews()
+                }
+
+                updateState {
+                    it.copy(
+                        assessment = assessment,
+                        message = coachingLabel,
+                        mistakeDetected = verdict.isBlunder,
+                        mistakeFen = if (verdict.isBlunder) beforeFen else null,
+                        canRetryMistake = verdict.isBlunder
+                    )
+                }
+            } else {
+                updateState {
+                    it.copy(
+                        assessment = null,
+                        message = "Move ${move.san} played. Coaching analysis unavailable; continuing game."
+                    )
+                }
             }
 
             if (!afterPos.isOver) {
