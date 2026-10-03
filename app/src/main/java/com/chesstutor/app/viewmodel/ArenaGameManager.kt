@@ -14,6 +14,7 @@ import com.chesstutor.app.engine.AnalysisRequest
 import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.ChessEngineManager
+import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
