@@ -14,7 +14,8 @@ data class GameRecordEntity(
     val pgn: String,
     val moveCount: Int,
     val userColor: String,
-    val finalFen: String
+    val finalFen: String,
+    val uciMoves: String
 ) {
     fun toDomain(): GameRecord = GameRecord(
         id = id,
@@ -25,7 +26,8 @@ data class GameRecordEntity(
         pgn = pgn,
         moveCount = moveCount,
         userColor = userColor,
-        finalFen = finalFen
+        finalFen = finalFen,
+        uciMoves = uciMoves
     )
 
     companion object {
@@ -38,7 +40,8 @@ data class GameRecordEntity(
             pgn = domain.pgn,
             moveCount = domain.moveCount,
             userColor = domain.userColor,
-            finalFen = domain.finalFen
+            finalFen = domain.finalFen,
+            uciMoves = domain.uciMoves
         )
     }
 }
