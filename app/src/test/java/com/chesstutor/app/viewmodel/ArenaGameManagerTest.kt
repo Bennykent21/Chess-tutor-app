@@ -9,7 +9,7 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.ExperimentalCoroutinesApi
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
