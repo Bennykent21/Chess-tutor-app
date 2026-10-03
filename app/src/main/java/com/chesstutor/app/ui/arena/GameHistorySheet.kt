@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.data.model.GameRecord
+import com.chesstutor.app.engine.GameAnalysisResult
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
 import java.text.SimpleDateFormat
@@ -48,7 +51,10 @@ import java.util.Locale
 @Composable
 fun GameHistorySheet(
     games: List<GameRecord>,
+    analysis: GameAnalysisResult?,
+    isAnalyzingGame: Boolean,
     onSelectGame: (GameRecord) -> Unit,
+    onAnalyzeGame: (GameRecord) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -131,6 +137,29 @@ fun GameHistorySheet(
                 }
             }
 
+            analysis?.let { result ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(ChessTutorColors.Surface2)
+                        .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(text = "Analysis", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ChessTutorColors.TextPrimary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (result.analyzedMoves.isEmpty()) "No replayable moves are available for this game." else "${result.userBlunders.size} blunders · ${result.missedForcedMates} missed mates · ${result.centipawnLoss} cp loss",
+                        fontSize = 12.sp,
+                        color = ChessTutorColors.TextSecondary
+                    )
+                    if (result.skippedMoves > 0) {
+                        Text(text = "${result.skippedMoves} move(s) could not be analyzed.", fontSize = 11.sp, color = ChessTutorColors.TextTertiary, modifier = Modifier.padding(top = 3.dp))
+                    }
+                }
+            }
+
             if (games.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -183,7 +212,9 @@ fun GameHistorySheet(
                     items(games, key = { it.id }) { game ->
                         GameHistoryRow(
                             game = game,
-                            onClick = { onSelectGame(game) }
+                            onClick = { onSelectGame(game) },
+                            isAnalyzing = isAnalyzingGame && analysis?.gameId != game.id,
+                            onAnalyze = { onAnalyzeGame(game) }
                         )
                     }
                 }
@@ -195,7 +226,9 @@ fun GameHistorySheet(
 @Composable
 private fun GameHistoryRow(
     game: GameRecord,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isAnalyzing: Boolean,
+    onAnalyze: () -> Unit
 ) {
     val formattedDate = remember(game.dateMillis) {
         val sdf = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
@@ -269,6 +302,14 @@ private fun GameHistoryRow(
                 fontSize = 11.5.sp,
                 color = ChessTutorColors.TextSecondary
             )
+        }
+
+        TextButton(onClick = onAnalyze, enabled = !isAnalyzing, modifier = Modifier.testTag("game_analyze_button_${game.id}")) {
+            if (isAnalyzing) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            } else {
+                Text(text = "Analyze", fontSize = 12.sp, color = ChessTutorColors.Brass)
+            }
         }
 
         Icon(
