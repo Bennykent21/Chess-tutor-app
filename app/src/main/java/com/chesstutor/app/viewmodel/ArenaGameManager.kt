@@ -180,10 +180,14 @@ class ArenaGameManager(
             }
 
             mateLessonOutcome?.let { correct ->
-                runCatching {
+                try {
                     learningRepository.recordModuleAttempt("lesson_mate_1", correct)
-                }.onFailure {
-                    android.util.Log.w("ArenaGameManager", "Learning progress update failed; continuing game.", it)
+                } catch (error: Exception) {
+                    android.util.Log.w(
+                        "ArenaGameManager",
+                        "Learning progress update failed; continuing game.",
+                        error
+                    )
                 }
             }
 
@@ -280,13 +284,13 @@ class ArenaGameManager(
     ) {
         val userIsWhite = userColor.lowercaseChar() == 'w'
         val pgn = PgnFormatter.formatPgn(
-                moves = moves,
-                whitePlayer = if (userIsWhite) "You" else botName,
-                blackPlayer = if (userIsWhite) botName else "You",
-                whiteElo = if (userIsWhite) null else botRating,
-                blackElo = if (userIsWhite) botRating else null,
-                result = result
-            )
+            moves = moves,
+            whitePlayer = if (userIsWhite) "You" else botName,
+            blackPlayer = if (userIsWhite) botName else "You",
+            whiteElo = if (userIsWhite) null else botRating,
+            blackElo = if (userIsWhite) botRating else null,
+            result = result
+        )
         val record = GameRecord(
                 id = UUID.randomUUID().toString(),
                 dateMillis = System.currentTimeMillis(),
