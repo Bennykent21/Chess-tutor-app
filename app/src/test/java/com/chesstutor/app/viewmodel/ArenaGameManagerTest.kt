@@ -9,6 +9,7 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -101,7 +102,11 @@ class ArenaGameManagerTest {
 
     @Test
     fun completedUserMoveSavesArenaGameRecord() = runTest {
-        val engineManager = ChessEngineManager(LocalFallbackEngineClient())
+        val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+        val engineManager = ChessEngineManager(
+            LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
+            calculationDispatcher = testDispatcher
+        )
         val reviewRepo = InMemoryReviewRepository()
         val gameRepo = InMemoryGameRepository()
         val manager = ArenaGameManager(
@@ -109,7 +114,8 @@ class ArenaGameManagerTest {
             reviewRepository = reviewRepo,
             gameRepository = gameRepo,
             blunderClassifier = BlunderClassifier(),
-            scope = this
+            scope = this,
+            analysisEngineClient = LocalFallbackEngineClient(calculationDispatcher = testDispatcher)
         )
 
         val position = ChessPosition(AppViewModel.FEN_BACK_RANK_MATE)
