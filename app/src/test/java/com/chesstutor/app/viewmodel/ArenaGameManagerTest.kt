@@ -9,14 +9,15 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ArenaGameManagerTest {
 
     @Test
@@ -130,7 +131,7 @@ class ArenaGameManagerTest {
             isAutoOpponentEnabled = false
         )
 
-        manager.playArenaMove(
+        val moveJob = manager.playArenaMove(
             move = mateMove!!,
             currentState = state,
             loadReviews = {},
@@ -139,7 +140,7 @@ class ArenaGameManagerTest {
             }
         )
 
-        advanceUntilIdle()
+        moveJob?.join()
 
         val saved = gameRepo.getRecentGames(10)
         assertEquals(1, saved.size)
@@ -152,7 +153,11 @@ class ArenaGameManagerTest {
 
     @Test
     fun automaticBotResponseCompletesItsTurnWithoutLeavingThinkingState() = runTest {
-        val engineManager = ChessEngineManager(LocalFallbackEngineClient())
+        val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+        val engineManager = ChessEngineManager(
+            LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
+            calculationDispatcher = testDispatcher
+        )
         val reviewRepo = InMemoryReviewRepository()
         val gameRepo = InMemoryGameRepository()
         val manager = ArenaGameManager(
@@ -160,7 +165,8 @@ class ArenaGameManagerTest {
             reviewRepository = reviewRepo,
             gameRepository = gameRepo,
             blunderClassifier = BlunderClassifier(),
-            scope = this
+            scope = this,
+            analysisEngineClient = LocalFallbackEngineClient(calculationDispatcher = testDispatcher)
         )
 
         val position = ChessPosition(ChessPosition.STARTING_FEN)
@@ -174,7 +180,7 @@ class ArenaGameManagerTest {
             isAutoOpponentEnabled = true
         )
 
-        manager.playArenaMove(
+        val moveJob = manager.playArenaMove(
             move = playerMove,
             currentState = state,
             loadReviews = {},
@@ -183,7 +189,7 @@ class ArenaGameManagerTest {
             }
         )
 
-        advanceUntilIdle()
+        moveJob?.join()
 
         assertEquals(2, state.moveHistory.size)
         assertEquals(false, state.opponentThinking)
