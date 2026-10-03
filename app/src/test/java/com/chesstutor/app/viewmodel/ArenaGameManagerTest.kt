@@ -151,7 +151,7 @@ class ArenaGameManagerTest {
 
     @Test
     fun automaticBotResponseCompletesItsTurnWithoutLeavingThinkingState() = runTest {
-        val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+        val testDispatcher = StandardTestDispatcher(testScheduler)
         val engineManager = ChessEngineManager(
             LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
             calculationDispatcher = testDispatcher
