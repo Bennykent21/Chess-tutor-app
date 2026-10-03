@@ -146,7 +146,7 @@ class ArenaGameManagerTest {
         assertEquals(1, saved.size)
         assertEquals("1-0", saved.first().result)
         assertEquals(1, saved.first().moveCount)
-        assertEquals("", saved.first().uciMoves)
+        assertEquals(mateMove!!.uci, saved.first().uciMoves)
         assertTrue(saved.first().pgn.contains("#"))
         assertEquals(false, state.busy)
         assertEquals(false, state.opponentThinking)
