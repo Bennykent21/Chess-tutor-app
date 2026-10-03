@@ -69,6 +69,7 @@ class AppViewModel(
         reviewRepository = repository,
         gameRepository = gameRepository,
         blunderClassifier = blunderClassifier,
+        learningRepository = learningRepository,
         scope = viewModelScope,
         soundManager = soundManager
     )
