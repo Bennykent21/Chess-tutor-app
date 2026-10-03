@@ -58,7 +58,8 @@ class GameAnalysisService(
         var skipped = 0
 
         for ((index, uci) in moves.withIndex()) {
-            val userMove = position.sideToMove == if (userIsWhite) 'w' else 'b'
+            val moverIsWhite = position.sideToMove == 'w'
+            val userMove = moverIsWhite == userIsWhite
             val beforeFen = position.fen
 
             val before = runCatching {
@@ -103,7 +104,7 @@ class GameAnalysisService(
                 verdict = blunderClassifier.classify(
                     before,
                     after,
-                    moverIsWhite = userMove || !userMove && !userIsWhite
+                    moverIsWhite = moverIsWhite
                 ),
                 userMove = userMove
             )
