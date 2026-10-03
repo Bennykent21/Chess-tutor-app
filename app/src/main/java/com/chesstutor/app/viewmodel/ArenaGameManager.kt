@@ -17,6 +17,7 @@ import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -61,10 +62,10 @@ class ArenaGameManager(
         currentState: AppUiState,
         loadReviews: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit
-    ) {
+    ): Job? {
         val beforeFen = currentState.fen
         val afterPos = ChessPosition(beforeFen)
-        if (!afterPos.play(move)) return
+        if (!afterPos.play(move)) return null
 
         val afterFen = afterPos.fen
         val newHistory = currentState.moveHistory + move.san
@@ -82,7 +83,7 @@ class ArenaGameManager(
         }
         chessEngineManager.startEvaluation(afterFen)
 
-        scope.launch {
+        return scope.launch {
             val depth = when (currentState.arenaDifficulty) {
                 "Beginner" -> 2
                 "Casual" -> 2
