@@ -115,7 +115,11 @@ class ArenaGameManager(
             if (analysisResult != null) {
                 val analysisBefore = analysisResult.first
                 val analysisAfter = analysisResult.second
-                val verdict = blunderClassifier.classify(analysisBefore, analysisAfter)
+                val verdict = blunderClassifier.classify(
+                    analysisBefore,
+                    analysisAfter,
+                    moverIsWhite = beforeFen.split(" ").getOrNull(1) == "w"
+                )
                 val consequences = mutableListOf<VerifiedConsequence>()
 
                 when (verdict.kind) {
