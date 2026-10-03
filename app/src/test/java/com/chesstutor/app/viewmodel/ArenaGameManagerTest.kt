@@ -108,11 +108,13 @@ class ArenaGameManagerTest {
         )
         val reviewRepo = InMemoryReviewRepository()
         val gameRepo = InMemoryGameRepository()
+        val learningRepo = com.chesstutor.app.data.repository.InMemoryLearningRepository()
         val manager = ArenaGameManager(
             chessEngineManager = engineManager,
             reviewRepository = reviewRepo,
             gameRepository = gameRepo,
             blunderClassifier = BlunderClassifier(),
+            learningRepository = learningRepo,
             scope = this,
             analysisEngineClient = LocalFallbackEngineClient(calculationDispatcher = testDispatcher)
         )
@@ -147,6 +149,9 @@ class ArenaGameManagerTest {
         assertTrue(saved.first().pgn.contains("#"))
         assertEquals(false, state.busy)
         assertEquals(false, state.opponentThinking)
+        val mateProgress = learningRepo.getModuleProgress().first { it.moduleId == "lesson_mate_1" }
+        assertEquals(1, mateProgress.attempts)
+        assertEquals(1, mateProgress.correctAttempts)
     }
 
     @Test
