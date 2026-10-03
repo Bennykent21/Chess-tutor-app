@@ -27,7 +27,8 @@ class ArenaGameManager(
     private val gameRepository: GameRepository,
     private val blunderClassifier: BlunderClassifier,
     private val scope: CoroutineScope,
-    private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null
+    private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null,
+    private val analysisEngineClient: EngineClient = LocalFallbackEngineClient()
 ) {
 
     fun startNewGame(
@@ -88,7 +89,7 @@ class ArenaGameManager(
                 else -> 3
             }
 
-            val localEngine = LocalFallbackEngineClient()
+            val localEngine = analysisEngineClient
             val analysisResult = runCatching {
                 val analysisBefore = localEngine.analyze(AnalysisRequest(1001, beforeFen, depth = depth))
                 val analysisAfter = localEngine.analyze(AnalysisRequest(1002, afterFen, depth = depth))
@@ -248,7 +249,7 @@ class ArenaGameManager(
         }
     }
 
-    private fun saveMatchRecord(
+    private suspend fun saveMatchRecord(
         moves: List<String>,
         botName: String,
         botRating: Int,
@@ -256,8 +257,7 @@ class ArenaGameManager(
         finalFen: String,
         userColor: Char
     ) {
-        scope.launch {
-            val userIsWhite = userColor.lowercaseChar() == 'w'
+        val userIsWhite = userColor.lowercaseChar() == 'w'
             val pgn = PgnFormatter.formatPgn(
                 moves = moves,
                 whitePlayer = if (userIsWhite) "You" else botName,
@@ -277,7 +277,6 @@ class ArenaGameManager(
                 userColor = if (userIsWhite) "white" else "black",
                 finalFen = finalFen
             )
-            gameRepository.saveGame(record)
-        }
+        gameRepository.saveGame(record)
     }
 }
