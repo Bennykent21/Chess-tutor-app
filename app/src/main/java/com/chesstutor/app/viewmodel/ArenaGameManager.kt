@@ -48,6 +48,7 @@ class ArenaGameManager(
                 message = "New game against $botName. Make your first move!",
                 lastMove = null,
                 moveHistory = emptyList(),
+                arenaUciHistory = emptyList(),
                 recommendedArrow = null,
                 assessment = null,
                 analysis = null,
@@ -72,6 +73,7 @@ class ArenaGameManager(
 
         val afterFen = afterPos.fen
         val newHistory = currentState.moveHistory + move.san
+        val newUciHistory = currentState.arenaUciHistory + move.uci
 
         soundManager?.playMove(currentState.isSoundEnabled, isCapture = move.isCapture, isCheck = afterPos.isCheck)
 
@@ -80,6 +82,7 @@ class ArenaGameManager(
                 fen = afterFen,
                 lastMove = Pair(move.from, move.to),
                 moveHistory = newHistory,
+                arenaUciHistory = newUciHistory,
                 busy = true,
                 message = "Move ${move.san} played. Analyzing..."
             )
@@ -203,6 +206,7 @@ class ArenaGameManager(
                         val engineMovePos = ChessPosition(afterFen)
                         engineMovePos.play(engineMove)
                         val updatedHistory = newHistory + engineMove.san
+                        val updatedUciHistory = newUciHistory + engineMove.uci
 
                         soundManager?.playMove(currentState.isSoundEnabled, isCapture = engineMove.isCapture, isCheck = engineMovePos.isCheck)
 
@@ -211,6 +215,7 @@ class ArenaGameManager(
                                 fen = engineMovePos.fen,
                                 lastMove = Pair(engineMove.from, engineMove.to),
                                 moveHistory = updatedHistory,
+                                arenaUciHistory = updatedUciHistory,
                                 busy = false,
                                 opponentThinking = false,
                                 arenaStatusText = "${it.botTuningDescription} played ${engineMove.san}."
@@ -225,6 +230,7 @@ class ArenaGameManager(
                             }
                             saveMatchRecord(
                                 moves = updatedHistory,
+                                uciMoves = updatedUciHistory,
                                 botName = currentState.arenaBotName,
                                 botRating = elo,
                                 result = result,
@@ -257,6 +263,7 @@ class ArenaGameManager(
                 val result = if (afterPos.isCheckmate) "1-0" else "1/2-1/2"
                 saveMatchRecord(
                     moves = newHistory,
+                    uciMoves = newUciHistory,
                     botName = currentState.arenaBotName,
                     botRating = currentState.effectiveBotElo,
                     result = result,
@@ -276,6 +283,7 @@ class ArenaGameManager(
 
     private suspend fun saveMatchRecord(
         moves: List<String>,
+        uciMoves: List<String>,
         botName: String,
         botRating: Int,
         result: String,
