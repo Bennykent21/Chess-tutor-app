@@ -2,6 +2,8 @@ package com.chesstutor.app.viewmodel
 
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.repository.GameRepository
+import com.chesstutor.app.data.repository.InMemoryLearningRepository
+import com.chesstutor.app.data.repository.LearningRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveAssessment
@@ -28,6 +30,7 @@ class ArenaGameManager(
     private val reviewRepository: ReviewRepository,
     private val gameRepository: GameRepository,
     private val blunderClassifier: BlunderClassifier,
+    private val learningRepository: LearningRepository = InMemoryLearningRepository(),
     private val scope: CoroutineScope,
     private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null,
     private val analysisEngineClient: EngineClient = LocalFallbackEngineClient()
@@ -104,6 +107,8 @@ class ArenaGameManager(
                 )
             }.getOrNull()
 
+            var mateLessonOutcome: Boolean? = if (afterPos.isCheckmate) true else null
+
             if (analysisResult != null) {
                 val analysisBefore = analysisResult.first
                 val analysisAfter = analysisResult.second
@@ -111,8 +116,14 @@ class ArenaGameManager(
                 val consequences = mutableListOf<VerifiedConsequence>()
 
                 when (verdict.kind) {
-                    BlunderKind.MISSED_FORCED_MATE -> consequences.add(VerifiedConsequence.MISSED_FORCED_MATE)
-                    BlunderKind.WALKED_INTO_FORCED_MATE -> consequences.add(VerifiedConsequence.WALKED_INTO_FORCED_MATE)
+                    BlunderKind.MISSED_FORCED_MATE -> {
+                        consequences.add(VerifiedConsequence.MISSED_FORCED_MATE)
+                        mateLessonOutcome = false
+                    }
+                    BlunderKind.WALKED_INTO_FORCED_MATE -> {
+                        consequences.add(VerifiedConsequence.WALKED_INTO_FORCED_MATE)
+                        mateLessonOutcome = false
+                    }
                     BlunderKind.CENTIPAWN_LOSS -> consequences.add(VerifiedConsequence.MATERIAL_LOST_BY_FORCE)
                     else -> {}
                 }
@@ -166,6 +177,10 @@ class ArenaGameManager(
                         message = "Move ${move.san} played. Coaching analysis unavailable; continuing game."
                     )
                 }
+            }
+
+            mateLessonOutcome?.let { correct ->
+                learningRepository.recordModuleAttempt("lesson_mate_1", correct)
             }
 
             if (!afterPos.isOver) {
