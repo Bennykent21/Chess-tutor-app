@@ -9,15 +9,13 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class ArenaGameManagerTest {
 
     @Test
@@ -103,7 +101,7 @@ class ArenaGameManagerTest {
 
     @Test
     fun completedUserMoveSavesArenaGameRecord() = runTest {
-        val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+        val testDispatcher = StandardTestDispatcher(testScheduler)
         val engineManager = ChessEngineManager(
             LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
             calculationDispatcher = testDispatcher
