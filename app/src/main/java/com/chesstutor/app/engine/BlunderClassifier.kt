@@ -13,7 +13,11 @@ data class BlunderVerdict(val kind: BlunderKind, val centipawnLoss: Int? = null)
 }
 
 class BlunderClassifier(private val thresholdCentipawns: Int = 150) {
-    fun classify(beforeMove: PositionAnalysis, afterMove: PositionAnalysis): BlunderVerdict {
+    fun classify(
+        beforeMove: PositionAnalysis,
+        afterMove: PositionAnalysis,
+        moverIsWhite: Boolean = true
+    ): BlunderVerdict {
         val hadForcedMate = beforeMove.isForcedMate && (beforeMove.mateInMoves ?: 0) > 0
         val stillForcingMate = afterMove.isForcedMate && (afterMove.mateInMoves ?: 0) < 0
         if (hadForcedMate && !stillForcingMate) return BlunderVerdict(BlunderKind.MISSED_FORCED_MATE)
@@ -26,7 +30,7 @@ class BlunderClassifier(private val thresholdCentipawns: Int = 150) {
 
         val before = beforeMove.centipawns ?: return BlunderVerdict(BlunderKind.UNKNOWN)
         val after = afterMove.centipawns ?: return BlunderVerdict(BlunderKind.UNKNOWN)
-        val loss = before - (-after)
+        val loss = if (moverIsWhite) before - after else after - before
 
         return if (loss >= thresholdCentipawns) BlunderVerdict(BlunderKind.CENTIPAWN_LOSS, loss)
         else BlunderVerdict(BlunderKind.NONE)
