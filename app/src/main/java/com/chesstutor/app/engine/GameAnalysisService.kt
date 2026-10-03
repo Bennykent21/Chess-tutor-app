@@ -100,7 +100,11 @@ class GameAnalysisService(
                 uci = uci,
                 before = before,
                 after = after,
-                verdict = blunderClassifier.classify(before, after),
+                verdict = blunderClassifier.classify(
+                    before,
+                    after,
+                    moverIsWhite = userMove || !userMove && !userIsWhite
+                ),
                 userMove = userMove
             )
         }
