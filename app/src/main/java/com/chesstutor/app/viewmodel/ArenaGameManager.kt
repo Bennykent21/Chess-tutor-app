@@ -308,7 +308,8 @@ class ArenaGameManager(
                 pgn = pgn,
                 moveCount = moves.size,
                 userColor = if (userIsWhite) "white" else "black",
-                finalFen = finalFen
+                finalFen = finalFen,
+                uciMoves = uciMoves.joinToString(" ")
             )
         gameRepository.saveGame(record)
     }
