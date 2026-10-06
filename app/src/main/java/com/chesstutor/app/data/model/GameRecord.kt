@@ -9,5 +9,6 @@ data class GameRecord(
     val pgn: String,
     val moveCount: Int,
     val userColor: String,
-    val finalFen: String
+    val finalFen: String,
+    val uciMoves: String = ""
 )

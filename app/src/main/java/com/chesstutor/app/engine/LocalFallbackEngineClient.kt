@@ -6,11 +6,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class LocalFallbackEngineClient(
-    private val heuristicEngine: HeuristicEngineAdapter = HeuristicEngineAdapter()
+    private val heuristicEngine: HeuristicEngineAdapter = HeuristicEngineAdapter(),
+    private val calculationDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Default
 ) : EngineClient {
     override suspend fun initialize() = Unit
 
-    override suspend fun analyze(request: AnalysisRequest): PositionAnalysis = withContext(Dispatchers.Default) {
+    override suspend fun analyze(request: AnalysisRequest): PositionAnalysis = withContext(calculationDispatcher) {
         val pos = Position.tryFromFen(request.fen).getOrElse {
             throw IllegalArgumentException("Invalid FEN supplied to fallback engine")
         }

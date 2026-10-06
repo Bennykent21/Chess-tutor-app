@@ -123,7 +123,8 @@ class ChessEngineManager(
     val engineClient: EngineClient,
     val analysisService: AnalysisService = AnalysisService(engineClient),
     private val localBotMoveSelector: LocalBotMoveSelector = LocalBotMoveSelector(),
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob()),
+    private val calculationDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Default
 ) {
     private val _state = MutableStateFlow(ChessEngineState())
     val state: StateFlow<ChessEngineState> = _state.asStateFlow()
@@ -252,7 +253,7 @@ class ChessEngineManager(
         fen: String,
         depth: Int = 10,
         movetimeMs: Int? = 500
-    ): MoveChoice? = withContext(Dispatchers.Default) {
+    ): MoveChoice? = withContext(calculationDispatcher) {
         val chessPos = runCatching { ChessPosition(fen) }.getOrNull() ?: return@withContext null
         if (chessPos.isOver) return@withContext null
 
