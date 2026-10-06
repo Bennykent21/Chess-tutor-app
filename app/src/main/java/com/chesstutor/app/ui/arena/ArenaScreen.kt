@@ -788,10 +788,18 @@ fun ArenaScreen(
     if (state.isGameHistorySheetOpen) {
         GameHistorySheet(
             games = state.recentGames,
+            analysis = state.gameAnalysis,
+            isAnalyzingGame = state.isAnalyzingGame,
             onSelectGame = { game ->
                 viewModel.selectGameForPgn(game)
             },
-            onDismiss = { viewModel.setGameHistorySheetVisible(false) }
+            onAnalyzeGame = { game ->
+                viewModel.analyzeSavedGame(game)
+            },
+            onDismiss = {
+                viewModel.clearGameAnalysis()
+                viewModel.setGameHistorySheetVisible(false)
+            }
         )
     }
 }

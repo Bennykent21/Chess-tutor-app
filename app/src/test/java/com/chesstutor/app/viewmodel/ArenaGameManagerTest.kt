@@ -9,7 +9,7 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -97,5 +97,107 @@ class ArenaGameManagerTest {
 
         repo.deleteGame("test-1")
         assertEquals(0, repo.getRecentGames(10).size)
+    }
+
+    @Test
+    fun completedUserMoveSavesArenaGameRecord() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val engineManager = ChessEngineManager(
+            LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
+            calculationDispatcher = testDispatcher
+        )
+        val reviewRepo = InMemoryReviewRepository()
+        val gameRepo = InMemoryGameRepository()
+        val learningRepo = com.chesstutor.app.data.repository.InMemoryLearningRepository()
+        val manager = ArenaGameManager(
+            chessEngineManager = engineManager,
+            reviewRepository = reviewRepo,
+            gameRepository = gameRepo,
+            blunderClassifier = BlunderClassifier(),
+            learningRepository = learningRepo,
+            scope = this,
+            analysisEngineClient = LocalFallbackEngineClient(calculationDispatcher = testDispatcher)
+        )
+
+        val position = ChessPosition(AppViewModel.FEN_BACK_RANK_MATE)
+        val mateMove = position.legalMoves.firstOrNull { it.san.contains("#") }
+        assertNotNull(mateMove)
+
+        var state = AppUiState(
+            fen = AppViewModel.FEN_BACK_RANK_MATE,
+            arenaBotName = "Wayne",
+            customBotElo = 600,
+            arenaPlayerSide = 'w',
+            isAutoOpponentEnabled = false
+        )
+
+        val moveJob = manager.playArenaMove(
+            move = mateMove!!,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update ->
+                state = update(state)
+            }
+        )
+
+        moveJob?.join()
+
+        val saved = gameRepo.getRecentGames(10)
+        assertEquals(1, saved.size)
+        assertEquals("1-0", saved.first().result)
+        assertEquals(1, saved.first().moveCount)
+        assertEquals(mateMove!!.uci, saved.first().uciMoves)
+        assertTrue(saved.first().pgn.contains("#"))
+        assertEquals(false, state.busy)
+        assertEquals(false, state.opponentThinking)
+        val mateProgress = learningRepo.getModuleProgress().first { it.moduleId == "lesson_mate_1" }
+        assertEquals(1, mateProgress.attempts)
+        assertEquals(1, mateProgress.correctAttempts)
+    }
+
+    @Test
+    fun automaticBotResponseCompletesItsTurnWithoutLeavingThinkingState() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val engineManager = ChessEngineManager(
+            LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
+            calculationDispatcher = testDispatcher
+        )
+        val reviewRepo = InMemoryReviewRepository()
+        val gameRepo = InMemoryGameRepository()
+        val manager = ArenaGameManager(
+            chessEngineManager = engineManager,
+            reviewRepository = reviewRepo,
+            gameRepository = gameRepo,
+            blunderClassifier = BlunderClassifier(),
+            scope = this,
+            analysisEngineClient = LocalFallbackEngineClient(calculationDispatcher = testDispatcher)
+        )
+
+        val position = ChessPosition(ChessPosition.STARTING_FEN)
+        val playerMove = position.legalMoves.first { it.uci == "e2e4" }
+
+        var state = AppUiState(
+            fen = ChessPosition.STARTING_FEN,
+            arenaBotName = "Wayne",
+            customBotElo = 600,
+            arenaPlayerSide = 'w',
+            isAutoOpponentEnabled = true
+        )
+
+        val moveJob = manager.playArenaMove(
+            move = playerMove,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update ->
+                state = update(state)
+            }
+        )
+
+        moveJob?.join()
+
+        assertEquals(2, state.moveHistory.size)
+        assertEquals(false, state.opponentThinking)
+        assertEquals(false, state.busy)
+        assertTrue(state.fen != ChessPosition.STARTING_FEN)
     }
 }

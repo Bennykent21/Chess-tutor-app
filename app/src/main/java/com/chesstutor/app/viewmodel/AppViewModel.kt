@@ -22,6 +22,7 @@ import com.chesstutor.app.domain.SearchConfidence
 import com.chesstutor.app.domain.TrainDrillsRepository
 import com.chesstutor.app.domain.VerifiedConsequence
 import com.chesstutor.app.engine.BlunderClassifier
+import com.chesstutor.app.engine.GameAnalysisService
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.EngineClient
 import kotlinx.coroutines.delay
@@ -49,6 +50,7 @@ class AppViewModel(
     val state: StateFlow<AppUiState> = _state.asStateFlow()
 
     private val blunderClassifier = BlunderClassifier(thresholdCentipawns = 150)
+    private val gameAnalysisService = GameAnalysisService(engine, blunderClassifier)
     private val learningProfileMutex = Mutex()
 
     private val placementAssessmentCoordinator = PlacementAssessmentCoordinator()
@@ -69,6 +71,7 @@ class AppViewModel(
         reviewRepository = repository,
         gameRepository = gameRepository,
         blunderClassifier = blunderClassifier,
+        learningRepository = learningRepository,
         scope = viewModelScope,
         soundManager = soundManager
     )
@@ -882,6 +885,28 @@ class AppViewModel(
 
     fun setGameHistorySheetVisible(visible: Boolean) {
         _state.update { it.copy(isGameHistorySheetOpen = visible) }
+    }
+
+    fun analyzeSavedGame(game: GameRecord, depth: Int = 5) {
+        if (_state.value.isAnalyzingGame) return
+        _state.update { it.copy(isAnalyzingGame = true, gameAnalysis = null) }
+
+        viewModelScope.launch {
+            val result = runCatching {
+                gameAnalysisService.analyze(game, depth)
+            }.getOrNull()
+
+            _state.update {
+                it.copy(
+                    isAnalyzingGame = false,
+                    gameAnalysis = result
+                )
+            }
+        }
+    }
+
+    fun clearGameAnalysis() {
+        _state.update { it.copy(gameAnalysis = null, isAnalyzingGame = false) }
     }
 
     fun selectGameForPgn(game: GameRecord?) {

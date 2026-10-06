@@ -2,6 +2,8 @@ package com.chesstutor.app.viewmodel
 
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.repository.GameRepository
+import com.chesstutor.app.data.repository.InMemoryLearningRepository
+import com.chesstutor.app.data.repository.LearningRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveAssessment
@@ -14,8 +16,10 @@ import com.chesstutor.app.engine.AnalysisRequest
 import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.ChessEngineManager
+import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -26,8 +30,10 @@ class ArenaGameManager(
     private val reviewRepository: ReviewRepository,
     private val gameRepository: GameRepository,
     private val blunderClassifier: BlunderClassifier,
+    private val learningRepository: LearningRepository = InMemoryLearningRepository(),
     private val scope: CoroutineScope,
-    private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null
+    private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null,
+    private val analysisEngineClient: EngineClient = LocalFallbackEngineClient()
 ) {
 
     fun startNewGame(
@@ -42,6 +48,7 @@ class ArenaGameManager(
                 message = "New game against $botName. Make your first move!",
                 lastMove = null,
                 moveHistory = emptyList(),
+                arenaUciHistory = emptyList(),
                 recommendedArrow = null,
                 assessment = null,
                 analysis = null,
@@ -59,13 +66,14 @@ class ArenaGameManager(
         currentState: AppUiState,
         loadReviews: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit
-    ) {
+    ): Job? {
         val beforeFen = currentState.fen
         val afterPos = ChessPosition(beforeFen)
-        if (!afterPos.play(move)) return
+        if (!afterPos.play(move)) return null
 
         val afterFen = afterPos.fen
         val newHistory = currentState.moveHistory + move.san
+        val newUciHistory = currentState.arenaUciHistory + move.uci
 
         soundManager?.playMove(currentState.isSoundEnabled, isCapture = move.isCapture, isCheck = afterPos.isCheck)
 
@@ -74,13 +82,14 @@ class ArenaGameManager(
                 fen = afterFen,
                 lastMove = Pair(move.from, move.to),
                 moveHistory = newHistory,
+                arenaUciHistory = newUciHistory,
                 busy = true,
                 message = "Move ${move.san} played. Analyzing..."
             )
         }
         chessEngineManager.startEvaluation(afterFen)
 
-        scope.launch {
+        return scope.launch {
             val depth = when (currentState.arenaDifficulty) {
                 "Beginner" -> 2
                 "Casual" -> 2
@@ -88,7 +97,7 @@ class ArenaGameManager(
                 else -> 3
             }
 
-            val localEngine = LocalFallbackEngineClient()
+            val localEngine = analysisEngineClient
             val analysisResult = runCatching {
                 val analysisBefore = localEngine.analyze(AnalysisRequest(1001, beforeFen, depth = depth))
                 val analysisAfter = localEngine.analyze(AnalysisRequest(1002, afterFen, depth = depth))
@@ -101,15 +110,27 @@ class ArenaGameManager(
                 )
             }.getOrNull()
 
+            var mateLessonOutcome: Boolean? = if (afterPos.isCheckmate) true else null
+
             if (analysisResult != null) {
                 val analysisBefore = analysisResult.first
                 val analysisAfter = analysisResult.second
-                val verdict = blunderClassifier.classify(analysisBefore, analysisAfter)
+                val verdict = blunderClassifier.classify(
+                    analysisBefore,
+                    analysisAfter,
+                    moverIsWhite = beforeFen.split(" ").getOrNull(1) == "w"
+                )
                 val consequences = mutableListOf<VerifiedConsequence>()
 
                 when (verdict.kind) {
-                    BlunderKind.MISSED_FORCED_MATE -> consequences.add(VerifiedConsequence.MISSED_FORCED_MATE)
-                    BlunderKind.WALKED_INTO_FORCED_MATE -> consequences.add(VerifiedConsequence.WALKED_INTO_FORCED_MATE)
+                    BlunderKind.MISSED_FORCED_MATE -> {
+                        consequences.add(VerifiedConsequence.MISSED_FORCED_MATE)
+                        if (!afterPos.isCheckmate) mateLessonOutcome = false
+                    }
+                    BlunderKind.WALKED_INTO_FORCED_MATE -> {
+                        consequences.add(VerifiedConsequence.WALKED_INTO_FORCED_MATE)
+                        mateLessonOutcome = false
+                    }
                     BlunderKind.CENTIPAWN_LOSS -> consequences.add(VerifiedConsequence.MATERIAL_LOST_BY_FORCE)
                     else -> {}
                 }
@@ -165,6 +186,18 @@ class ArenaGameManager(
                 }
             }
 
+            mateLessonOutcome?.let { correct ->
+                try {
+                    learningRepository.recordModuleAttempt("lesson_mate_1", correct)
+                } catch (error: Exception) {
+                    android.util.Log.w(
+                        "ArenaGameManager",
+                        "Learning progress update failed; continuing game.",
+                        error
+                    )
+                }
+            }
+
             if (!afterPos.isOver) {
                 if (currentState.isAutoOpponentEnabled) {
                     updateState { it.copy(opponentThinking = true) }
@@ -177,6 +210,7 @@ class ArenaGameManager(
                         val engineMovePos = ChessPosition(afterFen)
                         engineMovePos.play(engineMove)
                         val updatedHistory = newHistory + engineMove.san
+                        val updatedUciHistory = newUciHistory + engineMove.uci
 
                         soundManager?.playMove(currentState.isSoundEnabled, isCapture = engineMove.isCapture, isCheck = engineMovePos.isCheck)
 
@@ -185,6 +219,7 @@ class ArenaGameManager(
                                 fen = engineMovePos.fen,
                                 lastMove = Pair(engineMove.from, engineMove.to),
                                 moveHistory = updatedHistory,
+                                arenaUciHistory = updatedUciHistory,
                                 busy = false,
                                 opponentThinking = false,
                                 arenaStatusText = "${it.botTuningDescription} played ${engineMove.san}."
@@ -199,6 +234,7 @@ class ArenaGameManager(
                             }
                             saveMatchRecord(
                                 moves = updatedHistory,
+                                uciMoves = updatedUciHistory,
                                 botName = currentState.arenaBotName,
                                 botRating = elo,
                                 result = result,
@@ -231,6 +267,7 @@ class ArenaGameManager(
                 val result = if (afterPos.isCheckmate) "1-0" else "1/2-1/2"
                 saveMatchRecord(
                     moves = newHistory,
+                    uciMoves = newUciHistory,
                     botName = currentState.arenaBotName,
                     botRating = currentState.effectiveBotElo,
                     result = result,
@@ -248,25 +285,25 @@ class ArenaGameManager(
         }
     }
 
-    private fun saveMatchRecord(
+    private suspend fun saveMatchRecord(
         moves: List<String>,
+        uciMoves: List<String>,
         botName: String,
         botRating: Int,
         result: String,
         finalFen: String,
         userColor: Char
     ) {
-        scope.launch {
-            val userIsWhite = userColor.lowercaseChar() == 'w'
-            val pgn = PgnFormatter.formatPgn(
-                moves = moves,
-                whitePlayer = if (userIsWhite) "You" else botName,
-                blackPlayer = if (userIsWhite) botName else "You",
-                whiteElo = if (userIsWhite) null else botRating,
-                blackElo = if (userIsWhite) botRating else null,
-                result = result
-            )
-            val record = GameRecord(
+        val userIsWhite = userColor.lowercaseChar() == 'w'
+        val pgn = PgnFormatter.formatPgn(
+            moves = moves,
+            whitePlayer = if (userIsWhite) "You" else botName,
+            blackPlayer = if (userIsWhite) botName else "You",
+            whiteElo = if (userIsWhite) null else botRating,
+            blackElo = if (userIsWhite) botRating else null,
+            result = result
+        )
+        val record = GameRecord(
                 id = UUID.randomUUID().toString(),
                 dateMillis = System.currentTimeMillis(),
                 botName = botName,
@@ -275,9 +312,9 @@ class ArenaGameManager(
                 pgn = pgn,
                 moveCount = moves.size,
                 userColor = if (userIsWhite) "white" else "black",
-                finalFen = finalFen
+                finalFen = finalFen,
+                uciMoves = uciMoves.joinToString(" ")
             )
-            gameRepository.saveGame(record)
-        }
+        gameRepository.saveGame(record)
     }
 }
