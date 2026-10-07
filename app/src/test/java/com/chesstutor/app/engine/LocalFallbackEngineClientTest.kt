@@ -32,7 +32,7 @@ class LocalFallbackEngineClientTest {
 
         assertEquals("0000", result.bestMoveUci)
         assertEquals(10000, result.centipawns)
-        assertEquals(0, result.mateInMoves)
+        assertEquals(1, result.mateInMoves)
     }
 
     @Test

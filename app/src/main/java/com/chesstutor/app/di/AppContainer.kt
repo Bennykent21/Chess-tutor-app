@@ -15,6 +15,8 @@ import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
 import com.chesstutor.app.engine.OnlineStockfishEngineClient
+import com.chesstutor.app.engine.StockfishProcessEngineClient
+import java.io.File
 
 object AppContainer {
     @Volatile
@@ -91,11 +93,16 @@ object AppContainer {
         return engineClientInstance ?: synchronized(this) {
             val deterministicFallback = LocalFallbackEngineClient()
             val cloudFallback = OnlineStockfishEngineClient(fallback = deterministicFallback)
+            val nativeLibFile = File(context.applicationContext.applicationInfo.nativeLibraryDir, "libstockfish.so")
+            val primaryClient = StockfishProcessEngineClient(
+                binaryPath = nativeLibFile.absolutePath,
+                fallbackClient = cloudFallback
+            )
             engineResolutionDiagnostic =
-                "Engine: Cloud Stockfish with calibrated local Kotlin fallback"
-            Log.i("AppContainer", engineResolutionDiagnostic)
-            engineClientInstance = cloudFallback
-            cloudFallback
+                "Engine: Local UCI Stockfish with cloud and local fallback"
+            runCatching { Log.i("AppContainer", engineResolutionDiagnostic) }
+            engineClientInstance = primaryClient
+            primaryClient
         }
     }
 

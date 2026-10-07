@@ -73,7 +73,6 @@ class CurriculumCoordinator(
         topic: LearnTopic,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
-        scope.launch { learningRepository.markPracticed(topic.id) }
         val arrow = if (topic.recommendedMoveUci.length >= 4) {
             Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.substring(2, 4))
         } else null
@@ -81,6 +80,8 @@ class CurriculumCoordinator(
             it.copy(
                 tab = 0,
                 curriculumLessonId = topic.id,
+                selectedLearnTopicId = topic.id,
+                puzzlePhase = PuzzlePhase.SOLVING,
                 activeCoachTitle = topic.title,
                 activeCoachSubtitle = topic.subtitle,
                 activeCoachCategory = topic.category.displayName.uppercase(),

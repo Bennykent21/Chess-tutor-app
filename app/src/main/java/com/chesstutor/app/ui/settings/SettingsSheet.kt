@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -43,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
 import com.chesstutor.app.viewmodel.AppUiState
@@ -58,10 +61,13 @@ fun SettingsSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scrollState = rememberScrollState()
 
-    var moveSoundEnabled by remember { mutableStateOf(true) }
-    var moveDotsEnabled by remember { mutableStateOf(true) }
-    var allowSwitchOpponent by remember { mutableStateOf(true) }
-    var isDiagOpen by remember { mutableStateOf(false) }
+    var selectedPlatform by remember(state.linkedProfile?.platform) {
+        mutableStateOf(state.linkedProfile?.platform ?: RatingPlatform.LICHESS)
+    }
+    var usernameInput by remember(state.linkedProfile?.username) {
+        mutableStateOf(state.linkedProfile?.username ?: "")
+    }
+    var showConnectForm by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -135,14 +141,18 @@ fun SettingsSheet(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isConnected) "${state.linkedProfile!!.platform.displayName} · ${state.linkedProfile.activeRating}" else "Not connected",
+                        text = if (isConnected) "${state.linkedProfile!!.username} (${state.linkedProfile.platform.displayName})" else "Not connected",
                         fontSize = 14.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = (-0.01).sp,
                         color = ChessTutorColors.TextPrimary
                     )
                     Text(
-                        text = if (isConnected) "Opponent strength now matches your rating" else "Link Chess.com or Lichess to match opponent strength to your rating",
+                        text = if (isConnected) {
+                            "Rating: ${state.linkedProfile?.activeRating ?: "Unrated"}"
+                        } else {
+                            "Connect your Chess.com or Lichess username"
+                        },
                         fontSize = 12.sp,
                         color = ChessTutorColors.TextSecondary,
                         modifier = Modifier.padding(top = 1.dp)
@@ -156,81 +166,96 @@ fun SettingsSheet(
                         .background(if (isConnected) ChessTutorColors.Surface3 else ChessTutorColors.Brass)
                         .border(
                             1.dp,
-                            if (isConnected) ChessTutorColors.Sage else Color.Transparent,
+                            if (isConnected) ChessTutorColors.Coral else Color.Transparent,
                             RoundedCornerShape(9.dp)
                         )
                         .bouncyClickable {
-                            if (!isConnected) {
-                                viewModel.linkRatingAccount(com.chesstutor.app.data.model.RatingPlatform.CHESS_COM, "hikaru")
+                            if (isConnected) {
+                                viewModel.unlinkRatingAccount()
+                            } else {
+                                showConnectForm = !showConnectForm
                             }
                         }
                         .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (isConnected) "Connected" else "Connect",
+                        text = if (isConnected) "Unlink" else "Connect",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isConnected) ChessTutorColors.Sage else ChessTutorColors.BrassInk
+                        color = if (isConnected) ChessTutorColors.Coral else ChessTutorColors.BrassInk
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // GROUP: PLAY
-            Text(
-                text = "PLAY",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.06.sp,
-                color = ChessTutorColors.TextTertiary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(ChessTutorColors.Surface2)
-                    .padding(12.dp, 13.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SwapHoriz,
-                    contentDescription = null,
-                    tint = ChessTutorColors.TextSecondary,
-                    modifier = Modifier.size(19.dp)
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Switch opponent mid-game",
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = (-0.008).sp,
-                        color = ChessTutorColors.TextPrimary
+            if (!isConnected && showConnectForm) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(ChessTutorColors.Surface2)
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        RatingPlatform.entries.forEach { platform ->
+                            val selected = selectedPlatform == platform
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (selected) ChessTutorColors.Brass else ChessTutorColors.Surface3)
+                                    .bouncyClickable { selectedPlatform = platform },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = platform.displayName,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (selected) ChessTutorColors.BrassInk else ChessTutorColors.TextPrimary
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = usernameInput,
+                        onValueChange = { usernameInput = it },
+                        placeholder = { Text("Enter your username", fontSize = 13.sp, color = ChessTutorColors.TextTertiary) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = ChessTutorColors.Brass,
+                            unfocusedBorderColor = ChessTutorColors.Line,
+                            focusedTextColor = ChessTutorColors.TextPrimary,
+                            unfocusedTextColor = ChessTutorColors.TextPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    Text(
-                        text = "Allow changing strength without starting over",
-                        fontSize = 12.sp,
-                        color = ChessTutorColors.TextSecondary,
-                        modifier = Modifier.padding(top = 1.dp)
-                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(38.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(ChessTutorColors.Brass)
+                            .bouncyClickable {
+                                viewModel.linkRatingAccount(selectedPlatform, usernameInput)
+                                showConnectForm = false
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Save & Import Games",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChessTutorColors.BrassInk
+                        )
+                    }
                 }
-
-                Switch(
-                    checked = allowSwitchOpponent,
-                    onCheckedChange = { allowSwitchOpponent = it },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = ChessTutorColors.BrassInk,
-                        checkedTrackColor = ChessTutorColors.Brass,
-                        uncheckedThumbColor = ChessTutorColors.TextSecondary,
-                        uncheckedTrackColor = ChessTutorColors.Surface3
-                    )
-                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -275,7 +300,7 @@ fun SettingsSheet(
                             color = ChessTutorColors.TextPrimary
                         )
                         Text(
-                            text = "Play a sound on legal drops",
+                            text = "Play audio feedback on moves and tactics",
                             fontSize = 12.sp,
                             color = ChessTutorColors.TextSecondary,
                             modifier = Modifier.padding(top = 1.dp)
@@ -283,8 +308,8 @@ fun SettingsSheet(
                     }
 
                     Switch(
-                        checked = moveSoundEnabled,
-                        onCheckedChange = { moveSoundEnabled = it },
+                        checked = state.isSoundEnabled,
+                        onCheckedChange = { viewModel.setSoundEnabled(it) },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = ChessTutorColors.BrassInk,
                             checkedTrackColor = ChessTutorColors.Brass,
@@ -328,8 +353,8 @@ fun SettingsSheet(
                     }
 
                     Switch(
-                        checked = moveDotsEnabled,
-                        onCheckedChange = { moveDotsEnabled = it },
+                        checked = state.showLegalDots,
+                        onCheckedChange = { viewModel.setShowLegalDots(it) },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = ChessTutorColors.BrassInk,
                             checkedTrackColor = ChessTutorColors.Brass,
@@ -338,76 +363,49 @@ fun SettingsSheet(
                         )
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(1.dp).background(ChessTutorColors.Line))
 
-            // GROUP: ABOUT
-            Text(
-                text = "ABOUT",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.06.sp,
-                color = ChessTutorColors.TextTertiary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(ChessTutorColors.Surface2)
-                    .bouncyClickable { isDiagOpen = !isDiagOpen }
-                    .padding(12.dp, 13.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = ChessTutorColors.TextSecondary,
-                    modifier = Modifier.size(19.dp)
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Developer & diagnostics",
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = (-0.008).sp,
-                        color = ChessTutorColors.TextPrimary
-                    )
-                    Text(
-                        text = "Engine status, version 2.4.0",
-                        fontSize = 12.sp,
-                        color = ChessTutorColors.TextSecondary,
-                        modifier = Modifier.padding(top = 1.dp)
-                    )
-                }
-
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Details",
-                    tint = ChessTutorColors.TextTertiary,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-
-            if (isDiagOpen) {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(ChessTutorColors.Surface3)
-                        .padding(12.dp)
+                        .padding(12.dp, 13.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Stockfish UCI: Online · Depth 12\nLocal SM-2 Scheduler: Active\nUI Version: Redesign Mockup 1:1",
-                        fontSize = 12.sp,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        color = ChessTutorColors.TextSecondary
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = ChessTutorColors.TextSecondary,
+                        modifier = Modifier.size(19.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Show board coordinates",
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = (-0.008).sp,
+                            color = ChessTutorColors.TextPrimary
+                        )
+                        Text(
+                            text = "Display rank and file labels on board edges",
+                            fontSize = 12.sp,
+                            color = ChessTutorColors.TextSecondary,
+                            modifier = Modifier.padding(top = 1.dp)
+                        )
+                    }
+
+                    Switch(
+                        checked = state.showCoordinates,
+                        onCheckedChange = { viewModel.setShowCoordinates(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = ChessTutorColors.BrassInk,
+                            checkedTrackColor = ChessTutorColors.Brass,
+                            uncheckedThumbColor = ChessTutorColors.TextSecondary,
+                            uncheckedTrackColor = ChessTutorColors.Surface3
+                        )
                     )
                 }
             }

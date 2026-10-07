@@ -88,11 +88,9 @@ object TacticalAnalysis {
         val forks = mutableListOf<ForkTactic>()
 
         for (moveChoice in legalMoves) {
-            val testPos = ChessPosition(chessPos.fen)
-            val moved = testPos.play(moveChoice)
-            if (!moved) continue
-
-            val afterPos = testPos.internalPosition
+            val afterPos = runCatching {
+                LegalMoveGenerator.makeMove(pos, moveChoice.toCoreMove())
+            }.getOrNull() ?: continue
             val toSquare = Square.fromAlgebraic(moveChoice.to)
 
             // Pieces attacked by the newly moved piece at `toSquare`

@@ -23,8 +23,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,7 +51,7 @@ sealed class NavTab(val index: Int, val title: String, val icon: ImageVector) {
     object Review : NavTab(3, "Review", Icons.Default.History)
 
     companion object {
-        val ALL = listOf(Train, Learn, Play, Review)
+        val ALL = listOf(Learn, Train, Play, Review)
     }
 }
 
@@ -60,7 +60,7 @@ fun AppNavHost(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     if (state.assessmentState != "COMPLETE") {
         OnboardingScreen(state = state, viewModel = viewModel, modifier = modifier)
