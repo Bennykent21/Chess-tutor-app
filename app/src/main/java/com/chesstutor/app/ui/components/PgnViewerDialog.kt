@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.chesstutor.app.data.model.GameRecord
+import com.chesstutor.app.domain.PgnFormatter
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,6 +65,10 @@ fun PgnViewerDialog(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isCopied by remember { mutableStateOf(false) }
+
+    val displayPgn = remember(game.id, game.uciMoves, game.pgn) {
+        PgnFormatter.reconstructPgnFromGameRecord(game)
+    }
 
     val formattedDate = remember(game.dateMillis) {
         val sdf = SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.getDefault())
@@ -215,7 +220,7 @@ fun PgnViewerDialog(
                         .padding(12.dp)
                 ) {
                     Text(
-                        text = game.pgn.ifBlank { "No moves recorded for this game." },
+                        text = displayPgn.ifBlank { "No moves recorded for this game." },
                         fontSize = 12.5.sp,
                         fontFamily = FontFamily.Monospace,
                         color = ChessTutorColors.TextPrimary,
@@ -236,7 +241,7 @@ fun PgnViewerDialog(
                     Button(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("Chess Game PGN", game.pgn)
+                            val clip = ClipData.newPlainText("Chess Game PGN", displayPgn)
                             clipboard.setPrimaryClip(clip)
                             isCopied = true
                             scope.launch {

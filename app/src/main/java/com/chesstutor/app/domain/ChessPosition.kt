@@ -106,6 +106,20 @@ class ChessPosition(fen: String? = null) {
         }.getOrDefault(false)
     }
 
+    /**
+     * Converts a legal UCI move in the current position to Standard Algebraic Notation (SAN).
+     * Returns null if the UCI move is blank, terminal ("0000"), or not legal in this position.
+     */
+    fun toSan(uci: String): String? {
+        val trimmed = uci.trim()
+        if (trimmed.isEmpty() || trimmed == "0000") return null
+        val parsedMove = runCatching { com.example.chess.core.Move.fromUci(trimmed) }.getOrNull()
+            ?: return null
+        return runCatching {
+            SanFormatter.format(gameState.position, parsedMove)
+        }.getOrNull()
+    }
+
     fun pieceAt(squareAlgebraic: String): Char? {
         if (squareAlgebraic.length != 2) return null
 
@@ -136,5 +150,18 @@ class ChessPosition(fen: String? = null) {
     companion object {
         const val STARTING_FEN =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+        fun replayUciToSan(uciMoves: String, startFen: String = STARTING_FEN): List<String> {
+            val tokens = uciMoves.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+            if (tokens.isEmpty()) return emptyList()
+            val pos = runCatching { ChessPosition(startFen) }.getOrNull() ?: return emptyList()
+            val sanList = mutableListOf<String>()
+            for (uci in tokens) {
+                val san = pos.toSan(uci) ?: break
+                if (!pos.play(uci)) break
+                sanList += san
+            }
+            return sanList
+        }
     }
 }
