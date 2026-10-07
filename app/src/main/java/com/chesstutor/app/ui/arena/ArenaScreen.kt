@@ -789,12 +789,15 @@ fun ArenaScreen(
         GameHistorySheet(
             games = state.recentGames,
             analysis = state.gameAnalysis,
-            isAnalyzingGame = state.isAnalyzingGame,
+            analyzingGameId = state.analyzingGameId,
             onSelectGame = { game ->
                 viewModel.selectGameForPgn(game)
             },
             onAnalyzeGame = { game ->
                 viewModel.analyzeSavedGame(game)
+            },
+            onClearAnalysis = {
+                viewModel.clearGameAnalysis()
             },
             onDismiss = {
                 viewModel.clearGameAnalysis()

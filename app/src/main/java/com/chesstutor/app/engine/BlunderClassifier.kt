@@ -18,12 +18,22 @@ class BlunderClassifier(private val thresholdCentipawns: Int = 150) {
         afterMove: PositionAnalysis,
         moverIsWhite: Boolean = true
     ): BlunderVerdict {
-        val hadForcedMate = beforeMove.isForcedMate && (beforeMove.mateInMoves ?: 0) > 0
-        val stillForcingMate = afterMove.isForcedMate && (afterMove.mateInMoves ?: 0) < 0
-        if (hadForcedMate && !stillForcingMate) return BlunderVerdict(BlunderKind.MISSED_FORCED_MATE)
+        val beforeMateForMover = beforeMove.mateInMoves?.let { if (moverIsWhite) it else -it }
+        val afterMateForMover = afterMove.mateInMoves?.let {
+            if (it == 0) 0 else if (moverIsWhite) it else -it
+        }
 
-        val opponentNowMatingUs = afterMove.isForcedMate && (afterMove.mateInMoves ?: 0) < 0
-        val wasAlreadyLosingToMate = beforeMove.isForcedMate && (beforeMove.mateInMoves ?: 0) < 0
+        val hadForcedMate = beforeMove.isForcedMate && (beforeMateForMover ?: 0) > 0
+        val deliveredCheckmate = afterMove.mateInMoves == 0 && (
+            afterMove.bestMoveUci == "0000" ||
+                (if (moverIsWhite) (afterMove.centipawns ?: 0) >= 0 else (afterMove.centipawns ?: 0) <= 0)
+            )
+        val stillForcingMate = deliveredCheckmate || (afterMove.isForcedMate && (afterMateForMover ?: 0) > 0)
+        if (hadForcedMate && !stillForcingMate) return BlunderVerdict(BlunderKind.MISSED_FORCED_MATE)
+        if (hadForcedMate && stillForcingMate) return BlunderVerdict(BlunderKind.NONE)
+
+        val opponentNowMatingUs = afterMove.isForcedMate && (afterMateForMover ?: 0) < 0
+        val wasAlreadyLosingToMate = beforeMove.isForcedMate && (beforeMateForMover ?: 0) < 0
         if (opponentNowMatingUs && !wasAlreadyLosingToMate) return BlunderVerdict(BlunderKind.WALKED_INTO_FORCED_MATE)
 
         if (beforeMove.isForcedMate || afterMove.isForcedMate) return BlunderVerdict(BlunderKind.UNKNOWN)

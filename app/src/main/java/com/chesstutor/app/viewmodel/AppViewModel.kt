@@ -888,25 +888,46 @@ class AppViewModel(
     }
 
     fun analyzeSavedGame(game: GameRecord, depth: Int = 5) {
-        if (_state.value.isAnalyzingGame) return
-        _state.update { it.copy(isAnalyzingGame = true, gameAnalysis = null) }
+        if (_state.value.analyzingGameId != null) return
+        _state.update { it.copy(analyzingGameId = game.id, gameAnalysis = null) }
 
         viewModelScope.launch {
             val result = runCatching {
                 gameAnalysisService.analyze(game, depth)
-            }.getOrNull()
+            }.getOrElse {
+                com.chesstutor.app.engine.GameAnalysisResult(
+                    gameId = game.id,
+                    analyzedMoves = emptyList(),
+                    skippedMoves = game.moveCount.coerceAtLeast(1),
+                    status = com.chesstutor.app.engine.GameAnalysisStatus.UNAVAILABLE
+                )
+            }
+
+            result.userSuboptimalMoves.forEach { move ->
+                val moduleId = move.recommendedModuleId ?: return@forEach
+                runCatching {
+                    learningRepository.recordModuleAttempt(moduleId, correct = false)
+                }
+            }
+            if (result.userSuboptimalMoves.isNotEmpty()) {
+                refreshTrainingRecommendation()
+            }
 
             _state.update {
-                it.copy(
-                    isAnalyzingGame = false,
-                    gameAnalysis = result
-                )
+                if (it.analyzingGameId == game.id) {
+                    it.copy(
+                        analyzingGameId = null,
+                        gameAnalysis = result
+                    )
+                } else {
+                    it
+                }
             }
         }
     }
 
     fun clearGameAnalysis() {
-        _state.update { it.copy(gameAnalysis = null, isAnalyzingGame = false) }
+        _state.update { it.copy(gameAnalysis = null, analyzingGameId = null) }
     }
 
     fun selectGameForPgn(game: GameRecord?) {
