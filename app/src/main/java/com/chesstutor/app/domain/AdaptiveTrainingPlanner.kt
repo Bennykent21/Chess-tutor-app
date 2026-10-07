@@ -33,16 +33,36 @@ object AdaptiveTrainingPlanner {
             unpracticed.isNotEmpty() -> unpracticed
             else -> source
         }
-        val chosen = pool.minWithOrNull(compareBy<Triple<LearnTopic, SkillDomain, ModuleProgress?>> {
-            val index = preferred.indexOf(it.second)
-            if (index < 0) preferred.size else index
-        }.thenBy { abs(it.first.skillRating - skill.domain(it.second).rating) }
-         .thenBy { it.third?.accuracy ?: 0f }.thenBy { it.first.id })
-            ?: candidates.first()
+        val chosen = if (remediation.isNotEmpty()) {
+            remediation.minWithOrNull(
+                compareBy<Triple<LearnTopic, SkillDomain, ModuleProgress?>> {
+                    val index = preferred.indexOf(it.second)
+                    if (index < 0) preferred.size else index
+                }
+                    .thenBy { it.third?.accuracy ?: 0f }
+                    .thenByDescending { (it.third?.attempts ?: 0) - (it.third?.correctAttempts ?: 0) }
+                    .thenBy { abs(it.first.skillRating - skill.domain(it.second).rating) }
+                    .thenBy { it.first.id }
+            ) ?: candidates.first()
+        } else {
+            pool.minWithOrNull(
+                compareBy<Triple<LearnTopic, SkillDomain, ModuleProgress?>> {
+                    val index = preferred.indexOf(it.second)
+                    if (index < 0) preferred.size else index
+                }
+                    .thenBy { abs(it.first.skillRating - skill.domain(it.second).rating) }
+                    .thenBy { it.third?.accuracy ?: 0f }
+                    .thenBy { it.first.id }
+            ) ?: candidates.first()
+        }
         val domainSkill = skill.domain(chosen.second)
         val progress = chosen.third
+        val missedCount = (progress?.attempts ?: 0) - (progress?.correctAttempts ?: 0)
         val reason = when {
-            progress != null && progress.attempts > 0 -> "Continue ${chosen.first.title.lowercase()}; your current accuracy is ${(progress.accuracy * 100).toInt()}%."
+            progress != null && progress.attempts > 0 && missedCount > 0 ->
+                "Continue ${chosen.first.title.lowercase()}; you missed $missedCount opportunity(s) recently (${(progress.accuracy * 100).toInt()}% accuracy)."
+            progress != null && progress.attempts > 0 ->
+                "Continue ${chosen.first.title.lowercase()}; your current accuracy is ${(progress.accuracy * 100).toInt()}%."
             profile.learningGoal == "TACTICS" -> "Your training goal is tactics, so we’re prioritizing tactical pattern recognition."
             profile.learningGoal == "ENDGAMES" -> "Your training goal is endgames, so we’re prioritizing endgame technique."
             profile.learningGoal == "GAME_ANALYSIS" -> "Your training goal is game analysis, so we’re building the calculation and mistake-recognition skills behind review."

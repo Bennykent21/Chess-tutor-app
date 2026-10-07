@@ -86,9 +86,12 @@ data class AppUiState(
     val recentGames: List<com.chesstutor.app.data.model.GameRecord> = emptyList(),
     val selectedGameForPgn: com.chesstutor.app.data.model.GameRecord? = null,
     val gameAnalysis: com.chesstutor.app.engine.GameAnalysisResult? = null,
-    val isAnalyzingGame: Boolean = false,
+    val analyzingGameId: String? = null,
     val isGameHistorySheetOpen: Boolean = false
 ) {
+    val isAnalyzingGame: Boolean
+        get() = analyzingGameId != null
+
     val effectiveBotElo: Int
         get() {
             if (arenaDifficulty.equals("Custom", ignoreCase = true)) {
