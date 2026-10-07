@@ -200,4 +200,234 @@ class ArenaGameManagerTest {
         assertEquals(false, state.busy)
         assertTrue(state.fen != ChessPosition.STARTING_FEN)
     }
+
+    @Test
+    fun botCheckmateSavesLossAndStopsFurtherMoves() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val mateBotEngine = object : com.chesstutor.app.engine.EngineClient {
+            override suspend fun initialize() = Unit
+            override suspend fun analyze(request: com.chesstutor.app.engine.AnalysisRequest): com.chesstutor.app.engine.PositionAnalysis {
+                return com.chesstutor.app.engine.PositionAnalysis(
+                    requestId = request.requestId,
+                    bestMoveUci = "a2a1",
+                    centipawns = -10000,
+                    mateInMoves = -1,
+                    depth = 5
+                )
+            }
+            override suspend fun stop() = Unit
+            override suspend fun dispose() = Unit
+        }
+        val engineManager = ChessEngineManager(
+            mateBotEngine,
+            calculationDispatcher = testDispatcher
+        )
+        val reviewRepo = InMemoryReviewRepository()
+        val gameRepo = InMemoryGameRepository()
+        val manager = ArenaGameManager(
+            chessEngineManager = engineManager,
+            reviewRepository = reviewRepo,
+            gameRepository = gameRepo,
+            blunderClassifier = BlunderClassifier(),
+            scope = this,
+            analysisEngineClient = LocalFallbackEngineClient(calculationDispatcher = testDispatcher)
+        )
+
+        val fenBeforeWhiteMove = "6k1/5ppp/8/8/8/2P5/r4PPP/6K1 w - - 0 1"
+        val pos = ChessPosition(fenBeforeWhiteMove)
+        val whiteMove = pos.legalMoves.first { it.uci == "c3c4" }
+
+        var state = AppUiState(
+            fen = fenBeforeWhiteMove,
+            arenaBotName = "MasterBot",
+            arenaDifficulty = "Custom",
+            customBotElo = 2800,
+            arenaPlayerSide = 'w',
+            isAutoOpponentEnabled = true
+        )
+
+        val job = manager.playArenaMove(
+            move = whiteMove,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update -> state = update(state) }
+        )
+        job?.join()
+
+        val saved = gameRepo.getRecentGames(10)
+        assertEquals(1, saved.size)
+        assertEquals("0-1", saved.first().result)
+        assertEquals(false, state.busy)
+        assertEquals(false, state.opponentThinking)
+        assertEquals("Game Over by Checkmate!", state.arenaStatusText)
+
+        // Attempting another move after game completion is rejected
+        val extraMove = manager.playArenaMove(
+            move = whiteMove,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update -> state = update(state) }
+        )
+        assertEquals(null, extraMove)
+    }
+
+    @Test
+    fun stalemateSavesDrawRecordCleanly() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val engineManager = ChessEngineManager(
+            LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
+            calculationDispatcher = testDispatcher
+        )
+        val gameRepo = InMemoryGameRepository()
+        val manager = ArenaGameManager(
+            chessEngineManager = engineManager,
+            reviewRepository = InMemoryReviewRepository(),
+            gameRepository = gameRepo,
+            blunderClassifier = BlunderClassifier(),
+            scope = this,
+            analysisEngineClient = LocalFallbackEngineClient(calculationDispatcher = testDispatcher)
+        )
+
+        // White plays Qc7 stalemate against lone Black king on a8
+        val stalemateSetupFen = "k7/8/1K6/8/8/8/2Q5/8 w - - 0 1"
+        val pos = ChessPosition(stalemateSetupFen)
+        val stalemateMove = pos.legalMoves.first { it.uci == "c2c7" }
+
+        var state = AppUiState(
+            fen = stalemateSetupFen,
+            arenaBotName = "Wayne",
+            customBotElo = 600,
+            arenaPlayerSide = 'w',
+            isAutoOpponentEnabled = true
+        )
+
+        val job = manager.playArenaMove(
+            move = stalemateMove,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update -> state = update(state) }
+        )
+        job?.join()
+
+        val saved = gameRepo.getRecentGames(10)
+        assertEquals(1, saved.size)
+        assertEquals("1/2-1/2", saved.first().result)
+        assertEquals("Draw!", state.arenaStatusText)
+        assertEquals(false, state.busy)
+        assertEquals(false, state.opponentThinking)
+    }
+
+    @Test
+    fun rapidRestartCancelsInFlightBotTurnAndPreventsStaleStateWrites() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val engineManager = ChessEngineManager(
+            LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
+            calculationDispatcher = testDispatcher
+        )
+        val manager = ArenaGameManager(
+            chessEngineManager = engineManager,
+            reviewRepository = InMemoryReviewRepository(),
+            gameRepository = InMemoryGameRepository(),
+            blunderClassifier = BlunderClassifier(),
+            scope = this,
+            analysisEngineClient = LocalFallbackEngineClient(calculationDispatcher = testDispatcher)
+        )
+
+        val startPos = ChessPosition(ChessPosition.STARTING_FEN)
+        val e4 = startPos.legalMoves.first { it.uci == "e2e4" }
+        val d4 = startPos.legalMoves.first { it.uci == "d2d4" }
+
+        var state = AppUiState(
+            fen = ChessPosition.STARTING_FEN,
+            arenaBotName = "Wayne",
+            isAutoOpponentEnabled = true
+        )
+
+        // 1. Start move e4 (coroutine is launched, waiting on delay/engine)
+        val firstJob = manager.playArenaMove(
+            move = e4,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update -> state = update(state) }
+        )
+        assertNotNull(firstJob)
+
+        // 2. Immediately restart game before bot responds
+        manager.startNewGame("Wayne") { update -> state = update(state) }
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(ChessPosition.STARTING_FEN, state.fen)
+        assertTrue(state.moveHistory.isEmpty())
+        assertEquals(false, state.busy)
+        assertEquals(false, state.opponentThinking)
+
+        // 3. Play d4 in the fresh game and let bot respond
+        val secondJob = manager.playArenaMove(
+            move = d4,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update -> state = update(state) }
+        )
+        secondJob?.join()
+
+        assertEquals("d4", state.moveHistory.first())
+        assertEquals(2, state.moveHistory.size)
+        assertEquals(false, state.busy)
+        assertEquals(false, state.opponentThinking)
+    }
+
+    @Test
+    fun analysisAndPersistenceExceptionsNeverLeaveGameBusy() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val failingAnalysisEngine = object : com.chesstutor.app.engine.EngineClient {
+            override suspend fun initialize() = Unit
+            override suspend fun analyze(request: com.chesstutor.app.engine.AnalysisRequest): com.chesstutor.app.engine.PositionAnalysis {
+                error("Simulated analysis engine crash")
+            }
+            override suspend fun stop() = Unit
+            override suspend fun dispose() = Unit
+        }
+        val failingGameRepo = object : com.chesstutor.app.data.repository.GameRepository {
+            override fun observeGames() = kotlinx.coroutines.flow.flowOf(emptyList<GameRecord>())
+            override suspend fun getRecentGames(limit: Int): List<GameRecord> = emptyList()
+            override suspend fun saveGame(game: GameRecord) {
+                error("Simulated database write failure")
+            }
+            override suspend fun deleteGame(id: String) = Unit
+        }
+
+        val engineManager = ChessEngineManager(
+            LocalFallbackEngineClient(calculationDispatcher = testDispatcher),
+            calculationDispatcher = testDispatcher
+        )
+        val manager = ArenaGameManager(
+            chessEngineManager = engineManager,
+            reviewRepository = InMemoryReviewRepository(),
+            gameRepository = failingGameRepo,
+            blunderClassifier = BlunderClassifier(),
+            scope = this,
+            analysisEngineClient = failingAnalysisEngine
+        )
+
+        val position = ChessPosition(AppViewModel.FEN_BACK_RANK_MATE)
+        val mateMove = position.legalMoves.first { it.san.contains("#") }
+
+        var state = AppUiState(
+            fen = AppViewModel.FEN_BACK_RANK_MATE,
+            arenaBotName = "Wayne",
+            isAutoOpponentEnabled = false
+        )
+
+        val job = manager.playArenaMove(
+            move = mateMove,
+            currentState = state,
+            loadReviews = {},
+            updateState = { update -> state = update(state) }
+        )
+        job?.join()
+
+        assertEquals(false, state.busy)
+        assertEquals(false, state.opponentThinking)
+        assertEquals("Game Over by Checkmate!", state.arenaStatusText)
+    }
 }

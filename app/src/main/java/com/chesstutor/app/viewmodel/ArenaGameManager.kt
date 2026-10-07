@@ -36,10 +36,16 @@ class ArenaGameManager(
     private val analysisEngineClient: EngineClient = LocalFallbackEngineClient()
 ) {
 
+    private var activeMoveJob: Job? = null
+    private var gameSessionId: Long = 0L
+
     fun startNewGame(
         botName: String,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
+        gameSessionId++
+        activeMoveJob?.cancel()
+        activeMoveJob = null
         updateState {
             it.copy(
                 fen = ChessPosition.STARTING_FEN,
@@ -67,10 +73,16 @@ class ArenaGameManager(
         loadReviews: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ): Job? {
+        if (currentState.busy || currentState.opponentThinking) return null
         val beforeFen = currentState.fen
+        val beforePos = runCatching { ChessPosition(beforeFen) }.getOrNull() ?: return null
+        if (beforePos.isOver) return null
+
         val afterPos = ChessPosition(beforeFen)
         if (!afterPos.play(move)) return null
 
+        val moverIsWhite = beforePos.sideToMove == 'w'
+        val sessionAtStart = gameSessionId
         val afterFen = afterPos.fen
         val newHistory = currentState.moveHistory + move.san
         val newUciHistory = currentState.arenaUciHistory + move.uci
@@ -89,200 +101,267 @@ class ArenaGameManager(
         }
         chessEngineManager.startEvaluation(afterFen)
 
-        return scope.launch {
-            val depth = when (currentState.arenaDifficulty) {
-                "Beginner" -> 2
-                "Casual" -> 2
-                "Intermediate" -> 3
-                else -> 3
-            }
+        val job = scope.launch {
+            try {
+                val depth = when (currentState.arenaDifficulty) {
+                    "Beginner" -> 2
+                    "Casual" -> 2
+                    "Intermediate" -> 3
+                    else -> 3
+                }
 
-            val localEngine = analysisEngineClient
-            val analysisResult = runCatching {
-                val analysisBefore = localEngine.analyze(AnalysisRequest(1001, beforeFen, depth = depth))
-                val analysisAfter = localEngine.analyze(AnalysisRequest(1002, afterFen, depth = depth))
-                analysisBefore to analysisAfter
-            }.onFailure {
-                android.util.Log.w(
-                    "ArenaGameManager",
-                    "Move analysis failed; continuing game without coaching analysis.",
-                    it
-                )
-            }.getOrNull()
-
-            var mateLessonOutcome: Boolean? = if (afterPos.isCheckmate) true else null
-
-            if (analysisResult != null) {
-                val analysisBefore = analysisResult.first
-                val analysisAfter = analysisResult.second
-                val verdict = blunderClassifier.classify(
-                    analysisBefore,
-                    analysisAfter,
-                    moverIsWhite = beforeFen.split(" ").getOrNull(1) == "w"
-                )
-                val consequences = mutableListOf<VerifiedConsequence>()
-
-                when (verdict.kind) {
-                    BlunderKind.MISSED_FORCED_MATE -> {
-                        consequences.add(VerifiedConsequence.MISSED_FORCED_MATE)
-                        if (!afterPos.isCheckmate) mateLessonOutcome = false
+                val localEngine = analysisEngineClient
+                val analysisResult = runCatching {
+                    val analysisBefore = localEngine.analyze(AnalysisRequest(1001, beforeFen, depth = depth))
+                    val analysisAfter = localEngine.analyze(AnalysisRequest(1002, afterFen, depth = depth))
+                    analysisBefore to analysisAfter
+                }.onFailure { error ->
+                    if (error is kotlinx.coroutines.CancellationException) throw error
+                    runCatching {
+                        android.util.Log.w(
+                            "ArenaGameManager",
+                            "Move analysis failed; continuing game without coaching analysis.",
+                            error
+                        )
                     }
-                    BlunderKind.WALKED_INTO_FORCED_MATE -> {
-                        consequences.add(VerifiedConsequence.WALKED_INTO_FORCED_MATE)
-                        mateLessonOutcome = false
+                }.getOrNull()
+
+                if (sessionAtStart != gameSessionId) return@launch
+
+                var mateLessonOutcome: Boolean? = if (afterPos.isCheckmate) true else null
+
+                if (analysisResult != null) {
+                    val analysisBefore = analysisResult.first
+                    val analysisAfter = analysisResult.second
+                    val verdict = blunderClassifier.classify(
+                        analysisBefore,
+                        analysisAfter,
+                        moverIsWhite = moverIsWhite
+                    )
+                    val consequences = mutableListOf<VerifiedConsequence>()
+
+                    when (verdict.kind) {
+                        BlunderKind.MISSED_FORCED_MATE -> {
+                            consequences.add(VerifiedConsequence.MISSED_FORCED_MATE)
+                            if (!afterPos.isCheckmate) mateLessonOutcome = false
+                        }
+                        BlunderKind.WALKED_INTO_FORCED_MATE -> {
+                            consequences.add(VerifiedConsequence.WALKED_INTO_FORCED_MATE)
+                            mateLessonOutcome = false
+                        }
+                        BlunderKind.CENTIPAWN_LOSS -> consequences.add(VerifiedConsequence.MATERIAL_LOST_BY_FORCE)
+                        else -> {}
                     }
-                    BlunderKind.CENTIPAWN_LOSS -> consequences.add(VerifiedConsequence.MATERIAL_LOST_BY_FORCE)
-                    else -> {}
-                }
 
-                val coachingLabel = when (verdict.kind) {
-                    BlunderKind.MISSED_FORCED_MATE -> "Verified Fact: Missed forced checkmate!"
-                    BlunderKind.WALKED_INTO_FORCED_MATE -> "Verified Fact: Walked into opponent forced checkmate!"
-                    BlunderKind.CENTIPAWN_LOSS -> "Verified Blunder: Material or evaluation drop of ${verdict.centipawnLoss} cp."
-                    else -> "Solid move: Position maintained."
-                }
+                    val coachingLabel = when (verdict.kind) {
+                        BlunderKind.MISSED_FORCED_MATE -> "Verified Fact: Missed forced checkmate!"
+                        BlunderKind.WALKED_INTO_FORCED_MATE -> "Verified Fact: Walked into opponent forced checkmate!"
+                        BlunderKind.CENTIPAWN_LOSS -> "Verified Blunder: Material or evaluation drop of ${verdict.centipawnLoss} cp."
+                        else -> "Solid move: Position maintained."
+                    }
 
-                val assessment = MoveAssessment(
-                    evaluationBeforeCp = analysisBefore.centipawns,
-                    evaluationAfterCp = analysisAfter.centipawns,
-                    mateInMovesBefore = analysisBefore.mateInMoves,
-                    mateInMovesAfter = analysisAfter.mateInMoves,
-                    verifiedConsequences = consequences,
-                    confidence = SearchConfidence(depth = depth, nodes = null),
-                    coachingLabel = coachingLabel
-                )
-
-                if (verdict.isBlunder) {
-                    soundManager?.playBlunder(currentState.isSoundEnabled)
-                    val item = ReviewItem(
-                        id = UUID.randomUUID().toString(),
-                        fen = beforeFen,
-                        dueAt = Instant.now(),
-                        stage = -1,
-                        attempts = 0,
-                        mistakeUci = move.uci,
-                        bestMoveUci = analysisBefore.bestMoveUci,
-                        explanation = coachingLabel
+                    val assessment = MoveAssessment(
+                        evaluationBeforeCp = analysisBefore.centipawns,
+                        evaluationAfterCp = analysisAfter.centipawns,
+                        mateInMovesBefore = analysisBefore.mateInMoves,
+                        mateInMovesAfter = analysisAfter.mateInMoves,
+                        verifiedConsequences = consequences,
+                        confidence = SearchConfidence(depth = depth, nodes = null),
+                        coachingLabel = coachingLabel
                     )
-                    reviewRepository.upsert(item)
-                    loadReviews()
+
+                    if (verdict.isBlunder) {
+                        soundManager?.playBlunder(currentState.isSoundEnabled)
+                        val item = ReviewItem(
+                            id = UUID.randomUUID().toString(),
+                            fen = beforeFen,
+                            dueAt = Instant.now(),
+                            stage = -1,
+                            attempts = 0,
+                            mistakeUci = move.uci,
+                            bestMoveUci = analysisBefore.bestMoveUci,
+                            explanation = coachingLabel
+                        )
+                        runCatching {
+                            reviewRepository.upsert(item)
+                            loadReviews()
+                        }.onFailure { error ->
+                            if (error is kotlinx.coroutines.CancellationException) throw error
+                            runCatching {
+                                android.util.Log.w("ArenaGameManager", "Review persistence failed; continuing game.", error)
+                            }
+                        }
+                    }
+
+                    if (sessionAtStart != gameSessionId) return@launch
+                    updateState {
+                        it.copy(
+                            assessment = assessment,
+                            message = coachingLabel,
+                            mistakeDetected = verdict.isBlunder,
+                            mistakeFen = if (verdict.isBlunder) beforeFen else null,
+                            canRetryMistake = verdict.isBlunder
+                        )
+                    }
+                } else {
+                    if (sessionAtStart != gameSessionId) return@launch
+                    updateState {
+                        it.copy(
+                            assessment = null,
+                            message = "Move ${move.san} played. Coaching analysis unavailable; continuing game."
+                        )
+                    }
                 }
 
-                updateState {
-                    it.copy(
-                        assessment = assessment,
-                        message = coachingLabel,
-                        mistakeDetected = verdict.isBlunder,
-                        mistakeFen = if (verdict.isBlunder) beforeFen else null,
-                        canRetryMistake = verdict.isBlunder
-                    )
-                }
-            } else {
-                updateState {
-                    it.copy(
-                        assessment = null,
-                        message = "Move ${move.san} played. Coaching analysis unavailable; continuing game."
-                    )
-                }
-            }
-
-            mateLessonOutcome?.let { correct ->
-                try {
-                    learningRepository.recordModuleAttempt("lesson_mate_1", correct)
-                } catch (error: Exception) {
-                    android.util.Log.w(
-                        "ArenaGameManager",
-                        "Learning progress update failed; continuing game.",
-                        error
-                    )
-                }
-            }
-
-            if (!afterPos.isOver) {
-                if (currentState.isAutoOpponentEnabled) {
-                    updateState { it.copy(opponentThinking = true) }
-                    delay(350)
-                    val elo = currentState.effectiveBotElo
-                    val botDifficulty = currentState.arenaDifficulty
-                    val engineMove = chessEngineManager.calculateBotMove(afterFen, elo, botDifficulty)
-
-                    if (engineMove != null) {
-                        val engineMovePos = ChessPosition(afterFen)
-                        engineMovePos.play(engineMove)
-                        val updatedHistory = newHistory + engineMove.san
-                        val updatedUciHistory = newUciHistory + engineMove.uci
-
-                        soundManager?.playMove(currentState.isSoundEnabled, isCapture = engineMove.isCapture, isCheck = engineMovePos.isCheck)
-
-                        updateState {
-                            it.copy(
-                                fen = engineMovePos.fen,
-                                lastMove = Pair(engineMove.from, engineMove.to),
-                                moveHistory = updatedHistory,
-                                arenaUciHistory = updatedUciHistory,
-                                busy = false,
-                                opponentThinking = false,
-                                arenaStatusText = "${it.botTuningDescription} played ${engineMove.san}."
+                mateLessonOutcome?.let { correct ->
+                    try {
+                        learningRepository.recordModuleAttempt("lesson_mate_1", correct)
+                    } catch (error: Exception) {
+                        if (error is kotlinx.coroutines.CancellationException) throw error
+                        runCatching {
+                            android.util.Log.w(
+                                "ArenaGameManager",
+                                "Learning progress update failed; continuing game.",
+                                error
                             )
                         }
-                        chessEngineManager.startEvaluation(engineMovePos.fen)
+                    }
+                }
 
-                        if (engineMovePos.isOver) {
-                            val result = if (engineMovePos.isCheckmate) "0-1" else "1/2-1/2"
-                            if (engineMovePos.isCheckmate) {
-                                soundManager?.playBlunder(currentState.isSoundEnabled)
+                if (sessionAtStart != gameSessionId) return@launch
+
+                if (!afterPos.isOver) {
+                    if (currentState.isAutoOpponentEnabled) {
+                        updateState { it.copy(opponentThinking = true) }
+                        delay(350)
+                        if (sessionAtStart != gameSessionId) return@launch
+
+                        val elo = currentState.effectiveBotElo
+                        val botDifficulty = currentState.arenaDifficulty
+                        val engineMove = runCatching {
+                            chessEngineManager.calculateBotMove(afterFen, elo, botDifficulty)
+                        }.onFailure { error ->
+                            if (error is kotlinx.coroutines.CancellationException) throw error
+                            runCatching {
+                                android.util.Log.w("ArenaGameManager", "Bot move calculation failed.", error)
                             }
-                            saveMatchRecord(
-                                moves = updatedHistory,
-                                uciMoves = updatedUciHistory,
-                                botName = currentState.arenaBotName,
-                                botRating = elo,
-                                result = result,
-                                finalFen = engineMovePos.fen,
-                                userColor = currentState.arenaPlayerSide
-                            )
+                        }.getOrNull()
+
+                        if (sessionAtStart != gameSessionId) return@launch
+
+                        if (engineMove != null) {
+                            val engineMovePos = ChessPosition(afterFen)
+                            val botMoved = engineMovePos.play(engineMove)
+                            if (!botMoved) {
+                                updateState { it.copy(busy = false, opponentThinking = false) }
+                                return@launch
+                            }
+                            val updatedHistory = newHistory + engineMove.san
+                            val updatedUciHistory = newUciHistory + engineMove.uci
+
+                            soundManager?.playMove(currentState.isSoundEnabled, isCapture = engineMove.isCapture, isCheck = engineMovePos.isCheck)
+
                             updateState {
                                 it.copy(
+                                    fen = engineMovePos.fen,
+                                    lastMove = Pair(engineMove.from, engineMove.to),
+                                    moveHistory = updatedHistory,
+                                    arenaUciHistory = updatedUciHistory,
                                     busy = false,
                                     opponentThinking = false,
-                                    arenaStatusText = if (engineMovePos.isCheckmate) {
-                                        "Game Over by Checkmate!"
-                                    } else {
-                                        "Draw!"
-                                    }
+                                    arenaStatusText = "${it.botTuningDescription} played ${engineMove.san}."
                                 )
                             }
+                            chessEngineManager.startEvaluation(engineMovePos.fen)
+
+                            if (engineMovePos.isOver) {
+                                val botIsWhite = afterPos.sideToMove == 'w'
+                                val result = if (engineMovePos.isCheckmate) {
+                                    if (botIsWhite) "1-0" else "0-1"
+                                } else {
+                                    "1/2-1/2"
+                                }
+                                if (engineMovePos.isCheckmate) {
+                                    soundManager?.playBlunder(currentState.isSoundEnabled)
+                                }
+                                runCatching {
+                                    saveMatchRecord(
+                                        moves = updatedHistory,
+                                        uciMoves = updatedUciHistory,
+                                        botName = currentState.arenaBotName,
+                                        botRating = elo,
+                                        result = result,
+                                        finalFen = engineMovePos.fen,
+                                        userColor = currentState.arenaPlayerSide
+                                    )
+                                }.onFailure { error ->
+                                    if (error is kotlinx.coroutines.CancellationException) throw error
+                                    runCatching {
+                                        android.util.Log.w("ArenaGameManager", "Saving match record failed.", error)
+                                    }
+                                }
+                                if (sessionAtStart != gameSessionId) return@launch
+                                updateState {
+                                    it.copy(
+                                        busy = false,
+                                        opponentThinking = false,
+                                        arenaStatusText = if (engineMovePos.isCheckmate) {
+                                            "Game Over by Checkmate!"
+                                        } else {
+                                            "Draw!"
+                                        }
+                                    )
+                                }
+                            }
+                        } else {
+                            updateState { it.copy(busy = false, opponentThinking = false) }
                         }
                     } else {
                         updateState { it.copy(busy = false, opponentThinking = false) }
                     }
                 } else {
+                    chessEngineManager.startEvaluation(afterFen)
+                    if (afterPos.isCheckmate) {
+                        soundManager?.playSuccess(currentState.isSoundEnabled)
+                    }
+                    val result = if (afterPos.isCheckmate) {
+                        if (moverIsWhite) "1-0" else "0-1"
+                    } else {
+                        "1/2-1/2"
+                    }
+                    runCatching {
+                        saveMatchRecord(
+                            moves = newHistory,
+                            uciMoves = newUciHistory,
+                            botName = currentState.arenaBotName,
+                            botRating = currentState.effectiveBotElo,
+                            result = result,
+                            finalFen = afterFen,
+                            userColor = currentState.arenaPlayerSide
+                        )
+                    }.onFailure { error ->
+                        if (error is kotlinx.coroutines.CancellationException) throw error
+                        runCatching {
+                            android.util.Log.w("ArenaGameManager", "Saving match record failed.", error)
+                        }
+                    }
+                    if (sessionAtStart != gameSessionId) return@launch
+                    updateState {
+                        it.copy(
+                            busy = false,
+                            opponentThinking = false,
+                            arenaStatusText = if (afterPos.isCheckmate) "Game Over by Checkmate!" else "Draw!"
+                        )
+                    }
+                }
+            } finally {
+                if (sessionAtStart == gameSessionId) {
                     updateState { it.copy(busy = false, opponentThinking = false) }
-                }
-            } else {
-                chessEngineManager.startEvaluation(afterFen)
-                if (afterPos.isCheckmate) {
-                    soundManager?.playSuccess(currentState.isSoundEnabled)
-                }
-                val result = if (afterPos.isCheckmate) "1-0" else "1/2-1/2"
-                saveMatchRecord(
-                    moves = newHistory,
-                    uciMoves = newUciHistory,
-                    botName = currentState.arenaBotName,
-                    botRating = currentState.effectiveBotElo,
-                    result = result,
-                    finalFen = afterFen,
-                    userColor = currentState.arenaPlayerSide
-                )
-                updateState {
-                    it.copy(
-                        busy = false,
-                        opponentThinking = false,
-                        arenaStatusText = if (afterPos.isCheckmate) "Game Over by Checkmate!" else "Draw!"
-                    )
                 }
             }
         }
+        activeMoveJob = job
+        return job
     }
 
     private suspend fun saveMatchRecord(
