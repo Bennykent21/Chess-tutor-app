@@ -134,6 +134,7 @@ object LegalMoveGenerator {
       return if (inCheck) GameStatus.CHECKMATE else GameStatus.STALEMATE
     }
 
+    if (position.halfmoveClock >= 150) return GameStatus.DRAW_75_MOVES
     if (isInsufficientMaterial(position)) return GameStatus.DRAW_INSUFFICIENT_MATERIAL
     if (position.halfmoveClock >= 100) return GameStatus.DRAW_50_MOVES
     if (inCheck) return GameStatus.CHECK

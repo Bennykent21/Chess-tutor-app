@@ -62,6 +62,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.domain.ChessPosition
+import com.chesstutor.app.domain.OpeningBook
+import com.chesstutor.app.navigation.OpeningMode
 import com.chesstutor.app.ui.components.ChessBoard
 import com.chesstutor.app.ui.components.EvalBar
 import com.chesstutor.app.ui.theme.ChessTutorColors
@@ -69,6 +71,7 @@ import com.chesstutor.app.ui.theme.bouncyClickable
 import com.example.chess.engine.BotStrength
 import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
+import com.chesstutor.app.viewmodel.CoachingLevel
 import kotlin.math.roundToInt
 
 data class MockupBot(
@@ -90,7 +93,7 @@ fun ArenaScreen(
     modifier: Modifier = Modifier
 ) {
     val moveScrollState = rememberScrollState()
-    var isBoardFlipped by remember { mutableStateOf(false) }
+    var isBoardFlipped by remember(state.arenaPlayerSide) { mutableStateOf(state.arenaPlayerSide == 'b') }
     var isBotSheetOpen by remember { mutableStateOf(false) }
     val botSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -286,15 +289,17 @@ fun ArenaScreen(
                         .height(IntrinsicSize.Min),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    EvalBar(
-                        centipawns = state.evaluationCp,
-                        mateIn = state.mateIn,
-                        isWhiteOnBottom = !isBoardFlipped,
-                        modifier = Modifier
-                            .width(22.dp)
-                            .fillMaxHeight()
-                            .padding(end = 8.dp)
-                    )
+                    if (state. coachingLevel == CoachingLevel.LIVE_EVAL || state.coachingLevel == CoachingLevel.FULL_COACH) {
+                        EvalBar(
+                            centipawns = state.evaluationCp,
+                            mateIn = state.mateIn,
+                            isWhiteOnBottom = !isBoardFlipped,
+                            modifier = Modifier
+                                .width(22.dp)
+                                .fillMaxHeight()
+                                .padding(end = 8.dp)
+                        )
+                    }
 
                     Box(
                         modifier = Modifier
@@ -309,9 +314,45 @@ fun ArenaScreen(
                             lastMove = state.lastMove,
                             recommendedArrow = state.recommendedArrow,
                             flipped = isBoardFlipped,
+                            showCoordinates = state.showCoordinates,
+                            showLegalDots = state.showLegalDots,
                             onSquareTapped = { square ->
                                 viewModel.onSquareTapped(square)
                             }
+                        )
+                    }
+                }
+
+                // Live Opening Name + ECO & Out-of-Theory Indicator (§2.5)
+                if (state.liveOpeningName != null || state.outOfTheoryPly != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = buildString {
+                                if (state.liveOpeningEco != null) append("${state.liveOpeningEco} · ")
+                                append(state.liveOpeningName ?: "Custom Line")
+                            },
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChessTutorColors.Brass
+                        )
+                        val theoryBadge = when {
+                            state.outOfTheoryPly != null && state.bookContinuationHint != null ->
+                                "Left theory (book: ${state.bookContinuationHint})"
+                            state.outOfTheoryPly != null ->
+                                "Out of theory at ply ${state.outOfTheoryPly}"
+                            else -> "In book"
+                        }
+                        Text(
+                            text = theoryBadge,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = if (state.outOfTheoryPly != null) ChessTutorColors.Coral else ChessTutorColors.Sage
                         )
                     }
                 }
@@ -328,7 +369,7 @@ fun ArenaScreen(
                 ) {
                     if (state.moveHistory.isEmpty()) {
                         Text(
-                            text = "Game in progress...",
+                            text = state.message.ifBlank { "Game in progress..." },
                             fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace,
                             color = ChessTutorColors.TextTertiary,
@@ -357,6 +398,31 @@ fun ArenaScreen(
                                 )
                             }
                         }
+                    }
+                }
+
+                // Verified Coaching Strip in Play (§1 #10 & §4 P0)
+                val coachingLine = state.assessment?.coachingLabel ?: state.message
+                if (state.coachingLevel == CoachingLevel.FULL_COACH && coachingLine.isNotBlank() && !state.mistakeDetected) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(ChessTutorColors.Sage)
+                        )
+                        Text(
+                            text = coachingLine,
+                            fontSize = 12.5.sp,
+                            color = ChessTutorColors.TextSecondary,
+                            maxLines = 2
+                        )
                     }
                 }
 
@@ -485,10 +551,12 @@ fun ArenaScreen(
                 }
 
                 // Flag / Missed Tactic Card (.flag #flag-play) - inset by 16dp.
-                if (state.mistakeDetected || state.analysis?.tacticalIssue != null) {
-                    val issue = state.analysis?.tacticalIssue
-                    val title = if (state.mateIn != null && state.mateIn > 0) "You missed mate in one" else "Tactical mistake detected"
-                    val subtitle = state.analysis?.explanation ?: "Tap to see the best move."
+                if (state.coachingLevel != CoachingLevel.OFF && (state.mistakeDetected || state.analysis?.tacticalIssue != null)) {
+                    val title = state.analysis?.tacticalIssue
+                        ?: if (state.mateIn != null && state.mateIn > 0) "You missed mate in one" else "Tactical mistake detected"
+                    val subtitle = state.analysis?.explanation
+                        ?: state.assessment?.coachingLabel
+                        ?: "Tap to see the best move or take back."
 
                     Row(
                         modifier = Modifier
@@ -498,11 +566,12 @@ fun ArenaScreen(
                             .background(Color(0x1ADC7466))
                             .border(1.dp, Color(0x4DDC7466), RoundedCornerShape(12.dp))
                             .bouncyClickable {
-                                state.analysis?.bestAlternativeMove?.let { bestMove ->
-                                    viewModel.showAnalysisArrow(bestMove.first, bestMove.second)
+                                val arrow = state.analysis?.bestAlternativeMove ?: state.recommendedArrow
+                                if (arrow != null) {
+                                    viewModel.showAnalysisArrow(arrow.first, arrow.second)
                                 }
                             }
-                            .padding(12.dp, 13.dp),
+                            .padding(12.dp, 11.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -530,17 +599,20 @@ fun ArenaScreen(
                             )
                         }
 
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Inspect",
-                            tint = ChessTutorColors.TextTertiary,
-                            modifier = Modifier.size(17.dp)
+                        Text(
+                            text = "Retry",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChessTutorColors.Brass,
+                            modifier = Modifier
+                                .bouncyClickable { viewModel.takebackArenaMove() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
             }
 
-            // Actions: [ New Game ] and [ PGN ] Buttons - inset by 16dp.
+            // Actions: [ New Game ], [ Takeback ], [ Resign ], and [ PGN ] Buttons - inset by 16dp.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -574,8 +646,47 @@ fun ArenaScreen(
                             .clip(RoundedCornerShape(11.dp))
                             .background(ChessTutorColors.Surface2)
                             .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
+                            .testTag("arena_takeback_button")
+                            .bouncyClickable { viewModel.takebackArenaMove() }
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Undo",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChessTutorColors.TextPrimary
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
+                            .testTag("arena_resign_button")
+                            .bouncyClickable { viewModel.resignArenaGame() }
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Resign",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChessTutorColors.Coral
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(11.dp))
                             .testTag("arena_view_pgn_button")
                             .bouncyClickable {
+                                val userWhite = state.arenaPlayerSide == 'w'
                                 val currentRecord = state.recentGames.firstOrNull() ?: com.chesstutor.app.data.model.GameRecord(
                                     id = "current",
                                     dateMillis = System.currentTimeMillis(),
@@ -584,28 +695,30 @@ fun ArenaScreen(
                                     result = "*",
                                     pgn = com.chesstutor.app.domain.PgnFormatter.formatPgn(
                                         moves = state.moveHistory,
-                                        whitePlayer = "You",
-                                        blackPlayer = state.arenaBotName,
-                                        blackElo = state.effectiveBotElo
+                                        whitePlayer = if (userWhite) "You" else state.arenaBotName,
+                                        blackPlayer = if (userWhite) state.arenaBotName else "You",
+                                        whiteElo = if (userWhite) null else state.effectiveBotElo,
+                                        blackElo = if (userWhite) state.effectiveBotElo else null
                                     ),
                                     moveCount = state.moveHistory.size,
-                                    userColor = "white",
-                                    finalFen = state.fen
+                                    userColor = if (userWhite) "white" else "black",
+                                    finalFen = state.fen,
+                                    uciMoves = state.arenaUciHistory.joinToString(" ")
                                 )
                                 viewModel.selectGameForPgn(currentRecord)
                             }
-                            .padding(horizontal = 14.dp),
+                            .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Description,
                                 contentDescription = "PGN",
                                 tint = ChessTutorColors.TextPrimary,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(15.dp)
                             )
                             Text(
                                 text = "PGN",
@@ -644,18 +757,128 @@ fun ArenaScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Choose an opponent",
+                    text = "Play Setup & Opponent",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-0.015).sp,
                     color = ChessTutorColors.TextPrimary
                 )
                 Text(
-                    text = "Strength is matched to your linked rating",
+                    text = "Choose colour, opening practice mode, coaching level, and strength",
                     fontSize = 12.5.sp,
                     color = ChessTutorColors.TextSecondary,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 10.dp)
                 )
+
+                // Colour Selector: White / Black / Random (§2.5)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf('w' to "White", 'b' to "Black", 'r' to "Random").forEach { (sideChar, label) ->
+                        val selected = state.arenaPlayerSide == sideChar
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(if (selected) ChessTutorColors.Brass else ChessTutorColors.Surface2)
+                                .border(
+                                    1.dp,
+                                    if (selected) ChessTutorColors.Brass else ChessTutorColors.Line,
+                                    RoundedCornerShape(9.dp)
+                                )
+                                .bouncyClickable {
+                                    viewModel.setArenaPlayerSide(sideChar)
+                                    isBotSheetOpen = false
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (selected) ChessTutorColors.BrassInk else ChessTutorColors.TextPrimary
+                            )
+                        }
+                    }
+                }
+
+                // Opening Practice Mode Selector (§2.5)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(
+                        OpeningMode.FREE to "Free",
+                        OpeningMode.LEARN_LINE to "Learn Line",
+                        OpeningMode.START_FROM_LINE to "From Line",
+                        OpeningMode.SURPRISE_ME to "Surprise"
+                    ).forEach { (mode, label) ->
+                        val selected = state.selectedOpeningMode == mode
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (selected) ChessTutorColors.Surface3 else ChessTutorColors.Surface2)
+                                .border(
+                                    1.dp,
+                                    if (selected) ChessTutorColors.Brass else ChessTutorColors.Line,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .bouncyClickable {
+                                    viewModel.setOpeningPractice(mode, state.selectedOpeningLineId ?: OpeningBook.lines.first().id)
+                                    isBotSheetOpen = false
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (selected) ChessTutorColors.Brass else ChessTutorColors.TextSecondary
+                            )
+                        }
+                    }
+                }
+
+                // Coaching Level Selector (§2.5)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    CoachingLevel.entries.forEach { level ->
+                        val selected = state.coachingLevel == level
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (selected) ChessTutorColors.Surface3 else ChessTutorColors.Surface2)
+                                .border(
+                                    1.dp,
+                                    if (selected) ChessTutorColors.Brass else ChessTutorColors.Line,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .bouncyClickable { viewModel.setCoachingLevel(level) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = level.label,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (selected) ChessTutorColors.Brass else ChessTutorColors.TextSecondary
+                            )
+                        }
+                    }
+                }
 
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),

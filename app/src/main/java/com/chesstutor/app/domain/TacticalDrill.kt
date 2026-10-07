@@ -33,15 +33,15 @@ object TrainDrillsRepository {
             category = "Tactical Pressure",
             fen = "2r3k1/5ppp/8/3q4/8/8/5PPP/2R3K1 w - - 0 1",
             solutionUci = "c1c8",
-            prompt = "White to move · Exploit the back rank"
+            prompt = "White to move · Exploit the overloaded queen (Rxc8+)"
         ),
         TacticalDrill(
             id = "drill_hanging_piece",
             title = "Hanging Major Piece",
             category = "Board Awareness",
-            fen = "r1bqk2r/pppp1ppp/2n2n2/4p3/1b2P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 2 5",
-            solutionUci = "c1d2",
-            prompt = "White to move · Defend the pinned knight"
+            fen = "r1b1kbnr/pppp1ppp/2n5/4p3/3qP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5",
+            solutionUci = "f3d4",
+            prompt = "White to move · Capture the undefended queen"
         ),
         TacticalDrill(
             id = "drill_knight_fork",
@@ -53,19 +53,19 @@ object TrainDrillsRepository {
         ),
         TacticalDrill(
             id = "drill_interpose",
-            title = "Failing to Interpose",
+            title = "Interposing Against Check",
             category = "Defensive Technique",
-            fen = "r1bqk2r/ppp2ppp/2n5/1B1p4/1b1Pn3/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 7",
+            fen = "rnbqk1nr/pppp1ppp/8/4p3/1b2P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 1 3",
             solutionUci = "c1d2",
-            prompt = "White to move · Shield the King"
+            prompt = "White to move · Interpose to block the bishop check"
         ),
         TacticalDrill(
             id = "drill_queen_battery",
-            title = "Bishop Battery Setup",
+            title = "Queen & Bishop Battery Mate",
             category = "Forced Mate",
-            fen = "r1b2rk1/pp3ppp/2n5/3p4/3P4/2Q2N2/PP1B1PPP/R3KB1R w - - 0 1",
-            solutionUci = "d2h6",
-            prompt = "White to move · Set up the kingside attack"
+            fen = "r1bq1rk1/ppp2p1p/2n5/8/8/2Q5/PB3PPP/R3K2R w KQ - 0 10",
+            solutionUci = "c3g7",
+            prompt = "White to move · Deliver mate on the long diagonal"
         ),
         TacticalDrill(
             id = "drill_pin_skewer",
@@ -87,9 +87,9 @@ object TrainDrillsRepository {
             id = "drill_opposition",
             title = "King Opposition",
             category = "Endgame Technique",
-            fen = "8/8/8/4k3/8/4K3/8/8 w - - 0 1",
-            solutionUci = "e3d3",
-            prompt = "White to move · Seize the opposition"
+            fen = "8/8/3k4/8/4K3/3P4/8/8 w - - 0 1",
+            solutionUci = "e4d4",
+            prompt = "White to move · Step ahead of the pawn to seize opposition"
         ),
         TacticalDrill(
             id = "drill_greek_gift",
@@ -103,9 +103,9 @@ object TrainDrillsRepository {
             id = "drill_discovered_check",
             title = "Discovered Attack",
             category = "Tactical Motifs",
-            fen = "r1b2rk1/pp3ppp/2n5/1B1p4/3P4/5N2/PP1B1PPP/R2QR1K1 w - - 0 13",
-            solutionUci = "b5c6",
-            prompt = "White to move · Remove the guard"
+            fen = "r1b2rk1/ppp2ppp/3q4/8/8/3B4/PPP2PPP/R2Q1RK1 w - - 0 10",
+            solutionUci = "d3h7",
+            prompt = "White to move · Check with the bishop to win the queen"
         )
     )
 }

@@ -58,8 +58,13 @@ class ChessPosition(fen: String? = null) {
     val isSeventyFiveMoveDraw: Boolean
         get() = gameState.isSeventyFiveMoveDraw && gameState.status == com.example.chess.core.GameStatus.DRAW_75_MOVES
 
+    private var cachedLegalMoves: List<MoveChoice>? = null
+    private var cachedMatesInOne: List<MoveChoice>? = null
+    private var cachedHangingPieces: List<HangingPiece>? = null
+    private var cachedForks: List<ForkTactic>? = null
+
     val legalMoves: List<MoveChoice>
-        get() = computeLegalMoves()
+        get() = cachedLegalMoves ?: computeLegalMoves().also { cachedLegalMoves = it }
 
     val isCheckmate: Boolean
         get() = gameState.status == com.example.chess.core.GameStatus.CHECKMATE
@@ -75,22 +80,23 @@ class ChessPosition(fen: String? = null) {
      * checkmate. This is an exhaustive check over legal one-move continuations.
      */
     val matesInOne: List<MoveChoice>
-        get() = if (isOver) {
+        get() = cachedMatesInOne ?: (if (isOver) {
             emptyList()
         } else {
+            val pos = gameState.position
             legalMoves.filter { moveChoice ->
-                val testPos = ChessPosition(fen)
-                testPos.play(moveChoice) && testPos.isCheckmate
+                val nextPos = LegalMoveGenerator.makeMove(pos, moveChoice.toCoreMove())
+                LegalMoveGenerator.getGameStatus(nextPos) == com.example.chess.core.GameStatus.CHECKMATE
             }
-        }
+        }).also { cachedMatesInOne = it }
 
     /** Identifies pieces of the side to move that are currently hanging. */
     val hangingPieces: List<HangingPiece>
-        get() = TacticalAnalysis.findHangingPieces(this)
+        get() = cachedHangingPieces ?: TacticalAnalysis.findHangingPieces(this).also { cachedHangingPieces = it }
 
     /** Identifies tactical moves that execute a geometric fork. */
     val forks: List<ForkTactic>
-        get() = TacticalAnalysis.findForks(this)
+        get() = cachedForks ?: TacticalAnalysis.findForks(this).also { cachedForks = it }
 
     fun play(move: MoveChoice): Boolean {
         return play(move.uci)
@@ -102,6 +108,10 @@ class ChessPosition(fen: String? = null) {
 
         return runCatching {
             gameState = gameState.play(parsedMove)
+            cachedLegalMoves = null
+            cachedMatesInOne = null
+            cachedHangingPieces = null
+            cachedForks = null
             true
         }.getOrDefault(false)
     }

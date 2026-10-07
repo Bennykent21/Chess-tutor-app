@@ -26,28 +26,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chesstutor.app.engine.WinProbability
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import kotlin.math.abs
-import kotlin.math.exp
 
-/**
- * Vertical evaluation bar.
- *
- * FILL - 0f (top) vs 1f (bottom) of the bar filled white vs. black, computed
- * as `whiteRatioTarget` below. A forced mate for either side saturates the
- * fill completely (1.0f / 0.0f) - never an "almost full" state for mate.
- * For an ordinary centipawn score, this is a sigmoid centered on 0: negative
- * centipawns (Black ahead) push the ratio toward 0f, meaning LESS of the bar
- * is white and MORE of it is black. Positive centipawns push it toward 1f
- * (more white). This is standard signed White-POV scoring - nothing here is
- * inverted.
- *
- * LABEL - a single signed number, same White-POV convention (+ = White
- * ahead, - = Black ahead). It docks flush against whichever physical edge
- * (top or bottom) the *currently ahead* side occupies, and never drifts
- * along the fill boundary or cross-fades between edges - it's always fully
- * at one edge or the other.
- */
 @Composable
 fun EvalBar(
     centipawns: Int?,
@@ -56,14 +38,7 @@ fun EvalBar(
     isWhiteOnBottom: Boolean = true
 ) {
     // 1. White's fill fraction: 0f = fully black, 1f = fully white.
-    val whiteRatioTarget = when {
-        mateIn != null -> if (mateIn > 0) 1.0f else 0.0f
-        centipawns != null -> {
-            val sigmoid = 1.0f / (1.0f + exp(-centipawns / 380.0f))
-            sigmoid.coerceIn(0.03f, 0.97f)
-        }
-        else -> 0.5f
-    }
+    val whiteRatioTarget = WinProbability.whiteBarFraction(centipawns = centipawns, mateInMoves = mateIn)
 
     val animatedWhiteRatio by animateFloatAsState(
         targetValue = whiteRatioTarget,

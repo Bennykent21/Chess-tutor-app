@@ -153,14 +153,14 @@ object LearnCurriculumRepository {
             subtitle = "Unmasking Hidden Artillery",
             summary = "Moving the front piece unleashes an attack from the piece behind it.",
             keyPrinciples = listOf(
-                "Unmask long-range rooks and bishops",
-                "The moving piece strikes an extra target",
-                "Discovered checks paralyze opposing replies"
+                "Unmask long-range rooks and queens",
+                "The moving piece delivers check to gain tempo",
+                "Capture the exposed target on the next move"
             ),
-            demoFen = "r1b2rk1/pp3ppp/2n5/1B1p4/3P4/5N2/PP1B1PPP/R2QR1K1 w - - 0 13",
-            recommendedMoveUci = "b5c6",
+            demoFen = "r1b2rk1/ppp2ppp/3q4/8/8/3B4/PPP2PPP/R2Q1RK1 w - - 0 10",
+            recommendedMoveUci = "d3h7",
             skillRating = 1200,
-            moveExplanation = "Bxc6 damages pawn structure while clearing lines."
+            moveExplanation = "Bxh7+ checks the king and unmasks White's d1 queen against Black's undefended d6 queen."
         ),
         LearnTopic(
             id = "tactics_smothered_mate",
@@ -224,10 +224,10 @@ object LearnCurriculumRepository {
                 "Attack the base of the pawn chain",
                 "Support break squares with rooks"
             ),
-            demoFen = "r1b2rk1/ppq1bppp/2n1p3/3pP3/3P4/2PB1N2/P4PPP/R1BQ1RK1 w - - 0 12",
-            recommendedMoveUci = "d3h7",
+            demoFen = "r1bq1rk1/pp1nbppp/2n1p3/3pP3/3P4/2PB1N2/PP3PPP/R1BQ1RK1 w - - 0 9",
+            recommendedMoveUci = "c3c4",
             skillRating = 1600,
-            moveExplanation = "Bxh7+ initiates the classic Greek Gift sacrifice."
+            moveExplanation = "c4! challenges the d5 base of Black's pawn chain to open central files."
         ),
 
         // ENDGAME
@@ -254,14 +254,14 @@ object LearnCurriculumRepository {
             subtitle = "The Universal King & Pawn Blueprint",
             summary = "Controlling the square between kings forces the opponent to yield ground.",
             keyPrinciples = listOf(
-                "Face enemy king with odd square gap",
-                "Force opposing king to yield ground",
-                "Seize 6th rank ahead of passed pawn"
+                "Lead with the king in front of the pawn",
+                "Face enemy king with one square between",
+                "Force opposing king to yield key squares"
             ),
-            demoFen = "8/8/8/4k3/8/4K3/8/8 w - - 0 1",
-            recommendedMoveUci = "e3d3",
+            demoFen = "8/8/3k4/8/4K3/3P4/8/8 w - - 0 1",
+            recommendedMoveUci = "e4d4",
             skillRating = 1400,
-            moveExplanation = "Kd3 takes the opposition, forcing Black to step aside."
+            moveExplanation = "Kd4! steps ahead of the pawn and seizes direct opposition against Black's king on d6."
         ),
         LearnTopic(
             id = "endgame_lucena_bridge",
@@ -319,16 +319,16 @@ object LearnCurriculumRepository {
             category = LearnCategory.BLUNDER_PATTERNS,
             title = "Hanging Major Pieces",
             subtitle = "Board Awareness & Piece Protection",
-            summary = "Leaving pieces undefended on active files is the primary rating sink under 1500.",
+            summary = "Leaving pieces undefended on active squares is the primary rating sink under 1500.",
             keyPrinciples = listOf(
                 "Check if every active piece is defended",
-                "Avoid leaving rooks on open files unprotected",
+                "Capture opponent's undefended major pieces",
                 "Count attackers vs defenders before moving"
             ),
-            demoFen = "r1bqk2r/pppp1ppp/2n2n2/4p3/1b2P3/2NP1N2/PPP2PPP/R1BQKB1R w KQkq - 2 5",
-            recommendedMoveUci = "c1d2",
+            demoFen = "r1b1kbnr/pppp1ppp/2n5/4p3/3qP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5",
+            recommendedMoveUci = "f3d4",
             skillRating = 900,
-            moveExplanation = "Bd2 breaks the pin and defends the c3 knight."
+            moveExplanation = "Nxd4 captures Black's undefended queen in the center."
         ),
         LearnTopic(
             id = "lesson_back_rank",
@@ -361,22 +361,22 @@ object LearnCurriculumRepository {
             demoFen = "2r3k1/5ppp/8/3q4/8/8/5PPP/2R3K1 w - - 0 1",
             recommendedMoveUci = "c1c8",
             skillRating = 1300,
-            moveExplanation = "Rxc8# exploits the overworked back rank."
+            moveExplanation = "Rxc8+ exploits the overloaded queen: after 1...Qd8, 2. Rxd8# finishes the game."
         ),
         LearnTopic(
             id = "lesson_interpose_fail",
             category = LearnCategory.BLUNDER_PATTERNS,
             title = "Failing to Interpose",
             subtitle = "King Safety & Defense Calculation",
-            summary = "Stepping the king into worse danger instead of blocking with a defended piece.",
+            summary = "Blocking a check with a developing move preserves castling rights and tempo.",
             keyPrinciples = listOf(
-                "Block checks with lowest-value piece",
-                "Calculate whether capture or blocking is safer",
-                "Avoid retreating king into open attacks"
+                "Block checks with a developing piece",
+                "Preserve castling rights instead of moving the king",
+                "Challenge the checking piece simultaneously"
             ),
-            demoFen = "r1bqk2r/ppp2ppp/2n5/1B1p4/1b1Pn3/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 7",
+            demoFen = "rnbqk1nr/pppp1ppp/8/4p3/1b2P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 1 3",
             recommendedMoveUci = "c1d2",
-            moveExplanation = "Bd2 blocks the check and shields the king safely.",
+            moveExplanation = "Bd2 blocks the bishop check on b4 while developing and keeping castling rights.",
             skillRating = 1500
         )
     )

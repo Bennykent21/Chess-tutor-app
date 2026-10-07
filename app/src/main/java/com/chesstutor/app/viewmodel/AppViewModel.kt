@@ -1,6 +1,7 @@
 package com.chesstutor.app.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.LearningProfile
@@ -14,9 +15,11 @@ import com.chesstutor.app.data.repository.RatingRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.domain.AdaptiveTrainingPlanner
 import com.chesstutor.app.domain.ChessPosition
+import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.LearnTopic
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.MoveChoice
+import com.chesstutor.app.domain.OpeningBook
 import com.chesstutor.app.domain.ReviewItem
 import com.chesstutor.app.domain.SearchConfidence
 import com.chesstutor.app.domain.TrainDrillsRepository
@@ -25,6 +28,12 @@ import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.GameAnalysisService
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.EngineClient
+import com.chesstutor.app.navigation.AppNavigator
+import com.chesstutor.app.navigation.NavCommand
+import com.chesstutor.app.navigation.OpeningMode
+import com.chesstutor.app.navigation.PlayRequest
+import com.chesstutor.app.navigation.Side
+import com.chesstutor.app.navigation.TrainRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +52,8 @@ class AppViewModel(
     private val learningRepository: LearningRepository = com.chesstutor.app.data.repository.InMemoryLearningRepository(),
     private val chessEngineManager: ChessEngineManager = ChessEngineManager(engine),
     private val gameRepository: GameRepository = InMemoryGameRepository(),
-    private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null
+    private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null,
+    val navigator: AppNavigator = AppNavigator()
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
@@ -54,7 +64,7 @@ class AppViewModel(
     private val learningProfileMutex = Mutex()
 
     private val placementAssessmentCoordinator = PlacementAssessmentCoordinator()
-    private val ratingLinkCoordinator = RatingLinkCoordinator(ratingRepository, viewModelScope)
+    private val ratingLinkCoordinator = RatingLinkCoordinator(ratingRepository, viewModelScope, gameRepository)
     private val spacedReviewCoordinator = SpacedReviewCoordinator(
         repository = repository,
         scope = viewModelScope,
@@ -73,7 +83,8 @@ class AppViewModel(
         blunderClassifier = blunderClassifier,
         learningRepository = learningRepository,
         scope = viewModelScope,
-        soundManager = soundManager
+        soundManager = soundManager,
+        analysisEngineClient = engine
     )
 
     companion object {
@@ -122,6 +133,161 @@ class AppViewModel(
             gameRepository.observeGames().collect { games ->
                 _state.update { current ->
                     current.copy(recentGames = games)
+                }
+            }
+        }
+        viewModelScope.launch {
+            navigator.commands.collect { cmd ->
+                handleNavCommand(cmd)
+            }
+        }
+    }
+
+    fun navigate(command: NavCommand) {
+        if (!navigator.navigate(command)) {
+            handleNavCommand(command)
+        }
+    }
+
+    fun startTrain(request: TrainRequest) {
+        navigate(NavCommand.StartTrain(request))
+    }
+
+    fun startPlay(request: PlayRequest) {
+        navigate(NavCommand.StartPlay(request))
+    }
+
+    private fun handleNavCommand(command: NavCommand) {
+        when (command) {
+            is NavCommand.OpenLearn -> {
+                val topic = command.topicId?.let { tid ->
+                    LearnCurriculumRepository.topics.firstOrNull { it.id == tid }
+                } ?: LearnCurriculumRepository.topics.first()
+                _state.update {
+                    it.copy(
+                        tab = 1,
+                        selectedLearnTopicId = topic.id
+                    )
+                }
+            }
+            is NavCommand.OpenReview -> {
+                _state.update { it.copy(tab = 3) }
+            }
+            is NavCommand.StartTrain -> {
+                when (val req = command.request) {
+                    is TrainRequest.Lesson -> {
+                        val topic = LearnCurriculumRepository.topics.firstOrNull { it.id == req.topicId }
+                            ?: LearnCurriculumRepository.topics.first()
+                        curriculumCoordinator.exploreLearnTopic(topic, _state::update)
+                    }
+                    is TrainRequest.Theme -> {
+                        val drills = TrainDrillsRepository.drills
+                        val idx = drills.indexOfFirst {
+                            it.category.contains(req.theme, ignoreCase = true) ||
+                                it.title.contains(req.theme, ignoreCase = true)
+                        }.takeIf { it >= 0 } ?: 0
+                        _state.update { it.copy(tab = 0) }
+                        selectDrill(idx)
+                    }
+                    is TrainRequest.ReviewDue -> {
+                        val dueIdx = _state.value.reviews.indexOfFirst {
+                            com.chesstutor.app.domain.ReviewScheduler.isDue(it, Instant.now())
+                        }.coerceAtLeast(0)
+                        if (_state.value.reviews.isNotEmpty()) {
+                            _state.update { it.copy(tab = 3) }
+                            selectReviewItem(dueIdx)
+                        } else {
+                            _state.update { it.copy(tab = 0) }
+                            selectDrill(0)
+                        }
+                    }
+                    is TrainRequest.Daily -> {
+                        _state.update { it.copy(tab = 0) }
+                        selectDrill(0)
+                    }
+                    is TrainRequest.FromGame -> {
+                        val game = _state.value.recentGames.firstOrNull { it.id == req.gameId }
+                        val pos = ChessPosition()
+                        if (game != null && game.uciMoves.isNotBlank()) {
+                            val uciList = game.uciMoves.split(" ").filter { it.isNotBlank() }
+                            for (u in uciList.take(req.ply.coerceAtLeast(0))) {
+                                if (!pos.play(u)) break
+                            }
+                        }
+                        _state.update { it.copy(tab = 0) }
+                        loadCoachPosition(
+                            fen = pos.fen,
+                            title = "Game Position Drill",
+                            subtitle = "From your game vs ${game?.botName ?: "Opponent"}",
+                            category = "GAME REVIEW DRILL"
+                        )
+                    }
+                    is TrainRequest.Opening -> {
+                        val line = OpeningBook.byId(req.lineId) ?: OpeningBook.lines.first()
+                        val topic = line.relatedTopicId?.let { tid ->
+                            LearnCurriculumRepository.topics.firstOrNull { it.id == tid }
+                        }
+                        if (topic != null) {
+                            curriculumCoordinator.exploreLearnTopic(topic, _state::update)
+                        } else {
+                            _state.update { it.copy(tab = 0) }
+                            loadCoachPosition(
+                                fen = ChessPosition.STARTING_FEN,
+                                title = line.name,
+                                subtitle = "${line.eco} · ${line.formattedMoveLine}",
+                                category = "OPENING DRILL",
+                                recommendedMoveUci = line.uciMoves.firstOrNull()
+                            )
+                        }
+                    }
+                }
+            }
+            is NavCommand.StartPlay -> {
+                when (val req = command.request) {
+                    is PlayRequest.Free -> {
+                        _state.update { it.copy(tab = 2) }
+                        arenaGameManager.startNewGame(
+                            botName = _state.value.arenaBotName,
+                            updateState = _state::update,
+                            openingMode = OpeningMode.FREE,
+                            openingLineId = null
+                        )
+                    }
+                    is PlayRequest.Opening -> {
+                        val sideChar = req.userSide.resolveChar()
+                        _state.update { it.copy(tab = 2) }
+                        arenaGameManager.startNewGame(
+                            botName = _state.value.arenaBotName,
+                            updateState = _state::update,
+                            playerSide = sideChar,
+                            openingMode = req.mode,
+                            openingLineId = req.lineId
+                        )
+                    }
+                    is PlayRequest.FromPosition -> {
+                        val sideChar = req.userSide.resolveChar()
+                        _state.update {
+                            it.copy(
+                                tab = 2,
+                                fen = req.fen,
+                                arenaPlayerSide = sideChar,
+                                moveHistory = emptyList(),
+                                arenaUciHistory = emptyList(),
+                                message = "Playing from custom position."
+                            )
+                        }
+                        chessEngineManager.startEvaluation(req.fen)
+                    }
+                    is PlayRequest.Rematch -> {
+                        val sideChar = req.bot.userSide.resolveChar()
+                        setArenaBot(req.bot.tierKey, req.bot.botName, req.bot.elo)
+                        _state.update { it.copy(tab = 2) }
+                        arenaGameManager.startNewGame(
+                            botName = req.bot.botName,
+                            updateState = _state::update,
+                            playerSide = sideChar
+                        )
+                    }
                 }
             }
         }
@@ -308,6 +474,11 @@ class AppViewModel(
         startPlacementAssessment()
     }
 
+    fun skipPlacementAsBeginner() {
+        placementAssessmentCoordinator.skipAsBeginner(curriculumCoordinator::persistProfile, _state::update)
+        refreshTrainingRecommendation()
+    }
+
     fun loadCoachPosition(
         fen: String,
         title: String = "Forced Mate & Consequence Retry",
@@ -320,6 +491,7 @@ class AppViewModel(
         _state.update {
             it.copy(
                 fen = fen,
+                puzzlePhase = PuzzlePhase.SOLVING,
                 activeCoachTitle = title,
                 activeCoachSubtitle = subtitle,
                 activeCoachCategory = category,
@@ -465,6 +637,7 @@ class AppViewModel(
                 _state.update {
                     it.copy(
                         fen = afterFen,
+                        puzzlePhase = PuzzlePhase.CORRECT,
                         message = "Checkmate! Verified: Forced mate in 1 delivered successfully.",
                         mistakeDetected = false,
                         canRetryMistake = false,
@@ -474,7 +647,7 @@ class AppViewModel(
                             evaluationBeforeCp = 10000,
                             evaluationAfterCp = 10000,
                             mateInMovesBefore = 1,
-                            mateInMovesAfter = 0,
+                            mateInMovesAfter = 1,
                             verifiedConsequences = emptyList(),
                             confidence = SearchConfidence(depth = 1, nodes = 1),
                             coachingLabel = "Checkmate! Decisive forced victory."
@@ -499,6 +672,7 @@ class AppViewModel(
                 _state.update {
                     it.copy(
                         fen = afterFen,
+                        puzzlePhase = PuzzlePhase.WRONG,
                         message = "Mistake detected! Verified: Missed forced checkmate in 1.",
                         mistakeDetected = true,
                         mistakeFen = beforeFen,
@@ -528,11 +702,13 @@ class AppViewModel(
             if (rec != null && rec.length >= 4) {
                 if (move.uci == rec || isMatePlayed) {
                     soundManager?.playSuccess(_state.value.isSoundEnabled)
+                    recordTacticalAttempt(correct = true)
                     recordCurriculumAttempt(correct = true)
                     _state.update {
                         it.copy(
                             fen = afterFen,
-                            message = "Correct! Well done.",
+                            puzzlePhase = PuzzlePhase.CORRECT,
+                            message = if (isMatePlayed) "Checkmate! Well done." else "Strong move! Principle demonstrated.",
                             mistakeDetected = false,
                             canRetryMistake = false,
                             lastMove = Pair(move.from, move.to),
@@ -541,10 +717,12 @@ class AppViewModel(
                     }
                 } else {
                     soundManager?.playBlunder(_state.value.isSoundEnabled)
+                    recordTacticalAttempt(correct = false)
                     recordCurriculumAttempt(correct = false)
                     _state.update {
                         it.copy(
                             fen = afterFen,
+                            puzzlePhase = PuzzlePhase.WRONG,
                             message = "Incorrect move. Try again!",
                             mistakeDetected = true,
                             mistakeFen = beforeFen,
@@ -557,6 +735,7 @@ class AppViewModel(
                 _state.update {
                     it.copy(
                         fen = afterFen,
+                        puzzlePhase = if (afterPos.isCheckmate) PuzzlePhase.CORRECT else PuzzlePhase.SOLVING,
                         message = "Move ${move.san} played.",
                         lastMove = Pair(move.from, move.to)
                     )
@@ -579,6 +758,7 @@ class AppViewModel(
         loadCoachPosition(mistakeFen)
         _state.update {
             it.copy(
+                puzzlePhase = PuzzlePhase.SOLVING,
                 message = "Position reset. Find the winning move!",
                 mistakeDetected = false,
                 canRetryMistake = false
@@ -598,6 +778,7 @@ class AppViewModel(
                 it.copy(
                     currentDrillIndex = index,
                     fen = drill.fen,
+                    puzzlePhase = PuzzlePhase.SOLVING,
                     activeCoachTitle = drill.title,
                     activeCoachSubtitle = "Drill ${index + 1} of ${drills.size}",
                     activeCoachCategory = drill.category,
@@ -794,6 +975,14 @@ class AppViewModel(
         persistProfile { it.copy(soundEnabled = enabled) }
     }
 
+    fun setShowCoordinates(enabled: Boolean) {
+        _state.update { it.copy(showCoordinates = enabled) }
+    }
+
+    fun setShowLegalDots(enabled: Boolean) {
+        _state.update { it.copy(showLegalDots = enabled) }
+    }
+
     fun setSettingsVisible(visible: Boolean) {
         _state.update { it.copy(isSettingsVisible = visible) }
     }
@@ -845,8 +1034,46 @@ class AppViewModel(
         applyBotElo()
     }
 
+    fun setArenaPlayerSide(side: Char) {
+        val resolved = if (side == 'r') {
+            if (kotlin.random.Random.nextBoolean()) 'w' else 'b'
+        } else {
+            side.lowercaseChar()
+        }
+        arenaGameManager.startNewGame(
+            botName = _state.value.arenaBotName,
+            updateState = _state::update,
+            playerSide = resolved
+        )
+    }
+
+    fun setCoachingLevel(level: CoachingLevel) {
+        _state.update { it.copy(coachingLevel = level) }
+    }
+
+    fun setOpeningPractice(mode: OpeningMode, lineId: String? = null) {
+        arenaGameManager.startNewGame(
+            botName = _state.value.arenaBotName,
+            updateState = _state::update,
+            openingMode = mode,
+            openingLineId = lineId
+        )
+    }
+
     fun startNewArenaGame() {
         arenaGameManager.startNewGame(_state.value.arenaBotName, _state::update)
+    }
+
+    fun resignArenaGame() {
+        arenaGameManager.resignGame(_state.value, _state::update)
+    }
+
+    fun claimArenaDraw() {
+        arenaGameManager.claimDraw(_state.value, _state::update)
+    }
+
+    fun takebackArenaMove() {
+        arenaGameManager.takebackMove(_state.value, _state::update)
     }
 
     fun showAnalysisArrow(from: String, to: String) {
@@ -854,7 +1081,7 @@ class AppViewModel(
     }
 
     fun practiceLesson(topic: LearnTopic) {
-        exploreLearnTopic(topic)
+        startTrain(TrainRequest.Lesson(topic.id))
     }
 
     fun showReviewAnswer(item: ReviewItem) {
@@ -863,6 +1090,7 @@ class AppViewModel(
             val to = item.bestMoveUci.substring(2, 4)
             _state.update {
                 it.copy(
+                    puzzlePhase = PuzzlePhase.REVEALED,
                     recommendedArrow = Pair(from, to),
                     message = "Best move: ${item.bestMoveUci}. ${item.explanation}"
                 )
@@ -960,5 +1188,31 @@ class AppViewModel(
         viewModelScope.launch {
             runCatching { chessEngineManager.dispose() }
         }
+    }
+}
+
+class AppViewModelFactory(
+    private val repository: ReviewRepository,
+    private val engine: EngineClient,
+    private val ratingRepository: RatingRepository,
+    private val learningRepository: LearningRepository,
+    private val chessEngineManager: ChessEngineManager,
+    private val gameRepository: GameRepository,
+    private val soundManager: com.chesstutor.app.audio.ChessSoundManager?
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(AppViewModel::class.java)) {
+            return AppViewModel(
+                repository = repository,
+                engine = engine,
+                ratingRepository = ratingRepository,
+                learningRepository = learningRepository,
+                chessEngineManager = chessEngineManager,
+                gameRepository = gameRepository,
+                soundManager = soundManager
+            ) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }
