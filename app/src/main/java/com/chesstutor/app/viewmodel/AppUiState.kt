@@ -3,7 +3,22 @@ package com.chesstutor.app.viewmodel
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.ReviewItem
+import com.chesstutor.app.navigation.OpeningMode
 import com.example.chess.engine.BotStrength
+
+enum class PuzzlePhase {
+    SOLVING,
+    CORRECT,
+    WRONG,
+    REVEALED
+}
+
+enum class CoachingLevel(val label: String) {
+    OFF("Off"),
+    HINTS_ON_REQUEST("Hints on Request"),
+    LIVE_EVAL("Live Eval"),
+    FULL_COACH("Full Coach")
+}
 
 data class PromotionRequest(
     val from: String,
@@ -28,9 +43,10 @@ data class AppUiState(
     val learningGoal: String = "GENERAL_IMPROVEMENT",
     val tacticalAttempts: Int = 0,
     val tacticalCorrect: Int = 0,
-    val tab: Int = 0, // 0: Coach, 1: Curriculum, 2: Arena, 3: Review
+    val tab: Int = 0, // 0: Train (Coach), 1: Learn (Curriculum), 2: Play (Arena), 3: Review
     val fen: String = ChessPosition.STARTING_FEN,
     val message: String = "",
+    val puzzlePhase: PuzzlePhase = PuzzlePhase.SOLVING,
     val hintLevel: Int = 0, // 0 = none, 1 = concept, 2 = piece, 3 = target, 4 = direct move
     val hintText: String = "",
     val busy: Boolean = false,
@@ -53,10 +69,18 @@ data class AppUiState(
     val customBotElo: Int = 600,
     val analysis: TacticalIssueSummary? = null,
     val arenaPlayerSide: Char = 'w',
+    val coachingLevel: CoachingLevel = CoachingLevel.FULL_COACH,
+    val selectedOpeningMode: OpeningMode = OpeningMode.FREE,
+    val selectedOpeningLineId: String? = null,
+    val liveOpeningName: String? = null,
+    val liveOpeningEco: String? = null,
+    val outOfTheoryPly: Int? = null,
+    val bookContinuationHint: String? = null,
     val arenaStatusText: String = "",
     val evaluationCp: Int? = null,
     val mateIn: Int? = null,
     val curriculumLessonId: String? = null,
+    val selectedLearnTopicId: String? = null,
     val curriculumTab: Int = 0, // 0: Mistake Patterns, 1: Learn (Openings, Middlegame, Endgame)
     val activeCoachTitle: String = "Forced Mate & Consequence Retry",
     val activeCoachSubtitle: String = "Every mistake is backed by a concrete, checkable fact.",
@@ -66,7 +90,9 @@ data class AppUiState(
     val activeCoachRecommendedMove: String? = null,
     val isSettingsVisible: Boolean = false,
     val isSoundEnabled: Boolean = true,
-    val practicedModules: Set<String> = setOf("lesson_mate_1"),
+    val showCoordinates: Boolean = true,
+    val showLegalDots: Boolean = true,
+    val practicedModules: Set<String> = emptySet(),
     val masteredModules: Set<String> = emptySet(),
     val isArenaOpponentSheetVisible: Boolean = false,
     val isEngineDiagnosticsDialogVisible: Boolean = false,

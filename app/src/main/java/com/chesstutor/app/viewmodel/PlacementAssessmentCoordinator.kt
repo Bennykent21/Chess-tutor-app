@@ -6,10 +6,13 @@ import com.chesstutor.app.domain.MoveChoice
 
 class PlacementAssessmentCoordinator {
 
+    private val solvedIds = mutableSetOf<String>()
+
     fun start(
         persistProfile: ((LearningProfile) -> LearningProfile) -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
+        solvedIds.clear()
         persistProfile {
             it.copy(
                 assessmentState = "IN_PROGRESS",
@@ -50,12 +53,17 @@ class PlacementAssessmentCoordinator {
         val index = currentState.assessmentPositionIndex
         val question = PlacementAssessment.questions.getOrNull(index) ?: return
         val correct = move.uci == question.expectedMoveUci
+        if (correct) solvedIds.add(question.id)
         val nextCorrect = currentState.assessmentCorrect + if (correct) 1 else 0
         val nextTotal = currentState.assessmentTotal + 1
         val nextIndex = index + 1
 
         if (nextIndex >= PlacementAssessment.questions.size) {
-            val estimate = PlacementAssessment.estimateRating(nextCorrect, nextTotal)
+            val estimate = if (solvedIds.isNotEmpty() || nextCorrect == 0) {
+                PlacementAssessment.estimateRatingFromSolved(solvedIds.toSet())
+            } else {
+                PlacementAssessment.estimateRating(nextCorrect, nextTotal)
+            }
             val completedAt = System.currentTimeMillis()
             persistProfile {
                 it.copy(
@@ -105,6 +113,28 @@ class PlacementAssessmentCoordinator {
                 legalTargets = emptySet(),
                 recommendedArrow = null,
                 lastMove = null
+            )
+        }
+    }
+
+    fun skipAsBeginner(
+        persistProfile: ((LearningProfile) -> LearningProfile) -> Unit,
+        updateState: ((AppUiState) -> AppUiState) -> Unit
+    ) {
+        val completedAt = System.currentTimeMillis()
+        persistProfile {
+            it.copy(
+                estimatedRating = 400,
+                assessmentState = "COMPLETE",
+                assessmentCompletedAt = completedAt
+            )
+        }
+        updateState {
+            it.copy(
+                estimatedRating = 400,
+                assessmentState = "COMPLETE",
+                assessmentCompletedAt = completedAt,
+                message = "Started at Beginner (400 ELO) curriculum track."
             )
         }
     }

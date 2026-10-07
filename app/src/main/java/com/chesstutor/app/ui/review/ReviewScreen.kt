@@ -45,7 +45,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.chesstutor.app.data.model.RatingPlatform
+import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.ReviewScheduler
+import com.chesstutor.app.domain.ReviewStatsCalculator
+import com.chesstutor.app.navigation.NavCommand
+import com.chesstutor.app.navigation.OpeningMode
+import com.chesstutor.app.navigation.PlayRequest
+import com.chesstutor.app.navigation.Side
+import com.chesstutor.app.navigation.TrainRequest
 import com.chesstutor.app.ui.components.ChessBoard
 import com.chesstutor.app.ui.components.EvalBar
 import com.chesstutor.app.ui.theme.ChessTutorColors
@@ -54,20 +66,6 @@ import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
 import java.time.Instant
 
-data class OpeningPerformance(
-    val name: String,
-    val games: Int,
-    val winRate: Int,
-    val needsWork: Boolean
-)
-
-val SAMPLE_OPENINGS = listOf(
-    OpeningPerformance("Italian Game", 14, 71, false),
-    OpeningPerformance("Queen's Gambit", 9, 56, false),
-    OpeningPerformance("Ruy Lopez", 6, 50, false),
-    OpeningPerformance("Sicilian Defence (Black)", 11, 27, true)
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewScreen(
@@ -75,13 +73,25 @@ fun ReviewScreen(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
-    var isBoardFlipped by remember { mutableStateOf(false) }
-    var isProfileSheetOpen by remember { mutableStateOf(false) }
-    val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
     val dueReviews = state.reviews.filter { ReviewScheduler.isDue(it, Instant.now()) }
     val activeItem = state.activeReviewItem ?: dueReviews.firstOrNull() ?: state.reviews.firstOrNull()
-    val dueCount = dueReviews.size.coerceAtLeast(if (activeItem != null) 1 else 0)
+    val dueCount = dueReviews.size
+
+    val sideToMoveIsBlack = remember(activeItem?.fen) {
+        activeItem?.fen?.let { runCatching { ChessPosition(it).sideToMove == 'b' }.getOrDefault(false) } ?: false
+    }
+    var isBoardFlipped by remember(sideToMoveIsBlack) { mutableStateOf(sideToMoveIsBlack) }
+    var isProfileSheetOpen by remember { mutableStateOf(false) }
+    val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selectedPlatform by remember(state.linkedProfile?.platform) {
+        mutableStateOf(state.linkedProfile?.platform ?: RatingPlatform.LICHESS)
+    }
+    var usernameInput by remember(state.linkedProfile?.username) {
+        mutableStateOf(state.linkedProfile?.username ?: "")
+    }
+    val dashboardStats = remember(state.recentGames, state.reviews) {
+        ReviewStatsCalculator.compute(state.recentGames, state.reviews)
+    }
 
     Column(
         modifier = modifier
@@ -260,6 +270,8 @@ fun ReviewScreen(
                                 lastMove = state.lastMove,
                                 recommendedArrow = state.recommendedArrow,
                                 flipped = isBoardFlipped,
+                                showCoordinates = state.showCoordinates,
+                                showLegalDots = state.showLegalDots,
                                 onSquareTapped = { square ->
                                     viewModel.onReviewSquareTapped(square, activeItem)
                                 }
@@ -300,7 +312,9 @@ fun ReviewScreen(
                     }
 
                     Text(
-                        text = "From your game against Wayne",
+                        text = activeItem.explanation.ifBlank {
+                            "Stage: ${ReviewScheduler.stageLabel(activeItem.stage)} · Attempts: ${activeItem.attempts}"
+                        },
                         fontSize = 12.sp,
                         color = ChessTutorColors.TextTertiary,
                         modifier = Modifier.padding(start = 15.dp, top = 4.dp)
@@ -418,13 +432,14 @@ fun ReviewScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
-                // User Profile Header
+                // User Profile Header & Connect Account Flow (§2.6)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 18.dp),
+                        .padding(bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -444,9 +459,9 @@ fun ReviewScreen(
 
                     Spacer(modifier = Modifier.width(13.dp))
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = state.linkedProfile?.username ?: "You",
+                            text = state.linkedProfile?.username ?: "Connect your account",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = (-0.01).sp,
@@ -454,99 +469,125 @@ fun ReviewScreen(
                         )
                         Text(
                             text = if (state.linkedProfile != null) {
-                                "${state.linkedProfile.platform.displayName} · ${state.linkedProfile.activeRating} rating"
+                                "${state.linkedProfile.platform.displayName} · ${state.linkedProfile.activeRating ?: "Unrated"} rating"
                             } else {
-                                "Not connected · playing locally"
+                                "Import your public games, openings and win rates"
                             },
                             fontSize = 12.5.sp,
                             color = ChessTutorColors.TextSecondary,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
-                }
 
-                // Opening Performance
-                Text(
-                    text = "OPENING PERFORMANCE",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.06.sp,
-                    color = ChessTutorColors.TextTertiary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(ChessTutorColors.Surface2)
-                        .padding(bottom = 1.dp)
-                ) {
-                    SAMPLE_OPENINGS.forEachIndexed { idx, opening ->
-                        Row(
+                    if (state.linkedProfile != null) {
+                        Text(
+                            text = "Sync",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChessTutorColors.Brass,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .background(ChessTutorColors.Surface)
-                                .padding(12.dp, 13.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = opening.name,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = (-0.008).sp,
-                                    color = ChessTutorColors.TextPrimary
-                                )
-                                Text(
-                                    text = "${opening.games} games" + if (opening.needsWork) " · needs work" else "",
-                                    fontSize = 11.5.sp,
-                                    color = ChessTutorColors.TextTertiary,
-                                    modifier = Modifier.padding(top = 1.dp)
-                                )
-                            }
-
-                            // Track bar
-                            Box(
-                                modifier = Modifier
-                                    .width(52.dp)
-                                    .height(4.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(ChessTutorColors.Surface3)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(opening.winRate / 100f)
-                                        .height(4.dp)
-                                        .clip(RoundedCornerShape(2.dp))
-                                        .background(if (opening.needsWork) ChessTutorColors.Coral else ChessTutorColors.Sage)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(9.dp))
-
-                            Text(
-                                text = "${opening.winRate}%",
-                                fontSize = 13.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (opening.needsWork) ChessTutorColors.Coral else ChessTutorColors.Sage,
-                                modifier = Modifier.width(34.dp),
-                                textAlign = TextAlign.End
-                            )
-                        }
-
-                        if (idx < SAMPLE_OPENINGS.size - 1) {
-                            Spacer(modifier = Modifier.height(1.dp))
-                        }
+                                .bouncyClickable { viewModel.refreshLinkedRating() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                        Text(
+                            text = "Unlink",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChessTutorColors.Coral,
+                            modifier = Modifier
+                                .bouncyClickable { viewModel.unlinkRatingAccount() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                if (state.linkedProfile == null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            RatingPlatform.entries.forEach { platform ->
+                                val selected = selectedPlatform == platform
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(34.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (selected) ChessTutorColors.Brass else ChessTutorColors.Surface3)
+                                        .bouncyClickable { selectedPlatform = platform },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = platform.displayName,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (selected) ChessTutorColors.BrassInk else ChessTutorColors.TextPrimary
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = usernameInput,
+                            onValueChange = { usernameInput = it },
+                            placeholder = { Text("Username", fontSize = 13.sp, color = ChessTutorColors.TextTertiary) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = ChessTutorColors.Brass,
+                                unfocusedBorderColor = ChessTutorColors.Line,
+                                focusedTextColor = ChessTutorColors.TextPrimary,
+                                unfocusedTextColor = ChessTutorColors.TextPrimary
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(ChessTutorColors.Brass)
+                                .bouncyClickable {
+                                    viewModel.linkRatingAccount(selectedPlatform, usernameInput)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (state.isLinkingLoading) "Importing games..." else "Connect & Import Games",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ChessTutorColors.BrassInk
+                            )
+                        }
+                        state.linkingError?.let { err ->
+                            Text(
+                                text = err,
+                                fontSize = 12.sp,
+                                color = ChessTutorColors.Coral,
+                                modifier = Modifier.padding(top = 6.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                } else if (state.linkingSuccessMessage != null) {
+                    Text(
+                        text = state.linkingSuccessMessage,
+                        fontSize = 12.sp,
+                        color = ChessTutorColors.Sage,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+                }
 
-                // This Month Cards
+                // Overview Cards (Computed from real games)
                 Text(
-                    text = "THIS MONTH",
+                    text = "OVERVIEW",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.06.sp,
@@ -557,7 +598,7 @@ fun ReviewScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 24.dp),
+                        .padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
                     Column(
@@ -568,13 +609,13 @@ fun ReviewScreen(
                             .padding(12.dp, 13.dp)
                     ) {
                         Text(
-                            text = "Puzzles solved",
-                            fontSize = 12.sp,
+                            text = "Games (${dashboardStats.wins}W/${dashboardStats.draws}D/${dashboardStats.losses}L)",
+                            fontSize = 11.5.sp,
                             color = ChessTutorColors.TextSecondary
                         )
                         Text(
-                            text = "${state.tacticalCorrect}",
-                            fontSize = 20.sp,
+                            text = if (dashboardStats.totalGames > 0) "${dashboardStats.scorePercent}% score" else "0 games",
+                            fontSize = 18.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             color = ChessTutorColors.TextPrimary,
@@ -590,8 +631,8 @@ fun ReviewScreen(
                             .padding(12.dp, 13.dp)
                     ) {
                         Text(
-                            text = "Accuracy",
-                            fontSize = 12.sp,
+                            text = "Drill accuracy",
+                            fontSize = 11.5.sp,
                             color = ChessTutorColors.TextSecondary
                         )
                         val accuracyText = if (state.tacticalAttempts > 0) {
@@ -601,7 +642,7 @@ fun ReviewScreen(
                         }
                         Text(
                             text = accuracyText,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             color = ChessTutorColors.Sage,
@@ -609,6 +650,194 @@ fun ReviewScreen(
                         )
                     }
                 }
+
+                // Actionable Insights (§2.6 & §3.6)
+                if (dashboardStats.insights.isNotEmpty()) {
+                    Text(
+                        text = "INSIGHTS & NEXT ACTIONS",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.06.sp,
+                        color = ChessTutorColors.TextTertiary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        dashboardStats.insights.forEach { insight ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(ChessTutorColors.Surface2)
+                                    .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(12.dp))
+                                    .bouncyClickable {
+                                        isProfileSheetOpen = false
+                                        viewModel.navigate(insight.command)
+                                    }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = insight.sentence,
+                                    fontSize = 12.5.sp,
+                                    color = ChessTutorColors.TextPrimary,
+                                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                )
+                                Text(
+                                    text = insight.actionLabel,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ChessTutorColors.Brass
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Opening Performance (Computed from real games, never sample data)
+                Text(
+                    text = "OPENING PERFORMANCE",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.06.sp,
+                    color = ChessTutorColors.TextTertiary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                if (dashboardStats.openings.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .padding(14.dp)
+                    ) {
+                        Text(
+                            text = "Play games in Play or connect your Chess.com / Lichess username above to see your real opening win rates.",
+                            fontSize = 12.5.sp,
+                            color = ChessTutorColors.TextSecondary
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .padding(bottom = 1.dp)
+                    ) {
+                        dashboardStats.openings.forEachIndexed { idx, opening ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(ChessTutorColors.Surface)
+                                    .padding(12.dp, 11.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "${opening.family} (${opening.userColor.replaceFirstChar { it.uppercase() }})",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            letterSpacing = (-0.008).sp,
+                                            color = ChessTutorColors.TextPrimary
+                                        )
+                                        Text(
+                                            text = "${opening.games} games (${opening.wins}W/${opening.draws}D/${opening.losses}L)" +
+                                                if (opening.needsWork) " · needs work" else "",
+                                            fontSize = 11.5.sp,
+                                            color = ChessTutorColors.TextTertiary,
+                                            modifier = Modifier.padding(top = 1.dp)
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .width(52.dp)
+                                            .height(4.dp)
+                                            .clip(RoundedCornerShape(2.dp))
+                                            .background(ChessTutorColors.Surface3)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth((opening.scorePercent / 100f).coerceIn(0f, 1f))
+                                                .height(4.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(if (opening.needsWork) ChessTutorColors.Coral else ChessTutorColors.Sage)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(9.dp))
+
+                                    Text(
+                                        text = "${opening.scorePercent}%",
+                                        fontSize = 13.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (opening.needsWork) ChessTutorColors.Coral else ChessTutorColors.Sage,
+                                        modifier = Modifier.width(38.dp),
+                                        textAlign = TextAlign.End
+                                    )
+                                }
+
+                                // Deep links: Learn · Train · Play (§2.2 & §2.6)
+                                Row(
+                                    modifier = Modifier.padding(top = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    opening.relatedTopicId?.let { topicId ->
+                                        Text(
+                                            text = "Learn",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = ChessTutorColors.Brass,
+                                            modifier = Modifier.bouncyClickable {
+                                                isProfileSheetOpen = false
+                                                viewModel.navigate(NavCommand.OpenLearn(topicId))
+                                            }
+                                        )
+                                    }
+                                    opening.representativeLineId?.let { lineId ->
+                                        Text(
+                                            text = "Drill",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = ChessTutorColors.Sage,
+                                            modifier = Modifier.bouncyClickable {
+                                                isProfileSheetOpen = false
+                                                viewModel.startTrain(TrainRequest.Opening(lineId))
+                                            }
+                                        )
+                                        Text(
+                                            text = "Play Line",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = ChessTutorColors.TextSecondary,
+                                            modifier = Modifier.bouncyClickable {
+                                                isProfileSheetOpen = false
+                                                val side = if (opening.userColor == "black") Side.BLACK else Side.WHITE
+                                                viewModel.startPlay(
+                                                    PlayRequest.Opening(lineId, side, OpeningMode.LEARN_LINE)
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (idx < dashboardStats.openings.size - 1) {
+                                Spacer(modifier = Modifier.height(1.dp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
 
                 if (state.recentGames.isNotEmpty()) {
                     Text(

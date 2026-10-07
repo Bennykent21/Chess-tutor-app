@@ -19,7 +19,7 @@ class StockfishProcessEngineClient(
 ) : EngineClient {
     companion object {
         @Volatile
-        var isProcessExecutionPermanentlyDisabled: Boolean = true
+        var isProcessExecutionPermanentlyDisabled: Boolean = false
     }
 
     val targetPath: String get() = binaryPath
@@ -90,6 +90,11 @@ class StockfishProcessEngineClient(
                     throw IllegalStateException(err)
                 }
 
+                val threads = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, 4)
+                send("setoption name Threads value $threads")
+                send("setoption name Hash value 32")
+                send("setoption name UCI_ShowWDL value true")
+
                 val ready = CompletableDeferred<Unit>()
                 readyWaiters.add(ready)
                 if (!send("isready")) {
@@ -100,6 +105,7 @@ class StockfishProcessEngineClient(
                 if (isReady == null) {
                     val err = "Stockfish process started, but did not respond to isready within 4000ms"
                     lastStartupError = err
+                    isProcessExecutionPermanentlyDisabled = true
                     dispose()
                     throw IllegalStateException(err)
                 }

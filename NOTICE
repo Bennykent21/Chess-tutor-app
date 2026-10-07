@@ -1,0 +1,11 @@
+Chess Tutor — Open Source Notices
+
+1. Stockfish Chess Engine
+   License: GNU General Public License v3.0 (GPL-3.0)
+   Upstream Repository: https://github.com/official-stockfish/Stockfish
+   Bundled Native Binary Version: Stockfish 16.1 (Android NDK ELF PIE for arm64-v8a and x86_64)
+   Communication: Independent subprocess via standard UCI (Universal Chess Interface) pipes.
+
+2. Curated Puzzle & Opening Reference Data
+   Lichess Open Puzzle & Chess Openings datasets (Creative Commons CC0 1.0 Universal Public Domain Dedication).
+   Upstream: https://database.lichess.org/#puzzles and https://github.com/lichess-org/chess-openings

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
@@ -24,6 +25,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.ui.theme.ChessTutorColors
@@ -36,12 +39,15 @@ import kotlin.math.sin
 fun ChessBoard(
     fen: String,
     modifier: Modifier = Modifier,
+    position: ChessPosition? = null,
     selectedSquare: String? = null,
     legalTargets: Set<String> = emptySet(),
     lastMove: Pair<String, String>? = null,
     badSquare: String? = null,
     recommendedArrow: Pair<String, String>? = null,
     flipped: Boolean = false,
+    showCoordinates: Boolean = true,
+    showLegalDots: Boolean = true,
     onSquareTapped: (String) -> Unit
 ) {
     val lightSquareColor = ChessTutorColors.SqLight
@@ -52,12 +58,19 @@ fun ChessBoard(
     val targetDotColor = Color(0x4D121A20)
     val arrowColor = ChessTutorColors.Brass.copy(alpha = 0.92f)
     val haptic = LocalHapticFeedback.current
+    val pos = position ?: remember(fen) {
+        runCatching { ChessPosition(fen) }.getOrElse { ChessPosition() }
+    }
+    val turnLabel = if (pos.sideToMove == 'w') "White to move" else "Black to move"
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(RoundedCornerShape(0.dp))
+            .semantics {
+                contentDescription = "Chess board, $turnLabel"
+            }
             .testTag("chess_board")
             .pointerInput(flipped, fen) {
                 detectTapGestures { offset ->
@@ -77,7 +90,6 @@ fun ChessBoard(
             }
     ) {
         val squareSize = size.width / 8f
-        val pos = ChessPosition(fen)
 
         // Coordinate text paint
         val textPaint = android.graphics.Paint().apply {
@@ -133,7 +145,7 @@ fun ChessBoard(
 
                 // Board Coordinates matching mockup:
                 // Rank number at left-top of leftmost column
-                if (col == 0) {
+                if (showCoordinates && col == 0) {
                     val coordColorInt = if (isLight) 0xFF6E5F44.toInt() else 0xFFD5E2E9.toInt()
                     textPaint.color = coordColorInt
                     val rankText = "${'1' + rank}"
@@ -145,7 +157,7 @@ fun ChessBoard(
                     )
                 }
                 // File letter at bottom-right of bottom row
-                if (row == 7) {
+                if (showCoordinates && row == 7) {
                     val coordColorInt = if (isLight) 0xFF6E5F44.toInt() else 0xFFD5E2E9.toInt()
                     textPaint.color = coordColorInt
                     val fileText = "${'a' + file}"
@@ -158,7 +170,7 @@ fun ChessBoard(
                 }
 
                 // Highlight legal move targets
-                if (squareStr in legalTargets) {
+                if (showLegalDots && squareStr in legalTargets) {
                     val center = Offset(topLeft.x + squareSize / 2f, topLeft.y + squareSize / 2f)
                     val pieceOnSquare = pos.pieceAt(squareStr)
                     if (pieceOnSquare != null) {

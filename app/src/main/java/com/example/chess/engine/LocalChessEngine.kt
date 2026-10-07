@@ -8,7 +8,10 @@ import com.example.chess.core.PieceType
 import com.example.chess.core.Position
 import com.example.chess.core.Square
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -18,7 +21,7 @@ import kotlin.random.Random
  * Implements alpha-beta minimax search with piece-square positional tables (PST),
  * center control evaluation, pawn mobility, and calibrated ELO candidate selection.
  */
-class LocalChessEngine : EngineClient {
+class LocalChessEngine : HeuristicEngineContract {
 
   // Piece-Square Positional Tables (Values from White's perspective)
   private val PAWN_TABLE = intArrayOf(
@@ -373,13 +376,14 @@ class LocalChessEngine : EngineClient {
     }
   }
 
-  private fun minimax(
+  private suspend fun minimax(
     position: Position,
     depth: Int,
     alpha: Int,
     beta: Int,
     isMaximizing: Boolean
   ): Int {
+    coroutineContext.ensureActive()
     if (depth <= 0) {
       return quiescence(position, alpha, beta, isMaximizing)
     }

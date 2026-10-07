@@ -87,8 +87,6 @@ value class Square(val index: Int) {
       val rank = s[1] - '1'
       return of(file, rank)
     }
-
-    val NONE = Square(63) // placeholder sentinel if needed
   }
 }
 

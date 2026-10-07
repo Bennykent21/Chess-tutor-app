@@ -67,10 +67,8 @@ data class EngineEvaluation(
             if (mateInMoves != null) {
                 return if (mateInMoves > 0) 0.98f else 0.02f
             }
-            val cp = centipawns ?: 0
-            val exponent = -cp.toDouble() / 400.0
-            val winRate = 1.0 / (1.0 + 10.0.pow(exponent))
-            return winRate.toFloat().coerceIn(0.04f, 0.96f)
+            val pct = WinProbability.fromCentipawns(centipawns ?: 0) / 100.0
+            return pct.toFloat().coerceIn(0.04f, 0.96f)
         }
 
     /**
@@ -144,10 +142,10 @@ class ChessEngineManager(
         try {
             engineClient.initialize()
             _state.update { it.copy(isInitialized = true, lastError = null) }
-            Log.i(TAG, "Chess engine initialized successfully.")
+            runCatching { Log.i(TAG, "Chess engine initialized successfully.") }
         } catch (e: Exception) {
             val errMsg = "Failed to initialize engine: ${e.message}"
-            Log.e(TAG, errMsg, e)
+            runCatching { Log.e(TAG, errMsg, e) }
             _state.update { it.copy(isInitialized = false, lastError = errMsg) }
         }
     }
@@ -161,7 +159,7 @@ class ChessEngineManager(
         runCatching {
             engineClient.setStrengthRating(clamped)
         }.onFailure { err ->
-            Log.w(TAG, "Could not set engine strength rating: ${err.message}")
+            runCatching { Log.w(TAG, "Could not set engine strength rating: ${err.message}") }
         }
     }
 
@@ -173,7 +171,7 @@ class ChessEngineManager(
         fen: String,
         depth: Int = 10,
         movetimeMs: Int? = 500
-    ): EngineEvaluation? = withContext(Dispatchers.Default) {
+    ): EngineEvaluation? = withContext(calculationDispatcher) {
         val chessPos = runCatching { ChessPosition(fen) }.getOrNull()
         if (chessPos == null || chessPos.isOver) {
             val eval = when {
@@ -219,7 +217,7 @@ class ChessEngineManager(
             _state.update { it.copy(isCalculating = false) }
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Evaluation failed: ${e.message}", e)
+            runCatching { Log.e(TAG, "Evaluation failed: ${e.message}", e) }
             _state.update { it.copy(isCalculating = false, lastError = e.message) }
             return@withContext null
         } finally {
@@ -276,7 +274,7 @@ class ChessEngineManager(
             _state.update { it.copy(isCalculating = false) }
             throw e
         } catch (e: Exception) {
-            Log.w(TAG, "calculateBestMove failed, falling back to legal move: ${e.message}")
+            runCatching { Log.w(TAG, "calculateBestMove failed, falling back to legal move: ${e.message}") }
             val fallbackMove = chessPos.legalMoves.firstOrNull()
             _state.update { it.copy(lastCalculatedMove = fallbackMove, isCalculating = false) }
             fallbackMove
@@ -297,25 +295,19 @@ class ChessEngineManager(
         fen: String,
         elo: Int,
         botDifficulty: String = "Casual"
-    ): MoveChoice? = withContext(Dispatchers.Default) {
+    ): MoveChoice? = withContext(calculationDispatcher) {
         val chessPos = runCatching { ChessPosition(fen) }.getOrNull() ?: return@withContext null
         if (chessPos.isOver) return@withContext null
         val corePos = Position.tryFromFen(fen).getOrNull() ?: return@withContext null
 
         return@withContext try {
-            // For sub-2600 levels, use calibrated local bot move selector directly (no network lag or rate limits)
-            if (elo < 2600) {
-                val fallback = localBotMoveSelector.selectMove(corePos, elo)
-                val chosen = chessPos.legalMoves.firstOrNull { it.uci == fallback.uci }
-                    ?: chessPos.legalMoves.firstOrNull()
-                if (chosen != null) {
-                    _state.update { it.copy(lastCalculatedMove = chosen) }
-                }
-                return@withContext chosen
-            }
-
             runCatching { engineClient.setStrengthRating(elo) }
-            val depth = 6
+            val depth = when {
+                elo < 800 -> 2
+                elo < 1400 -> 4
+                elo < 2000 -> 5
+                else -> 6
+            }
             val result = analysisService.analyze(fen = fen, depth = depth, movetimeMs = 800)
             val matching = result?.let { analysis ->
                 chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci }

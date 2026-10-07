@@ -3,12 +3,15 @@ package com.chesstutor.app.ui.onboarding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.data.model.PlacementAssessment
+import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.ui.components.ChessBoard
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
@@ -24,7 +28,15 @@ import com.chesstutor.app.viewmodel.AppViewModel
 
 @Composable
 fun OnboardingScreen(state: AppUiState, viewModel: AppViewModel, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().background(ChessTutorColors.Background).padding(horizontal = 20.dp, vertical = 28.dp)) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .background(ChessTutorColors.Background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 28.dp)
+    ) {
         Text("CHESS TUTOR", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp, color = ChessTutorColors.Brass)
         Spacer(Modifier.height(22.dp))
         when (state.assessmentState) {
@@ -60,6 +72,8 @@ private fun GoalSelection(state: AppUiState, viewModel: AppViewModel) {
     }
     Spacer(Modifier.height(14.dp))
     ActionButton("Find my starting level") { viewModel.startPlacementAssessment() }
+    Spacer(Modifier.height(10.dp))
+    SecondaryButton("Skip — I'm a beginner") { viewModel.skipPlacementAsBeginner() }
 }
 
 @Composable
@@ -67,6 +81,9 @@ private fun Assessment(state: AppUiState, viewModel: AppViewModel) {
     val total = PlacementAssessment.questions.size
     val current = (state.assessmentPositionIndex + 1).coerceIn(1, total)
     val question = PlacementAssessment.questions[state.assessmentPositionIndex.coerceIn(0, total - 1)]
+    val sideToMoveIsBlack = remember(state.fen) {
+        runCatching { ChessPosition(state.fen).sideToMove == 'b' }.getOrDefault(false)
+    }
     Text("Find your starting level", fontSize = 25.sp, fontWeight = FontWeight.SemiBold, color = ChessTutorColors.TextPrimary)
     Spacer(Modifier.height(7.dp))
     Text("Solve " + total + " positions. They get progressively harder. This is a training estimate, not an official rating.", fontSize = 13.sp, color = ChessTutorColors.TextSecondary)
@@ -77,9 +94,11 @@ private fun Assessment(state: AppUiState, viewModel: AppViewModel) {
         Text(current.toString() + "/" + total, Modifier.padding(start = 10.dp), fontSize = 12.sp, color = ChessTutorColors.TextTertiary)
     }
     Text(question.skill.replaceFirstChar { it.uppercase() }, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ChessTutorColors.TextPrimary, modifier = Modifier.padding(bottom = 8.dp))
-    ChessBoard(fen = state.fen, selectedSquare = state.selectedSquare, legalTargets = state.legalTargets, lastMove = state.lastMove, recommendedArrow = null, flipped = false, onSquareTapped = viewModel::onSquareTapped, modifier = Modifier.fillMaxWidth().aspectRatio(1f))
+    ChessBoard(fen = state.fen, selectedSquare = state.selectedSquare, legalTargets = state.legalTargets, lastMove = state.lastMove, recommendedArrow = null, flipped = sideToMoveIsBlack, onSquareTapped = viewModel::onSquareTapped, modifier = Modifier.fillMaxWidth().aspectRatio(1f))
     Spacer(Modifier.height(12.dp))
     Text(state.message.ifBlank { "Find the best move." }, fontSize = 13.sp, color = ChessTutorColors.TextSecondary)
+    Spacer(Modifier.height(12.dp))
+    SecondaryButton("Skip — I'm a beginner") { viewModel.skipPlacementAsBeginner() }
 }
 
 @Composable
@@ -109,5 +128,22 @@ private fun Results(state: AppUiState) {
 private fun ActionButton(label: String, onClick: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(13.dp)).background(ChessTutorColors.Brass).bouncyClickable(onClick = onClick).padding(horizontal = 18.dp), contentAlignment = Alignment.Center) {
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ChessTutorColors.BrassInk)
+    }
+}
+
+@Composable
+private fun SecondaryButton(label: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .background(ChessTutorColors.Surface2)
+            .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(13.dp))
+            .bouncyClickable(onClick = onClick)
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 13.5.sp, fontWeight = FontWeight.Medium, color = ChessTutorColors.TextSecondary)
     }
 }

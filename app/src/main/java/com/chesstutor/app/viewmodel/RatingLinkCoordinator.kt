@@ -2,13 +2,17 @@ package com.chesstutor.app.viewmodel
 
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
+import com.chesstutor.app.data.network.RatingApiClient
+import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.data.repository.RatingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 class RatingLinkCoordinator(
     private val ratingRepository: RatingRepository,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val gameRepository: GameRepository? = null,
+    private val ratingApiClient: RatingApiClient = RatingApiClient()
 ) {
 
     fun linkAccount(
@@ -33,12 +37,21 @@ class RatingLinkCoordinator(
         scope.launch {
             val result = ratingRepository.linkAccount(platform, clean, timeControl)
             result.onSuccess { profile ->
+                val importedGames = ratingApiClient.fetchRecentGames(platform, clean, 20)
+                    .getOrDefault(emptyList())
+                for (game in importedGames) {
+                    runCatching { gameRepository?.saveGame(game) }
+                }
+                val syncSuffix = if (importedGames.isNotEmpty()) {
+                    " · Imported ${importedGames.size} games"
+                } else {
+                    ""
+                }
                 updateState {
                     it.copy(
                         isLinkingLoading = false,
                         linkingError = null,
-                        linkingSuccessMessage = "Successfully linked ${profile.platform.displayName} profile '${profile.username}'",
-                        useLinkedRatingForBot = true
+                        linkingSuccessMessage = "Connected ${profile.platform.displayName} account '${profile.username}'$syncSuffix"
                     )
                 }
                 onApplyBotElo()
@@ -69,10 +82,19 @@ class RatingLinkCoordinator(
         scope.launch {
             val result = ratingRepository.refreshProfile()
             result.onSuccess { profile ->
+                val importedGames = ratingApiClient.fetchRecentGames(profile.platform, profile.username, 20)
+                    .getOrDefault(emptyList())
+                for (game in importedGames) {
+                    runCatching { gameRepository?.saveGame(game) }
+                }
                 updateState {
                     it.copy(
                         isLinkingLoading = false,
-                        linkingSuccessMessage = "Updated ratings for '${profile.username}'"
+                        linkingSuccessMessage = if (importedGames.isNotEmpty()) {
+                            "Synced '${profile.username}' (${importedGames.size} games)"
+                        } else {
+                            "Updated ratings for '${profile.username}'"
+                        }
                     )
                 }
                 onApplyBotElo()
