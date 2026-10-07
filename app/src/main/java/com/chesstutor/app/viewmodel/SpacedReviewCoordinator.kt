@@ -68,19 +68,20 @@ class SpacedReviewCoordinator(
         if (!played) return
 
         val isBest = move.uci == activeItem.bestMoveUci ||
-            (pos.isCheckmate && activeItem.explanation.contains("mate", ignoreCase = true))
+            move.uci in activeItem.acceptedMovesUci ||
+            pos.isCheckmate
 
         val usedHint = hintLevel > 0
 
         if (isBest) {
+            val updatedItem = ReviewScheduler.recordAttempt(
+                activeItem,
+                correct = true,
+                usedHint = usedHint,
+                now = Instant.now()
+            )
             scope.launch {
-                ReviewScheduler.recordAttempt(
-                    activeItem,
-                    correct = true,
-                    usedHint = usedHint,
-                    now = Instant.now()
-                )
-                repository.upsert(activeItem)
+                repository.upsert(updatedItem)
                 loadReviews(updateState)
             }
 
@@ -89,23 +90,23 @@ class SpacedReviewCoordinator(
                     fen = pos.fen,
                     lastMove = Pair(move.from, move.to),
                     reviewSolved = true,
-                    message = "★ Correct! Spaced repetition updated: Next review in ${
-                        ReviewScheduler.intervalsDays.getOrNull(activeItem.stage) ?: 1
-                    } days.",
+                    puzzlePhase = PuzzlePhase.CORRECT,
+                    activeReviewItem = updatedItem,
+                    message = "★ Correct! Spaced repetition updated: Next review in ${updatedItem.intervalDays} days.",
                     selectedSquare = null,
                     legalTargets = emptySet()
                 )
             }
             startEvaluation(pos.fen)
         } else {
+            val updatedItem = ReviewScheduler.recordAttempt(
+                activeItem,
+                correct = false,
+                usedHint = usedHint,
+                now = Instant.now()
+            )
             scope.launch {
-                ReviewScheduler.recordAttempt(
-                    activeItem,
-                    correct = false,
-                    usedHint = usedHint,
-                    now = Instant.now()
-                )
-                repository.upsert(activeItem)
+                repository.upsert(updatedItem)
                 loadReviews(updateState)
             }
 
@@ -114,6 +115,8 @@ class SpacedReviewCoordinator(
                     fen = reviewFen,
                     lastMove = null,
                     reviewSolved = false,
+                    puzzlePhase = PuzzlePhase.WRONG,
+                    activeReviewItem = updatedItem,
                     message = "Incorrect move! Review stage reset to immediate review. Try again!",
                     selectedSquare = null,
                     legalTargets = emptySet(),

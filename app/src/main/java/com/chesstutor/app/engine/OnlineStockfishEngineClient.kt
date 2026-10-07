@@ -2,14 +2,22 @@ package com.chesstutor.app.engine
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONObject
+import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class OnlineStockfishEngineClient(
     private val fallback: EngineClient = LocalFallbackEngineClient()
@@ -26,8 +34,32 @@ class OnlineStockfishEngineClient(
     @Volatile
     private var rateLimitCooldownUntil: Long = 0L
 
+    @Volatile
+    private var circuitOpenUntil: Long = 0L
+
+    private val consecutiveFailures = AtomicInteger(0)
+
     override suspend fun initialize() {
         fallback.initialize()
+    }
+
+    private suspend fun Call.awaitCancellable(): Response = suspendCancellableCoroutine { cont ->
+        cont.invokeOnCancellation {
+            runCatching { cancel() }
+        }
+        enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (cont.isActive) cont.resumeWithException(e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (cont.isActive) {
+                    cont.resume(response)
+                } else {
+                    response.close()
+                }
+            }
+        })
     }
 
     override suspend fun analyze(request: AnalysisRequest): PositionAnalysis = withContext(Dispatchers.IO) {
@@ -36,12 +68,13 @@ class OnlineStockfishEngineClient(
 
         evaluationCache.get(cacheKey)?.let { cached ->
             logD("OnlineStockfish cache hit for position: ${request.fen.take(20)}...")
-            return@withContext cached
+            return@withContext cached.copy(requestId = request.requestId)
         }
 
-        // If recently rate-limited, skip external calls and use fast deterministic fallback
-        if (System.currentTimeMillis() < rateLimitCooldownUntil) {
-            logD("OnlineStockfish in rate-limit cooldown; using local fallback")
+        val now = System.currentTimeMillis()
+        // If recently rate-limited or circuit breaker is open, skip external calls and use fast deterministic fallback
+        if (now < rateLimitCooldownUntil || now < circuitOpenUntil) {
+            logD("OnlineStockfish in cooldown/circuit-open; using local fallback")
             return@withContext fallback.analyze(request)
         }
 
@@ -56,7 +89,7 @@ class OnlineStockfishEngineClient(
                 .build()
 
             val call = httpClient.newCall(httpRequest)
-            call.execute().use { response ->
+            call.awaitCancellable().use { response ->
                 val body = runCatching { response.body?.string() }.getOrNull()
                 val isRateLimited = response.code == 429 ||
                     body?.contains("rate limit", ignoreCase = true) == true
@@ -94,12 +127,15 @@ class OnlineStockfishEngineClient(
                                 ),
                                 scorePerspective = EngineResultValidator.ScorePerspective.WHITE
                             )
+                            consecutiveFailures.set(0)
                             evaluationCache.put(cacheKey, validated)
                             return@withContext validated
                         }
                     }
                 }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             logW("stockfish.online failed: ${e.message}, attempting secondary API...")
         }
@@ -124,7 +160,7 @@ class OnlineStockfishEngineClient(
                 .build()
 
             val call = httpClient.newCall(httpRequest)
-            call.execute().use { response ->
+            call.awaitCancellable().use { response ->
                 val body = runCatching { response.body?.string() }.getOrNull()
                 val isRateLimited = response.code == 429 ||
                     body?.contains("rate limit", ignoreCase = true) == true
@@ -166,20 +202,27 @@ class OnlineStockfishEngineClient(
                             ),
                             scorePerspective = EngineResultValidator.ScorePerspective.WHITE
                         )
+                        consecutiveFailures.set(0)
                         evaluationCache.put(cacheKey, validated)
                         return@withContext validated
                     }
                 }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             logW("chess-api.com failed: ${e.message}, falling back to local engine...")
+        }
+
+        if (consecutiveFailures.incrementAndGet() >= 2) {
+            circuitOpenUntil = System.currentTimeMillis() + 60_000L
         }
 
         // Strategy 3: Reliable Local Engine Fallback (Offline safe)
         logI("Using offline local chess engine fallback for analysis")
         val fallbackAnalysis = fallback.analyze(request)
         evaluationCache.put(cacheKey, fallbackAnalysis)
-        fallbackAnalysis
+        fallbackAnalysis.copy(requestId = request.requestId)
     }
 
     override suspend fun setStrengthRating(rating: Int) {

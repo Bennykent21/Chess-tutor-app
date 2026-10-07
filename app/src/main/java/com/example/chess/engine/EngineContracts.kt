@@ -24,9 +24,8 @@ data class Evaluation(
     val mate = mateInMoves
     if (mate != null) return if (mate > 0) 0.98f else 0.02f
     val cp = centipawns ?: 0
-    val exponent = -cp.toDouble() / 400.0
-    val winRate = 1.0 / (1.0 + Math.pow(10.0, exponent))
-    return winRate.toFloat().coerceIn(0.04f, 0.96f)
+    val pct = 50.0 + 50.0 * (2.0 / (1.0 + kotlin.math.exp(-0.00368208 * cp.toDouble())) - 1.0)
+    return (pct / 100.0).toFloat().coerceIn(0.04f, 0.96f)
   }
 
   fun scoreForSide(color: PieceColor): Float {
@@ -47,7 +46,7 @@ data class Evaluation(
   }
 }
 
-data class StockfishProfile(
+data class HeuristicBotProfile(
   val elo: Int,
   val title: String,
   val category: String,
@@ -56,8 +55,8 @@ data class StockfishProfile(
   val maxCandidatePool: Int
 ) {
   companion object {
-    val PRESETS: List<StockfishProfile> = BotStrength.presets.map { preset ->
-      StockfishProfile(
+    val PRESETS: List<HeuristicBotProfile> = BotStrength.presets.map { preset ->
+      HeuristicBotProfile(
         elo = preset.rating,
         title = "${preset.name} (${preset.key})",
         category = preset.key,
@@ -88,13 +87,15 @@ data class StockfishProfile(
       )
     }
 
-    fun forElo(elo: Int): StockfishProfile {
+    fun forElo(elo: Int): HeuristicBotProfile {
       val clamped = elo.coerceIn(250, 3200)
       return PRESETS.minByOrNull { profile -> kotlin.math.abs(profile.elo - clamped) }
         ?: PRESETS.first()
     }
   }
 }
+
+typealias StockfishProfile = HeuristicBotProfile
 
 enum class MoveQuality(val label: String, val badge: String) {
   BEST("Best Move", "★"),
@@ -201,7 +202,7 @@ data class ScoredMove(
   val score: Int
 )
 
-interface EngineClient {
+interface HeuristicEngineContract {
   suspend fun evaluatePosition(position: Position, depth: Int = 4): Evaluation
   suspend fun selectMove(position: Position, level: TrainingLevel): Move
 }

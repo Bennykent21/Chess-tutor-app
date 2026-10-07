@@ -45,13 +45,16 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.TrainDrillsRepository
+import com.chesstutor.app.navigation.NavCommand
 import com.chesstutor.app.ui.components.ChessBoard
 import com.chesstutor.app.ui.components.EvalBar
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
 import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
+import com.chesstutor.app.viewmodel.PuzzlePhase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,19 +63,21 @@ fun CoachScreen(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
-    var isBoardFlipped by remember { mutableStateOf(false) }
+    val sideToMoveIsBlack = remember(state.activeCoachTitle, state.currentDrillIndex, state.curriculumLessonId) {
+        runCatching { ChessPosition(state.fen).sideToMove == 'b' }.getOrDefault(false)
+    }
+    var isBoardFlipped by remember(sideToMoveIsBlack) { mutableStateOf(sideToMoveIsBlack) }
 
     val drills = TrainDrillsRepository.drills
     val drillSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // NOTE: `state.activeCoachTitle` / `state.activeCoachSubtitle` are the
-    // single source of truth for what's actually loaded on the board right
-    // now - they're kept in sync whether you got here via a drill, a
-    // curriculum lesson, or "Practise this" from Learn. We never read the
-    // raw `drills` list for display text; it's only used to populate the
-    // "choose a drill" sheet below.
-    val isSolved = state.message.contains("Correct", ignoreCase = true) ||
-            state.message.contains("Checkmate", ignoreCase = true)
+    val isSolved = state.puzzlePhase == PuzzlePhase.CORRECT
+    val isMatePosition = remember(state.fen) {
+        runCatching {
+            val pos = ChessPosition(state.fen)
+            pos.isCheckmate || pos.matesInOne.isNotEmpty()
+        }.getOrDefault(false)
+    }
 
     Column(
         modifier = modifier
@@ -219,6 +224,8 @@ fun CoachScreen(
                             lastMove = state.lastMove,
                             recommendedArrow = state.recommendedArrow,
                             flipped = isBoardFlipped,
+                            showCoordinates = state.showCoordinates,
+                            showLegalDots = state.showLegalDots,
                             onSquareTapped = { square ->
                                 viewModel.onSquareTapped(square)
                             }
@@ -243,8 +250,11 @@ fun CoachScreen(
                     )
 
                     val promptMessage = when {
-                        isSolved -> "That's mate. Next drill..."
-                        state.mistakeDetected -> "Incorrect move. Try again."
+                        isSolved && isMatePosition -> "Checkmate delivered! Ready for the next drill."
+                        isSolved -> state.message.ifBlank { "Well played! Ready for the next drill." }
+                        state.puzzlePhase == PuzzlePhase.WRONG || state.mistakeDetected ->
+                            state.message.ifBlank { "Incorrect move. Try again." }
+                        state.hintText.isNotBlank() -> state.hintText
                         state.message.isNotBlank() -> state.message
                         else -> state.activeCoachSubtitle
                     }
@@ -256,6 +266,26 @@ fun CoachScreen(
                         fontWeight = FontWeight.Normal,
                         color = if (isSolved) ChessTutorColors.Sage else if (state.mistakeDetected) ChessTutorColors.Coral else ChessTutorColors.TextPrimary
                     )
+                }
+
+                if (state.curriculumLessonId != null) {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ChessTutorColors.Surface2)
+                            .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(8.dp))
+                            .bouncyClickable { viewModel.navigate(NavCommand.OpenLearn(state.curriculumLessonId)) }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "← Back to lesson in Learn",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ChessTutorColors.Brass
+                        )
+                    }
                 }
             }
 
@@ -363,7 +393,11 @@ fun CoachScreen(
                     color = ChessTutorColors.TextPrimary
                 )
                 Text(
-                    text = "Your accuracy over the last 20 attempts",
+                    text = if (state.tacticalAttempts > 0) {
+                        "Overall session accuracy: ${(state.tacticalCorrect * 100) / state.tacticalAttempts}% (${state.tacticalCorrect}/${state.tacticalAttempts})"
+                    } else {
+                        "Select a tactical motif to practise"
+                    },
                     fontSize = 12.5.sp,
                     color = ChessTutorColors.TextSecondary,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -377,14 +411,6 @@ fun CoachScreen(
                 ) {
                     itemsIndexed(drills) { index, drill ->
                         val isSelected = index == state.currentDrillIndex
-                        // Simulated accuracy percentages matching mockup
-                        val acc = when (index % 5) {
-                            0 -> 82
-                            1 -> 64
-                            2 -> 71
-                            3 -> 48
-                            else -> 77
-                        }
 
                         Row(
                             modifier = Modifier
@@ -413,7 +439,7 @@ fun CoachScreen(
                                     color = ChessTutorColors.TextPrimary
                                 )
                                 Text(
-                                    text = "${drill.prompt} · 12 positions",
+                                    text = "${drill.category} · ${drill.prompt}",
                                     fontSize = 12.sp,
                                     color = ChessTutorColors.TextSecondary,
                                     modifier = Modifier.padding(top = 2.dp)
@@ -421,11 +447,11 @@ fun CoachScreen(
                             }
 
                             Text(
-                                text = "$acc%",
+                                text = "#${index + 1}",
                                 fontSize = 12.5.sp,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (acc >= 75) ChessTutorColors.Sage else if (acc < 60) ChessTutorColors.Coral else ChessTutorColors.TextSecondary
+                                color = if (isSelected) ChessTutorColors.Brass else ChessTutorColors.TextTertiary
                             )
                         }
                     }

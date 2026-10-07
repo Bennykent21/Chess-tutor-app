@@ -46,9 +46,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.LearnTopic
+import com.chesstutor.app.domain.OpeningBook
+import com.chesstutor.app.navigation.OpeningMode
+import com.chesstutor.app.navigation.PlayRequest
+import com.chesstutor.app.navigation.Side
+import com.chesstutor.app.navigation.TrainRequest
 import com.chesstutor.app.ui.components.ChessBoard
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
@@ -62,10 +68,14 @@ fun CurriculumScreen(
     viewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
-    var selectedLesson by remember { mutableStateOf<LearnTopic?>(null) }
+    val allTopics = LearnCurriculumRepository.topics
+    var selectedLesson by remember(state.selectedLearnTopicId) {
+        mutableStateOf(
+            state.selectedLearnTopicId?.let { id -> allTopics.firstOrNull { it.id == id } }
+        )
+    }
     val lessonSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val allTopics = LearnCurriculumRepository.topics
     val totalCount = allTopics.size
     val completedCount = allTopics.count { it.id in state.practicedModules || it.id in state.masteredModules }
     val progressRatio = if (totalCount > 0) completedCount.toFloat() / totalCount.toFloat() else 0f
@@ -290,16 +300,66 @@ fun CurriculumScreen(
                 }
             }
 
-            item {
-                Text(
-                    text = "Puzzle library drawn from the Lichess open puzzle database, CC0",
-                    fontSize = 11.5.sp,
-                    color = ChessTutorColors.TextTertiary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 14.dp, bottom = 20.dp, start = 20.dp, end = 20.dp)
-                )
+            item(key = "opening_repertoire_section") {
+                Column(modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)) {
+                    Text(
+                        text = "OPENING PRACTICE REPERTOIRE",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.06.sp,
+                        color = ChessTutorColors.TextTertiary,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 2.dp)
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(ChessTutorColors.LineSoft),
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
+                        OpeningBook.lines.forEach { line ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(ChessTutorColors.Surface)
+                                    .bouncyClickable {
+                                        viewModel.startPlay(
+                                            PlayRequest.Opening(
+                                                lineId = line.id,
+                                                userSide = Side.fromChar(line.recommendedSide),
+                                                mode = OpeningMode.LEARN_LINE
+                                            )
+                                        )
+                                    }
+                                    .padding(13.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "${line.name} (${line.eco})",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = ChessTutorColors.TextPrimary
+                                    )
+                                    Text(
+                                        text = line.formattedMoveLine,
+                                        fontSize = 11.5.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = ChessTutorColors.TextSecondary,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "Practise in Play →",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ChessTutorColors.Brass
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -308,6 +368,14 @@ fun CurriculumScreen(
     if (selectedLesson != null) {
         androidx.activity.compose.BackHandler { selectedLesson = null }
         val topic = selectedLesson!!
+        val demoSideIsBlack = remember(topic.demoFen) {
+            runCatching { ChessPosition(topic.demoFen).sideToMove == 'b' }.getOrDefault(false)
+        }
+        val demoArrow = remember(topic.recommendedMoveUci) {
+            if (topic.recommendedMoveUci.length >= 4) {
+                Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.substring(2, 4))
+            } else null
+        }
 
         ModalBottomSheet(
             onDismissRequest = { selectedLesson = null },
@@ -352,7 +420,10 @@ fun CurriculumScreen(
                 ) {
                     ChessBoard(
                         fen = topic.demoFen,
-                        flipped = false,
+                        recommendedArrow = demoArrow,
+                        flipped = demoSideIsBlack,
+                        showCoordinates = state.showCoordinates,
+                        showLegalDots = state.showLegalDots,
                         onSquareTapped = {}
                     )
                 }
@@ -395,9 +466,8 @@ fun CurriculumScreen(
                         .clip(RoundedCornerShape(11.dp))
                         .background(ChessTutorColors.Brass)
                         .bouncyClickable {
-                            viewModel.practiceLesson(topic)
                             selectedLesson = null
-                            viewModel.selectTab(0) // Switch to Train tab!
+                            viewModel.startTrain(TrainRequest.Lesson(topic.id))
                         },
                     contentAlignment = Alignment.Center
                 ) {

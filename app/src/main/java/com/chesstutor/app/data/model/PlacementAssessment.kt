@@ -42,8 +42,8 @@ object PlacementAssessment {
         ),
         PlacementQuestion(
             "placement_opposition",
-            "8/8/8/4k3/8/4K3/8/8 w - - 0 1",
-            "e3d3", 2000, "opposition"
+            "8/8/3k4/8/4K3/3P4/8/8 w - - 0 1",
+            "e4d4", 2000, "opposition"
         ),
         PlacementQuestion(
             "placement_greek_gift",
@@ -52,8 +52,8 @@ object PlacementAssessment {
         ),
         PlacementQuestion(
             "placement_discovered",
-            "r1b2rk1/pp3ppp/2n5/1B1p4/3P4/5N2/PP1B1PPP/R2QR1K1 w - - 0 13",
-            "b5c6", 3200, "discovered attack"
+            "r1b2rk1/ppp2ppp/3q4/8/8/3B4/PPP2PPP/R2Q1RK1 w - - 0 10",
+            "d3h7", 3200, "discovered attack"
         )
     )
 
@@ -61,5 +61,14 @@ object PlacementAssessment {
         if (total <= 0) return 250
         val ratio = (correct.toFloat() / total).coerceIn(0f, 1f)
         return (250 + (2950f * ratio)).toInt().coerceIn(250, 3200)
+    }
+
+    fun estimateRatingFromSolved(solvedIds: Set<String>): Int {
+        val solved = questions.filter { it.id in solvedIds }
+        if (solved.isEmpty()) return 400
+        val avgTarget = solved.map { it.targetRating }.average()
+        val highestTarget = solved.maxOf { it.targetRating }
+        val weighted = (avgTarget * 0.6 + highestTarget * 0.4).toInt()
+        return weighted.coerceIn(400, 2200)
     }
 }
