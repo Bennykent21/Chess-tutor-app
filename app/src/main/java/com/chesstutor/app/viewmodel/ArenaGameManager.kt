@@ -94,16 +94,23 @@ class ArenaGameManager(
             }
 
             val match = OpeningBook.matchAlongMoves(initialUci, targetLine)
+            val isGuidedOpening = targetLine != null && (resolvedMode == OpeningMode.LEARN_LINE || resolvedMode == OpeningMode.SURPRISE_ME)
+            val nextBookUci = if (isGuidedOpening && pos.sideToMove == resolvedSide) match.nextBookMoveUci else null
+            val nextBookSan = if (isGuidedOpening && pos.sideToMove == resolvedSide) match.nextBookMoveSan else null
             val startMsg = when {
-                targetLine != null && (resolvedMode == OpeningMode.LEARN_LINE || resolvedMode == OpeningMode.SURPRISE_ME) ->
-                    "Opening Practice: ${targetLine.name} (${targetLine.eco}). Line: ${targetLine.formattedMoveLine}"
+                isGuidedOpening && nextBookSan != null ->
+                    "Your move: $nextBookSan — ${OpeningBook.coachingNoteForMove(targetLine, nextBookSan)}"
+                isGuidedOpening && targetLine != null ->
+                    "Opening Practice: ${targetLine.name} (${targetLine.eco})"
                 targetLine != null && resolvedMode == OpeningMode.START_FROM_LINE ->
                     "Starting from ${targetLine.name} (${targetLine.eco}). Play freely from here!"
                 else -> "New game against $botName. ${if (resolvedSide == 'w') "Make your first move!" else "$botName opens as White..."}"
             }
 
             current.copy(
+                arenaInitialized = true,
                 fen = pos.fen,
+                arenaFen = pos.fen,
                 arenaPlayerSide = resolvedSide,
                 selectedOpeningMode = resolvedMode,
                 selectedOpeningLineId = resolvedLineId,
@@ -111,13 +118,21 @@ class ArenaGameManager(
                 liveOpeningEco = match.opening?.eco,
                 outOfTheoryPly = match.outOfTheoryPly,
                 bookContinuationHint = match.nextBookMoveSan,
+                arenaNextBookMoveUci = nextBookUci,
+                arenaNextBookMoveSan = nextBookSan,
+                arenaDeviatedUserMoveSan = null,
+                arenaDeviatedBookMoveSan = null,
+                arenaDeviatedBookMoveUci = null,
                 evaluationCp = 0,
                 mateIn = null,
                 message = startMsg,
+                arenaMessage = startMsg,
                 lastMove = initialLastMove,
+                arenaLastMove = initialLastMove,
                 moveHistory = initialHistory,
                 arenaUciHistory = initialUci,
                 recommendedArrow = null,
+                arenaRecommendedArrow = null,
                 assessment = null,
                 analysis = null,
                 mistakeDetected = false,
@@ -129,8 +144,8 @@ class ArenaGameManager(
         }
 
         val initialState = capturedState ?: return
-        chessEngineManager.startEvaluation(initialState.fen)
-        val pos = ChessPosition(initialState.fen)
+        chessEngineManager.startEvaluation(initialState.arenaFen)
+        val pos = ChessPosition(initialState.arenaFen)
         if (initialState.isAutoOpponentEnabled && !pos.isOver && pos.sideToMove != initialState.arenaPlayerSide) {
             activeMoveJob = scope.launch {
                 try {
@@ -146,28 +161,36 @@ class ArenaGameManager(
                     val bookChoice = bookUci?.let { uci -> pos.legalMoves.firstOrNull { it.uci == uci } }
                     val botMove = bookChoice ?: runCatching {
                         chessEngineManager.calculateBotMove(
-                            initialState.fen,
+                            initialState.arenaFen,
                             initialState.effectiveBotElo,
                             initialState.arenaDifficulty
                         )
                     }.getOrNull()
                     if (sessionAtStart != gameSessionId || botMove == null) return@launch
-                    val nextPos = ChessPosition(initialState.fen)
+                    val nextPos = ChessPosition(initialState.arenaFen)
                     if (nextPos.play(botMove)) {
                         val updatedHistory = initialState.moveHistory + botMove.san
                         val updatedUci = initialState.arenaUciHistory + botMove.uci
                         val match = OpeningBook.matchAlongMoves(updatedUci, targetLine)
+                        val isGuided = targetLine != null && (initialState.selectedOpeningMode == OpeningMode.LEARN_LINE ||
+                            initialState.selectedOpeningMode == OpeningMode.SURPRISE_ME)
+                        val userNextSan = if (isGuided && match.outOfTheoryPly == null) match.nextBookMoveSan else null
+                        val userNextUci = if (isGuided && match.outOfTheoryPly == null) match.nextBookMoveUci else null
                         soundManager?.playMove(initialState.isSoundEnabled, isCapture = botMove.isCapture, isCheck = nextPos.isCheck)
                         updateState {
                             it.copy(
                                 fen = nextPos.fen,
+                                arenaFen = nextPos.fen,
                                 lastMove = Pair(botMove.from, botMove.to),
+                                arenaLastMove = Pair(botMove.from, botMove.to),
                                 moveHistory = updatedHistory,
                                 arenaUciHistory = updatedUci,
                                 liveOpeningName = match.opening?.name ?: it.liveOpeningName,
                                 liveOpeningEco = match.opening?.eco ?: it.liveOpeningEco,
                                 outOfTheoryPly = match.outOfTheoryPly ?: it.outOfTheoryPly,
                                 bookContinuationHint = match.nextBookMoveSan,
+                                arenaNextBookMoveUci = userNextUci,
+                                arenaNextBookMoveSan = userNextSan,
                                 busy = false,
                                 opponentThinking = false,
                                 arenaStatusText = "${it.botTuningDescription} played ${botMove.san}."
@@ -188,7 +211,8 @@ class ArenaGameManager(
         currentState: AppUiState,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
-        val pos = runCatching { ChessPosition(currentState.fen) }.getOrNull() ?: return
+        val activeFen = if (currentState.arenaInitialized) currentState.arenaFen else currentState.fen
+        val pos = runCatching { ChessPosition(activeFen) }.getOrNull() ?: return
         if (pos.isOver || currentState.moveHistory.isEmpty()) return
         gameSessionId++
         activeMoveJob?.cancel()
@@ -201,7 +225,7 @@ class ArenaGameManager(
                     botName = currentState.arenaBotName,
                     botRating = currentState.effectiveBotElo,
                     result = result,
-                    finalFen = currentState.fen,
+                    finalFen = activeFen,
                     userColor = currentState.arenaPlayerSide
                 )
             }
@@ -211,7 +235,8 @@ class ArenaGameManager(
                 busy = false,
                 opponentThinking = false,
                 arenaStatusText = "You resigned — ${currentState.arenaBotName} wins.",
-                message = "Game Over by resignation ($result)."
+                message = "Game Over by resignation ($result).",
+                arenaMessage = "Game Over by resignation ($result)."
             )
         }
     }
@@ -220,7 +245,8 @@ class ArenaGameManager(
         currentState: AppUiState,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
-        val pos = runCatching { ChessPosition(currentState.fen) }.getOrNull() ?: return
+        val activeFen = if (currentState.arenaInitialized) currentState.arenaFen else currentState.fen
+        val pos = runCatching { ChessPosition(activeFen) }.getOrNull() ?: return
         if (!pos.canClaimThreefoldRepetition && !pos.canClaimFiftyMoveRule) return
         gameSessionId++
         activeMoveJob?.cancel()
@@ -232,7 +258,7 @@ class ArenaGameManager(
                     botName = currentState.arenaBotName,
                     botRating = currentState.effectiveBotElo,
                     result = "1/2-1/2",
-                    finalFen = currentState.fen,
+                    finalFen = activeFen,
                     userColor = currentState.arenaPlayerSide
                 )
             }
@@ -242,7 +268,8 @@ class ArenaGameManager(
                 busy = false,
                 opponentThinking = false,
                 arenaStatusText = "Draw claimed (1/2-1/2).",
-                message = "Draw claimed under FIDE rules."
+                message = "Draw claimed under FIDE rules.",
+                arenaMessage = "Draw claimed under FIDE rules."
             )
         }
     }
@@ -269,25 +296,38 @@ class ArenaGameManager(
         }
         val targetLine = currentState.selectedOpeningLineId?.let { OpeningBook.byId(it) }
         val match = OpeningBook.matchAlongMoves(remainingUci, targetLine)
+        val isGuided = targetLine != null && (currentState.selectedOpeningMode == OpeningMode.LEARN_LINE ||
+            currentState.selectedOpeningMode == OpeningMode.SURPRISE_ME)
+        val nextBookUci = if (isGuided && match.outOfTheoryPly == null) match.nextBookMoveUci else null
+        val nextBookSan = if (isGuided && match.outOfTheoryPly == null) match.nextBookMoveSan else null
         updateState {
             it.copy(
                 fen = pos.fen,
+                arenaFen = pos.fen,
                 lastMove = lastMovePair,
+                arenaLastMove = lastMovePair,
                 moveHistory = remainingSan,
                 arenaUciHistory = remainingUci,
                 liveOpeningName = match.opening?.name,
                 liveOpeningEco = match.opening?.eco,
                 outOfTheoryPly = match.outOfTheoryPly,
                 bookContinuationHint = match.nextBookMoveSan,
+                arenaNextBookMoveUci = nextBookUci,
+                arenaNextBookMoveSan = nextBookSan,
+                arenaDeviatedUserMoveSan = null,
+                arenaDeviatedBookMoveSan = null,
+                arenaDeviatedBookMoveUci = null,
                 mistakeDetected = false,
                 canRetryMistake = false,
                 recommendedArrow = null,
+                arenaRecommendedArrow = null,
                 analysis = null,
                 assessment = null,
                 busy = false,
                 opponentThinking = false,
                 arenaStatusText = "Takeback applied.",
-                message = "Takeback applied — choose a better continuation."
+                message = "Takeback applied — choose a better continuation.",
+                arenaMessage = "Takeback applied — choose a better continuation."
             )
         }
         chessEngineManager.startEvaluation(pos.fen)
@@ -300,7 +340,7 @@ class ArenaGameManager(
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ): Job? {
         if (currentState.busy || currentState.opponentThinking) return null
-        val beforeFen = currentState.fen
+        val beforeFen = if (currentState.arenaInitialized) currentState.arenaFen else currentState.fen
         val beforePos = runCatching { ChessPosition(beforeFen) }.getOrNull() ?: return null
         if (beforePos.isOver) return null
 
@@ -313,22 +353,41 @@ class ArenaGameManager(
         val newHistory = currentState.moveHistory + move.san
         val newUciHistory = currentState.arenaUciHistory + move.uci
         val targetLine = currentState.selectedOpeningLineId?.let { OpeningBook.byId(it) }
+        val isGuidedOpening = targetLine != null && (currentState.selectedOpeningMode == OpeningMode.LEARN_LINE ||
+            currentState.selectedOpeningMode == OpeningMode.SURPRISE_ME)
+        val expectedBookUciBeforeUserMove = if (isGuidedOpening && currentState.outOfTheoryPly == null) {
+            targetLine?.uciMoves?.getOrNull(currentState.arenaUciHistory.size)
+        } else null
+        val userDeviatedFromBook = expectedBookUciBeforeUserMove != null &&
+            !move.uci.equals(expectedBookUciBeforeUserMove, ignoreCase = true)
+        val expectedBookSanBeforeUserMove = expectedBookUciBeforeUserMove?.let { beforePos.toSan(it) ?: it }
         val matchAfterUser = OpeningBook.matchAlongMoves(newUciHistory, targetLine)
 
         soundManager?.playMove(currentState.isSoundEnabled, isCapture = move.isCapture, isCheck = afterPos.isCheck)
 
         updateState {
             it.copy(
+                arenaInitialized = true,
                 fen = afterFen,
+                arenaFen = afterFen,
                 lastMove = Pair(move.from, move.to),
+                arenaLastMove = Pair(move.from, move.to),
                 moveHistory = newHistory,
                 arenaUciHistory = newUciHistory,
                 liveOpeningName = matchAfterUser.opening?.name ?: it.liveOpeningName,
                 liveOpeningEco = matchAfterUser.opening?.eco ?: it.liveOpeningEco,
                 outOfTheoryPly = matchAfterUser.outOfTheoryPly ?: it.outOfTheoryPly,
                 bookContinuationHint = matchAfterUser.nextBookMoveSan,
+                arenaNextBookMoveUci = null,
+                arenaNextBookMoveSan = null,
+                arenaDeviatedUserMoveSan = if (userDeviatedFromBook) move.san else it.arenaDeviatedUserMoveSan,
+                arenaDeviatedBookMoveSan = if (userDeviatedFromBook) expectedBookSanBeforeUserMove else it.arenaDeviatedBookMoveSan,
+                arenaDeviatedBookMoveUci = if (userDeviatedFromBook) expectedBookUciBeforeUserMove else it.arenaDeviatedBookMoveUci,
+                recommendedArrow = null,
+                arenaRecommendedArrow = null,
                 busy = true,
-                message = "Move ${move.san} played. Analyzing..."
+                message = "Move ${move.san} played. Analyzing...",
+                arenaMessage = "Move ${move.san} played. Analyzing..."
             )
         }
         chessEngineManager.startEvaluation(afterFen)
@@ -447,7 +506,9 @@ class ArenaGameManager(
                             assessment = assessment,
                             analysis = issueSummary,
                             recommendedArrow = if (verdict.isBlunder) bestArrow else null,
+                            arenaRecommendedArrow = if (verdict.isBlunder) bestArrow else null,
                             message = coachingLabel,
+                            arenaMessage = coachingLabel,
                             mistakeDetected = verdict.isBlunder,
                             mistakeFen = if (verdict.isBlunder) beforeFen else null,
                             canRetryMistake = verdict.isBlunder
@@ -458,7 +519,8 @@ class ArenaGameManager(
                     updateState {
                         it.copy(
                             assessment = null,
-                            message = "Move ${move.san} played. Coaching analysis unavailable; continuing game."
+                            message = "Move ${move.san} played. Coaching analysis unavailable; continuing game.",
+                            arenaMessage = "Move ${move.san} played. Coaching analysis unavailable; continuing game."
                         )
                     }
                 }
@@ -517,19 +579,29 @@ class ArenaGameManager(
                             val updatedHistory = newHistory + engineMove.san
                             val updatedUciHistory = newUciHistory + engineMove.uci
                             val matchAfterBot = OpeningBook.matchAlongMoves(updatedUciHistory, targetLine)
+                            val nextBookUciForUser = if (isGuidedOpening && matchAfterBot.outOfTheoryPly == null) {
+                                matchAfterBot.nextBookMoveUci
+                            } else null
+                            val nextBookSanForUser = if (isGuidedOpening && matchAfterBot.outOfTheoryPly == null) {
+                                matchAfterBot.nextBookMoveSan
+                            } else null
 
                             soundManager?.playMove(currentState.isSoundEnabled, isCapture = engineMove.isCapture, isCheck = engineMovePos.isCheck)
 
                             updateState {
                                 it.copy(
                                     fen = engineMovePos.fen,
+                                    arenaFen = engineMovePos.fen,
                                     lastMove = Pair(engineMove.from, engineMove.to),
+                                    arenaLastMove = Pair(engineMove.from, engineMove.to),
                                     moveHistory = updatedHistory,
                                     arenaUciHistory = updatedUciHistory,
                                     liveOpeningName = matchAfterBot.opening?.name ?: it.liveOpeningName,
                                     liveOpeningEco = matchAfterBot.opening?.eco ?: it.liveOpeningEco,
                                     outOfTheoryPly = matchAfterBot.outOfTheoryPly ?: it.outOfTheoryPly,
                                     bookContinuationHint = matchAfterBot.nextBookMoveSan,
+                                    arenaNextBookMoveUci = nextBookUciForUser,
+                                    arenaNextBookMoveSan = nextBookSanForUser,
                                     busy = false,
                                     opponentThinking = false,
                                     arenaStatusText = "${it.botTuningDescription} played ${engineMove.san}."

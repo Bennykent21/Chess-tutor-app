@@ -8,7 +8,6 @@ import com.chesstutor.app.domain.ReviewScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.time.Instant
-import java.util.UUID
 
 class SpacedReviewCoordinator(
     private val repository: ReviewRepository,
@@ -124,42 +123,6 @@ class SpacedReviewCoordinator(
                 )
             }
             startEvaluation(reviewFen)
-        }
-    }
-
-    fun loadSampleMistake(
-        sampleFen: String,
-        updateState: ((AppUiState) -> AppUiState) -> Unit
-    ) {
-        val sampleItem = ReviewItem(
-            id = UUID.randomUUID().toString(),
-            fen = sampleFen,
-            dueAt = Instant.now(),
-            stage = -1,
-            attempts = 0,
-            mistakeUci = "e4f2",
-            bestMoveUci = "f3f7",
-            explanation = "Sample blunder: Qxf7# was an immediate forced checkmate on the weak f7 square."
-        )
-
-        scope.launch {
-            repository.upsert(sampleItem)
-            val updated = repository.loadAll()
-            updateState {
-                it.copy(
-                    reviews = updated,
-                    activeReviewIndex = 0,
-                    activeReviewItem = sampleItem,
-                    fen = sampleItem.fen,
-                    message = "Sample Mistake Loaded: Prove mastery by finding the mating move!",
-                    hintLevel = 0,
-                    hintText = "",
-                    reviewSolved = false,
-                    recommendedArrow = null,
-                    lastMove = null
-                )
-            }
-            startEvaluation(sampleItem.fen)
         }
     }
 }

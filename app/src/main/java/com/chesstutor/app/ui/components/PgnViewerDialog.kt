@@ -202,7 +202,7 @@ fun PgnViewerDialog(
                 // PGN Text Block
                 Text(
                     text = "PGN NOTATION",
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.05.sp,
                     color = ChessTutorColors.TextTertiary
@@ -221,10 +221,10 @@ fun PgnViewerDialog(
                 ) {
                     Text(
                         text = displayPgn.ifBlank { "No moves recorded for this game." },
-                        fontSize = 12.5.sp,
+                        fontSize = 13.sp,
                         fontFamily = FontFamily.Monospace,
                         color = ChessTutorColors.TextPrimary,
-                        lineHeight = 18.sp,
+                        lineHeight = 19.sp,
                         modifier = Modifier
                             .verticalScroll(rememberScrollState())
                             .testTag("pgn_text_content")

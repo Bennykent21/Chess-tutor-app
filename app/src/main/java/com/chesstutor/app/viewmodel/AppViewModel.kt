@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.chesstutor.app.data.model.GameRecord
+import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.LearningProfile
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
@@ -17,11 +18,13 @@ import com.chesstutor.app.domain.AdaptiveTrainingPlanner
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.LearnTopic
+import com.chesstutor.app.domain.LessonSessionFactory
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.MoveChoice
 import com.chesstutor.app.domain.OpeningBook
 import com.chesstutor.app.domain.ReviewItem
 import com.chesstutor.app.domain.SearchConfidence
+import com.chesstutor.app.domain.SessionStepKind
 import com.chesstutor.app.domain.TrainDrillsRepository
 import com.chesstutor.app.domain.VerifiedConsequence
 import com.chesstutor.app.engine.BlunderClassifier
@@ -92,6 +95,12 @@ class AppViewModel(
         const val FEN_BACK_RANK_MATE = "6k1/5ppp/8/8/8/8/4QPPP/6K1 w - - 0 1"
         const val FEN_HANGING_PIECE = "r1bqk2r/pppp1ppp/2n5/4p3/1b2P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 6"
         const val FEN_FORK_TACTIC = "r1b1k2r/pppp1ppp/5q2/4n3/2B1P3/8/PPP2PPP/RNBQK2R w KQkq - 0 7"
+
+        fun isSolutionLegalInFen(fen: String, uci: String?): Boolean {
+            if (uci.isNullOrBlank()) return false
+            val pos = runCatching { ChessPosition(fen) }.getOrNull() ?: return false
+            return pos.legalMoves.any { it.uci.equals(uci.trim(), ignoreCase = true) }
+        }
     }
 
     init {
@@ -360,13 +369,58 @@ class AppViewModel(
     }
 
     fun selectTab(tabIndex: Int) {
-        _state.update {
-            it.copy(
-                tab = tabIndex,
-                selectedSquare = null,
-                legalTargets = emptySet(),
-                recommendedArrow = null
-            )
+        if (tabIndex == 2 && !_state.value.arenaInitialized) {
+            _state.update {
+                it.copy(
+                    tab = 2,
+                    selectedSquare = null,
+                    legalTargets = emptySet()
+                )
+            }
+            arenaGameManager.startNewGame(_state.value.arenaBotName, _state::update)
+            return
+        }
+
+        _state.update { current ->
+            when (tabIndex) {
+                0 -> current.copy(
+                    tab = 0,
+                    fen = current.trainFen,
+                    message = current.trainMessage,
+                    lastMove = current.trainLastMove,
+                    recommendedArrow = current.trainRecommendedArrow,
+                    selectedSquare = null,
+                    legalTargets = emptySet()
+                )
+                2 -> current.copy(
+                    tab = 2,
+                    fen = current.arenaFen,
+                    message = current.arenaMessage,
+                    lastMove = current.arenaLastMove,
+                    recommendedArrow = current.arenaRecommendedArrow,
+                    selectedSquare = null,
+                    legalTargets = emptySet()
+                )
+                3 -> {
+                    val activeRev = current.activeReviewItem
+                    current.copy(
+                        tab = 3,
+                        fen = if (current.isReviewMistakeSolverOpen && activeRev != null) activeRev.fen else current.fen,
+                        message = if (current.isReviewMistakeSolverOpen && activeRev != null) {
+                            "Spaced Repetition Review: Find the best move for this position!"
+                        } else "",
+                        selectedSquare = null,
+                        legalTargets = emptySet(),
+                        recommendedArrow = null
+                    )
+                }
+                else -> current.copy(
+                    tab = tabIndex,
+                    selectedSquare = null,
+                    legalTargets = emptySet(),
+                    recommendedArrow = null
+                )
+            }
         }
         if (tabIndex == 3) {
             viewModelScope.launch { loadReviews() }
@@ -417,8 +471,14 @@ class AppViewModel(
         curriculumCoordinator.recordTacticalAttempt(correct, _state::update)
     }
 
-    private fun recordCurriculumAttempt(correct: Boolean) {
-        curriculumCoordinator.recordCurriculumAttempt(_state.value.curriculumLessonId, correct, _state::update)
+    private fun recordCurriculumAttempt(correct: Boolean, markCompleted: Boolean = false) {
+        curriculumCoordinator.recordCurriculumAttempt(
+            lessonId = _state.value.curriculumLessonId,
+            correct = correct,
+            updateState = _state::update,
+            onRefreshRecommendation = ::refreshTrainingRecommendation,
+            markCompleted = markCompleted
+        )
     }
 
     // Refreshes the next lesson after persisted learning-profile changes.
@@ -488,15 +548,23 @@ class AppViewModel(
     ) {
         val pos = ChessPosition(fen)
         val mates = pos.matesInOne
+        val promptMsg = if (mates.isNotEmpty()) {
+            "Find the concrete forced mate in 1 move!"
+        } else {
+            "Evaluate the position and play the best move."
+        }
         _state.update {
             it.copy(
                 fen = fen,
+                trainFen = fen,
+                activeLessonSession = null,
                 puzzlePhase = PuzzlePhase.SOLVING,
                 activeCoachTitle = title,
                 activeCoachSubtitle = subtitle,
                 activeCoachCategory = category,
                 activeCoachRecommendedMove = recommendedMoveUci,
-                message = if (mates.isNotEmpty()) "Find the concrete forced mate in 1 move!" else "Evaluate the position and play the best move.",
+                message = promptMsg,
+                trainMessage = promptMsg,
                 hintLevel = 0,
                 hintText = "",
                 mistakeDetected = false,
@@ -505,10 +573,10 @@ class AppViewModel(
                 assessment = null,
                 selectedSquare = null,
                 legalTargets = emptySet(),
-                recommendedArrow = recommendedMoveUci?.let { uci ->
-                    if (uci.length >= 4) Pair(uci.substring(0, 2), uci.substring(2, 4)) else null
-                },
-                lastMove = null
+                recommendedArrow = null,
+                trainRecommendedArrow = null,
+                lastMove = null,
+                trainLastMove = null
             )
         }
         chessEngineManager.startEvaluation(fen)
@@ -629,20 +697,92 @@ class AppViewModel(
         soundManager?.playMove(_state.value.isSoundEnabled, isCapture = move.isCapture, isCheck = afterPos.isCheck)
         chessEngineManager.startEvaluation(afterFen)
 
+        val activeSession = _state.value.activeLessonSession
+        if (activeSession != null) {
+            val step = activeSession.currentStep
+            val expectedUci = step.solutionUci.trim().lowercase()
+            val isCorrect = move.uci.equals(expectedUci, ignoreCase = true) ||
+                step.allSolutionsUci.any { it.equals(move.uci, ignoreCase = true) } ||
+                isMatePlayed
+
+            if (isCorrect) {
+                soundManager?.playSuccess(_state.value.isSoundEnabled)
+                recordTacticalAttempt(correct = true)
+                val firstTry = activeSession.currentStepFailedAttempts == 0 && !activeSession.currentStepHintUsed
+                val isInteractive = step.kind == SessionStepKind.GUIDED_TRY || step.kind == SessionStepKind.PRACTICE
+                val updatedSession = activeSession.copy(
+                    interactiveAttempts = activeSession.interactiveAttempts + if (isInteractive) 1 else 0,
+                    interactiveFirstTryCorrect = activeSession.interactiveFirstTryCorrect + if (isInteractive && firstTry) 1 else 0
+                )
+                val successMsg = step.whyItWorks.ifBlank {
+                    if (isMatePlayed) "Checkmate! Well done." else "Strong move! Principle demonstrated."
+                }
+                _state.update {
+                    it.copy(
+                        fen = afterFen,
+                        trainFen = afterFen,
+                        activeLessonSession = updatedSession,
+                        puzzlePhase = PuzzlePhase.CORRECT,
+                        message = successMsg,
+                        trainMessage = successMsg,
+                        mistakeDetected = false,
+                        canRetryMistake = false,
+                        lastMove = Pair(move.from, move.to),
+                        trainLastMove = Pair(move.from, move.to),
+                        recommendedArrow = null,
+                        trainRecommendedArrow = null
+                    )
+                }
+            } else {
+                soundManager?.playBlunder(_state.value.isSoundEnabled)
+                recordTacticalAttempt(correct = false)
+                val specificFeedback = LessonSessionFactory.buildSpecificWrongMoveFeedback(
+                    fen = beforeFen,
+                    playedUci = move.uci,
+                    solutionUci = expectedUci,
+                    conceptHint = step.conceptHint
+                )
+                val updatedSession = activeSession.copy(
+                    currentStepFailedAttempts = activeSession.currentStepFailedAttempts + 1
+                )
+                _state.update {
+                    it.copy(
+                        fen = afterFen,
+                        trainFen = afterFen,
+                        activeLessonSession = updatedSession,
+                        puzzlePhase = PuzzlePhase.WRONG,
+                        message = specificFeedback,
+                        trainMessage = specificFeedback,
+                        mistakeDetected = true,
+                        mistakeFen = beforeFen,
+                        canRetryMistake = true,
+                        lastMove = Pair(move.from, move.to),
+                        trainLastMove = Pair(move.from, move.to)
+                    )
+                }
+            }
+            return
+        }
+
         if (matesBefore.isNotEmpty()) {
             if (isMatePlayed) {
                 soundManager?.playSuccess(_state.value.isSoundEnabled)
                 recordTacticalAttempt(correct = true)
                 recordCurriculumAttempt(correct = true)
+                val msg = "Checkmate! Verified: Forced mate in 1 delivered successfully."
                 _state.update {
                     it.copy(
                         fen = afterFen,
+                        trainFen = afterFen,
                         puzzlePhase = PuzzlePhase.CORRECT,
-                        message = "Checkmate! Verified: Forced mate in 1 delivered successfully.",
+                        message = msg,
+                        trainMessage = msg,
                         mistakeDetected = false,
                         canRetryMistake = false,
                         lastMove = Pair(move.from, move.to),
+                        trainLastMove = Pair(move.from, move.to),
                         recommendedArrow = null,
+                        trainRecommendedArrow = null,
                         assessment = MoveAssessment(
                             evaluationBeforeCp = 10000,
                             evaluationAfterCp = 10000,
@@ -669,15 +809,19 @@ class AppViewModel(
 
                 recordTacticalAttempt(correct = false)
                 recordCurriculumAttempt(correct = false)
+                val msg = "Mistake detected! Verified: Missed forced checkmate in 1 (${move.san} does not mate)."
                 _state.update {
                     it.copy(
                         fen = afterFen,
+                        trainFen = afterFen,
                         puzzlePhase = PuzzlePhase.WRONG,
-                        message = "Mistake detected! Verified: Missed forced checkmate in 1.",
+                        message = msg,
+                        trainMessage = msg,
                         mistakeDetected = true,
                         mistakeFen = beforeFen,
                         canRetryMistake = true,
                         lastMove = Pair(move.from, move.to),
+                        trainLastMove = Pair(move.from, move.to),
                         assessment = assessment
                     )
                 }
@@ -704,48 +848,68 @@ class AppViewModel(
                     soundManager?.playSuccess(_state.value.isSoundEnabled)
                     recordTacticalAttempt(correct = true)
                     recordCurriculumAttempt(correct = true)
+                    val msg = if (isMatePlayed) "Checkmate! Well done." else "Strong move! Principle demonstrated."
                     _state.update {
                         it.copy(
                             fen = afterFen,
+                            trainFen = afterFen,
                             puzzlePhase = PuzzlePhase.CORRECT,
-                            message = if (isMatePlayed) "Checkmate! Well done." else "Strong move! Principle demonstrated.",
+                            message = msg,
+                            trainMessage = msg,
                             mistakeDetected = false,
                             canRetryMistake = false,
                             lastMove = Pair(move.from, move.to),
-                            recommendedArrow = null
+                            trainLastMove = Pair(move.from, move.to),
+                            recommendedArrow = null,
+                            trainRecommendedArrow = null
                         )
                     }
                 } else {
                     soundManager?.playBlunder(_state.value.isSoundEnabled)
                     recordTacticalAttempt(correct = false)
                     recordCurriculumAttempt(correct = false)
+                    val specificMsg = LessonSessionFactory.buildSpecificWrongMoveFeedback(
+                        fen = beforeFen,
+                        playedUci = move.uci,
+                        solutionUci = rec,
+                        conceptHint = _state.value.activeCoachCategory
+                    )
                     _state.update {
                         it.copy(
                             fen = afterFen,
+                            trainFen = afterFen,
                             puzzlePhase = PuzzlePhase.WRONG,
-                            message = "Incorrect move. Try again!",
+                            message = specificMsg,
+                            trainMessage = specificMsg,
                             mistakeDetected = true,
                             mistakeFen = beforeFen,
                             canRetryMistake = true,
-                            lastMove = Pair(move.from, move.to)
+                            lastMove = Pair(move.from, move.to),
+                            trainLastMove = Pair(move.from, move.to)
                         )
                     }
                 }
             } else {
+                val msg = "Move ${move.san} played."
                 _state.update {
                     it.copy(
                         fen = afterFen,
+                        trainFen = afterFen,
                         puzzlePhase = if (afterPos.isCheckmate) PuzzlePhase.CORRECT else PuzzlePhase.SOLVING,
-                        message = "Move ${move.san} played.",
-                        lastMove = Pair(move.from, move.to)
+                        message = msg,
+                        trainMessage = msg,
+                        lastMove = Pair(move.from, move.to),
+                        trainLastMove = Pair(move.from, move.to)
                     )
                 }
                 if (!afterPos.isOver) {
                     triggerOpponentResponseInCoach(afterFen)
                 } else {
+                    val endMsg = if (afterPos.isCheckmate) "Checkmate! Game Over." else "Draw! Game Over."
                     _state.update {
                         it.copy(
-                            message = if (afterPos.isCheckmate) "Checkmate! Game Over." else "Draw! Game Over."
+                            message = endMsg,
+                            trainMessage = endMsg
                         )
                     }
                 }
@@ -753,17 +917,84 @@ class AppViewModel(
         }
     }
 
-    fun retryMistake() {
-        val mistakeFen = _state.value.mistakeFen ?: return
-        loadCoachPosition(mistakeFen)
+    /**
+     * Advances to the next step in the active [com.chesstutor.app.domain.LessonTrainSession] (S4).
+     * Never falls into the global 12-drill list! When reaching the Summary step, marks the
+     * lesson as completed in [LearningRepository].
+     */
+    fun advanceLessonStep() {
+        val session = _state.value.activeLessonSession ?: return
+        val nextIdx = (session.currentStepIndex + 1).coerceAtMost(session.steps.lastIndex)
+        val nextSession = session.copy(
+            currentStepIndex = nextIdx,
+            currentStepFailedAttempts = 0,
+            currentStepHintUsed = false
+        )
+        val step = nextSession.currentStep
+        val isSummary = step.kind == SessionStepKind.SUMMARY
+
+        if (isSummary) {
+            recordCurriculumAttempt(correct = true, markCompleted = true)
+        }
+
         _state.update {
             it.copy(
-                puzzlePhase = PuzzlePhase.SOLVING,
-                message = "Position reset. Find the winning move!",
+                activeLessonSession = nextSession,
+                fen = step.fen,
+                trainFen = step.fen,
+                activeCoachTitle = step.title,
+                activeCoachSubtitle = "${session.topicTitle} · Step ${nextIdx + 1} of ${session.totalSteps}",
+                activeCoachCategory = "LESSON · STEP ${nextIdx + 1} OF ${session.totalSteps}",
+                activeCoachRecommendedMove = step.solutionUci,
+                puzzlePhase = if (isSummary) PuzzlePhase.CORRECT else PuzzlePhase.SOLVING,
+                message = step.prompt,
+                trainMessage = step.prompt,
+                hintLevel = 0,
+                hintText = "",
                 mistakeDetected = false,
-                canRetryMistake = false
+                mistakeFen = step.fen,
+                canRetryMistake = false,
+                selectedSquare = null,
+                legalTargets = emptySet(),
+                recommendedArrow = null,
+                trainRecommendedArrow = null,
+                lastMove = null,
+                trainLastMove = null
             )
         }
+        chessEngineManager.startEvaluation(step.fen)
+    }
+
+    fun startNextLessonInCourse() {
+        val currentTopicId = _state.value.activeLessonSession?.topicId ?: _state.value.curriculumLessonId
+        val topics = LearnCurriculumRepository.topics
+        val idx = topics.indexOfFirst { it.id == currentTopicId }
+        val nextTopic = if (idx >= 0 && idx + 1 < topics.size) topics[idx + 1] else topics.first()
+        curriculumCoordinator.exploreLearnTopic(nextTopic, _state::update)
+    }
+
+    fun retryMistake() {
+        val mistakeFen = _state.value.mistakeFen ?: return
+        val activeSession = _state.value.activeLessonSession
+        val prompt = activeSession?.currentStep?.prompt ?: "Position reset. Find the winning move!"
+        _state.update {
+            it.copy(
+                fen = mistakeFen,
+                trainFen = mistakeFen,
+                puzzlePhase = PuzzlePhase.SOLVING,
+                message = prompt,
+                trainMessage = prompt,
+                mistakeDetected = false,
+                canRetryMistake = false,
+                selectedSquare = null,
+                legalTargets = emptySet(),
+                recommendedArrow = null,
+                trainRecommendedArrow = null,
+                lastMove = null,
+                trainLastMove = null
+            )
+        }
+        chessEngineManager.startEvaluation(mistakeFen)
     }
 
     fun setDrillSheetVisible(visible: Boolean) {
@@ -777,13 +1008,17 @@ class AppViewModel(
             _state.update {
                 it.copy(
                     currentDrillIndex = index,
+                    activeLessonSession = null,
+                    curriculumLessonId = null,
                     fen = drill.fen,
+                    trainFen = drill.fen,
                     puzzlePhase = PuzzlePhase.SOLVING,
                     activeCoachTitle = drill.title,
                     activeCoachSubtitle = "Drill ${index + 1} of ${drills.size}",
                     activeCoachCategory = drill.category,
                     activeCoachRecommendedMove = drill.solutionUci,
                     message = drill.prompt,
+                    trainMessage = drill.prompt,
                     hintLevel = 0,
                     hintText = "",
                     mistakeDetected = false,
@@ -793,7 +1028,9 @@ class AppViewModel(
                     selectedSquare = null,
                     legalTargets = emptySet(),
                     recommendedArrow = null,
+                    trainRecommendedArrow = null,
                     lastMove = null,
+                    trainLastMove = null,
                     isDrillSheetVisible = false
                 )
             }
@@ -802,23 +1039,40 @@ class AppViewModel(
     }
 
     fun nextDrill() {
+        if (_state.value.activeLessonSession != null) {
+            advanceLessonStep()
+            return
+        }
         val drills = TrainDrillsRepository.drills
         val nextIdx = (_state.value.currentDrillIndex + 1) % drills.size
         selectDrill(nextIdx)
     }
 
+    /**
+     * S1 Fix: Never invents a hint! Only runs if a verified solution or mate-in-1
+     * is legal in the current board position.
+     */
     fun showHint() {
         val currentLevel = _state.value.hintLevel
         val nextLevel = if (currentLevel >= 4) 0 else currentLevel + 1
 
-        val pos = ChessPosition(_state.value.fen)
-        val targetUci = _state.value.activeCoachRecommendedMove
-        val targetMove = if (targetUci != null && targetUci.length >= 4) {
-            pos.legalMoves.firstOrNull { it.uci == targetUci }
-        } else null
-        val bestMove = targetMove ?: pos.matesInOne.firstOrNull() ?: pos.legalMoves.firstOrNull()
+        val pos = runCatching { ChessPosition(_state.value.fen) }.getOrNull() ?: return
+        val sessionSolution = _state.value.activeLessonSession?.currentStep?.solutionUci?.takeIf { it.isNotBlank() }
+        val reviewSolution = if (_state.value.tab == 3) _state.value.activeReviewItem?.bestMoveUci else null
+        val targetUci = reviewSolution ?: sessionSolution ?: _state.value.activeCoachRecommendedMove
 
+        val targetMove = if (targetUci != null && targetUci.length >= 4) {
+            pos.legalMoves.firstOrNull { it.uci.equals(targetUci, ignoreCase = true) }
+        } else null
+        val bestMove = targetMove ?: pos.matesInOne.firstOrNull()
+
+        // Refuse to run if there is no verified legal solution in this FEN (S1)
         if (bestMove == null) return
+
+        val conceptNote = _state.value.activeLessonSession?.currentStep?.conceptHint?.takeIf { it.isNotBlank() }
+        val updatedSession = _state.value.activeLessonSession?.let {
+            if (nextLevel > 0) it.copy(currentStepHintUsed = true) else it
+        }
 
         when (nextLevel) {
             0 -> {
@@ -828,51 +1082,66 @@ class AppViewModel(
                         hintText = "",
                         selectedSquare = null,
                         legalTargets = emptySet(),
-                        recommendedArrow = null
+                        recommendedArrow = null,
+                        trainRecommendedArrow = null
                     )
                 }
             }
             1 -> {
+                val text = if (conceptNote != null) {
+                    "Theme: $conceptNote. Look for a forcing check, capture, or threat."
+                } else {
+                    "Look for a forcing move: checks, captures, or threats."
+                }
                 _state.update {
                     it.copy(
+                        activeLessonSession = updatedSession,
                         hintLevel = 1,
-                        hintText = "Look for a forcing move: checks, captures, or threats.",
+                        hintText = text,
                         selectedSquare = null,
                         legalTargets = emptySet(),
-                        recommendedArrow = null
+                        recommendedArrow = null,
+                        trainRecommendedArrow = null
                     )
                 }
             }
             2 -> {
                 _state.update {
                     it.copy(
+                        activeLessonSession = updatedSession,
                         hintLevel = 2,
                         hintText = "Start with the ${bestMove.from} piece.",
                         selectedSquare = bestMove.from,
                         legalTargets = emptySet(),
-                        recommendedArrow = null
+                        recommendedArrow = null,
+                        trainRecommendedArrow = null
                     )
                 }
             }
             3 -> {
                 _state.update {
                     it.copy(
+                        activeLessonSession = updatedSession,
                         hintLevel = 3,
                         hintText = "The key piece should move to ${bestMove.to}.",
                         selectedSquare = bestMove.from,
                         legalTargets = setOf(bestMove.to),
-                        recommendedArrow = null
+                        recommendedArrow = null,
+                        trainRecommendedArrow = null
                     )
                 }
             }
             4 -> {
+                val arrow = Pair(bestMove.from, bestMove.to)
                 _state.update {
                     it.copy(
+                        activeLessonSession = updatedSession,
                         hintLevel = 4,
                         hintText = "The move is ${bestMove.san}.",
                         selectedSquare = bestMove.from,
                         legalTargets = setOf(bestMove.to),
-                        recommendedArrow = Pair(bestMove.from, bestMove.to)
+                        recommendedArrow = arrow,
+                        trainRecommendedArrow = arrow
                     )
                 }
             }
@@ -883,16 +1152,100 @@ class AppViewModel(
         arenaGameManager.playArenaMove(move, _state.value, { viewModelScope.launch { loadReviews() } }, _state::update)
     }
 
+    fun showOpeningBookMoveArrow() {
+        val uci = _state.value.arenaNextBookMoveUci ?: _state.value.arenaDeviatedBookMoveUci ?: return
+        if (uci.length >= 4) {
+            val arrow = Pair(uci.take(2), uci.substring(2, 4))
+            _state.update {
+                it.copy(
+                    recommendedArrow = arrow,
+                    arenaRecommendedArrow = arrow
+                )
+            }
+        }
+    }
+
+    fun retryOpeningBookMove() {
+        val bookUci = _state.value.arenaDeviatedBookMoveUci
+        takebackArenaMove()
+        if (bookUci != null && bookUci.length >= 4) {
+            val arrow = Pair(bookUci.take(2), bookUci.substring(2, 4))
+            _state.update {
+                it.copy(
+                    recommendedArrow = arrow,
+                    arenaRecommendedArrow = arrow
+                )
+            }
+        }
+    }
+
+    fun continueOpeningFromDeviation() {
+        _state.update {
+            it.copy(
+                arenaDeviatedUserMoveSan = null,
+                arenaDeviatedBookMoveSan = null,
+                arenaDeviatedBookMoveUci = null
+            )
+        }
+    }
+
+    fun switchOpeningToFreePlay() {
+        _state.update {
+            it.copy(
+                selectedOpeningMode = OpeningMode.FREE,
+                arenaNextBookMoveUci = null,
+                arenaNextBookMoveSan = null,
+                arenaDeviatedUserMoveSan = null,
+                arenaDeviatedBookMoveSan = null,
+                arenaDeviatedBookMoveUci = null
+            )
+        }
+    }
+
+    fun setImportDepth(depth: ImportDepth) {
+        _state.update { it.copy(selectedImportDepth = depth) }
+    }
+
+    fun cancelAccountImport() {
+        ratingLinkCoordinator.cancelImport(_state::update)
+    }
+
     fun linkRatingAccount(
         platform: RatingPlatform,
         username: String,
-        timeControl: RatingTimeControl = RatingTimeControl.RAPID
+        timeControl: RatingTimeControl = RatingTimeControl.RAPID,
+        importDepth: ImportDepth = _state.value.selectedImportDepth
     ) {
-        ratingLinkCoordinator.linkAccount(platform, username, timeControl, ::applyBotElo, _state::update)
+        ratingLinkCoordinator.linkAccount(platform, username, timeControl, ::applyBotElo, _state::update, importDepth)
     }
 
-    fun refreshLinkedRating() {
-        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, ::applyBotElo, _state::update)
+    fun refreshLinkedRating(importDepth: ImportDepth = _state.value.selectedImportDepth) {
+        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, ::applyBotElo, _state::update, importDepth)
+    }
+
+    fun setReviewMistakeSolverOpen(open: Boolean) {
+        _state.update { current ->
+            val firstDue = current.reviews.firstOrNull()
+            current.copy(
+                isReviewMistakeSolverOpen = open,
+                activeReviewItem = if (open) (current.activeReviewItem ?: firstDue) else current.activeReviewItem,
+                fen = if (open && firstDue != null) (current.activeReviewItem?.fen ?: firstDue.fen) else current.fen
+            )
+        }
+    }
+
+    fun runEngineSelfTest() {
+        if (_state.value.isRunningEngineSelfTest) return
+        _state.update { it.copy(isRunningEngineSelfTest = true, engineSelfTestReport = "Running UCI self-test...") }
+        viewModelScope.launch {
+            val report = chessEngineManager.runSelfTest()
+            _state.update {
+                it.copy(
+                    isRunningEngineSelfTest = false,
+                    engineSelfTestReport = report
+                )
+            }
+        }
     }
 
     fun setRatingTimeControl(timeControl: RatingTimeControl) {
@@ -1007,10 +1360,6 @@ class AppViewModel(
 
     fun setEngineDiagnosticsDialogVisible(visible: Boolean) {
         _state.update { it.copy(isEngineDiagnosticsDialogVisible = visible) }
-    }
-
-    fun loadSampleMistakeForReview() {
-        spacedReviewCoordinator.loadSampleMistake(FEN_FORK_TACTIC, _state::update)
     }
 
     private fun playCurriculumMove(move: MoveChoice) {

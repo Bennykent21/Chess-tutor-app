@@ -230,4 +230,150 @@ class ChessTutorSpecVerificationTest {
         assertEquals(1, updated.stage)
         assertTrue(updated.intervalDays > original.intervalDays)
     }
+
+    @Test
+    fun lessonTrainSession_everyTopicCreatesMultiStepQueueWithVerifiedLegalSolutionsAndSpecificFeedback() {
+        val topics = LearnCurriculumRepository.topics
+        val drills = TrainDrillsRepository.drills
+        assertTrue(topics.isNotEmpty())
+        assertTrue(drills.isNotEmpty())
+
+        for (topic in topics) {
+            val session = com.chesstutor.app.domain.LessonSessionFactory.buildSessionForTopic(topic)
+            assertEquals(topic.id, session.topicId)
+            assertEquals(topic.title, session.topicTitle)
+            assertTrue("Session for ${topic.id} must have at least 4 steps", session.steps.size >= 4)
+            assertEquals(com.chesstutor.app.domain.SessionStepKind.EXPLAIN, session.steps.first().kind)
+            assertFalse("New session must not start on summary", session.isSummary)
+
+            for (step in session.steps) {
+                val pos = ChessPosition(step.fen)
+                assertTrue(
+                    "Step ${step.id} in lesson ${topic.id} must have a legal solution ${step.solutionUci} in ${step.fen}",
+                    pos.legalMoves.any { it.uci.equals(step.solutionUci, ignoreCase = true) }
+                )
+            }
+        }
+
+        val firstTopic = topics.first()
+        val firstSession = com.chesstutor.app.domain.LessonSessionFactory.buildSessionForTopic(firstTopic)
+        val firstStep = firstSession.currentStep
+        val pos = ChessPosition(firstStep.fen)
+        val wrongMove = pos.legalMoves.first { !it.uci.equals(firstStep.solutionUci, ignoreCase = true) }
+        val explanation = com.chesstutor.app.domain.LessonSessionFactory.buildSpecificWrongMoveFeedback(
+            fen = firstStep.fen,
+            playedUci = wrongMove.uci,
+            solutionUci = firstStep.solutionUci,
+            conceptHint = firstStep.conceptHint
+        )
+        assertTrue("Wrong move explanation must mention the played SAN", explanation.contains(wrongMove.san))
+    }
+
+    @Test
+    fun hintLegalityGuard_refusesIllegalOrMismatchedSolutionInsteadOfInventingMove() {
+        val startFen = ChessPosition.STARTING_FEN
+        assertTrue(com.chesstutor.app.viewmodel.AppViewModel.isSolutionLegalInFen(startFen, "e2e4"))
+        // Back-rank mate move a1a8 is NOT legal in the starting position
+        assertFalse(com.chesstutor.app.viewmodel.AppViewModel.isSolutionLegalInFen(startFen, "a1a8"))
+        assertFalse(com.chesstutor.app.viewmodel.AppViewModel.isSolutionLegalInFen(startFen, null))
+        assertFalse(com.chesstutor.app.viewmodel.AppViewModel.isSolutionLegalInFen(startFen, ""))
+    }
+
+    @Test
+    fun capturesFromMoveHistory_emptyOnCustomPositionWithNoMoves_andAccurateAlongPlayedMoves() {
+        val emptyCaptures = com.chesstutor.app.ui.arena.calculateCapturesFromMoveHistory(emptyList())
+        assertEquals("", emptyCaptures.whiteCapturedPieces)
+        assertEquals("", emptyCaptures.blackCapturedPieces)
+        assertEquals(0, emptyCaptures.userAdvantage)
+        assertEquals(0, emptyCaptures.opponentAdvantage)
+
+        // 1. e4 d5 2. exd5 (White captures Black pawn on d5)
+        val scandinavianCaptures = com.chesstutor.app.ui.arena.calculateCapturesFromMoveHistory(
+            listOf("e2e4", "d7d5", "e4d5")
+        )
+        assertTrue(scandinavianCaptures.blackCapturedPieces.contains("♟"))
+        assertEquals(1, scandinavianCaptures.userAdvantage)
+        assertEquals(0, scandinavianCaptures.opponentAdvantage)
+    }
+
+    @Test
+    fun pgnSanTokenizer_stripsCommentsVariationsAndNags_andFlagsIncompleteOnCorruptToken() {
+        val client = com.chesstutor.app.data.network.RatingApiClient()
+        val annotatedPgn = """
+            [Event "Live Chess"]
+            [Result "1-0"]
+            1. e4 { [%clk 0:09:59] } 1... e5 $1 (1... c5 2. Nf3) 2. Nf3! Nc6? 3. Bb5 Nf6 4. 0-0 1-0
+        """.trimIndent()
+        val cleanStream = client.extractMovesFromPgn(annotatedPgn)
+        val parsed = client.convertSanStreamToUciWithStatus(cleanStream)
+        assertFalse("Valid annotated PGN should not be flagged incomplete", parsed.incomplete)
+        assertEquals("e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 e1g1", parsed.uciMoves)
+
+        val corruptStream = "1. e4 e5 2. INVALID_TOKEN Nc6 1-0"
+        val corruptParsed = client.convertSanStreamToUciWithStatus(corruptStream)
+        assertTrue("Corrupt token must flag incomplete = true", corruptParsed.incomplete)
+        assertEquals("e2e4 e7e5", corruptParsed.uciMoves)
+    }
+
+    @Test
+    fun reviewStatsCalculator_separatesAccountGamesFromArenaBotGames_andSplitsOpeningsYouPlayVsFace() {
+        val arenaBotGame = GameRecord(
+            id = "arena_1",
+            dateMillis = 1_700_000_000_000L,
+            botName = "Wayne",
+            botRating = 600,
+            userColor = "white",
+            result = "1-0",
+            pgn = "1. e4 e5",
+            moveCount = 20,
+            finalFen = ChessPosition.STARTING_FEN,
+            uciMoves = "e2e4 e7e5",
+            source = com.chesstutor.app.data.model.GameSource.ARENA
+        )
+        // User plays White against King's Indian Defense (an opening Black chooses -> Openings You Face)
+        val accountKidFaced = GameRecord(
+            id = "chesscom_101",
+            dateMillis = 1_700_000_010_000L,
+            botName = "GM_Opponent",
+            botRating = 1850,
+            userColor = "white",
+            result = "0-1",
+            pgn = "[ECO \"E60\"]\n[Opening \"King's Indian Defense\"]\n1. d4 Nf6 2. c4 g6",
+            moveCount = 30,
+            finalFen = ChessPosition.STARTING_FEN,
+            uciMoves = "d2d4 g8f6 c2c4 g7g6",
+            source = com.chesstutor.app.data.model.GameSource.CHESS_COM
+        )
+        // User plays Black in Sicilian Defense (an opening Black chooses -> Openings You Play)
+        val accountSicilianPlayed = GameRecord(
+            id = "chesscom_102",
+            dateMillis = 1_700_000_020_000L,
+            botName = "Club_Player",
+            botRating = 1800,
+            userColor = "black",
+            result = "0-1",
+            pgn = "[ECO \"B20\"]\n[Opening \"Sicilian Defense\"]\n1. e4 c5",
+            moveCount = 28,
+            finalFen = ChessPosition.STARTING_FEN,
+            uciMoves = "e2e4 c7c5",
+            source = com.chesstutor.app.data.model.GameSource.CHESS_COM
+        )
+
+        val stats = ReviewStatsCalculator.compute(
+            games = listOf(arenaBotGame, accountKidFaced, accountSicilianPlayed),
+            reviews = emptyList(),
+            accountOnly = true
+        )
+
+        // Account stats exclude the arena bot game
+        assertEquals(2, stats.accountGameCount)
+        assertEquals(1, stats.arenaGameCount)
+        assertEquals(2, stats.totalGames)
+        assertEquals(1, stats.wins)
+        assertEquals(1, stats.losses)
+
+        // Sicilian as Black is in openingsPlayed; King's Indian as White is in openingsFaced
+        assertTrue(stats.openingsPlayed.any { it.family.contains("Sicilian") })
+        assertTrue(stats.openingsFaced.any { it.family.contains("King's Indian") })
+    }
 }
