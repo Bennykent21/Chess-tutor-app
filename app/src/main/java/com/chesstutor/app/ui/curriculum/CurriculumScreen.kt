@@ -77,7 +77,8 @@ fun CurriculumScreen(
     val lessonSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val totalCount = allTopics.size
-    val completedCount = allTopics.count { it.id in state.practicedModules || it.id in state.masteredModules }
+    val completedCount = allTopics.count { it.id in state.masteredModules }
+    val inProgressCount = allTopics.count { it.id in state.practicedModules && it.id !in state.masteredModules }
     val progressRatio = if (totalCount > 0) completedCount.toFloat() / totalCount.toFloat() else 0f
 
     // Accordion state: Openings open by default
@@ -112,14 +113,14 @@ fun CurriculumScreen(
         ) {
             Text(
                 text = "Learn",
-                fontSize = 19.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.015).sp,
                 color = ChessTutorColors.TextPrimary
             )
             Text(
                 text = "Principles, patterns and technique",
-                fontSize = 12.5.sp,
+                fontSize = 14.sp,
                 letterSpacing = (-0.005).sp,
                 color = ChessTutorColors.TextSecondary,
                 modifier = Modifier.padding(top = 3.dp)
@@ -136,24 +137,27 @@ fun CurriculumScreen(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(3.dp)
+                        .height(4.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(ChessTutorColors.Surface2)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(progressRatio.coerceIn(0.04f, 1f))
-                            .height(3.dp)
+                            .height(4.dp)
                             .clip(RoundedCornerShape(2.dp))
                             .background(ChessTutorColors.Brass)
                     )
                 }
 
                 Text(
-                    text = "$completedCount / $totalCount",
-                    fontSize = 11.5.sp,
+                    text = buildString {
+                        append("$completedCount / $totalCount completed")
+                        if (inProgressCount > 0) append(" · $inProgressCount in progress")
+                    },
+                    fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
-                    color = ChessTutorColors.TextTertiary
+                    color = ChessTutorColors.TextSecondary
                 )
             }
         }
@@ -167,7 +171,7 @@ fun CurriculumScreen(
         ) {
             categories.forEach { (category, title) ->
                 val topicsForCategory = allTopics.filter { it.category == category }
-                val doneInCategory = topicsForCategory.count { it.id in state.practicedModules || it.id in state.masteredModules }
+                val doneInCategory = topicsForCategory.count { it.id in state.masteredModules }
                 val isOpen = openSections[category] ?: false
 
                 item(key = category.name) {
@@ -188,7 +192,7 @@ fun CurriculumScreen(
                                 contentDescription = if (isOpen) "Collapse" else "Expand",
                                 tint = ChessTutorColors.TextTertiary,
                                 modifier = Modifier
-                                    .size(13.dp)
+                                    .size(14.dp)
                                     .rotate(if (isOpen) 0f else -90f)
                             )
 
@@ -196,7 +200,7 @@ fun CurriculumScreen(
 
                             Text(
                                 text = title,
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 letterSpacing = (-0.005).sp,
                                 color = ChessTutorColors.TextSecondary
@@ -206,7 +210,7 @@ fun CurriculumScreen(
 
                             Text(
                                 text = "$doneInCategory/${topicsForCategory.size}",
-                                fontSize = 11.5.sp,
+                                fontSize = 12.sp,
                                 fontFamily = FontFamily.Monospace,
                                 color = ChessTutorColors.TextTertiary
                             )
@@ -225,8 +229,9 @@ fun CurriculumScreen(
                                     .background(ChessTutorColors.LineSoft)
                             ) {
                                 topicsForCategory.forEachIndexed { index, topic ->
-                                    val isDone = topic.id in state.masteredModules || topic.id in state.practicedModules
-                                    val isDoing = !isDone && index == 0
+                                    val isDone = topic.id in state.masteredModules
+                                    val isInProgress = !isDone && topic.id in state.practicedModules
+                                    val isNextRecommended = !isDone && !isInProgress && index == 0
 
                                     Row(
                                         modifier = Modifier
@@ -239,7 +244,7 @@ fun CurriculumScreen(
                                         // Status dot (.st)
                                         Box(
                                             modifier = Modifier
-                                                .size(15.dp)
+                                                .size(16.dp)
                                                 .clip(CircleShape)
                                                 .background(
                                                     if (isDone) ChessTutorColors.Sage
@@ -247,9 +252,11 @@ fun CurriculumScreen(
                                                 )
                                                 .border(
                                                     1.5.dp,
-                                                    if (isDone) Color.Transparent
-                                                    else if (isDoing) ChessTutorColors.Brass
-                                                    else ChessTutorColors.Surface3,
+                                                    when {
+                                                        isDone -> Color.Transparent
+                                                        isInProgress || isNextRecommended -> ChessTutorColors.Brass
+                                                        else -> ChessTutorColors.Surface3
+                                                    },
                                                     CircleShape
                                                 ),
                                             contentAlignment = Alignment.Center
@@ -259,12 +266,12 @@ fun CurriculumScreen(
                                                     imageVector = Icons.Default.Check,
                                                     contentDescription = "Completed",
                                                     tint = Color(0xFF11261B),
-                                                    modifier = Modifier.size(9.dp)
+                                                    modifier = Modifier.size(10.dp)
                                                 )
-                                            } else if (isDoing) {
+                                            } else if (isInProgress || isNextRecommended) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(5.dp)
+                                                        .size(6.dp)
                                                         .clip(CircleShape)
                                                         .background(ChessTutorColors.Brass)
                                                 )
@@ -275,12 +282,22 @@ fun CurriculumScreen(
 
                                         Text(
                                             text = topic.title,
-                                            fontSize = 14.5.sp,
+                                            fontSize = 15.sp,
                                             fontWeight = FontWeight.Medium,
                                             letterSpacing = (-0.01).sp,
                                             color = if (isDone) ChessTutorColors.TextSecondary else ChessTutorColors.TextPrimary,
                                             modifier = Modifier.weight(1f)
                                         )
+
+                                        if (isInProgress) {
+                                            Text(
+                                                text = "In progress",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = ChessTutorColors.Brass,
+                                                modifier = Modifier.padding(end = 6.dp)
+                                            )
+                                        }
 
                                         Icon(
                                             imageVector = Icons.Default.ChevronRight,
@@ -304,7 +321,7 @@ fun CurriculumScreen(
                 Column(modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)) {
                     Text(
                         text = "OPENING PRACTICE REPERTOIRE",
-                        fontSize = 11.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.06.sp,
                         color = ChessTutorColors.TextTertiary,
@@ -338,13 +355,13 @@ fun CurriculumScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "${line.name} (${line.eco})",
-                                        fontSize = 14.sp,
+                                        fontSize = 14.5.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = ChessTutorColors.TextPrimary
                                     )
                                     Text(
                                         text = line.formattedMoveLine,
-                                        fontSize = 11.5.sp,
+                                        fontSize = 12.sp,
                                         fontFamily = FontFamily.Monospace,
                                         color = ChessTutorColors.TextSecondary,
                                         modifier = Modifier.padding(top = 2.dp)
@@ -352,7 +369,7 @@ fun CurriculumScreen(
                                 }
                                 Text(
                                     text = "Practise in Play →",
-                                    fontSize = 12.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = ChessTutorColors.Brass
                                 )
@@ -370,11 +387,6 @@ fun CurriculumScreen(
         val topic = selectedLesson!!
         val demoSideIsBlack = remember(topic.demoFen) {
             runCatching { ChessPosition(topic.demoFen).sideToMove == 'b' }.getOrDefault(false)
-        }
-        val demoArrow = remember(topic.recommendedMoveUci) {
-            if (topic.recommendedMoveUci.length >= 4) {
-                Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.substring(2, 4))
-            } else null
         }
 
         ModalBottomSheet(
@@ -399,28 +411,28 @@ fun CurriculumScreen(
             ) {
                 Text(
                     text = topic.title,
-                    fontSize = 17.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-0.015).sp,
                     color = ChessTutorColors.TextPrimary
                 )
                 Text(
                     text = topic.subtitle,
-                    fontSize = 12.5.sp,
+                    fontSize = 14.sp,
                     color = ChessTutorColors.TextSecondary,
                     modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
                 )
 
-                // Demo Board
+                // Demo Board (no spoiling answer arrow before starting lesson)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(RoundedCornerShape(0.dp))
+                        .clip(RoundedCornerShape(8.dp))
                 ) {
                     ChessBoard(
                         fen = topic.demoFen,
-                        recommendedArrow = demoArrow,
+                        recommendedArrow = null,
                         flipped = demoSideIsBlack,
                         showCoordinates = state.showCoordinates,
                         showLegalDots = state.showLegalDots,

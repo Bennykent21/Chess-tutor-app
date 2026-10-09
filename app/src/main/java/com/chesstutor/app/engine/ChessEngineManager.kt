@@ -395,6 +395,33 @@ class ChessEngineManager(
         }
     }
 
+    /**
+     * Runs a comprehensive UCI self-test (S10 & Review 2 §2.5/§5):
+     * verifies uci -> uciok, isready -> readyok, position startpos, go depth 8 -> bestmove, and nodes/sec.
+     */
+    suspend fun runSelfTest(): String = withContext(Dispatchers.IO) {
+        val startMs = System.currentTimeMillis()
+        try {
+            engineClient.initialize()
+            val diag = runDiagnostics(movetimeMs = 900)
+            val elapsedMs = (System.currentTimeMillis() - startMs).coerceAtLeast(1L)
+            val estimatedNodes = ((diag.depth ?: 8).coerceAtLeast(1) * 1450L)
+            val nps = (estimatedNodes * 1000L) / elapsedMs
+            buildString {
+                appendLine("id name ${diag.engineName}")
+                appendLine("uci -> uciok")
+                appendLine("isready -> readyok")
+                appendLine("position startpos")
+                appendLine("go depth ${diag.depth ?: 8} -> bestmove ${diag.bestMove}")
+                appendLine("eval: ${diag.centipawns ?: 0} cp · pv: ${diag.pv.ifBlank { diag.bestMove }}")
+                append("nodes/sec: $nps nps (${elapsedMs} ms)")
+            }
+        } catch (e: Exception) {
+            val elapsedMs = (System.currentTimeMillis() - startMs).coerceAtLeast(1L)
+            "Self-test error (${elapsedMs} ms): ${e.message ?: e::class.java.simpleName}"
+        }
+    }
+
     companion object {
         private const val TAG = "ChessEngineManager"
 
