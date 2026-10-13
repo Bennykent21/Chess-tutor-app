@@ -233,6 +233,36 @@ object OpeningBook {
 
     fun byId(id: String): OpeningLine? = lines.firstOrNull { it.id == id }
 
+    fun coachingNoteForMove(line: OpeningLine?, moveSan: String?): String {
+        val clean = moveSan?.removeSuffix("+")?.removeSuffix("#") ?: return line?.summary ?: "Follow the opening plan."
+        return when (clean) {
+            "e4" -> "Claim the center and open diagonals for your queen and light-squared bishop."
+            "e5" -> "Stake an equal claim in the center and contest d4 and f4."
+            "d4" -> "Seize central space and open lines for your pieces."
+            "d5" -> "Establish a central foothold and prevent White from dominating the center."
+            "c4" -> "Challenge the d5 square and increase control over the queenside and center."
+            "c5" -> "Strike at d4 asymmetrically to create imbalanced counter-attacking chances."
+            "c6" -> "Prepare a supported central d5 thrust while keeping the pawn chain solid."
+            "e6" -> "Support a central d5 break while opening diagonals for the dark-squared bishop and queen."
+            "d6" -> "Reinforce e5/c5 and control key central squares before developing."
+            "g6" -> "Prepare to fianchetto the dark-squared bishop on the long diagonal (g7)."
+            "Nf3" -> "Develop the kingside knight toward the center, pressuring e5 and d4."
+            "Nc6" -> "Develop the knight actively to defend e5 and influence d4."
+            "Nf6" -> "Develop the knight to its best central square, pressuring e4 and d5."
+            "Nc3" -> "Develop the queenside knight to control d5 and e4."
+            "Bc4" -> "Develop the bishop to the active a2-g8 diagonal targeting f7."
+            "Bc5" -> "Develop the dark-squared bishop to an active central diagonal."
+            "Bb5" -> "Put immediate pressure on the knight defending the e5 pawn."
+            "Bf4", "Bf5" -> "Develop the bishop outside the pawn chain before closing central pawns."
+            "Bg7" -> "Complete the fianchetto, aiming the bishop down the long diagonal."
+            "Nxd4", "cxd4", "exd4", "dxe4", "Nxe4" -> "Recapture in the center to open lines and centralize your pieces."
+            "a6" -> "Control the b5 square to prevent enemy pieces from using it as an outpost."
+            "Ba4" -> "Maintain the pin-threat along the diagonal while retreating safely."
+            "e3" -> "Solidify the d4 pawn and open the diagonal for the f1-bishop."
+            else -> line?.summary ?: "Develop toward the center and coordinate your pieces."
+        }
+    }
+
     fun matchByFen(fen: String): OpeningLine? {
         val epd = toEpd(fen)
         return lines.firstOrNull { it.epd == epd } ?: epdPrefixIndex[epd]?.first

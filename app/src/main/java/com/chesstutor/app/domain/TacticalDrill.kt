@@ -6,8 +6,12 @@ data class TacticalDrill(
     val category: String,
     val fen: String,
     val solutionUci: String,
-    val prompt: String = "White to move · Find mate in 1"
-)
+    val prompt: String = "White to move · Find mate in 1",
+    val subtitle: String = category
+) {
+    val objectivePrompt: String
+        get() = prompt
+}
 
 object TrainDrillsRepository {
     val drills = listOf(

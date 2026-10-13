@@ -6,32 +6,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,11 +31,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.ui.theme.ChessTutorColors
+import com.chesstutor.app.ui.theme.TabularTextStyle
 import com.chesstutor.app.ui.theme.bouncyClickable
 import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
@@ -59,358 +50,304 @@ fun SettingsSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scrollState = rememberScrollState()
+    var showResetConfirm by remember { mutableStateOf(false) }
 
-    var selectedPlatform by remember(state.linkedProfile?.platform) {
-        mutableStateOf(state.linkedProfile?.platform ?: RatingPlatform.LICHESS)
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            containerColor = ChessTutorColors.SurfaceRaised,
+            titleContentColor = ChessTutorColors.TextPrimary,
+            textContentColor = ChessTutorColors.TextSecondary,
+            title = {
+                Text(
+                    text = "Reset training progress?",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Text(
+                    text = "This will clear your completed lessons and solved drill history.",
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetConfirm = false
+                        viewModel.resetCurriculumProgress()
+                    }
+                ) {
+                    Text(
+                        text = "Reset",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ChessTutorColors.Coral
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) {
+                    Text(
+                        text = "Cancel",
+                        fontSize = 14.sp,
+                        color = ChessTutorColors.TextSecondary
+                    )
+                }
+            }
+        )
     }
-    var usernameInput by remember(state.linkedProfile?.username) {
-        mutableStateOf(state.linkedProfile?.username ?: "")
-    }
-    var showConnectForm by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = ChessTutorColors.Surface,
-        contentColor = ChessTutorColors.TextPrimary,
+        containerColor = ChessTutorColors.SurfaceRaised,
         dragHandle = {
             Box(
                 modifier = Modifier
-                    .padding(top = 10.dp, bottom = 4.dp)
+                    .padding(top = 10.dp, bottom = 2.dp)
                     .size(width = 34.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(ChessTutorColors.Surface3)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(ChessTutorColors.LineStrong)
             )
         }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(top = 12.dp, bottom = 36.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "Settings",
-                fontSize = 17.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.015).sp,
                 color = ChessTutorColors.TextPrimary
             )
             Text(
-                text = "Account, play preferences and board options",
-                fontSize = 12.5.sp,
+                text = "Board preferences, connected accounts, and engine diagnostics",
+                fontSize = 14.sp,
                 color = ChessTutorColors.TextSecondary,
-                modifier = Modifier.padding(top = 2.dp, bottom = 14.dp)
+                modifier = Modifier.padding(bottom = 4.dp)
             )
 
-            // GROUP: ACCOUNT
-            Text(
-                text = "ACCOUNT",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.06.sp,
-                color = ChessTutorColors.TextTertiary,
-                modifier = Modifier.padding(bottom = 8.dp)
+            SettingToggleRow(
+                title = "Sound effects",
+                subtitle = "Move, capture, check, and puzzle cues",
+                checked = state.isSoundEnabled,
+                onCheckedChange = viewModel::setSoundEnabled,
+                testTag = "setting_sound_toggle"
             )
 
-            val isConnected = state.linkedProfile != null
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(ChessTutorColors.Surface2)
-                    .padding(14.dp, 13.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(ChessTutorColors.Surface3),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (isConnected) "♜" else "♞",
-                        fontSize = 17.sp,
-                        color = ChessTutorColors.TextSecondary
-                    )
-                }
+            SettingToggleRow(
+                title = "Legal move dots",
+                subtitle = "Show target squares when a piece is selected",
+                checked = state.showLegalDots,
+                onCheckedChange = viewModel::setShowLegalDots,
+                testTag = "setting_legal_dots_toggle"
+            )
 
-                Spacer(modifier = Modifier.width(12.dp))
+            SettingToggleRow(
+                title = "Board coordinates",
+                subtitle = "Files a–h and ranks 1–8 along the edge",
+                checked = state.showCoordinates,
+                onCheckedChange = viewModel::setShowCoordinates,
+                testTag = "setting_coordinates_toggle"
+            )
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (isConnected) "${state.linkedProfile!!.username} (${state.linkedProfile.platform.displayName})" else "Not connected",
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-0.01).sp,
-                        color = ChessTutorColors.TextPrimary
-                    )
-                    Text(
-                        text = if (isConnected) {
-                            "Rating: ${state.linkedProfile?.activeRating ?: "Unrated"}"
-                        } else {
-                            "Connect your Chess.com or Lichess username"
-                        },
-                        fontSize = 12.sp,
-                        color = ChessTutorColors.TextSecondary,
-                        modifier = Modifier.padding(top = 1.dp)
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(9.dp))
-                        .background(if (isConnected) ChessTutorColors.Surface3 else ChessTutorColors.Brass)
-                        .border(
-                            1.dp,
-                            if (isConnected) ChessTutorColors.Coral else Color.Transparent,
-                            RoundedCornerShape(9.dp)
-                        )
-                        .bouncyClickable {
-                            if (isConnected) {
-                                viewModel.unlinkRatingAccount()
-                            } else {
-                                showConnectForm = !showConnectForm
-                            }
-                        }
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (isConnected) "Unlink" else "Connect",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isConnected) ChessTutorColors.Coral else ChessTutorColors.BrassInk
-                    )
-                }
-            }
-
-            if (!isConnected && showConnectForm) {
-                Column(
+            // Connected Account Section
+            val linked = state.linkedProfile
+            if (linked != null) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(ChessTutorColors.Surface2)
-                        .padding(12.dp)
+                        .background(ChessTutorColors.Surface)
+                        .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        RatingPlatform.entries.forEach { platform ->
-                            val selected = selectedPlatform == platform
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (selected) ChessTutorColors.Brass else ChessTutorColors.Surface3)
-                                    .bouncyClickable { selectedPlatform = platform },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = platform.displayName,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (selected) ChessTutorColors.BrassInk else ChessTutorColors.TextPrimary
-                                )
-                            }
-                        }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "${linked.platform.displayName} · @${linked.username}",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChessTutorColors.TextPrimary
+                        )
+                        Text(
+                            text = "Active Rating: ${linked.activeRating ?: state.estimatedRating}",
+                            fontSize = 13.sp,
+                            style = TabularTextStyle,
+                            color = ChessTutorColors.TextSecondary
+                        )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = usernameInput,
-                        onValueChange = { usernameInput = it },
-                        placeholder = { Text("Enter your username", fontSize = 13.sp, color = ChessTutorColors.TextTertiary) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ChessTutorColors.Brass,
-                            unfocusedBorderColor = ChessTutorColors.Line,
-                            focusedTextColor = ChessTutorColors.TextPrimary,
-                            unfocusedTextColor = ChessTutorColors.TextPrimary
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(38.dp)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(ChessTutorColors.Brass)
-                            .bouncyClickable {
-                                viewModel.linkRatingAccount(selectedPlatform, usernameInput)
-                                showConnectForm = false
-                            },
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ChessTutorColors.SurfaceRaised)
+                            .border(1.dp, ChessTutorColors.LineStrong, RoundedCornerShape(8.dp))
+                            .bouncyClickable { viewModel.unlinkRatingAccount() }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = "Save & Import Games",
+                            text = "Unlink",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = ChessTutorColors.BrassInk
+                            color = ChessTutorColors.Coral
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // GROUP: BOARD & SOUND
-            Text(
-                text = "BOARD & SOUND",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.06.sp,
-                color = ChessTutorColors.TextTertiary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
+            // S10: Engine Self-Test Diagnostics
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(ChessTutorColors.Surface2)
+                    .background(ChessTutorColors.Surface)
+                    .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(12.dp))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp, 13.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                        contentDescription = null,
-                        tint = ChessTutorColors.TextSecondary,
-                        modifier = Modifier.size(19.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Move sound",
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = (-0.008).sp,
+                            text = "Engine Self-Test (UCI)",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = ChessTutorColors.TextPrimary
                         )
                         Text(
-                            text = "Play audio feedback on moves and tactics",
-                            fontSize = 12.sp,
-                            color = ChessTutorColors.TextSecondary,
-                            modifier = Modifier.padding(top = 1.dp)
+                            text = "Verify uciok, readyok, depth 8 search, bestmove, and nodes/sec",
+                            fontSize = 13.sp,
+                            color = ChessTutorColors.TextSecondary
                         )
                     }
 
-                    Switch(
-                        checked = state.isSoundEnabled,
-                        onCheckedChange = { viewModel.setSoundEnabled(it) },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = ChessTutorColors.BrassInk,
-                            checkedTrackColor = ChessTutorColors.Brass,
-                            uncheckedThumbColor = ChessTutorColors.TextSecondary,
-                            uncheckedTrackColor = ChessTutorColors.Surface3
-                        )
-                    )
+                    Box(
+                        modifier = Modifier
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(ChessTutorColors.Brass)
+                            .testTag("engine_self_test_button")
+                            .bouncyClickable(enabled = !state.isRunningEngineSelfTest) {
+                                viewModel.runEngineSelfTest()
+                            }
+                            .padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (state.isRunningEngineSelfTest) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = ChessTutorColors.BrassInk,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Run Test",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ChessTutorColors.BrassInk
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(1.dp).background(ChessTutorColors.Line))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp, 13.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Visibility,
-                        contentDescription = null,
-                        tint = ChessTutorColors.TextSecondary,
-                        modifier = Modifier.size(19.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
+                if (!state.engineSelfTestReport.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ChessTutorColors.Background)
+                            .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(8.dp))
+                            .padding(12.dp)
+                            .testTag("engine_self_test_report")
+                    ) {
                         Text(
-                            text = "Show legal move dots",
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = (-0.008).sp,
+                            text = state.engineSelfTestReport,
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            fontFamily = FontFamily.Monospace,
+                            style = TabularTextStyle,
                             color = ChessTutorColors.TextPrimary
                         )
-                        Text(
-                            text = "Highlight destinations when a piece is selected",
-                            fontSize = 12.sp,
-                            color = ChessTutorColors.TextSecondary,
-                            modifier = Modifier.padding(top = 1.dp)
-                        )
                     }
-
-                    Switch(
-                        checked = state.showLegalDots,
-                        onCheckedChange = { viewModel.setShowLegalDots(it) },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = ChessTutorColors.BrassInk,
-                            checkedTrackColor = ChessTutorColors.Brass,
-                            uncheckedThumbColor = ChessTutorColors.TextSecondary,
-                            uncheckedTrackColor = ChessTutorColors.Surface3
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(1.dp).background(ChessTutorColors.Line))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp, 13.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SwapHoriz,
-                        contentDescription = null,
-                        tint = ChessTutorColors.TextSecondary,
-                        modifier = Modifier.size(19.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Show board coordinates",
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = (-0.008).sp,
-                            color = ChessTutorColors.TextPrimary
-                        )
-                        Text(
-                            text = "Display rank and file labels on board edges",
-                            fontSize = 12.sp,
-                            color = ChessTutorColors.TextSecondary,
-                            modifier = Modifier.padding(top = 1.dp)
-                        )
-                    }
-
-                    Switch(
-                        checked = state.showCoordinates,
-                        onCheckedChange = { viewModel.setShowCoordinates(it) },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = ChessTutorColors.BrassInk,
-                            checkedTrackColor = ChessTutorColors.Brass,
-                            uncheckedThumbColor = ChessTutorColors.TextSecondary,
-                            uncheckedTrackColor = ChessTutorColors.Surface3
-                        )
-                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            // Reset progress
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(ChessTutorColors.Surface)
+                    .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(10.dp))
+                    .testTag("reset_progress_button")
+                    .bouncyClickable { showResetConfirm = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Reset Training Progress",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = ChessTutorColors.Coral
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun SettingToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    testTag: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(ChessTutorColors.Surface)
+            .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = ChessTutorColors.TextPrimary
+            )
+            Text(
+                text = subtitle,
+                fontSize = 13.sp,
+                color = ChessTutorColors.TextSecondary,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.testTag(testTag),
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = ChessTutorColors.Background,
+                checkedTrackColor = ChessTutorColors.Brass,
+                uncheckedThumbColor = ChessTutorColors.TextSecondary,
+                uncheckedTrackColor = ChessTutorColors.SurfaceHighest,
+                uncheckedBorderColor = Color.Transparent
+            )
+        )
     }
 }
