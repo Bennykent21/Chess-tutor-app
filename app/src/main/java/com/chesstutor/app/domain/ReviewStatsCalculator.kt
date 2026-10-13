@@ -57,10 +57,17 @@ data class OpeningFamilyStat(
     val representativeLineId: String?,
     val relatedTopicId: String?,
     val variations: List<OpeningVariationStat>,
-    val gameIds: List<String>
+    val gameIds: List<String>,
+    val isPlayedByUser: Boolean = true
 ) {
     val userColor: String get() = color.lowercase()
     val scorePercent: Int get() = scorePct
+    val displayLabel: String
+        get() = if (isPlayedByUser) {
+            "$family (as $color)"
+        } else {
+            "As $color vs $family"
+        }
 }
 
 data class ReviewInsight(
@@ -83,7 +90,11 @@ data class ReviewDashboardStats(
     val whiteStats: ColorBreakdown = ColorBreakdown(),
     val blackStats: ColorBreakdown = ColorBreakdown(),
     val openings: List<OpeningFamilyStat> = emptyList(),
-    val insights: List<ReviewInsight> = emptyList()
+    val openingsPlayed: List<OpeningFamilyStat> = emptyList(),
+    val openingsFaced: List<OpeningFamilyStat> = emptyList(),
+    val insights: List<ReviewInsight> = emptyList(),
+    val accountGameCount: Int = 0,
+    val arenaGameCount: Int = 0
 ) {
     val scorePercent: Int get() = scorePct
 }
@@ -248,24 +259,49 @@ object ReviewStatsCalculator {
         }
     }
 
+    private fun isBlackChoiceOpening(family: String, line: OpeningLine): Boolean {
+        val lower = family.lowercase()
+        return lower.contains("defense") ||
+            lower.contains("defence") ||
+            lower.contains("sicilian") ||
+            lower.contains("french") ||
+            lower.contains("caro-kann") ||
+            lower.contains("king's indian") ||
+            lower.contains("slav") ||
+            lower.contains("scandinavian") ||
+            lower.contains("pirc") ||
+            lower.contains("alekhine") ||
+            lower.contains("nimzo") ||
+            lower.contains("dutch") ||
+            line.recommendedSide == 'b'
+    }
+
     fun compute(
         games: List<GameRecord>,
         reviews: List<ReviewItem>,
-        weakestTopicId: String? = null
+        weakestTopicId: String? = null,
+        accountOnly: Boolean = true
     ): ReviewDashboardStats {
         val now = java.time.Instant.now()
         val dueCount = reviews.count { ReviewScheduler.isDue(it, now) }
+        val accountGames = games.filter { it.isAccountGame }
+        val arenaGames = games.filter { !it.isAccountGame }
+        val targetGames = if (accountOnly) accountGames else arenaGames
         return calculate(
-            games = games,
+            games = targetGames,
             dueReviewCount = dueCount,
-            weakestTopicId = weakestTopicId
+            weakestTopicId = weakestTopicId,
+            accountGameCount = accountGames.size,
+            arenaGameCount = arenaGames.size
         )
     }
 
     fun calculate(
         games: List<GameRecord>,
         dueReviewCount: Int = 0,
-        weakestTopicId: String? = null
+        weakestTopicId: String? = null,
+        accountGameCount: Int = games.count { it.isAccountGame },
+        arenaGameCount: Int = games.count { !it.isAccountGame }
     ): ReviewDashboardStats {
         val finishedGames = games.filter { it.result in setOf("1-0", "0-1", "1/2-1/2") }
         if (finishedGames.isEmpty()) {
@@ -275,7 +311,11 @@ object ReviewStatsCalculator {
                 dueReviewCount = dueReviewCount,
                 weakestTopicId = weakestTopicId
             )
-            return ReviewDashboardStats(insights = insights)
+            return ReviewDashboardStats(
+                insights = insights,
+                accountGameCount = accountGameCount,
+                arenaGameCount = arenaGameCount
+            )
         }
 
         val overall = computeBreakdown(finishedGames)
@@ -321,6 +361,10 @@ object ReviewStatsCalculator {
                 )
             }.sortedByDescending { it.games }
 
+            val isBlackDefense = isBlackChoiceOpening(family, primaryLine)
+            val isUserBlack = color.equals("Black", ignoreCase = true)
+            val isPlayedByUser = (isBlackDefense && isUserBlack) || (!isBlackDefense && !isUserBlack)
+
             OpeningFamilyStat(
                 family = family,
                 eco = primaryLine.eco,
@@ -337,12 +381,16 @@ object ReviewStatsCalculator {
                 representativeLineId = primaryLine.id,
                 relatedTopicId = primaryLine.relatedTopicId,
                 variations = variations,
-                gameIds = groupGames.map { it.id }
+                gameIds = groupGames.map { it.id },
+                isPlayedByUser = isPlayedByUser
             )
         }.sortedWith(
             compareByDescending<OpeningFamilyStat> { it.games }
                 .thenBy { it.wilsonLowerBoundScore }
         )
+
+        val openingsPlayed = openingStats.filter { it.isPlayedByUser }
+        val openingsFaced = openingStats.filter { !it.isPlayedByUser }
 
         val insights = buildInsights(
             finishedGames = finishedGames,
@@ -361,7 +409,11 @@ object ReviewStatsCalculator {
             whiteStats = whiteStats,
             blackStats = blackStats,
             openings = openingStats,
-            insights = insights
+            openingsPlayed = openingsPlayed,
+            openingsFaced = openingsFaced,
+            insights = insights,
+            accountGameCount = accountGameCount,
+            arenaGameCount = arenaGameCount
         )
     }
 

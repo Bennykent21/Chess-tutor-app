@@ -1,9 +1,14 @@
 package com.chesstutor.app.viewmodel
 
 import com.chesstutor.app.data.model.LearningProfile
+import com.chesstutor.app.data.model.ModuleProgress
 import com.chesstutor.app.data.repository.LearningRepository
+import com.chesstutor.app.domain.AdaptiveTrainingPlanner
 import com.chesstutor.app.domain.ChessPosition
+import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.LearnTopic
+import com.chesstutor.app.domain.LessonSessionFactory
+import com.chesstutor.app.domain.ReviewItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -12,35 +17,16 @@ import kotlinx.coroutines.sync.withLock
 class CurriculumCoordinator(
     private val learningRepository: LearningRepository,
     private val scope: CoroutineScope,
-    private val profileMutex: Mutex,
-    private val startEvaluation: (String) -> Unit
+    private val profileMutex: Mutex = Mutex(),
+    private val startEvaluation: (String) -> Unit = {}
 ) {
 
-    fun persistProfile(update: (LearningProfile) -> LearningProfile) {
+    fun persistProfile(transform: (LearningProfile) -> LearningProfile) {
         scope.launch {
             profileMutex.withLock {
                 val current = learningRepository.getProfile()
-                learningRepository.saveProfile(update(current).copy(updatedAt = System.currentTimeMillis()))
-            }
-        }
-    }
-
-    fun recordCurriculumAttempt(
-        lessonId: String?,
-        correct: Boolean,
-        updateState: ((AppUiState) -> AppUiState) -> Unit
-    ) {
-        if (lessonId.isNullOrBlank()) return
-        scope.launch {
-            learningRepository.recordModuleAttempt(lessonId, correct)
-            val mastered = learningRepository.getModuleProgress().firstOrNull { it.moduleId == lessonId }?.mastered == true
-            updateState { current ->
-                val nextPracticed = current.practicedModules + lessonId
-                val nextMastered = if (mastered) current.masteredModules + lessonId else current.masteredModules
-                current.copy(
-                    practicedModules = nextPracticed,
-                    masteredModules = nextMastered
-                )
+                val updated = transform(current).copy(updatedAt = System.currentTimeMillis())
+                learningRepository.saveProfile(updated)
             }
         }
     }
@@ -49,90 +35,161 @@ class CurriculumCoordinator(
         correct: Boolean,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
-        scope.launch {
-            val updated = profileMutex.withLock {
-                val current = learningRepository.getProfile()
-                val next = current.copy(
-                    totalTacticalAttempts = current.totalTacticalAttempts + 1,
-                    totalTacticalCorrect = current.totalTacticalCorrect + if (correct) 1 else 0,
-                    updatedAt = System.currentTimeMillis()
-                )
-                learningRepository.saveProfile(next)
-                next
-            }
-            updateState {
-                it.copy(
-                    tacticalAttempts = updated.totalTacticalAttempts,
-                    tacticalCorrect = updated.totalTacticalCorrect
-                )
-            }
+        updateState {
+            it.copy(
+                tacticalAttempts = it.tacticalAttempts + 1,
+                tacticalCorrect = it.tacticalCorrect + if (correct) 1 else 0
+            )
+        }
+        persistProfile {
+            it.copy(
+                totalTacticalAttempts = it.totalTacticalAttempts + 1,
+                totalTacticalCorrect = it.totalTacticalCorrect + if (correct) 1 else 0
+            )
         }
     }
 
+    /**
+     * Starts a structured multi-step [com.chesstutor.app.domain.LessonTrainSession]
+     * (Explain -> Guided Try -> 3 Practice Positions -> Summary) with NO pre-drawn
+     * answer arrow on interactive steps (Review 2 §4.3-4.4 & Review 3 S4).
+     */
     fun exploreLearnTopic(
         topic: LearnTopic,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
-        val arrow = if (topic.recommendedMoveUci.length >= 4) {
-            Pair(topic.recommendedMoveUci.take(2), topic.recommendedMoveUci.substring(2, 4))
-        } else null
+        val session = LessonSessionFactory.buildSessionForTopic(topic)
+        val firstStep = session.currentStep
         updateState {
             it.copy(
                 tab = 0,
+                fen = firstStep.fen,
+                trainFen = firstStep.fen,
                 curriculumLessonId = topic.id,
                 selectedLearnTopicId = topic.id,
-                puzzlePhase = PuzzlePhase.SOLVING,
-                activeCoachTitle = topic.title,
+                activeLessonSession = session,
+                inProgressModules = it.inProgressModules + topic.id,
+                activeCoachTitle = firstStep.title,
                 activeCoachSubtitle = topic.subtitle,
-                activeCoachCategory = topic.category.displayName.uppercase(),
-                activeCoachRecommendedMove = topic.recommendedMoveUci,
-                fen = topic.demoFen,
+                activeCoachCategory = "LESSON · STEP 1 OF ${session.totalSteps}",
+                activeCoachRecommendedMove = firstStep.solutionUci,
+                puzzlePhase = PuzzlePhase.SOLVING,
+                hintLevel = 0,
+                hintText = "",
                 selectedSquare = null,
                 legalTargets = emptySet(),
+                // Never draw the answer arrow at lesson start (S4)
+                recommendedArrow = null,
+                trainRecommendedArrow = null,
                 lastMove = null,
-                recommendedArrow = arrow,
-                message = "${topic.title}: ${topic.moveExplanation}",
+                trainLastMove = null,
                 mistakeDetected = false,
+                canRetryMistake = false,
                 assessment = null,
-                hintLevel = 0,
-                hintText = ""
+                message = firstStep.prompt,
+                trainMessage = firstStep.prompt
             )
         }
-        startEvaluation(topic.demoFen)
+        startEvaluation(firstStep.fen)
     }
 
     fun playActivePrincipleMove(
-        activeMoveUci: String?,
+        recommendedMoveUci: String?,
         currentFen: String,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
-        if (activeMoveUci == null || activeMoveUci.length < 4) return
-        val from = activeMoveUci.substring(0, 2)
-        val to = activeMoveUci.substring(2, 4)
-        val pos = ChessPosition(currentFen)
-        val success = pos.play(activeMoveUci)
-        if (success) {
-            updateState {
-                it.copy(
-                    fen = pos.fen,
-                    lastMove = Pair(from, to),
-                    selectedSquare = null,
-                    legalTargets = emptySet(),
-                    recommendedArrow = null,
-                    message = "Demonstrated principle move: $activeMoveUci. Now test your own response moves!"
-                )
-            }
-            startEvaluation(pos.fen)
+        val uci = recommendedMoveUci ?: return
+        val pos = runCatching { ChessPosition(currentFen) }.getOrNull() ?: return
+        val move = pos.legalMoves.firstOrNull { it.uci.equals(uci, ignoreCase = true) } ?: return
+        if (!pos.play(move)) return
+        updateState {
+            it.copy(
+                fen = pos.fen,
+                trainFen = pos.fen,
+                lastMove = Pair(move.from, move.to),
+                trainLastMove = Pair(move.from, move.to),
+                puzzlePhase = PuzzlePhase.CORRECT,
+                recommendedArrow = null,
+                trainRecommendedArrow = null,
+                message = "Principle demonstrated with ${move.san}.",
+                trainMessage = "Principle demonstrated with ${move.san}."
+            )
         }
+        startEvaluation(pos.fen)
     }
 
     fun resetProgress(updateState: ((AppUiState) -> AppUiState) -> Unit) {
-        scope.launch { learningRepository.resetModuleProgress() }
-        updateState {
-            it.copy(
-                practicedModules = emptySet(),
-                masteredModules = emptySet()
+        scope.launch {
+            learningRepository.resetModuleProgress()
+            updateState {
+                it.copy(
+                    inProgressModules = emptySet(),
+                    practicedModules = emptySet(),
+                    masteredModules = emptySet()
+                )
+            }
+        }
+    }
+
+    /**
+     * Records an attempt on a curriculum module. Only marks [practiced] = true when
+     * [markCompleted] is true or multiple attempts succeed, preventing single-move inflation
+     * of Learn progress (Review 3 §2.11).
+     */
+    fun recordCurriculumAttempt(
+        lessonId: String?,
+        correct: Boolean,
+        updateState: ((AppUiState) -> AppUiState) -> Unit,
+        onRefreshRecommendation: () -> Unit = {},
+        markCompleted: Boolean = false
+    ) {
+        val id = lessonId ?: return
+        scope.launch {
+            learningRepository.recordModuleAttempt(id, correct)
+            if (markCompleted) {
+                learningRepository.markPracticed(id)
+                if (correct) {
+                    learningRepository.markMastered(id)
+                }
+            }
+            val updatedList = learningRepository.getModuleProgress()
+            val mod = updatedList.firstOrNull { it.moduleId == id } ?: ModuleProgress(moduleId = id)
+            val isPracticed = mod.practiced || markCompleted
+            val isMastered = mod.mastered || (markCompleted && correct)
+            updateState {
+                it.copy(
+                    inProgressModules = if (isMastered) it.inProgressModules - id else it.inProgressModules + id,
+                    practicedModules = if (isPracticed) it.practicedModules + id else it.practicedModules,
+                    masteredModules = if (isMastered) it.masteredModules + id else it.masteredModules
+                )
+            }
+            onRefreshRecommendation()
+        }
+    }
+
+    fun refreshTrainingRecommendation(
+        reviews: List<ReviewItem>,
+        updateState: ((AppUiState) -> AppUiState) -> Unit
+    ) {
+        scope.launch {
+            val profile = learningRepository.getProfile()
+            val progress = learningRepository.getModuleProgress()
+            val recommendation = AdaptiveTrainingPlanner.recommend(
+                profile = profile,
+                modules = progress
             )
+            val practicedSet = progress.filter { it.practiced }.map { it.moduleId }.toSet()
+            val masteredSet = progress.filter { it.mastered }.map { it.moduleId }.toSet()
+            val inProgressSet = progress.filter { !it.mastered && it.attempts > 0 }.map { it.moduleId }.toSet()
+            updateState {
+                it.copy(
+                    trainingRecommendation = recommendation.topic.title,
+                    trainingRecommendationReason = recommendation.reason,
+                    inProgressModules = inProgressSet,
+                    practicedModules = practicedSet,
+                    masteredModules = masteredSet
+                )
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ package com.chesstutor.app.viewmodel
 import com.chesstutor.app.data.model.LearningProfile
 import com.chesstutor.app.data.model.PlacementAssessment
 import com.chesstutor.app.domain.MoveChoice
+import com.chesstutor.app.domain.TrainDrillsRepository
 
 class PlacementAssessmentCoordinator {
 
@@ -38,7 +39,9 @@ class PlacementAssessmentCoordinator {
                 recommendedArrow = null,
                 lastMove = null,
                 mistakeDetected = false,
-                assessment = null
+                assessment = null,
+                hintLevel = 0,
+                hintText = ""
             )
         }
     }
@@ -52,7 +55,7 @@ class PlacementAssessmentCoordinator {
         if (currentState.assessmentState != "IN_PROGRESS") return
         val index = currentState.assessmentPositionIndex
         val question = PlacementAssessment.questions.getOrNull(index) ?: return
-        val correct = move.uci == question.expectedMoveUci
+        val correct = move.uci.equals(question.expectedMoveUci, ignoreCase = true)
         if (correct) solvedIds.add(question.id)
         val nextCorrect = currentState.assessmentCorrect + if (correct) 1 else 0
         val nextTotal = currentState.assessmentTotal + 1
@@ -62,9 +65,10 @@ class PlacementAssessmentCoordinator {
             val estimate = if (solvedIds.isNotEmpty() || nextCorrect == 0) {
                 PlacementAssessment.estimateRatingFromSolved(solvedIds.toSet())
             } else {
-                PlacementAssessment.estimateRating(nextCorrect, nextTotal)
+                PlacementAssessment.estimateRating(nextCorrect, nextTotal).coerceIn(400, 1800)
             }
             val completedAt = System.currentTimeMillis()
+            val firstDrill = TrainDrillsRepository.drills.first()
             persistProfile {
                 it.copy(
                     estimatedRating = estimate,
@@ -83,11 +87,27 @@ class PlacementAssessmentCoordinator {
                     assessmentCorrect = nextCorrect,
                     assessmentTotal = nextTotal,
                     assessmentCompletedAt = completedAt,
-                    message = "Assessment complete. Estimated training rating: $estimate.",
-                    lastMove = Pair(move.from, move.to),
+                    currentDrillIndex = 0,
+                    activeLessonSession = null,
+                    curriculumLessonId = null,
+                    fen = firstDrill.fen,
+                    trainFen = firstDrill.fen,
+                    activeCoachTitle = firstDrill.title,
+                    activeCoachSubtitle = firstDrill.subtitle,
+                    activeCoachCategory = firstDrill.category,
+                    activeCoachRecommendedMove = firstDrill.solutionUci,
+                    puzzlePhase = PuzzlePhase.SOLVING,
+                    message = firstDrill.objectivePrompt,
+                    trainMessage = firstDrill.objectivePrompt,
+                    hintLevel = 0,
+                    hintText = "",
+                    lastMove = null,
+                    trainLastMove = null,
                     selectedSquare = null,
                     legalTargets = emptySet(),
-                    recommendedArrow = null
+                    recommendedArrow = null,
+                    trainRecommendedArrow = null,
+                    mistakeDetected = false
                 )
             }
             return
@@ -112,7 +132,9 @@ class PlacementAssessmentCoordinator {
                 selectedSquare = null,
                 legalTargets = emptySet(),
                 recommendedArrow = null,
-                lastMove = null
+                lastMove = null,
+                hintLevel = 0,
+                hintText = ""
             )
         }
     }
@@ -122,6 +144,7 @@ class PlacementAssessmentCoordinator {
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
         val completedAt = System.currentTimeMillis()
+        val firstDrill = TrainDrillsRepository.drills.first()
         persistProfile {
             it.copy(
                 estimatedRating = 400,
@@ -134,7 +157,27 @@ class PlacementAssessmentCoordinator {
                 estimatedRating = 400,
                 assessmentState = "COMPLETE",
                 assessmentCompletedAt = completedAt,
-                message = "Started at Beginner (400 ELO) curriculum track."
+                currentDrillIndex = 0,
+                activeLessonSession = null,
+                curriculumLessonId = null,
+                fen = firstDrill.fen,
+                trainFen = firstDrill.fen,
+                activeCoachTitle = firstDrill.title,
+                activeCoachSubtitle = firstDrill.subtitle,
+                activeCoachCategory = firstDrill.category,
+                activeCoachRecommendedMove = firstDrill.solutionUci,
+                puzzlePhase = PuzzlePhase.SOLVING,
+                message = firstDrill.objectivePrompt,
+                trainMessage = firstDrill.objectivePrompt,
+                hintLevel = 0,
+                hintText = "",
+                lastMove = null,
+                trainLastMove = null,
+                selectedSquare = null,
+                legalTargets = emptySet(),
+                recommendedArrow = null,
+                trainRecommendedArrow = null,
+                mistakeDetected = false
             )
         }
     }

@@ -110,7 +110,7 @@ fun AppNavHost(
                             )
                             Text(
                                 text = tab.title,
-                                fontSize = 10.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 letterSpacing = (-0.005).sp,
                                 color = if (isSelected) ChessTutorColors.Brass else ChessTutorColors.TextTertiary,
@@ -128,11 +128,16 @@ fun AppNavHost(
                 .padding(innerPadding)
                 .background(ChessTutorColors.Background)
         ) {
-            when (state.tab) {
-                0 -> CoachScreen(state = state, viewModel = viewModel)
-                1 -> CurriculumScreen(state = state, viewModel = viewModel)
-                2 -> ArenaScreen(state = state, viewModel = viewModel)
-                3 -> ReviewScreen(state = state, viewModel = viewModel)
+            androidx.compose.animation.Crossfade(
+                targetState = state.tab,
+                label = "tab_crossfade"
+            ) { currentTab ->
+                when (currentTab) {
+                    0 -> CoachScreen(state = state, viewModel = viewModel)
+                    1 -> CurriculumScreen(state = state, viewModel = viewModel)
+                    2 -> ArenaScreen(state = state, viewModel = viewModel)
+                    3 -> ReviewScreen(state = state, viewModel = viewModel)
+                }
             }
         }
 

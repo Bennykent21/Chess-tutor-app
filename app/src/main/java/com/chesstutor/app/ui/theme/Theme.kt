@@ -1,8 +1,10 @@
 package com.chesstutor.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.TextStyle
 
 private val DarkColorScheme = darkColorScheme(
     primary = ChessTutorColors.Primary,
@@ -19,7 +21,15 @@ private val DarkColorScheme = darkColorScheme(
 fun ChessTutorTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = DarkColorScheme,
-        typography = ChessTutorTypography,
-        content = content
-    )
+        typography = ChessTutorTypography
+    ) {
+        ProvideTextStyle(
+            value = TextStyle(
+                fontFamily = InterFontFamily,
+                fontFeatureSettings = "tnum",
+                color = ChessTutorColors.TextPrimary
+            ),
+            content = content
+        )
+    }
 }
