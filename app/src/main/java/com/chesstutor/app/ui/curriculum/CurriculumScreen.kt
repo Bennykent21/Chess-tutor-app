@@ -41,7 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -58,6 +57,7 @@ import com.chesstutor.app.navigation.TrainRequest
 import com.chesstutor.app.ui.components.ChessBoard
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
+import com.chesstutor.app.ui.theme.JetBrainsMonoFontFamily
 import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
 
@@ -156,7 +156,7 @@ fun CurriculumScreen(
                         if (inProgressCount > 0) append(" · $inProgressCount in progress")
                     },
                     fontSize = 12.sp,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = JetBrainsMonoFontFamily,
                     color = ChessTutorColors.TextSecondary
                 )
             }
@@ -211,7 +211,7 @@ fun CurriculumScreen(
                             Text(
                                 text = "$doneInCategory/${topicsForCategory.size}",
                                 fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = JetBrainsMonoFontFamily,
                                 color = ChessTutorColors.TextTertiary
                             )
                         }
@@ -362,7 +362,7 @@ fun CurriculumScreen(
                                     Text(
                                         text = line.formattedMoveLine,
                                         fontSize = 12.sp,
-                                        fontFamily = FontFamily.Monospace,
+                                        fontFamily = JetBrainsMonoFontFamily,
                                         color = ChessTutorColors.TextSecondary,
                                         modifier = Modifier.padding(top = 2.dp)
                                     )

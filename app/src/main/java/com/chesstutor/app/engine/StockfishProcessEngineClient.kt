@@ -105,8 +105,8 @@ class StockfishProcessEngineClient(
                 if (isReady == null) {
                     val err = "Stockfish process started, but did not respond to isready within 4000ms"
                     lastStartupError = err
-                    isProcessExecutionPermanentlyDisabled = true
-                    dispose()
+                    disposeInternal()
+                    fallbackClient.initialize()
                     throw IllegalStateException(err)
                 }
                 lastStartupError = null
@@ -175,6 +175,10 @@ class StockfishProcessEngineClient(
         } catch (_: Exception) {
             // Process terminated or pipe closed
         } finally {
+            uciWaiters.forEach { it.cancel() }
+            uciWaiters.clear()
+            readyWaiters.forEach { it.cancel() }
+            readyWaiters.clear()
             // If process terminated mid-search, fail-over active request to fallback engine immediately
             val pending = pendingResult
             val req = activeRequest
@@ -309,7 +313,9 @@ class StockfishProcessEngineClient(
         pendingResult?.cancel()
         pendingResult = null
         latestInfo = null
+        uciWaiters.forEach { it.cancel() }
         uciWaiters.clear()
+        readyWaiters.forEach { it.cancel() }
         readyWaiters.clear()
     }
 
