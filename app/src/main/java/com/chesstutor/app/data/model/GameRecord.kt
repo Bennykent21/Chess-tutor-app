@@ -17,7 +17,9 @@ data class ImportProgress(
     val targetCount: Int = 100,
     val currentPeriod: String = "",
     val incompleteCount: Int = 0,
-    val phase: String = "Connecting..."
+    val phase: String = "Connecting...",
+    /** Months (Chess.com) or streams (Lichess) that could not be downloaded even after retrying. */
+    val failedPeriods: Int = 0
 )
 
 data class GameRecord(
