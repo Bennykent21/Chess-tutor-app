@@ -25,7 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun gameRecordDao(): GameRecordDao
 
     companion object {
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS linked_profile (" +
@@ -36,42 +36,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_3_4 = object : Migration(3, 4) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE learning_profile ADD COLUMN assessmentCompletedAt INTEGER")
-            }
-        }
-
-        private val MIGRATION_4_5 = object : Migration(4, 5) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    "CREATE TABLE IF NOT EXISTS game_records (" +
-                        "id TEXT NOT NULL, dateMillis INTEGER NOT NULL, botName TEXT NOT NULL, " +
-                        "botRating INTEGER NOT NULL, result TEXT NOT NULL, pgn TEXT NOT NULL, " +
-                        "moveCount INTEGER NOT NULL, userColor TEXT NOT NULL, finalFen TEXT NOT NULL, " +
-                        "PRIMARY KEY(id))"
-                )
-            }
-        }
-
-        private val MIGRATION_5_6 = object : Migration(5, 6) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE game_records ADD COLUMN uciMoves TEXT NOT NULL DEFAULT ''")
-            }
-        }
-
-        private val MIGRATION_6_7 = object : Migration(6, 7) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE game_records ADD COLUMN source TEXT NOT NULL DEFAULT 'ARENA'")
-                db.execSQL("ALTER TABLE game_records ADD COLUMN termination TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE game_records ADD COLUMN timeClass TEXT NOT NULL DEFAULT 'rapid'")
-                db.execSQL("ALTER TABLE game_records ADD COLUMN incompleteParse INTEGER NOT NULL DEFAULT 0")
-                db.execSQL("UPDATE game_records SET source = 'CHESS_COM' WHERE id LIKE 'chesscom_%'")
-                db.execSQL("UPDATE game_records SET source = 'LICHESS' WHERE id LIKE 'lichess_%'")
-            }
-        }
-
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS learning_profile (" +
@@ -91,6 +56,50 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE learning_profile ADD COLUMN assessmentCompletedAt INTEGER")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS game_records (" +
+                        "id TEXT NOT NULL, dateMillis INTEGER NOT NULL, botName TEXT NOT NULL, " +
+                        "botRating INTEGER NOT NULL, result TEXT NOT NULL, pgn TEXT NOT NULL, " +
+                        "moveCount INTEGER NOT NULL, userColor TEXT NOT NULL, finalFen TEXT NOT NULL, " +
+                        "PRIMARY KEY(id))"
+                )
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE game_records ADD COLUMN uciMoves TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE game_records ADD COLUMN source TEXT NOT NULL DEFAULT 'ARENA'")
+                db.execSQL("ALTER TABLE game_records ADD COLUMN termination TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE game_records ADD COLUMN timeClass TEXT NOT NULL DEFAULT 'rapid'")
+                db.execSQL("ALTER TABLE game_records ADD COLUMN incompleteParse INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE game_records SET source = 'CHESS_COM' WHERE id LIKE 'chesscom_%'")
+                db.execSQL("UPDATE game_records SET source = 'LICHESS' WHERE id LIKE 'lichess_%'")
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7
+        )
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -101,7 +110,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "chess_tutor_reviews.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                 INSTANCE = instance
                 instance

@@ -42,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +49,7 @@ import androidx.compose.ui.window.Dialog
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.domain.PgnFormatter
 import com.chesstutor.app.ui.theme.ChessTutorColors
+import com.chesstutor.app.ui.theme.JetBrainsMonoFontFamily
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -222,7 +222,7 @@ fun PgnViewerDialog(
                     Text(
                         text = displayPgn.ifBlank { "No moves recorded for this game." },
                         fontSize = 13.sp,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = JetBrainsMonoFontFamily,
                         color = ChessTutorColors.TextPrimary,
                         lineHeight = 19.sp,
                         modifier = Modifier

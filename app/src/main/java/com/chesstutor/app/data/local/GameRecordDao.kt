@@ -17,6 +17,9 @@ interface GameRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGame(game: GameRecordEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGames(games: List<GameRecordEntity>)
+
     @Query("DELETE FROM game_records WHERE id = :id")
     suspend fun deleteGame(id: String)
 

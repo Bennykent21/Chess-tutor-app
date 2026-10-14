@@ -232,8 +232,9 @@ fun CoachScreen(
                     )
                 }
 
-                // S3 / §2.4: Hide eval bar in teaching lessons; show horizontal eval bar in standalone drills
-                if (activeSession == null) {
+                // Hide the eval bar in teaching lessons, and while a drill is being solved
+                // (a lopsided bar gives the answer away); show it once the drill is answered.
+                if (activeSession == null && state.puzzlePhase != PuzzlePhase.SOLVING) {
                     HorizontalEvalBar(
                         centipawns = state.evaluationCp,
                         mateIn = state.mateIn,

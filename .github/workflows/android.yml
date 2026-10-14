@@ -52,11 +52,26 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
 
+      - name: Ensure environment configuration
+        shell: bash
+        run: |
+          if [ ! -f .env ] && [ -f .env.example ]; then
+            cp .env.example .env
+          elif [ ! -f .env ]; then
+            touch .env
+          fi
+
       - name: Run unit tests
         run: ./gradlew test --no-configuration-cache -Dhttps.protocols=TLSv1.2
 
+      - name: Run Android lint
+        run: ./gradlew lintDebug --no-configuration-cache -Dhttps.protocols=TLSv1.2
+
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --no-configuration-cache -Dhttps.protocols=TLSv1.2
+
+      - name: Assemble release APK
+        run: ./gradlew assembleRelease --no-configuration-cache -Dhttps.protocols=TLSv1.2
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -64,3 +79,10 @@ jobs:
           name: chess-tutor-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: chess-tutor-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn

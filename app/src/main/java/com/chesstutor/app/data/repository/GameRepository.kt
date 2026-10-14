@@ -10,6 +10,11 @@ interface GameRepository {
     fun observeGames(): Flow<List<GameRecord>>
     suspend fun getRecentGames(limit: Int = 20): List<GameRecord>
     suspend fun saveGame(game: GameRecord)
+    suspend fun saveGames(games: List<GameRecord>) {
+        for (game in games) {
+            saveGame(game)
+        }
+    }
     suspend fun deleteGame(id: String)
 }
 
@@ -26,6 +31,11 @@ class RoomGameRepository(
 
     override suspend fun saveGame(game: GameRecord) {
         dao.insertGame(GameRecordEntity.fromDomain(game))
+    }
+
+    override suspend fun saveGames(games: List<GameRecord>) {
+        if (games.isEmpty()) return
+        dao.insertGames(games.map { GameRecordEntity.fromDomain(it) })
     }
 
     override suspend fun deleteGame(id: String) {
@@ -47,6 +57,14 @@ class InMemoryGameRepository : GameRepository {
         games.removeAll { it.id == game.id }
         games.add(0, game)
         flow.value = games.toList()
+    }
+
+    override suspend fun saveGames(games: List<GameRecord>) {
+        for (game in games) {
+            this.games.removeAll { it.id == game.id }
+            this.games.add(0, game)
+        }
+        flow.value = this.games.toList()
     }
 
     override suspend fun deleteGame(id: String) {
