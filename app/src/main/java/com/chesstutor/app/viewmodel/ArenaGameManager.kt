@@ -100,8 +100,8 @@ class ArenaGameManager(
             val startMsg = when {
                 isGuidedOpening && nextBookSan != null ->
                     "Your move: $nextBookSan — ${OpeningBook.coachingNoteForMove(targetLine, nextBookSan)}"
-                isGuidedOpening && targetLine != null ->
-                    "Opening Practice: ${targetLine.name} (${targetLine.eco})"
+                isGuidedOpening ->
+                    "Opening Practice: ${targetLine?.name} (${targetLine?.eco})"
                 targetLine != null && resolvedMode == OpeningMode.START_FROM_LINE ->
                     "Starting from ${targetLine.name} (${targetLine.eco}). Play freely from here!"
                 else -> "New game against $botName. ${if (resolvedSide == 'w') "Make your first move!" else "$botName opens as White..."}"
@@ -193,7 +193,7 @@ class ArenaGameManager(
                                 arenaNextBookMoveSan = userNextSan,
                                 busy = false,
                                 opponentThinking = false,
-                                arenaStatusText = "${it.botTuningDescription} played ${botMove.san}."
+                                arenaStatusText = "${it.arenaBotName} played ${botMove.san}."
                             )
                         }
                         chessEngineManager.startEvaluation(nextPos.fen)
@@ -604,7 +604,7 @@ class ArenaGameManager(
                                     arenaNextBookMoveSan = nextBookSanForUser,
                                     busy = false,
                                     opponentThinking = false,
-                                    arenaStatusText = "${it.botTuningDescription} played ${engineMove.san}."
+                                    arenaStatusText = "${it.arenaBotName} played ${engineMove.san}."
                                 )
                             }
                             chessEngineManager.startEvaluation(engineMovePos.fen)

@@ -13,11 +13,17 @@ An offline-first, verified tactical chess tutor and sparring application for And
 
 ### Build & Test Commands
 ```bash
-# Run the JVM unit and verification test suite
-gradle :app:testDebugUnitTest
+# Run the JVM unit and verification test suite (macOS / Linux)
+./gradlew :app:testDebugUnitTest
+
+# Run the JVM unit and verification test suite (Windows)
+gradlew.bat :app:testDebugUnitTest
 
 # Assemble the debug APK
-gradle :app:assembleDebug
+./gradlew :app:assembleDebug
+
+# Assemble the release APK
+./gradlew :app:assembleRelease
 ```
 
 ---

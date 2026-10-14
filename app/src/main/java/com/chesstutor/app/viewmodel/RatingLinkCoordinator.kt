@@ -138,9 +138,7 @@ class RatingLinkCoordinator(
                     }
                 ).getOrDefault(emptyList())
 
-                for (game in importedGames) {
-                    runCatching { gameRepository?.saveGame(game) }
-                }
+                runCatching { gameRepository?.saveGames(importedGames) }
                 val incompleteCount = importedGames.count { it.incompleteParse }
                 val incompleteNote = if (incompleteCount > 0) " · $incompleteCount incomplete" else ""
                 updateState {
