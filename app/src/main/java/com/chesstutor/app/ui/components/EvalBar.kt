@@ -34,8 +34,15 @@ import kotlin.math.abs
 fun formatEvalLabel(centipawns: Int?, mateIn: Int?): String = when {
     mateIn != null -> if (mateIn > 0) "M${abs(mateIn)}" else "-M${abs(mateIn)}"
     centipawns != null -> {
-        val pawns = centipawns / 100.0
-        if (pawns > 0) "+%.1f".format(pawns) else "%.1f".format(pawns)
+        // Round the magnitude to tenths of a pawn first, then add the sign, so a tiny
+        // negative score reads "0.0" instead of "-0.0". Locale.US keeps the decimal point.
+        val tenths = Math.round(abs(centipawns) / 10.0).toInt()
+        val magnitude = String.format(java.util.Locale.US, "%.1f", tenths / 10.0)
+        when {
+            tenths == 0 -> "0.0"
+            centipawns > 0 -> "+$magnitude"
+            else -> "-$magnitude"
+        }
     }
     else -> "0.0"
 }
