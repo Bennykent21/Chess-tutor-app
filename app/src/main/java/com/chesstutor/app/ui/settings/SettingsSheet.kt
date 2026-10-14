@@ -32,12 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.TabularTextStyle
+import com.chesstutor.app.ui.theme.JetBrainsMonoFontFamily
 import com.chesstutor.app.ui.theme.bouncyClickable
 import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
@@ -274,7 +274,7 @@ fun SettingsSheet(
                             text = state.engineSelfTestReport,
                             fontSize = 12.sp,
                             lineHeight = 18.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = JetBrainsMonoFontFamily,
                             style = TabularTextStyle,
                             color = ChessTutorColors.TextPrimary
                         )

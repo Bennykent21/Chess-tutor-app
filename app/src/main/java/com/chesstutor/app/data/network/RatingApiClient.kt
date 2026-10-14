@@ -17,6 +17,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import okhttp3.Response
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
@@ -70,7 +71,7 @@ data class SanParseOutcome(
 class RatingApiClient(
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(12, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .build(),
     private val moshi: Moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
@@ -195,6 +196,25 @@ class RatingApiClient(
     }
 
     /**
+     * Runs a GET with retries (timeouts, dropped connections, HTTP 429/5xx). Unrecoverable
+     * responses such as 404 or 403 fail immediately. Every failure surfaces as an
+     * [ImportFailedException] with a player-readable message instead of an empty result.
+     */
+    private suspend fun <T> fetchWithRetry(
+        request: Request,
+        what: String,
+        parse: suspend (Response) -> T
+    ): T = retryImportRequest(what) {
+        client.newCall(request).execute().use { resp ->
+            when {
+                resp.isSuccessful -> parse(resp)
+                resp.code == 429 || resp.code >= 500 -> throw RetryableHttpException(resp.code)
+                else -> throw ImportFailedException(httpFailureMessage(what, resp.code))
+            }
+        }
+    }
+
+    /**
      * Fetches public standard chess games from Lichess (streaming NDJSON) or Chess.com
      * (paging backwards through monthly archives) up to [maxGames], reporting progress via [onProgress].
      */
@@ -239,42 +259,52 @@ class RatingApiClient(
             )
         )
 
-        client.newCall(req).execute().use { resp ->
-            if (!resp.isSuccessful) return emptyList()
-            val reader = resp.body?.charStream()?.buffered() ?: return emptyList()
-            val records = mutableListOf<GameRecord>()
+        var streamInterrupted = false
+        val records = fetchWithRetry(req, "your Lichess games") { resp ->
+            val reader = resp.body?.charStream()?.buffered()
+                ?: return@fetchWithRetry emptyList<GameRecord>()
+            val collected = mutableListOf<GameRecord>()
             var incompleteCount = 0
-            reader.useLines { lines ->
-                for (line in lines) {
-                    currentCoroutineContext().ensureActive()
-                    if (records.size >= maxGames) break
-                    val parsed = parseSingleLichessJsonLine(line, username) ?: continue
-                    if (parsed.incompleteParse) incompleteCount++
-                    records += parsed
-                    if (records.size % 5 == 0 || records.size == 1) {
-                        onProgress?.invoke(
-                            ImportProgress(
-                                importedCount = records.size,
-                                targetCount = maxGames,
-                                currentPeriod = "Lichess",
-                                incompleteCount = incompleteCount,
-                                phase = "Imported ${records.size} games..."
+            try {
+                reader.useLines { lines ->
+                    for (line in lines) {
+                        currentCoroutineContext().ensureActive()
+                        if (collected.size >= maxGames) break
+                        val parsed = parseSingleLichessJsonLine(line, username) ?: continue
+                        if (parsed.incompleteParse) incompleteCount++
+                        collected += parsed
+                        if (collected.size % 5 == 0 || collected.size == 1) {
+                            onProgress?.invoke(
+                                ImportProgress(
+                                    importedCount = collected.size,
+                                    targetCount = maxGames,
+                                    currentPeriod = "Lichess",
+                                    incompleteCount = incompleteCount,
+                                    phase = "Imported ${collected.size} games..."
+                                )
                             )
-                        )
+                        }
                     }
                 }
+            } catch (e: IOException) {
+                // The stream broke part-way: keep what already arrived rather than losing it all.
+                if (collected.isEmpty()) throw e
+                streamInterrupted = true
             }
-            onProgress?.invoke(
-                ImportProgress(
-                    importedCount = records.size,
-                    targetCount = maxGames,
-                    currentPeriod = "Complete",
-                    incompleteCount = incompleteCount,
-                    phase = "Imported ${records.size} games"
-                )
-            )
-            return records
+            collected
         }
+
+        onProgress?.invoke(
+            ImportProgress(
+                importedCount = records.size,
+                targetCount = maxGames,
+                currentPeriod = "Complete",
+                incompleteCount = records.count { it.incompleteParse },
+                phase = "Imported ${records.size} games",
+                failedPeriods = if (streamInterrupted) 1 else 0
+            )
+        )
+        return records
     }
 
     fun parseLichessNdjson(ndjson: String, username: String, maxGames: Int = Int.MAX_VALUE): List<GameRecord> {
@@ -373,8 +403,13 @@ class RatingApiClient(
     }
 
     /**
-     * Pages backwards through Chess.com monthly archives (newest → oldest) until
+     * Pages backwards through Chess.com monthly archives (newest -> oldest) until
      * [maxGames] standard chess games are collected or all archives are exhausted.
+     *
+     * Each request is retried. A month that still fails is skipped and counted in
+     * [ImportProgress.failedPeriods]; if nothing at all could be downloaded the failure is thrown
+     * so the player sees why, and after [MAX_CONSECUTIVE_FAILED_MONTHS] failures in a row the
+     * import stops early (the connection is almost certainly down or rate-limited).
      */
     private suspend fun fetchChessComGames(
         username: String,
@@ -398,14 +433,17 @@ class RatingApiClient(
             )
         )
 
-        val archiveUrls = client.newCall(archivesReq).execute().use { resp ->
-            if (!resp.isSuccessful) return emptyList()
+        val archiveUrls = fetchWithRetry(archivesReq, "your Chess.com game list") { resp ->
             val body = resp.body?.string().orEmpty()
-            val arr = JSONObject(body).optJSONArray("archives") ?: return emptyList()
+            val root = runCatching { JSONObject(body) }.getOrNull()
+                ?: throw ImportFailedException("Chess.com sent an unreadable game list. Try again in a moment.")
+            val arr = root.optJSONArray("archives")
             buildList {
-                for (i in 0 until arr.length()) {
-                    val u = arr.optString(i, "")
-                    if (u.isNotBlank()) add(u)
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        val u = arr.optString(i, "")
+                        if (u.isNotBlank()) add(u)
+                    }
                 }
             }
         }
@@ -414,11 +452,15 @@ class RatingApiClient(
         val allRecords = mutableListOf<GameRecord>()
         val seenIds = mutableSetOf<String>()
         var incompleteCount = 0
+        var failedPeriods = 0
+        var consecutiveFailures = 0
+        var lastFailure: ImportFailedException? = null
 
         // Iterate newest -> oldest monthly archive
         for (idx in archiveUrls.size - 1 downTo 0) {
             currentCoroutineContext().ensureActive()
             if (allRecords.size >= maxGames) break
+            if (consecutiveFailures >= MAX_CONSECUTIVE_FAILED_MONTHS) break
             val monthUrl = archiveUrls[idx]
             val periodLabel = extractArchivePeriodLabel(monthUrl)
 
@@ -428,7 +470,8 @@ class RatingApiClient(
                     targetCount = maxGames,
                     currentPeriod = periodLabel,
                     incompleteCount = incompleteCount,
-                    phase = "Importing $periodLabel (${allRecords.size} games)..."
+                    phase = "Importing $periodLabel (${allRecords.size} games)...",
+                    failedPeriods = failedPeriods
                 )
             )
 
@@ -439,15 +482,16 @@ class RatingApiClient(
                 .get()
                 .build()
 
-            val monthGames = runCatching {
-                client.newCall(monthReq).execute().use { resp ->
-                    if (!resp.isSuccessful) emptyList()
-                    else {
-                        val body = resp.body?.string().orEmpty()
-                        parseChessComArchiveJson(body, username, remaining)
-                    }
-                }
-            }.getOrDefault(emptyList())
+            val monthGames = try {
+                fetchWithRetry(monthReq, "your Chess.com games for $periodLabel") { resp ->
+                    parseChessComArchiveJson(resp.body?.string().orEmpty(), username, remaining)
+                }.also { consecutiveFailures = 0 }
+            } catch (e: ImportFailedException) {
+                failedPeriods++
+                consecutiveFailures++
+                lastFailure = e
+                emptyList()
+            }
 
             for (g in monthGames) {
                 if (seenIds.add(g.id)) {
@@ -463,11 +507,14 @@ class RatingApiClient(
                     targetCount = maxGames,
                     currentPeriod = periodLabel,
                     incompleteCount = incompleteCount,
-                    phase = "Imported ${allRecords.size} games ($periodLabel)"
+                    phase = "Imported ${allRecords.size} games ($periodLabel)",
+                    failedPeriods = failedPeriods
                 )
             )
         }
 
+        // Nothing downloaded and something failed: say why instead of returning "0 games".
+        if (allRecords.isEmpty()) lastFailure?.let { throw it }
         return allRecords
     }
 
@@ -653,6 +700,8 @@ class RatingApiClient(
     }
 
     companion object {
+        /** Stop a Chess.com import after this many months in a row fail (connection down / rate-limited). */
+        private const val MAX_CONSECUTIVE_FAILED_MONTHS = 3
         private const val USER_AGENT = "ChessTutorAndroid/1.0 (https://github.com/Bennykent21/Chess-tutor; contact: support@chesstutor.app)"
     }
 }
