@@ -1,5 +1,6 @@
 package com.chesstutor.app.viewmodel
 
+import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.ImportProgress
 import com.chesstutor.app.data.model.RatingPlatform
@@ -7,6 +8,7 @@ import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.data.network.RatingApiClient
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.data.repository.RatingRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -62,18 +64,23 @@ class RatingLinkCoordinator(
         activeImportJob = scope.launch {
             val result = ratingRepository.linkAccount(platform, clean, timeControl)
             result.onSuccess { profile ->
-                val importedGames = ratingApiClient.fetchRecentGames(
+                var lastProgress: ImportProgress? = null
+                val fetchResult = ratingApiClient.fetchRecentGames(
                     platform = platform,
                     username = clean,
                     maxGames = importDepth.maxGames,
                     onProgress = { progress ->
+                        lastProgress = progress
                         updateState { it.copy(importProgress = progress) }
                     }
-                ).getOrDefault(emptyList())
+                )
+                // A cancelled import must stop here (cancelImport already updated the UI).
+                fetchResult.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                val importedGames = fetchResult.getOrDefault(emptyList())
+                val saveError = saveGamesOrError(importedGames)
+                val issue = importIssue(fetchResult.exceptionOrNull(), saveError)
+                val failedPeriods = lastProgress?.failedPeriods ?: 0
 
-                for (game in importedGames) {
-                    runCatching { gameRepository?.saveGame(game) }
-                }
                 val incompleteCount = importedGames.count { it.incompleteParse }
                 val syncSuffix = buildString {
                     if (importedGames.isNotEmpty()) {
@@ -81,14 +88,17 @@ class RatingLinkCoordinator(
                         if (incompleteCount > 0) {
                             append(" ($incompleteCount incomplete PGN${if (incompleteCount == 1) "" else "s"})")
                         }
+                        append(partialNote(failedPeriods))
+                    } else if (issue == null) {
+                        append(" · No games found yet")
                     }
                 }
                 updateState {
                     it.copy(
                         isLinkingLoading = false,
                         importProgress = null,
-                        linkingError = null,
-                        lastSyncedEpochMs = System.currentTimeMillis(),
+                        linkingError = issue?.let { msg -> "Account connected, but your games weren't imported. $msg" },
+                        lastSyncedEpochMs = if (issue == null) System.currentTimeMillis() else it.lastSyncedEpochMs,
                         linkingSuccessMessage = "Connected ${profile.platform.displayName} '@${profile.username}'$syncSuffix"
                     )
                 }
@@ -129,25 +139,32 @@ class RatingLinkCoordinator(
         activeImportJob = scope.launch {
             val result = ratingRepository.refreshProfile()
             result.onSuccess { profile ->
-                val importedGames = ratingApiClient.fetchRecentGames(
+                var lastProgress: ImportProgress? = null
+                val fetchResult = ratingApiClient.fetchRecentGames(
                     platform = profile.platform,
                     username = profile.username,
                     maxGames = importDepth.maxGames,
                     onProgress = { progress ->
+                        lastProgress = progress
                         updateState { it.copy(importProgress = progress) }
                     }
-                ).getOrDefault(emptyList())
+                )
+                fetchResult.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                val importedGames = fetchResult.getOrDefault(emptyList())
+                val saveError = saveGamesOrError(importedGames)
+                val issue = importIssue(fetchResult.exceptionOrNull(), saveError)
+                val failedPeriods = lastProgress?.failedPeriods ?: 0
 
-                runCatching { gameRepository?.saveGames(importedGames) }
                 val incompleteCount = importedGames.count { it.incompleteParse }
                 val incompleteNote = if (incompleteCount > 0) " · $incompleteCount incomplete" else ""
                 updateState {
                     it.copy(
                         isLinkingLoading = false,
                         importProgress = null,
-                        lastSyncedEpochMs = System.currentTimeMillis(),
+                        linkingError = issue?.let { msg -> "Ratings updated, but your games weren't synced. $msg" },
+                        lastSyncedEpochMs = if (issue == null) System.currentTimeMillis() else it.lastSyncedEpochMs,
                         linkingSuccessMessage = if (importedGames.isNotEmpty()) {
-                            "Synced '@${profile.username}' (${importedGames.size} games$incompleteNote)"
+                            "Synced '@${profile.username}' (${importedGames.size} games$incompleteNote)${partialNote(failedPeriods)}"
                         } else {
                             "Updated ratings for '@${profile.username}'"
                         }
@@ -195,4 +212,29 @@ class RatingLinkCoordinator(
             onApplyBotElo()
         }
     }
+
+    /** Saves the batch; returns the error instead of swallowing it. Cancellation is rethrown. */
+    private suspend fun saveGamesOrError(games: List<GameRecord>): Throwable? {
+        if (games.isEmpty()) return null
+        return try {
+            gameRepository?.saveGames(games)
+            null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            e
+        }
+    }
+
+    /** A player-readable reason the import failed, or null if it went fine. */
+    private fun importIssue(fetchError: Throwable?, saveError: Throwable?): String? = when {
+        fetchError != null ->
+            fetchError.message?.takeIf { it.isNotBlank() } ?: "Something went wrong while downloading your games."
+        saveError != null ->
+            "Your games were downloaded but couldn't be saved on this device. Check your free storage and try again."
+        else -> null
+    }
+
+    private fun partialNote(failedPeriods: Int): String =
+        if (failedPeriods > 0) " · some games couldn't be downloaded, tap Sync to retry" else ""
 }
