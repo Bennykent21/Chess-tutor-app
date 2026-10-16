@@ -97,6 +97,14 @@ object PuzzleThemes {
         "queenEndgame" to "Queen endgame"
     )
 
+    private val ORDER: List<String> = NAMES.keys.toList()
+
+    /** Sort key that lists mates first, then tactics, then endgames (unknown tags last). */
+    fun order(theme: String): Int = ORDER.indexOf(theme).let { if (it < 0) Int.MAX_VALUE else it }
+
+    /** True for tags that have a curated name (skips noise like "short" or "crushing"). */
+    fun isKnown(theme: String): Boolean = theme in NAMES
+
     /** "mateIn1" -> "Mate in 1"; unknown tags fall back to a spaced-out camelCase name. */
     fun displayName(theme: String): String =
         NAMES[theme] ?: theme
