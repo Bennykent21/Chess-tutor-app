@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.TrackChanges
@@ -40,6 +41,7 @@ import com.chesstutor.app.ui.onboarding.OnboardingScreen
 import com.chesstutor.app.ui.curriculum.CurriculumScreen
 import com.chesstutor.app.ui.review.ReviewScreen
 import com.chesstutor.app.ui.settings.SettingsSheet
+import com.chesstutor.app.ui.puzzles.PuzzleScreen
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.bouncyClickable
 import com.chesstutor.app.viewmodel.AppViewModel
@@ -49,9 +51,10 @@ sealed class NavTab(val index: Int, val title: String, val icon: ImageVector) {
     object Learn : NavTab(1, "Learn", Icons.Default.AutoStories)
     object Play : NavTab(2, "Play", Icons.Default.SportsEsports)
     object Review : NavTab(3, "Review", Icons.Default.History)
+    object Puzzles : NavTab(4, "Puzzles", Icons.Default.Extension)
 
     companion object {
-        val ALL = listOf(Learn, Train, Play, Review)
+        val ALL = listOf(Learn, Train, Puzzles, Play, Review)
     }
 }
 
@@ -137,6 +140,11 @@ fun AppNavHost(
                     1 -> CurriculumScreen(state = state, viewModel = viewModel)
                     2 -> ArenaScreen(state = state, viewModel = viewModel)
                     3 -> ReviewScreen(state = state, viewModel = viewModel)
+                    4 -> PuzzleScreen(
+                        seedRating = state.effectiveUserRating,
+                        showCoordinates = state.showCoordinates,
+                        showLegalDots = state.showLegalDots
+                    )
                 }
             }
         }
