@@ -1,7 +1,7 @@
 package com.chesstutor.app.engine
 
-import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.Position
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.Position
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap

@@ -1,7 +1,7 @@
 package com.chesstutor.app.engine
 
-import com.example.chess.core.Move
-import com.example.chess.core.Position
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.core.Position
 
 /**
  * Application-facing bot selector.

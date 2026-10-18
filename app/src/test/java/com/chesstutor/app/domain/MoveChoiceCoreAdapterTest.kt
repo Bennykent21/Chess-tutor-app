@@ -1,6 +1,6 @@
 package com.chesstutor.app.domain
 
-import com.example.chess.core.PieceType
+import com.chesstutor.app.core.PieceType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

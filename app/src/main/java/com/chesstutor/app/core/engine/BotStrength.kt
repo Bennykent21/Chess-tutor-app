@@ -1,4 +1,4 @@
-package com.example.chess.engine
+package com.chesstutor.app.core.engine
 
 /**
  * Canonical bot-strength scale used across the app.

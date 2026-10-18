@@ -1,8 +1,8 @@
-package com.example.chess.engine
+package com.chesstutor.app.core.engine
 
-import com.example.chess.core.Move
-import com.example.chess.core.PieceColor
-import com.example.chess.core.Position
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.Position
 
 data class Evaluation(
   val centipawns: Int? = null,

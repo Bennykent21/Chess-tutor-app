@@ -1,8 +1,8 @@
 package com.chesstutor.app.engine
 
-import com.example.chess.core.Move
-import com.example.chess.core.Position
-import com.example.chess.engine.LocalChessEngine
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.engine.LocalChessEngine
 
 /**
  * Application boundary for the legacy pure-Kotlin heuristic engine.
@@ -16,9 +16,9 @@ class HeuristicEngineAdapter(
     suspend fun selectMove(position: Position, rating: Int): Move =
         engine.selectMoveForElo(position, rating)
 
-    suspend fun findBestMove(position: Position, depth: Int = 3): Pair<Move, com.example.chess.engine.Evaluation> =
+    suspend fun findBestMove(position: Position, depth: Int = 3): Pair<Move, com.chesstutor.app.core.engine.Evaluation> =
         engine.findBestMove(position, depth)
 
-    suspend fun evaluatePosition(position: Position, depth: Int = 3): com.example.chess.engine.Evaluation =
+    suspend fun evaluatePosition(position: Position, depth: Int = 3): com.chesstutor.app.core.engine.Evaluation =
         engine.evaluatePosition(position, depth)
 }

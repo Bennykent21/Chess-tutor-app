@@ -1,4 +1,4 @@
-package com.example.chess.core
+package com.chesstutor.app.core
 
 /**
  * Immutable Chess Position representing the full state of a game.

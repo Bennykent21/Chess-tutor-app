@@ -13,8 +13,8 @@ import com.chesstutor.app.domain.TrainDrillsRepository
 import com.chesstutor.app.engine.BlunderClassifier
 import com.chesstutor.app.engine.BlunderKind
 import com.chesstutor.app.engine.PositionAnalysis
-import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.Position
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.Position
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

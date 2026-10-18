@@ -1,8 +1,8 @@
 package com.chesstutor.app.engine
 
-import com.example.chess.engine.BotStrength
-import com.example.chess.engine.StockfishProfile
-import com.example.chess.engine.TrainingLevel
+import com.chesstutor.app.core.engine.BotStrength
+import com.chesstutor.app.core.engine.StockfishProfile
+import com.chesstutor.app.core.engine.TrainingLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

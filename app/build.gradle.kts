@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  namespace = "com.chesstutor.app"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.chesstutor.vkmqzt"
+    applicationId = "io.github.bennykent21.chesstutor"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
@@ -53,7 +53,8 @@ android {
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       val releaseSigning = signingConfigs.getByName("release")
       if (releaseSigning.storeFile != null) {

@@ -1,4 +1,4 @@
-package com.example.chess.core
+package com.chesstutor.app.core
 
 /**
  * Canonical identity used for repetition detection.
