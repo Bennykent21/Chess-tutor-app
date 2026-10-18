@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - refactor/foundation
+      - fixes-and-puzzles
   pull_request:
     branches:
       - main
