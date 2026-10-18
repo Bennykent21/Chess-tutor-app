@@ -1,4 +1,4 @@
-package com.example.chess.engine
+package com.chesstutor.app.core.engine
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

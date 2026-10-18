@@ -5,10 +5,10 @@ import android.util.Log
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveChoice
-import com.example.chess.core.PieceColor
-import com.example.chess.core.Position
-import com.example.chess.engine.BotStrength
-import com.example.chess.engine.Evaluation
+import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.engine.BotStrength
+import com.chesstutor.app.core.engine.Evaluation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

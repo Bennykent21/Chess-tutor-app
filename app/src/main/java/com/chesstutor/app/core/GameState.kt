@@ -1,4 +1,4 @@
-package com.example.chess.core
+package com.chesstutor.app.core
 
 /**
  * History-aware game state.

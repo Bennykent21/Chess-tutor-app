@@ -3,7 +3,7 @@ package com.chesstutor.app.engine
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.TacticalAnalysis
-import com.example.chess.core.PieceColor
+import com.chesstutor.app.core.PieceColor
 import java.util.Locale
 import kotlin.math.abs
 

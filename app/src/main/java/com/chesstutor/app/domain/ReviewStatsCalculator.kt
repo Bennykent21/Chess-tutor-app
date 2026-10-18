@@ -6,8 +6,8 @@ import com.chesstutor.app.navigation.OpeningMode
 import com.chesstutor.app.navigation.PlayRequest
 import com.chesstutor.app.navigation.Side
 import com.chesstutor.app.navigation.TrainRequest
-import com.example.chess.core.PieceType
-import com.example.chess.core.Position
+import com.chesstutor.app.core.PieceType
+import com.chesstutor.app.core.Position
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 

@@ -1,9 +1,9 @@
 package com.chesstutor.app.engine
 
-import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.Move
-import com.example.chess.core.Position
-import com.example.chess.core.PieceColor
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.PieceColor
 
 /**
  * Validates engine output against the exact position that was analyzed.

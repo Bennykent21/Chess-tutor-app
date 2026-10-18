@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -33,6 +32,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chesstutor.app.navigation.NavCommand
 import com.chesstutor.app.ui.arena.ArenaScreen
 import com.chesstutor.app.ui.components.PgnViewerDialog
 import com.chesstutor.app.ui.components.PromotionDialog
@@ -47,14 +47,21 @@ import com.chesstutor.app.ui.theme.bouncyClickable
 import com.chesstutor.app.viewmodel.AppViewModel
 
 sealed class NavTab(val index: Int, val title: String, val icon: ImageVector) {
-    object Train : NavTab(0, "Train", Icons.Default.TrackChanges)
     object Learn : NavTab(1, "Learn", Icons.Default.AutoStories)
     object Play : NavTab(2, "Play", Icons.Default.SportsEsports)
     object Review : NavTab(3, "Review", Icons.Default.History)
     object Puzzles : NavTab(4, "Puzzles", Icons.Default.Extension)
 
     companion object {
-        val ALL = listOf(Learn, Train, Puzzles, Play, Review)
+        /**
+         * Internal tab index of the full-screen lesson / drill session player (CoachScreen).
+         * It is no longer a bottom-bar tab: it opens when a lesson or drill starts, hides the
+         * bottom bar, and Back returns to Learn. It goes away when the Learn rebuild (Phase 4)
+         * replaces the lesson player.
+         */
+        const val SESSION_HOST_INDEX = 0
+
+        val ALL = listOf(Learn, Puzzles, Play, Review)
     }
 }
 
@@ -74,6 +81,7 @@ fun AppNavHost(
         modifier = modifier.fillMaxSize(),
         containerColor = ChessTutorColors.Background,
         bottomBar = {
+            if (state.tab != NavTab.SESSION_HOST_INDEX) {
             // Mockup Navigation Bar (.nav)
             Column(
                 modifier = Modifier
@@ -122,6 +130,7 @@ fun AppNavHost(
                         }
                     }
                 }
+            }
             }
         }
     ) { innerPadding ->
@@ -177,8 +186,18 @@ fun AppNavHost(
                 onChoose = viewModel::choosePromotion,
                 onDismiss = viewModel::cancelPromotion
             )
-        } else if (state.tab != 0) {
-            BackHandler { viewModel.selectTab(0) }
+        } else if (state.tab == NavTab.SESSION_HOST_INDEX) {
+            // Leaving a lesson or drill goes back to Learn (the lesson's own page if one is open).
+            BackHandler {
+                val lessonTopicId = state.activeLessonSession?.topicId
+                if (lessonTopicId != null) {
+                    viewModel.navigate(NavCommand.OpenLearn(lessonTopicId))
+                } else {
+                    viewModel.selectTab(NavTab.Learn.index)
+                }
+            }
+        } else if (state.tab != NavTab.Learn.index) {
+            BackHandler { viewModel.selectTab(NavTab.Learn.index) }
         }
     }
 }

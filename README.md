@@ -30,12 +30,14 @@ gradlew.bat :app:testDebugUnitTest
 
 ## 2. Product Structure & Navigation Contract
 
-The app is organized around four tabs connected by typed requests (`TrainRequest` and `PlayRequest`):
+The bottom bar has four tabs. Screens are connected by typed requests (`TrainRequest` and `PlayRequest`):
 
-1. **Learn**: Curriculum library covering Openings, Tactics, Middlegame, Endgame, and Blunder Patterns. Progress is driven strictly by solved attempts in Train. Every lesson links into Train via `TrainRequest.Lesson(topicId)`.
-2. **Train**: Interactive session player with a 4-step hint ladder, `PuzzlePhase` state machine (`SOLVING`, `CORRECT`, `WRONG`, `REVEALED`), auto-orientation to side to move, and spaced-repetition mistake drills.
+1. **Learn**: Curriculum library covering Openings, Tactics, Middlegame, Endgame, and Blunder Patterns. Every lesson opens in the session player via `TrainRequest.Lesson(topicId)`.
+2. **Puzzles**: Rated tactical puzzles from the bundled puzzle pack.
 3. **Play**: Free play and opening practice against calibrated bots (White, Black, or Random colour) with live ECO opening recognition, "Learn the line" and "Start from opening" modes, verified coaching banners, takeback, and resign.
-4. **Review**: Public, read-only account connection for **Chess.com** and **Lichess** (games import, W/D/L, Score %, Wilson confidence-adjusted per-opening performance, ranked insights with deep links into Learn/Train/Play, move-by-move game review, and spaced-repetition mistake queue).
+4. **Review**: Public, read-only account connection for **Chess.com** and **Lichess** (games import, W/D/L, Score %, Wilson confidence-adjusted per-opening performance, ranked insights with deep links into Learn/Play, move-by-move game review, and spaced-repetition mistake queue).
+
+**Session player (not a tab):** the former Train tab was retired as a tab. Its screen (`CoachScreen`) now opens full-screen, with the bottom bar hidden, when a lesson or drill starts. It has a `PuzzlePhase` state machine (`SOLVING`, `CORRECT`, `WRONG`, `REVEALED`), a 4-step hint ladder and auto-orientation to the side to move. Back returns to Learn. It will be replaced by the new lesson player (see `plan.md`, Phase 4).
 
 ---
 

@@ -1,8 +1,8 @@
 package com.chesstutor.app.data.model
 
-import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.Move
-import com.example.chess.core.Position
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.core.Position
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

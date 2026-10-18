@@ -1,4 +1,4 @@
-package com.example
+package com.chesstutor.app
 
 import android.graphics.Color
 import android.os.Bundle

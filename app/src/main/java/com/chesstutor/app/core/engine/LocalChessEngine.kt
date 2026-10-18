@@ -1,12 +1,12 @@
-package com.example.chess.engine
+package com.chesstutor.app.core.engine
 
-import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.Move
-import com.example.chess.core.Piece
-import com.example.chess.core.PieceColor
-import com.example.chess.core.PieceType
-import com.example.chess.core.Position
-import com.example.chess.core.Square
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.core.Piece
+import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.PieceType
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.Square
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
