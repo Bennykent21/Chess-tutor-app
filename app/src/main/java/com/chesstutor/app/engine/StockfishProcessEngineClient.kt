@@ -40,8 +40,20 @@ class StockfishProcessEngineClient(
     private val readyWaiters = ArrayDeque<CompletableDeferred<Unit>>()
     private var engineIdName: String = "Stockfish"
 
+    // Process.isAlive was added in API 26; exitValue() plus its documented exception
+    // provides the same check on our supported minSdk 24.
+    private fun processIsAlive(candidate: Process?): Boolean {
+        if (candidate == null) return false
+        return try {
+            candidate.exitValue()
+            false
+        } catch (_: IllegalThreadStateException) {
+            true
+        }
+    }
+
     val isAlive: Boolean
-        get() = !isProcessExecutionPermanentlyDisabled && process?.isAlive == true
+        get() = !isProcessExecutionPermanentlyDisabled && processIsAlive(process)
 
     override suspend fun initialize() = lifecycleMutex.withLock {
         withContext(Dispatchers.IO) {
@@ -242,13 +254,13 @@ class StockfishProcessEngineClient(
     }
 
     override suspend fun analyze(request: AnalysisRequest): PositionAnalysis {
-        if (isProcessExecutionPermanentlyDisabled || process == null || process?.isAlive != true) {
+        if (isProcessExecutionPermanentlyDisabled || process == null || !processIsAlive(process)) {
             return fallbackClient.analyze(request)
         }
         return analysisMutex.withLock {
             withContext(Dispatchers.IO) {
                 // If process is dead, fail over immediately to fallback without hanging
-                if (process == null || process?.isAlive != true) {
+                if (process == null || !processIsAlive(process)) {
                     return@withContext fallbackClient.analyze(request)
                 }
 
