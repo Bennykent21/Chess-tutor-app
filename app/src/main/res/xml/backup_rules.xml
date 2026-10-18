@@ -3,5 +3,4 @@
     <include domain="database" path="chess_tutor_reviews.db" />
     <include domain="database" path="chess_tutor_reviews.db-wal" />
     <include domain="database" path="chess_tutor_reviews.db-shm" />
-    <exclude domain="root" path="cache" />
 </full-backup-content>
