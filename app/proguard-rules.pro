@@ -29,3 +29,9 @@
 # Kotlin Coroutines
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+
+# OkHttp contains optional TLS implementations for non-Android JVMs. These providers are
+# not bundled by this app; Android uses its platform TLS implementation.
+-dontwarn org.bouncycastle.**
+-dontwarn org.conscrypt.**
+-dontwarn org.openjsse.**
