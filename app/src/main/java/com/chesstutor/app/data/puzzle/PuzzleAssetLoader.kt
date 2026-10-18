@@ -13,14 +13,30 @@ import java.io.IOException
  */
 class PuzzleAssetLoader(
     private val context: Context,
-    private val assetName: String = DEFAULT_ASSET
+    private val assetName: String? = null
 ) {
     suspend fun load(): PuzzlePack = withContext(Dispatchers.IO) {
-        try {
-            context.assets.open(assetName).use { PuzzlePack.fromGzipStream(it) }
-        } catch (_: IOException) {
-            PuzzlePack.EMPTY
+        val candidates = if (assetName != null) {
+            listOf(assetName)
+        } else {
+            listOf(DEFAULT_ASSET, "puzzles.tsv")
         }
+
+        for (candidate in candidates) {
+            try {
+                context.assets.open(candidate).use { stream ->
+                    val pack = PuzzlePack.fromStream(stream)
+                    if (!pack.isEmpty) {
+                        return@withContext pack
+                    }
+                }
+            } catch (_: IOException) {
+                // Try next candidate
+            } catch (e: Exception) {
+                android.util.Log.w("PuzzleAssetLoader", "Error reading puzzle asset '$candidate'", e)
+            }
+        }
+        PuzzlePack.EMPTY
     }
 
     companion object {

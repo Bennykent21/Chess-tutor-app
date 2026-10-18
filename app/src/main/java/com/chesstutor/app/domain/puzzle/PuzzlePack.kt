@@ -48,5 +48,19 @@ class PuzzlePack(puzzles: List<Puzzle>, val skippedLines: Int = 0) {
         /** Reads a gzip-compressed TSV pack, as produced by tools/build_puzzle_pack.py. */
         fun fromGzipStream(stream: InputStream): PuzzlePack =
             GZIPInputStream(stream).bufferedReader(Charsets.UTF_8).useLines { parse(it) }
+
+        /** Reads either gzip-compressed or plain text TSV pack by inspecting header magic bytes. */
+        fun fromStream(stream: InputStream): PuzzlePack {
+            val buffered = if (stream.markSupported()) stream else stream.buffered()
+            buffered.mark(4)
+            val b1 = buffered.read()
+            val b2 = buffered.read()
+            buffered.reset()
+            return if (b1 == 0x1f && b2 == 0x8b) {
+                fromGzipStream(buffered)
+            } else {
+                buffered.bufferedReader(Charsets.UTF_8).useLines { parse(it) }
+            }
+        }
     }
 }
