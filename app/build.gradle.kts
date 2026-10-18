@@ -75,6 +75,9 @@ android {
       useLegacyPackaging = true
     }
   }
+  androidResources {
+    noCompress += listOf("gz")
+  }
   testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {
     includeInApk = false
