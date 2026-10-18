@@ -67,6 +67,14 @@ jobs:
       - name: Run Android lint
         run: ./gradlew lintDebug --no-configuration-cache -Dhttps.protocols=TLSv1.2
 
+      - name: Upload lint report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.*
+          if-no-files-found: ignore
+
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --no-configuration-cache -Dhttps.protocols=TLSv1.2
 
