@@ -35,6 +35,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chesstutor.app.design.CtCard
+import com.chesstutor.app.feature.account.CoachPicker
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.TabularTextStyle
 import com.chesstutor.app.ui.theme.JetBrainsMonoFontFamily
@@ -133,6 +135,10 @@ fun SettingsSheet(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
 
+            CtCard(modifier = Modifier.fillMaxWidth()) {
+                CoachPicker(selected = state.appSettings.mascot, onSelect = viewModel::setMascot)
+            }
+
             SettingToggleRow(
                 title = "Sound effects",
                 subtitle = "Move, capture, check, and puzzle cues",
@@ -155,6 +161,22 @@ fun SettingsSheet(
                 checked = state.showCoordinates,
                 onCheckedChange = viewModel::setShowCoordinates,
                 testTag = "setting_coordinates_toggle"
+            )
+
+            SettingToggleRow(
+                title = "Haptics",
+                subtitle = "Vibrate on moves, mistakes and wins",
+                checked = state.appSettings.hapticsEnabled,
+                onCheckedChange = viewModel::setHapticsEnabled,
+                testTag = "setting_haptics_toggle"
+            )
+
+            SettingToggleRow(
+                title = "Reduce motion",
+                subtitle = "Fewer animations in the new screens",
+                checked = state.appSettings.reduceMotion,
+                onCheckedChange = viewModel::setReduceMotion,
+                testTag = "setting_reduce_motion_toggle"
             )
 
             // Connected Account Section
@@ -219,13 +241,13 @@ fun SettingsSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Engine Self-Test (UCI)",
+                            text = "Engine check",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = ChessTutorColors.TextPrimary
                         )
                         Text(
-                            text = "Verify uciok, readyok, depth 8 search, bestmove, and nodes/sec",
+                            text = "Which engine answers, its real speed, and whether its network loaded",
                             fontSize = 13.sp,
                             color = ChessTutorColors.TextSecondary
                         )
@@ -258,6 +280,15 @@ fun SettingsSheet(
                             )
                         }
                     }
+                }
+
+                if (state.engineStatus.isDegraded) {
+                    Text(
+                        text = "Lite engine: Stockfish is not running, so bots and analysis are weaker." +
+                            (state.engineStatus.problem?.let { "\n$it" } ?: ""),
+                        fontSize = 13.sp,
+                        color = ChessTutorColors.Coral
+                    )
                 }
 
                 if (!state.engineSelfTestReport.isNullOrBlank()) {

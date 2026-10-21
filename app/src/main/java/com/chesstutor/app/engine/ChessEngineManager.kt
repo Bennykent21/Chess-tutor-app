@@ -5,10 +5,10 @@ import android.util.Log
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveChoice
-import com.example.chess.core.PieceColor
-import com.example.chess.core.Position
-import com.example.chess.engine.BotStrength
-import com.example.chess.engine.Evaluation
+import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.engine.BotStrength
+import com.chesstutor.app.core.engine.Evaluation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -136,6 +136,13 @@ class ChessEngineManager(
     private var inFlightEvaluationJob: Job? = null
 
     /**
+     * Live engine status (for the "Lite engine" badge). Clients that cannot report health
+     * (test fakes) show a neutral status.
+     */
+    val engineStatus: StateFlow<EngineStatus> =
+        (engineClient as? EngineHealthReporter)?.status ?: MutableStateFlow(EngineStatus())
+
+    /**
      * Initializes the underlying engine client.
      */
     suspend fun initialize() = withContext(Dispatchers.IO) {
@@ -169,7 +176,7 @@ class ChessEngineManager(
      */
     suspend fun evaluatePosition(
         fen: String,
-        depth: Int = 10,
+        depth: Int? = 10,
         movetimeMs: Int? = 500
     ): EngineEvaluation? = withContext(calculationDispatcher) {
         val chessPos = runCatching { ChessPosition(fen) }.getOrNull()
@@ -249,7 +256,7 @@ class ChessEngineManager(
      */
     suspend fun calculateBestMove(
         fen: String,
-        depth: Int = 10,
+        depth: Int? = 10,
         movetimeMs: Int? = 500
     ): MoveChoice? = withContext(calculationDispatcher) {
         val chessPos = runCatching { ChessPosition(fen) }.getOrNull() ?: return@withContext null
@@ -308,7 +315,8 @@ class ChessEngineManager(
                 elo < 2000 -> 5
                 else -> 6
             }
-            val result = analysisService.analyze(fen = fen, depth = depth, movetimeMs = 800)
+            // Strength travels with this one request, so it never weakens later analysis.
+            val result = analysisService.analyze(fen = fen, depth = depth, movetimeMs = 800, strengthElo = elo)
             val matching = result?.let { analysis ->
                 chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci }
             }
@@ -357,68 +365,90 @@ class ChessEngineManager(
     }
 
     /**
-     * Runs full engine diagnostics for UI diagnostics dialogs.
+     * Candidate lines for [fen] (MultiPV), at full strength. Null if no engine answered.
+     */
+    suspend fun analyseLines(fen: String, multiPv: Int, movetimeMs: Int): PositionAnalysis? =
+        withContext(calculationDispatcher) {
+            val chessPos = runCatching { ChessPosition(fen) }.getOrNull() ?: return@withContext null
+            if (chessPos.isOver) return@withContext null
+            try {
+                analysisService.analyze(fen = fen, depth = null, movetimeMs = movetimeMs, multiPv = multiPv)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                runCatching { Log.w(TAG, "analyseLines failed: ${e.message}") }
+                null
+            }
+        }
+
+    /** Fresh health check, or null when the engine client cannot describe itself. */
+    suspend fun healthCheck(movetimeMs: Int = 1000): EngineHealthReport? =
+        (engineClient as? EngineHealthReporter)?.healthCheck(movetimeMs)
+
+    /**
+     * Runs engine diagnostics for the diagnostics dialog. The engine name and numbers come
+     * from the engine's own output, never from constants.
      */
     suspend fun runDiagnostics(movetimeMs: Int = 1000): EngineDiagnostics = withContext(Dispatchers.IO) {
+        val report = runCatching { healthCheck(movetimeMs) }.getOrNull()
+        if (report != null) {
+            return@withContext EngineDiagnostics(
+                engineName = report.telemetry.engineIdName ?: report.answeredBy.label,
+                isAlive = report.answeredBy == EngineSource.NATIVE,
+                bestMove = report.bestMove ?: "--",
+                centipawns = report.centipawns,
+                depth = report.depth,
+                pv = "",
+                latencyMs = report.elapsedMs,
+                resolvedBinaryPath = (engineClient as? StockfishProcessEngineClient)?.targetPath,
+                launchError = report.problem
+            )
+        }
         val start = System.currentTimeMillis()
         try {
             val res = analysisService.analyze(
                 fen = ChessPosition.STARTING_FEN,
                 movetimeMs = movetimeMs
             ) ?: throw IllegalStateException("Engine diagnostics result was null or superseded")
-            val latency = System.currentTimeMillis() - start
-
             EngineDiagnostics(
-                engineName = "Stockfish Engine",
+                engineName = res.source.label,
                 isAlive = true,
                 bestMove = res.bestMoveUci,
                 centipawns = res.centipawns,
                 depth = res.depth,
                 pv = res.principalVariation.joinToString(" "),
-                latencyMs = latency,
-                resolvedBinaryPath = "Configured engine chain",
+                latencyMs = System.currentTimeMillis() - start,
+                resolvedBinaryPath = null,
                 launchError = null
             )
         } catch (e: Exception) {
-            val latency = System.currentTimeMillis() - start
             EngineDiagnostics(
-                engineName = "Engine Error",
+                engineName = "Engine error",
                 isAlive = false,
                 bestMove = "--",
                 centipawns = null,
                 depth = null,
                 pv = "",
-                latencyMs = latency,
-                resolvedBinaryPath = "Unavailable",
+                latencyMs = System.currentTimeMillis() - start,
+                resolvedBinaryPath = null,
                 launchError = "${e::class.java.simpleName}: ${e.message}"
             )
         }
     }
 
     /**
-     * Runs a comprehensive UCI self-test (S10 & Review 2 §2.5/§5):
-     * verifies uci -> uciok, isready -> readyok, position startpos, go depth 8 -> bestmove, and nodes/sec.
+     * Engine self-test shown in Settings. Reports which engine actually answered, the speed
+     * the engine itself reported, and whether its neural network loaded.
      */
     suspend fun runSelfTest(): String = withContext(Dispatchers.IO) {
-        val startMs = System.currentTimeMillis()
         try {
-            engineClient.initialize()
-            val diag = runDiagnostics(movetimeMs = 900)
-            val elapsedMs = (System.currentTimeMillis() - startMs).coerceAtLeast(1L)
-            val estimatedNodes = ((diag.depth ?: 8).coerceAtLeast(1) * 1450L)
-            val nps = (estimatedNodes * 1000L) / elapsedMs
-            buildString {
-                appendLine("id name ${diag.engineName}")
-                appendLine("uci -> uciok")
-                appendLine("isready -> readyok")
-                appendLine("position startpos")
-                appendLine("go depth ${diag.depth ?: 8} -> bestmove ${diag.bestMove}")
-                appendLine("eval: ${diag.centipawns ?: 0} cp · pv: ${diag.pv.ifBlank { diag.bestMove }}")
-                append("nodes/sec: $nps nps (${elapsedMs} ms)")
-            }
+            val report = healthCheck(movetimeMs = 1000)
+                ?: return@withContext "This engine cannot report its health."
+            report.toReportText()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            val elapsedMs = (System.currentTimeMillis() - startMs).coerceAtLeast(1L)
-            "Self-test error (${elapsedMs} ms): ${e.message ?: e::class.java.simpleName}"
+            "Self-test error: ${e.message ?: e::class.java.simpleName}"
         }
     }
 

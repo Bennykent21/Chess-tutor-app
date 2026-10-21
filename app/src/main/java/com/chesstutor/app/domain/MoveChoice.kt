@@ -1,8 +1,8 @@
 package com.chesstutor.app.domain
 
-import com.example.chess.core.Move
-import com.example.chess.core.PieceType
-import com.example.chess.core.Square
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.core.PieceType
+import com.chesstutor.app.core.Square
 
 /**
  * UI/domain projection of the authoritative core [Move].

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-label="Rookie, a rook-shaped robot">
+  <defs>
+    <linearGradient id="rk" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2EE6D6"/><stop offset="1" stop-color="#119E9A"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="100" cy="228" rx="64" ry="8" fill="#000" opacity=".25"/>
+  <line x1="100" y1="50" x2="100" y2="28" stroke="#119E9A" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="100" cy="24" r="8" fill="#FFC53D"/>
+  <circle cx="97" cy="21" r="2.5" fill="#fff" opacity=".7"/>
+  <rect x="30" y="128" width="20" height="46" rx="10" fill="#119E9A"/>
+  <circle cx="40" cy="178" r="10" fill="#FFC53D"/>
+  <rect x="150" y="112" width="20" height="46" rx="10" fill="#119E9A" transform="rotate(-25 160 112)"/>
+  <circle cx="178" cy="104" r="10" fill="#FFC53D"/>
+  <rect x="50" y="50" width="24" height="28" rx="6" fill="url(#rk)"/>
+  <rect x="88" y="50" width="24" height="28" rx="6" fill="url(#rk)"/>
+  <rect x="126" y="50" width="24" height="28" rx="6" fill="url(#rk)"/>
+  <rect x="50" y="68" width="100" height="140" rx="16" fill="url(#rk)"/>
+  <rect x="58" y="74" width="10" height="120" rx="5" fill="#fff" opacity=".18"/>
+  <rect x="64" y="82" width="72" height="54" rx="14" fill="#0B1026"/>
+  <rect x="80" y="96" width="12" height="18" rx="6" fill="#2EE6D6"/>
+  <rect x="108" y="96" width="12" height="18" rx="6" fill="#2EE6D6"/>
+  <path d="M86 122 Q100 131 114 122" stroke="#2EE6D6" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <circle cx="100" cy="164" r="14" fill="#FFC53D"/>
+  <path d="M103 153 L94 166 H101 L97 176 L107 162 H100 Z" fill="#2A1B00"/>
+  <rect x="42" y="204" width="116" height="18" rx="9" fill="#119E9A"/>
+</svg>

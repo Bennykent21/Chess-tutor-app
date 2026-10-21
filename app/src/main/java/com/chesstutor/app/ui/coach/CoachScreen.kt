@@ -60,6 +60,7 @@ import com.chesstutor.app.navigation.NavCommand
 import com.chesstutor.app.navigation.TrainRequest
 import com.chesstutor.app.ui.components.ChessBoard
 import com.chesstutor.app.ui.components.HorizontalEvalBar
+import com.chesstutor.app.navigation.LegacyTab
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.ui.theme.TabularTextStyle
 import com.chesstutor.app.ui.theme.bouncyClickable
@@ -228,7 +229,10 @@ fun CoachScreen(
                         dueReviewCount = dueReviewCount,
                         onOpenDrillSheet = { viewModel.setDrillSheetVisible(true) },
                         onStartDueReview = { viewModel.startTrain(TrainRequest.ReviewDue) },
-                        onOpenSettings = { viewModel.setSettingsVisible(true) }
+                        onOpenSettings = { viewModel.setSettingsVisible(true) },
+                        // The bottom bar is hidden here (D11), so give a visible way out, same
+                        // destination as the system Back gesture in LegacyHost.
+                        onBack = { viewModel.selectTab(LegacyTab.CURRICULUM) }
                     )
                 }
 
@@ -433,7 +437,8 @@ private fun DrillTopHeader(
     dueReviewCount: Int,
     onOpenDrillSheet: () -> Unit,
     onStartDueReview: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onBack: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -442,6 +447,25 @@ private fun DrillTopHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .padding(end = 10.dp)
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(ChessTutorColors.Surface)
+                .border(1.dp, ChessTutorColors.Line, RoundedCornerShape(12.dp))
+                .testTag("drill_header_back_button")
+                .bouncyClickable(onClick = onBack),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back to Learn",
+                tint = ChessTutorColors.Brass,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
         Column(
             modifier = Modifier
                 .weight(1f)

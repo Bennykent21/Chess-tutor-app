@@ -8,7 +8,7 @@ import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.ReviewItem
 import com.chesstutor.app.domain.TrainDrillsRepository
 import com.chesstutor.app.navigation.OpeningMode
-import com.example.chess.engine.BotStrength
+import com.chesstutor.app.core.engine.BotStrength
 
 enum class PuzzlePhase {
     SOLVING,
@@ -47,7 +47,8 @@ data class AppUiState(
     val learningGoal: String = "GENERAL_IMPROVEMENT",
     val tacticalAttempts: Int = 0,
     val tacticalCorrect: Int = 0,
-    val tab: Int = 0, // 0: Train (Coach), 1: Learn (Curriculum), 2: Play (Arena), 3: Review
+    // 0: session host (lesson/drill player; not in the bottom bar), 1: Learn, 2: Play (Arena), 3: Review, 4: Puzzles
+    val tab: Int = 1,
     val fen: String = TrainDrillsRepository.drills.first().fen,
     val trainFen: String = TrainDrillsRepository.drills.first().fen,
     val message: String = TrainDrillsRepository.drills.first().objectivePrompt,
@@ -140,7 +141,11 @@ data class AppUiState(
     val selectedGameForPgn: com.chesstutor.app.data.model.GameRecord? = null,
     val gameAnalysis: com.chesstutor.app.engine.GameAnalysisResult? = null,
     val analyzingGameId: String? = null,
-    val isGameHistorySheetOpen: Boolean = false
+    val isGameHistorySheetOpen: Boolean = false,
+    /** Player settings, mirrored from DataStore. */
+    val appSettings: com.chesstutor.app.data.settings.AppSettings = com.chesstutor.app.data.settings.AppSettings(),
+    /** Which engine is answering, for the "Lite engine" badge. */
+    val engineStatus: com.chesstutor.app.engine.EngineStatus = com.chesstutor.app.engine.EngineStatus()
 ) {
     val isAnalyzingGame: Boolean
         get() = analyzingGameId != null

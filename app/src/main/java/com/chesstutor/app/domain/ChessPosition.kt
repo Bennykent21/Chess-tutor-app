@@ -1,12 +1,12 @@
 package com.chesstutor.app.domain
 
-import com.example.chess.core.GameState
-import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.SanFormatter
-import com.example.chess.core.PieceColor
-import com.example.chess.core.PieceType
-import com.example.chess.core.Position
-import com.example.chess.core.Square
+import com.chesstutor.app.core.GameState
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.SanFormatter
+import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.PieceType
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.Square
 
 class ChessPosition(fen: String? = null) {
 
@@ -56,7 +56,7 @@ class ChessPosition(fen: String? = null) {
 
     /** The 75-move rule automatically ends the game unless the last move checkmated. */
     val isSeventyFiveMoveDraw: Boolean
-        get() = gameState.isSeventyFiveMoveDraw && gameState.status == com.example.chess.core.GameStatus.DRAW_75_MOVES
+        get() = gameState.isSeventyFiveMoveDraw && gameState.status == com.chesstutor.app.core.GameStatus.DRAW_75_MOVES
 
     private var cachedLegalMoves: List<MoveChoice>? = null
     private var cachedMatesInOne: List<MoveChoice>? = null
@@ -67,10 +67,10 @@ class ChessPosition(fen: String? = null) {
         get() = cachedLegalMoves ?: computeLegalMoves().also { cachedLegalMoves = it }
 
     val isCheckmate: Boolean
-        get() = gameState.status == com.example.chess.core.GameStatus.CHECKMATE
+        get() = gameState.status == com.chesstutor.app.core.GameStatus.CHECKMATE
 
     val isStalemate: Boolean
-        get() = gameState.status == com.example.chess.core.GameStatus.STALEMATE
+        get() = gameState.status == com.chesstutor.app.core.GameStatus.STALEMATE
 
     val isOver: Boolean
         get() = gameState.isOver
@@ -86,7 +86,7 @@ class ChessPosition(fen: String? = null) {
             val pos = gameState.position
             legalMoves.filter { moveChoice ->
                 val nextPos = LegalMoveGenerator.makeMove(pos, moveChoice.toCoreMove())
-                LegalMoveGenerator.getGameStatus(nextPos) == com.example.chess.core.GameStatus.CHECKMATE
+                LegalMoveGenerator.getGameStatus(nextPos) == com.chesstutor.app.core.GameStatus.CHECKMATE
             }
         }).also { cachedMatesInOne = it }
 
@@ -103,7 +103,7 @@ class ChessPosition(fen: String? = null) {
     }
 
     fun play(uci: String): Boolean {
-        val parsedMove = runCatching { com.example.chess.core.Move.fromUci(uci) }.getOrNull()
+        val parsedMove = runCatching { com.chesstutor.app.core.Move.fromUci(uci) }.getOrNull()
             ?: return false
 
         return runCatching {
@@ -123,7 +123,7 @@ class ChessPosition(fen: String? = null) {
     fun toSan(uci: String): String? {
         val trimmed = uci.trim()
         if (trimmed.isEmpty() || trimmed == "0000") return null
-        val parsedMove = runCatching { com.example.chess.core.Move.fromUci(trimmed) }.getOrNull()
+        val parsedMove = runCatching { com.chesstutor.app.core.Move.fromUci(trimmed) }.getOrNull()
             ?: return null
         return runCatching {
             SanFormatter.format(gameState.position, parsedMove)
