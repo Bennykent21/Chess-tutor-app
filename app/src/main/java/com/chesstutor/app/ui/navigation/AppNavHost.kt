@@ -12,6 +12,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -29,6 +30,7 @@ import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.account.BoardLabScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.DeveloperMenuScreen
@@ -166,8 +168,11 @@ fun AppNavHost(
                         DesignGalleryScreen(onBack = { navController.popBackStack() })
                     }
                     composable(AppRoutes.BOARD_LAB) {
+                        val context = LocalContext.current
+                        val engine = remember(context) { AppContainer.provideEngineService(context) }
                         BoardLabScreen(
                             settings = state.appSettings,
+                            engine = engine,
                             onFeedback = viewModel::playBoardFeedback,
                             onBack = { navController.popBackStack() }
                         )

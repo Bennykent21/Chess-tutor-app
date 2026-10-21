@@ -22,6 +22,9 @@ data class BoardSessionState(
     /** The colour the player may move now; null when the board is read-only. */
     val movable: PieceColor? = position.sideToMove,
     val legalMoves: List<Move> = LegalMoveGenerator.generateLegalMoves(position),
+    /** Where the move history starts, and every move since, for the move list. */
+    val start: Position = position,
+    val moves: List<Move> = emptyList(),
 )
 
 /**
@@ -56,6 +59,8 @@ class FreePlaySession(start: Position = Position.initial()) : BoardSession {
             version = mutableState.value.version + 1,
             animateLastMove = true,
             movable = if (next.isOver) null else next.position.sideToMove,
+            start = history.first().position,
+            moves = moves.toList(),
         )
         return MoveEffects.feedbackFor(current.position, move, next.position)
     }
@@ -70,6 +75,8 @@ class FreePlaySession(start: Position = Position.initial()) : BoardSession {
             previous = if (history.size >= 2) history[history.size - 2].position else null,
             lastMove = moves.lastOrNull(),
             version = mutableState.value.version + 1,
+            start = history.first().position,
+            moves = moves.toList(),
         )
     }
 

@@ -64,6 +64,8 @@ object Palette {
         ON_TEAL to listOf(TEAL),
         ON_LIME to listOf(LIME),
         ON_CORAL to listOf(CORAL),
+        // The eval bar's White share is drawn in TEXT; its score label there is BG_DEEP.
+        BG_DEEP to listOf(TEXT),
     )
 
     /** WCAG 2.x contrast ratio between two opaque ARGB colours (1.0 to 21.0). */

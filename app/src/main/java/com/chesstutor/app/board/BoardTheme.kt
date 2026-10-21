@@ -60,6 +60,10 @@ object BoardMarkColors {
     const val SELECTED = 0x8C2EE6D6L
     const val LEGAL_DOT = 0x52101830L
     const val CHECK = 0xCCFF6F6FL
+    const val ARROW_BEST = 0xC72EE6D6L
+    const val ARROW_HINT = 0xC7FFC53DL
+    const val ARROW_USER = 0xC7A8E63AL
+    const val ARROW_ALTERNATIVE = 0x99A487FFL
 }
 
 /** Who you are on every board: colours and pieces, from user settings (plan section 4.1). */
