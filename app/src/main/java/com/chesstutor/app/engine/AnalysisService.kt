@@ -26,6 +26,8 @@ class AnalysisService(
         fen: String,
         depth: Int? = null,
         movetimeMs: Int? = null,
+        multiPv: Int = 1,
+        strengthElo: Int? = null,
     ): PositionAnalysis? {
         val requestId = requestCounter.incrementAndGet()
         val previousActiveRequest = activeRequestId
@@ -45,6 +47,8 @@ class AnalysisService(
             fen = fen,
             depth = depth,
             movetimeMs = movetimeMs,
+            multiPv = multiPv,
+            strengthElo = strengthElo,
         )
 
         return try {

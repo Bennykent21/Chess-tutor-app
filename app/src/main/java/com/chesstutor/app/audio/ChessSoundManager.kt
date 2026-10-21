@@ -31,6 +31,10 @@ class ChessSoundManager(context: Context) {
 
     private val scope = CoroutineScope(Dispatchers.Default)
 
+    /** Follows the Haptics setting. When false, no vibration at all. */
+    @Volatile
+    var hapticsEnabled: Boolean = true
+
     fun playMove(soundEnabled: Boolean = true, isCapture: Boolean = false, isCheck: Boolean = false) {
         // Haptic feedback
         vibrateMove(isCapture, isCheck)
@@ -74,6 +78,7 @@ class ChessSoundManager(context: Context) {
 
     private fun vibrateMove(isCapture: Boolean, isCheck: Boolean) {
         try {
+            if (!hapticsEnabled) return
             val vib = vibrator ?: return
             if (!vib.hasVibrator()) return
 
@@ -93,6 +98,7 @@ class ChessSoundManager(context: Context) {
 
     private fun vibrateBlunder() {
         try {
+            if (!hapticsEnabled) return
             val vib = vibrator ?: return
             if (!vib.hasVibrator()) return
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -106,6 +112,7 @@ class ChessSoundManager(context: Context) {
 
     private fun vibrateSuccess() {
         try {
+            if (!hapticsEnabled) return
             val vib = vibrator ?: return
             if (!vib.hasVibrator()) return
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -1,70 +1,56 @@
 package com.chesstutor.app.ui.navigation
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.ui.platform.testTag
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoStories
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.chesstutor.app.navigation.NavCommand
-import com.chesstutor.app.ui.arena.ArenaScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.navigation
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.chesstutor.app.design.CtBottomBar
+import com.chesstutor.app.design.CtColors
+import com.chesstutor.app.design.CtTheme
+import com.chesstutor.app.domain.LearnCategory
+import com.chesstutor.app.domain.ReviewScheduler
+import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.feature.account.DesignGalleryScreen
+import com.chesstutor.app.feature.account.DeveloperMenuScreen
+import com.chesstutor.app.feature.account.EngineHealthScreen
+import com.chesstutor.app.feature.home.HomeScreen
+import com.chesstutor.app.feature.learn.LearnScreen
+import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
+import com.chesstutor.app.navigation.AppRoutes
+import com.chesstutor.app.navigation.LegacyTab
+import com.chesstutor.app.navigation.TopTab
+import com.chesstutor.app.navigation.TrainRequest
 import com.chesstutor.app.ui.components.PgnViewerDialog
 import com.chesstutor.app.ui.components.PromotionDialog
-import com.chesstutor.app.ui.coach.CoachScreen
 import com.chesstutor.app.ui.onboarding.OnboardingScreen
-import com.chesstutor.app.ui.curriculum.CurriculumScreen
-import com.chesstutor.app.ui.review.ReviewScreen
 import com.chesstutor.app.ui.settings.SettingsSheet
-import com.chesstutor.app.ui.puzzles.PuzzleScreen
-import com.chesstutor.app.ui.theme.ChessTutorColors
-import com.chesstutor.app.ui.theme.bouncyClickable
 import com.chesstutor.app.viewmodel.AppViewModel
+import java.time.Instant
 
-sealed class NavTab(val index: Int, val title: String, val icon: ImageVector) {
-    object Learn : NavTab(1, "Learn", Icons.Default.AutoStories)
-    object Play : NavTab(2, "Play", Icons.Default.SportsEsports)
-    object Review : NavTab(3, "Review", Icons.Default.History)
-    object Puzzles : NavTab(4, "Puzzles", Icons.Default.Extension)
-
-    companion object {
-        /**
-         * Internal tab index of the full-screen lesson / drill session player (CoachScreen).
-         * It is no longer a bottom-bar tab: it opens when a lesson or drill starts, hides the
-         * bottom bar, and Back returns to Learn. It goes away when the Learn rebuild (Phase 4)
-         * replaces the lesson player.
-         */
-        const val SESSION_HOST_INDEX = 0
-
-        val ALL = listOf(Learn, Puzzles, Play, Review)
-    }
-}
-
+/**
+ * The app shell (plan section 3): four tabs (Home, Learn, Puzzles, Account), each with its
+ * own back stack, built with Navigation Compose. The pre-revamp screens open full screen
+ * through [LegacyHost] until each is replaced.
+ */
 @Composable
 fun AppNavHost(
     viewModel: AppViewModel,
@@ -77,127 +63,168 @@ fun AppNavHost(
         return
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = ChessTutorColors.Background,
-        bottomBar = {
-            if (state.tab != NavTab.SESSION_HOST_INDEX) {
-            // Mockup Navigation Bar (.nav)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(ChessTutorColors.Surface)
-                    .border(
-                        width = 1.dp,
-                        color = ChessTutorColors.Line,
-                        shape = androidx.compose.ui.graphics.RectangleShape
-                    )
-                    .navigationBarsPadding()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    NavTab.ALL.forEach { tab ->
-                        val isSelected = state.tab == tab.index
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val reduceMotion = state.appSettings.reduceMotion
+    val dueReviews = remember(state.reviews) {
+        val now = Instant.now()
+        state.reviews.count { ReviewScheduler.isDue(it, now) }
+    }
 
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxSize()
-                                .testTag("nav_tab_${tab.title.lowercase()}")
-                                .bouncyClickable { viewModel.selectTab(tab.index) },
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.title,
-                                tint = if (isSelected) ChessTutorColors.Brass else ChessTutorColors.TextTertiary,
-                                modifier = Modifier.size(21.dp)
-                            )
-                            Text(
-                                text = tab.title,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = (-0.005).sp,
-                                color = if (isSelected) ChessTutorColors.Brass else ChessTutorColors.TextTertiary,
-                                modifier = Modifier.padding(top = 3.dp)
-                            )
-                        }
+    fun openLegacy(index: Int, category: LearnCategory? = null) {
+        viewModel.selectTab(index)
+        navController.navigate(AppRoutes.legacy(category)) { launchSingleTop = true }
+    }
+
+    CtTheme(reduceMotion = reduceMotion) {
+        Scaffold(
+            modifier = modifier.fillMaxSize(),
+            containerColor = CtColors.BgDeep,
+            bottomBar = {
+                if (AppRoutes.showsBottomBar(currentRoute)) {
+                    CtBottomBar(
+                        selected = AppRoutes.tabFor(currentRoute),
+                        onSelect = { tab -> navController.navigateToTab(tab) }
+                    )
+                }
+            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = TopTab.HOME.graphRoute,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                enterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(220)) },
+                exitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) },
+                popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(220)) },
+                popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) }
+            ) {
+                navigation(startDestination = TopTab.HOME.startRoute, route = TopTab.HOME.graphRoute) {
+                    composable(TopTab.HOME.startRoute) {
+                        HomeScreen(
+                            state = state,
+                            onQuickMatch = { openLegacy(LegacyTab.ARENA) },
+                            onContinueLearning = { navController.navigateToTab(TopTab.LEARN) },
+                            onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) }
+                        )
                     }
                 }
-            }
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(ChessTutorColors.Background)
-        ) {
-            androidx.compose.animation.Crossfade(
-                targetState = state.tab,
-                label = "tab_crossfade"
-            ) { currentTab ->
-                when (currentTab) {
-                    0 -> CoachScreen(state = state, viewModel = viewModel)
-                    1 -> CurriculumScreen(state = state, viewModel = viewModel)
-                    2 -> ArenaScreen(state = state, viewModel = viewModel)
-                    3 -> ReviewScreen(state = state, viewModel = viewModel)
-                    4 -> PuzzleScreen(
-                        seedRating = state.effectiveUserRating,
-                        showCoordinates = state.showCoordinates,
-                        showLegalDots = state.showLegalDots
+                navigation(startDestination = TopTab.LEARN.startRoute, route = TopTab.LEARN.graphRoute) {
+                    composable(TopTab.LEARN.startRoute) {
+                        LearnScreen(
+                            state = state,
+                            onOpenCategory = { category -> openLegacy(LegacyTab.CURRICULUM, category) },
+                            onOpenDrills = { openLegacy(LegacyTab.SESSION) }
+                        )
+                    }
+                }
+                navigation(startDestination = TopTab.PUZZLES.startRoute, route = TopTab.PUZZLES.graphRoute) {
+                    composable(TopTab.PUZZLES.startRoute) {
+                        PuzzlesHomeScreen(
+                            mascot = state.appSettings.mascot,
+                            dueReviewCount = dueReviews,
+                            onSolvePuzzles = { openLegacy(LegacyTab.PUZZLES) },
+                            onReviewMistakes = {
+                                viewModel.startTrain(TrainRequest.ReviewDue)
+                                navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
+                            }
+                        )
+                    }
+                }
+                navigation(startDestination = TopTab.ACCOUNT.startRoute, route = TopTab.ACCOUNT.graphRoute) {
+                    composable(TopTab.ACCOUNT.startRoute) {
+                        AccountScreen(
+                            state = state,
+                            dueReviewCount = dueReviews,
+                            onOpenGames = { openLegacy(LegacyTab.REVIEW) },
+                            onOpenSettings = { viewModel.setSettingsVisible(true) },
+                            onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
+                            onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
+                            onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) }
+                        )
+                    }
+                    composable(AppRoutes.ENGINE_HEALTH) {
+                        EngineHealthScreen(
+                            status = state.engineStatus,
+                            report = state.engineSelfTestReport,
+                            isRunning = state.isRunningEngineSelfTest,
+                            onRunCheck = viewModel::runEngineSelfTest,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.DEVELOPER_MENU) {
+                        DeveloperMenuScreen(
+                            onOpenLegacy = { index -> openLegacy(index) },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.DESIGN_GALLERY) {
+                        DesignGalleryScreen(onBack = { navController.popBackStack() })
+                    }
+                }
+                composable(
+                    route = AppRoutes.LEGACY_PATTERN,
+                    arguments = listOf(
+                        navArgument(AppRoutes.LEGACY_CATEGORY_ARG) {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        }
+                    )
+                ) { entry ->
+                    LegacyHost(
+                        state = state,
+                        viewModel = viewModel,
+                        initialCategory = AppRoutes.parseCategory(
+                            entry.arguments?.getString(AppRoutes.LEGACY_CATEGORY_ARG)
+                        ),
+                        onExit = { navController.popBackStack() }
                     )
                 }
             }
-        }
 
-        if (state.selectedGameForPgn != null) {
-            BackHandler { viewModel.selectGameForPgn(null) }
-            PgnViewerDialog(
-                game = state.selectedGameForPgn!!,
-                onDismiss = { viewModel.selectGameForPgn(null) },
-                onDelete = {
-                    viewModel.deleteSavedGame(state.selectedGameForPgn!!.id)
-                    viewModel.selectGameForPgn(null)
-                }
-            )
-        } else if (state.isGameHistorySheetOpen) {
-            BackHandler { viewModel.setGameHistorySheetVisible(false) }
-        } else if (state.isDrillSheetVisible) {
-            BackHandler { viewModel.setDrillSheetVisible(false) }
-        } else if (state.isSettingsVisible) {
-            BackHandler { viewModel.setSettingsVisible(false) }
-            SettingsSheet(
-                state = state,
-                viewModel = viewModel,
-                onDismiss = { viewModel.setSettingsVisible(false) }
-            )
-        } else if (state.pendingPromotion != null) {
-            BackHandler { viewModel.cancelPromotion() }
-            PromotionDialog(
-                request = state.pendingPromotion!!,
-                onChoose = viewModel::choosePromotion,
-                onDismiss = viewModel::cancelPromotion
-            )
-        } else if (state.tab == NavTab.SESSION_HOST_INDEX) {
-            // Leaving a lesson or drill goes back to Learn (the lesson's own page if one is open).
-            BackHandler {
-                val lessonTopicId = state.activeLessonSession?.topicId
-                if (lessonTopicId != null) {
-                    viewModel.navigate(NavCommand.OpenLearn(lessonTopicId))
-                } else {
-                    viewModel.selectTab(NavTab.Learn.index)
-                }
+            // Overlays shared by every screen. Their Back handlers are registered last, so
+            // Back closes them first.
+            if (state.selectedGameForPgn != null) {
+                BackHandler { viewModel.selectGameForPgn(null) }
+                PgnViewerDialog(
+                    game = state.selectedGameForPgn!!,
+                    onDismiss = { viewModel.selectGameForPgn(null) },
+                    onDelete = {
+                        viewModel.deleteSavedGame(state.selectedGameForPgn!!.id)
+                        viewModel.selectGameForPgn(null)
+                    }
+                )
+            } else if (state.isGameHistorySheetOpen) {
+                BackHandler { viewModel.setGameHistorySheetVisible(false) }
+            } else if (state.isDrillSheetVisible) {
+                BackHandler { viewModel.setDrillSheetVisible(false) }
+            } else if (state.isSettingsVisible) {
+                BackHandler { viewModel.setSettingsVisible(false) }
+                SettingsSheet(
+                    state = state,
+                    viewModel = viewModel,
+                    onDismiss = { viewModel.setSettingsVisible(false) }
+                )
+            } else if (state.pendingPromotion != null) {
+                BackHandler { viewModel.cancelPromotion() }
+                PromotionDialog(
+                    request = state.pendingPromotion!!,
+                    onChoose = viewModel::choosePromotion,
+                    onDismiss = viewModel::cancelPromotion
+                )
             }
-        } else if (state.tab != NavTab.Learn.index) {
-            BackHandler { viewModel.selectTab(NavTab.Learn.index) }
         }
+    }
+}
+
+/** Switches tab, keeping each tab's own back stack (plan section 3). */
+private fun NavHostController.navigateToTab(tab: TopTab) {
+    navigate(tab.graphRoute) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }

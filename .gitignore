@@ -16,3 +16,9 @@ local.properties
 debug.keystore*
 *.keystore
 *.jks
+/claude.md
+/docs
+# Stockfish is built by CI (tools/build_stockfish_android.sh) and is too large for git.
+# For local builds, download the "stockfish-android" artifact from a CI run (see README).
+app/src/main/jniLibs/**/libstockfish.so
+stockfish-build/

@@ -1,3 +1,4 @@
-<resources>
-    <string name="app_name">Chess Tutor</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Used through the appLabel manifest placeholder (app/build.gradle.kts), which lint cannot see. -->
+    <string name="app_name" tools:ignore="UnusedResources">Chess Tutor</string>
 </resources>

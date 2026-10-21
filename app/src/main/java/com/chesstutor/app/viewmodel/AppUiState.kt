@@ -141,7 +141,11 @@ data class AppUiState(
     val selectedGameForPgn: com.chesstutor.app.data.model.GameRecord? = null,
     val gameAnalysis: com.chesstutor.app.engine.GameAnalysisResult? = null,
     val analyzingGameId: String? = null,
-    val isGameHistorySheetOpen: Boolean = false
+    val isGameHistorySheetOpen: Boolean = false,
+    /** Player settings, mirrored from DataStore. */
+    val appSettings: com.chesstutor.app.data.settings.AppSettings = com.chesstutor.app.data.settings.AppSettings(),
+    /** Which engine is answering, for the "Lite engine" badge. */
+    val engineStatus: com.chesstutor.app.engine.EngineStatus = com.chesstutor.app.engine.EngineStatus()
 ) {
     val isAnalyzingGame: Boolean
         get() = analyzingGameId != null
