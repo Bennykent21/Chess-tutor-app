@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
@@ -35,7 +36,24 @@ data class BoardMarks(
     val legalTargets: Set<Square> = emptySet(),
     /** The king in check, if any. */
     val check: Square? = null,
+    val arrows: List<BoardArrow> = emptyList(),
+    /** Ringed squares, for example the squares a lesson talks about. */
+    val rings: List<SquareRing> = emptyList(),
 )
+
+/** What an arrow or ring means, which sets its colour. */
+enum class MarkKind { BEST, HINT, USER, ALTERNATIVE }
+
+data class BoardArrow(val from: Square, val to: Square, val kind: MarkKind = MarkKind.BEST)
+
+data class SquareRing(val square: Square, val kind: MarkKind = MarkKind.USER)
+
+internal fun MarkKind.argb(): Long = when (this) {
+    MarkKind.BEST -> BoardMarkColors.ARROW_BEST
+    MarkKind.HINT -> BoardMarkColors.ARROW_HINT
+    MarkKind.USER -> BoardMarkColors.ARROW_USER
+    MarkKind.ALTERNATIVE -> BoardMarkColors.ARROW_ALTERNATIVE
+}
 
 /** A piece held under the finger, at [position] in board pixels. */
 data class DraggedPiece(val piece: Piece, val from: Square, val position: Offset)
@@ -101,6 +119,8 @@ internal fun BoardCanvas(
         if (showLegalDots) drawLegalTargets(position, marks.legalTargets, whiteAtBottom, cell)
         motion.dragged?.let { drawHoverOutline(it, whiteAtBottom, cell) }
         drawPieces(position, painters, whiteAtBottom, cell, motion)
+        marks.rings.forEach { drawRing(it, whiteAtBottom, cell) }
+        marks.arrows.forEach { drawArrow(it, whiteAtBottom, cell) }
     }
 }
 
@@ -143,6 +163,40 @@ private fun DrawScope.drawSquares(colors: BoardColors, marks: BoardMarks, whiteA
             )
         }
     }
+}
+
+/** A thick ring inside a square. */
+private fun DrawScope.drawRing(ring: SquareRing, whiteAtBottom: Boolean, cell: Float) {
+    val center = cellTopLeft(ring.square, whiteAtBottom, cell) + Offset(cell / 2f, cell / 2f)
+    drawCircle(Color(ring.kind.argb()), radius = cell * 0.44f, center = center, style = Stroke(width = cell * 0.07f))
+}
+
+/** A straight arrow from centre to centre, with its head ending at the target centre. */
+private fun DrawScope.drawArrow(arrow: BoardArrow, whiteAtBottom: Boolean, cell: Float) {
+    if (arrow.from == arrow.to) return
+    val half = Offset(cell / 2f, cell / 2f)
+    val start = cellTopLeft(arrow.from, whiteAtBottom, cell) + half
+    val end = cellTopLeft(arrow.to, whiteAtBottom, cell) + half
+    val direction = end - start
+    val length = direction.getDistance()
+    val unit = direction / length
+    val normal = Offset(-unit.y, unit.x)
+    val headLength = cell * 0.42f
+    val headHalfWidth = cell * 0.26f
+    val shaftHalfWidth = cell * 0.085f
+    val shaftStart = start + unit * (cell * 0.2f)
+    val headBase = end - unit * headLength
+    val path = Path().apply {
+        moveTo(shaftStart.x + normal.x * shaftHalfWidth, shaftStart.y + normal.y * shaftHalfWidth)
+        lineTo(headBase.x + normal.x * shaftHalfWidth, headBase.y + normal.y * shaftHalfWidth)
+        lineTo(headBase.x + normal.x * headHalfWidth, headBase.y + normal.y * headHalfWidth)
+        lineTo(end.x, end.y)
+        lineTo(headBase.x - normal.x * headHalfWidth, headBase.y - normal.y * headHalfWidth)
+        lineTo(headBase.x - normal.x * shaftHalfWidth, headBase.y - normal.y * shaftHalfWidth)
+        lineTo(shaftStart.x - normal.x * shaftHalfWidth, shaftStart.y - normal.y * shaftHalfWidth)
+        close()
+    }
+    drawPath(path, Color(arrow.kind.argb()))
 }
 
 /** Outlines the square under a dragged piece, since the lifted piece hides it. */

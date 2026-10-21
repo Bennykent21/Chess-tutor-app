@@ -81,6 +81,8 @@ fun BoardHost(
     showCoordinates: Boolean = true,
     showLegalDots: Boolean = true,
     autoQueen: Boolean = false,
+    arrows: List<BoardArrow> = emptyList(),
+    rings: List<SquareRing> = emptyList(),
     onFeedback: (BoardFeedback) -> Unit = {},
 ) {
     val state by session.state.collectAsState()
@@ -172,6 +174,9 @@ fun BoardHost(
         selected = selected ?: dragged?.from,
         legalTargets = (selected ?: dragged?.from)?.let { BoardInput.targetsFrom(it, state.legalMoves) } ?: emptySet(),
         check = checkSquare,
+        // Arrows wait until the move has landed, so they never point from a moving piece.
+        arrows = if (progress < 1f) emptyList() else arrows,
+        rings = rings,
     )
     val shakeOffset = if (checkSquare != null && shake.value < 1f) {
         val t = shake.value
