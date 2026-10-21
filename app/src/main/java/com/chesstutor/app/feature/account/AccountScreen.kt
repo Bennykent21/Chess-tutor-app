@@ -16,11 +16,13 @@ import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Text
@@ -57,6 +59,8 @@ fun AccountScreen(
     onOpenSettings: () -> Unit,
     onOpenEngineHealth: () -> Unit,
     onOpenDesignGallery: () -> Unit,
+    onOpenBoardLab: () -> Unit,
+    onOpenBoardSettings: () -> Unit,
     onOpenDeveloperMenu: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -160,8 +164,16 @@ fun AccountScreen(
 
                 CtSectionHeader(title = "App", modifier = Modifier.ctEnter(6))
                 CtListRow(
+                    title = "Board and pieces",
+                    subtitle = "Piece sets, board colours, sound and motion",
+                    icon = Icons.Rounded.GridView,
+                    iconTint = CtColors.Gold,
+                    onClick = onOpenBoardSettings,
+                    modifier = Modifier.ctEnter(7),
+                )
+                CtListRow(
                     title = "Settings",
-                    subtitle = "Board, sound, haptics, motion",
+                    subtitle = "Coach, account and all other settings",
                     icon = Icons.Rounded.Settings,
                     onClick = onOpenSettings,
                     modifier = Modifier.ctEnter(7),
@@ -190,12 +202,20 @@ fun AccountScreen(
                     modifier = Modifier.ctEnter(10),
                 )
                 CtListRow(
+                    title = "Board lab",
+                    subtitle = "Try the new board: moves, sounds and motion",
+                    icon = Icons.Rounded.Science,
+                    iconTint = CtColors.Gold,
+                    onClick = onOpenBoardLab,
+                    modifier = Modifier.ctEnter(11),
+                )
+                CtListRow(
                     title = "Classic screens",
                     subtitle = "Every screen from before the revamp",
                     icon = Icons.Rounded.Build,
                     iconTint = CtColors.Text2,
                     onClick = onOpenDeveloperMenu,
-                    modifier = Modifier.ctEnter(11),
+                    modifier = Modifier.ctEnter(12),
                 )
                 Spacer(Modifier.height(CtSpacing.lg))
             }

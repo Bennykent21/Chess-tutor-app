@@ -73,3 +73,31 @@ fun CtCoachBubble(
         }
     }
 }
+
+/**
+ * The coach strip above a board (plan section 4.2): a small mascot, an optional [label]
+ * such as "You play Black", and one line of coaching. Read as one item by screen readers.
+ */
+@Composable
+fun CtCoachStrip(
+    mascot: Mascot,
+    text: String,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+) {
+    Row(
+        modifier = modifier
+            .clip(CtShapes.CardSmall)
+            .background(CtColors.SurfaceRaised)
+            .padding(horizontal = CtSpacing.md, vertical = CtSpacing.sm)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+    ) {
+        CtMascotArt(mascot = mascot, height = 40.dp, modifier = Modifier.width(38.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label ?: mascot.displayName, style = CtType.Caption.copy(color = CtColors.Gold))
+            Text(text = text, style = CtType.BodySmall.copy(color = CtColors.Text))
+        }
+    }
+}

@@ -23,6 +23,9 @@ import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.LearnTopic
 import com.chesstutor.app.domain.LessonSessionFactory
+import com.chesstutor.app.board.BoardColors
+import com.chesstutor.app.board.BoardFeedback
+import com.chesstutor.app.board.PieceSet
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.MoveChoice
@@ -1362,6 +1365,15 @@ class AppViewModel(
     fun setAutoQueen(enabled: Boolean) = updateSettings { it.copy(autoQueen = enabled) }
 
     fun setMascot(mascot: Mascot) = updateSettings { it.copy(mascotId = mascot.id) }
+
+    /** Plays a board event's sound and vibration, following the sound and haptics settings. */
+    fun playBoardFeedback(feedback: BoardFeedback) {
+        soundManager?.play(feedback, _state.value.isSoundEnabled)
+    }
+
+    fun setBoardColors(colors: BoardColors) = updateSettings { it.copy(boardThemeId = colors.id) }
+
+    fun setPieceSet(set: PieceSet) = updateSettings { it.copy(pieceSetId = set.id) }
 
     fun setBoardOrientation(orientation: BoardOrientation) =
         updateSettings { it.copy(boardOrientation = orientation) }

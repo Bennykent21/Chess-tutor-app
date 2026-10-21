@@ -12,6 +12,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -29,6 +30,10 @@ import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.di.AppContainer
+import com.chesstutor.app.feature.account.BoardLabScreen
+import com.chesstutor.app.feature.account.BoardSettingsActions
+import com.chesstutor.app.feature.account.BoardSettingsScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
@@ -142,6 +147,8 @@ fun AppNavHost(
                             onOpenSettings = { viewModel.setSettingsVisible(true) },
                             onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
                             onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
+                            onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
+                            onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
                             onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) }
                         )
                     }
@@ -162,6 +169,33 @@ fun AppNavHost(
                     }
                     composable(AppRoutes.DESIGN_GALLERY) {
                         DesignGalleryScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(AppRoutes.BOARD_SETTINGS) {
+                        BoardSettingsScreen(
+                            settings = state.appSettings,
+                            actions = BoardSettingsActions(
+                                onPieceSet = viewModel::setPieceSet,
+                                onBoardColors = viewModel::setBoardColors,
+                                onShowCoordinates = viewModel::setShowCoordinates,
+                                onShowLegalDots = viewModel::setShowLegalDots,
+                                onAutoQueen = viewModel::setAutoQueen,
+                                onOrientation = viewModel::setBoardOrientation,
+                                onSound = viewModel::setSoundEnabled,
+                                onHaptics = viewModel::setHapticsEnabled,
+                                onReduceMotion = viewModel::setReduceMotion
+                            ),
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.BOARD_LAB) {
+                        val context = LocalContext.current
+                        val engine = remember(context) { AppContainer.provideEngineService(context) }
+                        BoardLabScreen(
+                            settings = state.appSettings,
+                            engine = engine,
+                            onFeedback = viewModel::playBoardFeedback,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                 }
                 composable(
