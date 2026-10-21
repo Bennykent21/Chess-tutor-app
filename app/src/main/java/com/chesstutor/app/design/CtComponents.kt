@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -33,6 +34,8 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -387,6 +390,46 @@ fun CtListRow(
             Spacer(Modifier.width(CtSpacing.xs))
         }
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text3)
+    }
+}
+
+/**
+ * A setting with an on/off switch. The whole row toggles and reads as one switch to
+ * screen readers, so the target is large.
+ */
+@Composable
+fun CtToggleRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CtShapes.CardSmall)
+            .background(CtColors.Surface)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(horizontal = CtSpacing.md, vertical = CtSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = CtSpacing.md)) {
+            Text(text = title, style = CtType.TitleSmall)
+            if (subtitle != null) Text(text = subtitle, style = CtType.BodySmall)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = CtColors.OnGold,
+                checkedTrackColor = CtColors.Gold,
+                checkedBorderColor = CtColors.Gold,
+                uncheckedThumbColor = CtColors.Text2,
+                uncheckedTrackColor = CtColors.SurfaceHigh,
+                uncheckedBorderColor = CtColors.Line,
+            ),
+        )
     }
 }
 
