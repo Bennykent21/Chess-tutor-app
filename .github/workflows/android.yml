@@ -7,6 +7,8 @@ on:
       - main
       - refactor/foundation
       - fixes-and-puzzles
+      # Phase branches (plan D21), so every pushed step gets an installable APK.
+      - 'phase-*'
   pull_request:
     branches:
       - main

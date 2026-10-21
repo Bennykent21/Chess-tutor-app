@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Text
@@ -59,6 +60,7 @@ fun AccountScreen(
     onOpenEngineHealth: () -> Unit,
     onOpenDesignGallery: () -> Unit,
     onOpenBoardLab: () -> Unit,
+    onOpenBoardSettings: () -> Unit,
     onOpenDeveloperMenu: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -162,8 +164,16 @@ fun AccountScreen(
 
                 CtSectionHeader(title = "App", modifier = Modifier.ctEnter(6))
                 CtListRow(
+                    title = "Board and pieces",
+                    subtitle = "Piece sets, board colours, sound and motion",
+                    icon = Icons.Rounded.GridView,
+                    iconTint = CtColors.Gold,
+                    onClick = onOpenBoardSettings,
+                    modifier = Modifier.ctEnter(7),
+                )
+                CtListRow(
                     title = "Settings",
-                    subtitle = "Board, sound, haptics, motion",
+                    subtitle = "Coach, account and all other settings",
                     icon = Icons.Rounded.Settings,
                     onClick = onOpenSettings,
                     modifier = Modifier.ctEnter(7),
@@ -194,7 +204,7 @@ fun AccountScreen(
                 CtListRow(
                     title = "Board lab",
                     subtitle = "Try the new board: moves, sounds and motion",
-                    icon = Icons.Rounded.GridView,
+                    icon = Icons.Rounded.Science,
                     iconTint = CtColors.Gold,
                     onClick = onOpenBoardLab,
                     modifier = Modifier.ctEnter(11),
