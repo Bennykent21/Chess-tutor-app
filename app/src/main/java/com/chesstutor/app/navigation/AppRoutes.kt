@@ -44,6 +44,8 @@ object AppRoutes {
     const val ENGINE_HEALTH = "account/engine"
     const val DEVELOPER_MENU = "account/developer"
     const val DESIGN_GALLERY = "account/design"
+    /** Full screen (no bottom bar), like every activity that hosts a board. */
+    const val BOARD_LAB = "board/lab"
 
     const val LEGACY_CATEGORY_ARG = "category"
 

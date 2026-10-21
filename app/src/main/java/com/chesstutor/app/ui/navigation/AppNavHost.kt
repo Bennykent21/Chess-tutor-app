@@ -29,6 +29,7 @@ import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.feature.account.BoardLabScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
@@ -142,6 +143,7 @@ fun AppNavHost(
                             onOpenSettings = { viewModel.setSettingsVisible(true) },
                             onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
                             onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
+                            onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
                             onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) }
                         )
                     }
@@ -162,6 +164,13 @@ fun AppNavHost(
                     }
                     composable(AppRoutes.DESIGN_GALLERY) {
                         DesignGalleryScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(AppRoutes.BOARD_LAB) {
+                        BoardLabScreen(
+                            settings = state.appSettings,
+                            onFeedback = viewModel::playBoardFeedback,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                 }
                 composable(

@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -36,9 +37,27 @@ data class BoardMarks(
     val check: Square? = null,
 )
 
+/** A piece held under the finger, at [position] in board pixels. */
+data class DraggedPiece(val piece: Piece, val from: Square, val position: Offset)
+
+/** The moving parts [BoardHost] animates. A static board leaves it empty. */
+data class BoardMotion(
+    val slides: List<PieceSlide> = emptyList(),
+    /** 0 at the start of a move, 1 when every slide has landed. */
+    val slideProgress: Float = 1f,
+    /** The piece being taken; it fades out while the slides run. */
+    val captured: Pair<Square, Piece>? = null,
+    val dragged: DraggedPiece? = null,
+    /** The king in check shakes sideways by this fraction of a square. */
+    val shake: Pair<Square, Float>? = null,
+) {
+    val isSliding: Boolean get() = slides.isNotEmpty() && slideProgress < 1f
+}
+
 /**
- * The new board renderer (plan section 4, step 1A): squares, marks, coordinates and pieces
- * in one Canvas, in the player's [theme]. Static for now; step 1B adds input and motion.
+ * The board renderer (plan section 4): squares, marks, coordinates and pieces in one
+ * Canvas, in the player's [theme]. This is the static board; [BoardHost] adds input and
+ * motion on top of the same drawing code.
  */
 @Composable
 fun BoardView(
@@ -49,6 +68,20 @@ fun BoardView(
     showCoordinates: Boolean = true,
     showLegalDots: Boolean = true,
     marks: BoardMarks = BoardMarks(),
+) {
+    BoardCanvas(position, theme, modifier, whiteAtBottom, showCoordinates, showLegalDots, marks, BoardMotion())
+}
+
+@Composable
+internal fun BoardCanvas(
+    position: Position,
+    theme: BoardTheme,
+    modifier: Modifier,
+    whiteAtBottom: Boolean,
+    showCoordinates: Boolean,
+    showLegalDots: Boolean,
+    marks: BoardMarks,
+    motion: BoardMotion,
 ) {
     val painters = rememberPiecePainters(theme.pieceSet)
     val textMeasurer = rememberTextMeasurer()
@@ -66,18 +99,19 @@ fun BoardView(
         if (theme.colors.sheen) drawSheen()
         if (showCoordinates) drawCoordinates(theme.colors, whiteAtBottom, cell, textMeasurer)
         if (showLegalDots) drawLegalTargets(position, marks.legalTargets, whiteAtBottom, cell)
-        drawPieces(position, painters, whiteAtBottom, cell)
+        motion.dragged?.let { drawHoverOutline(it, whiteAtBottom, cell) }
+        drawPieces(position, painters, whiteAtBottom, cell, motion)
     }
 }
 
-/** What TalkBack reads for the whole board until step 1B adds per-square semantics. */
+/** What TalkBack reads for the whole board; [BoardHost] adds a node per square. */
 internal fun boardDescription(position: Position, whiteAtBottom: Boolean): String {
     val toMove = if (position.sideToMove == PieceColor.WHITE) "White to move" else "Black to move"
     val bottom = if (whiteAtBottom) "White at the bottom" else "Black at the bottom"
     return "Chess board. $toMove. $bottom."
 }
 
-private fun DrawScope.cellTopLeft(square: Square, whiteAtBottom: Boolean, cell: Float): Offset {
+private fun cellTopLeft(square: Square, whiteAtBottom: Boolean, cell: Float): Offset {
     val c = BoardGeometry.cellOf(square, whiteAtBottom)
     return Offset(c.col * cell, c.row * cell)
 }
@@ -109,6 +143,18 @@ private fun DrawScope.drawSquares(colors: BoardColors, marks: BoardMarks, whiteA
             )
         }
     }
+}
+
+/** Outlines the square under a dragged piece, since the lifted piece hides it. */
+private fun DrawScope.drawHoverOutline(dragged: DraggedPiece, whiteAtBottom: Boolean, cell: Float) {
+    val square = BoardGeometry.squareAt(dragged.position.x, dragged.position.y, size.minDimension, whiteAtBottom) ?: return
+    val stroke = cell * 0.06f
+    drawRect(
+        color = Color(BoardMarkColors.SELECTED),
+        topLeft = cellTopLeft(square, whiteAtBottom, cell) + Offset(stroke / 2f, stroke / 2f),
+        size = Size(cell - stroke, cell - stroke),
+        style = Stroke(width = stroke),
+    )
 }
 
 /** A soft light-to-shade diagonal that gives wood and stone a little depth. */
@@ -154,14 +200,46 @@ private fun DrawScope.drawLegalTargets(position: Position, targets: Set<Square>,
     }
 }
 
-private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painter>, whiteAtBottom: Boolean, cell: Float) {
+private fun DrawScope.drawPiece(painter: Painter, topLeft: Offset, size: Float, alpha: Float = 1f) {
+    translate(topLeft.x, topLeft.y) {
+        with(painter) { draw(Size(size, size), alpha = alpha) }
+    }
+}
+
+private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painter>, whiteAtBottom: Boolean, cell: Float, motion: BoardMotion) {
+    val sliding = motion.isSliding
+    // Squares whose piece is drawn by the motion layer instead of in place.
+    val landing = if (sliding) motion.slides.map { it.to }.toSet() else emptySet()
+
+    if (sliding) {
+        motion.captured?.let { (square, piece) ->
+            painters[piece]?.let { drawPiece(it, cellTopLeft(square, whiteAtBottom, cell), cell, alpha = 1f - motion.slideProgress) }
+        }
+    }
     for (index in 0 until 64) {
         val square = Square(index)
+        if (square in landing) continue
         val piece = position.pieceAt(square) ?: continue
         val painter = painters[piece] ?: continue
-        val topLeft = cellTopLeft(square, whiteAtBottom, cell)
-        translate(topLeft.x, topLeft.y) {
-            with(painter) { draw(Size(cell, cell)) }
+        var topLeft = cellTopLeft(square, whiteAtBottom, cell)
+        val shake = motion.shake
+        if (shake != null && shake.first == square) topLeft += Offset(shake.second * cell, 0f)
+        // The dragged piece leaves a faint ghost on its square.
+        val alpha = if (motion.dragged?.from == square) 0.3f else 1f
+        drawPiece(painter, topLeft, cell, alpha)
+    }
+    if (sliding) {
+        motion.slides.forEach { slide ->
+            val painter = painters[slide.piece] ?: return@forEach
+            val start = cellTopLeft(slide.from, whiteAtBottom, cell)
+            val end = cellTopLeft(slide.to, whiteAtBottom, cell)
+            drawPiece(painter, lerp(start, end, motion.slideProgress), cell)
         }
+    }
+    motion.dragged?.let { dragged ->
+        val painter = painters[dragged.piece] ?: return@let
+        // Lifted: a little larger and above the finger, so the finger does not hide it.
+        val lifted = cell * 1.25f
+        drawPiece(painter, dragged.position - Offset(lifted / 2f, lifted * 0.75f), lifted)
     }
 }
