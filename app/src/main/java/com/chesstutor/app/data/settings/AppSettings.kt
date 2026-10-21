@@ -1,5 +1,8 @@
 package com.chesstutor.app.data.settings
 
+import com.chesstutor.app.board.BoardColors
+import com.chesstutor.app.board.BoardTheme
+import com.chesstutor.app.board.PieceSet
 import com.chesstutor.app.domain.Mascot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +20,6 @@ enum class BoardOrientation {
 
 /**
  * Everything the player can set once and have applied everywhere (plan section 4).
- * Phase 1 adds the real board themes and piece sets behind [boardThemeId] and [pieceSetId].
  */
 data class AppSettings(
     val soundEnabled: Boolean = true,
@@ -27,16 +29,20 @@ data class AppSettings(
     val reduceMotion: Boolean = false,
     val autoQueen: Boolean = false,
     val boardOrientation: BoardOrientation = BoardOrientation.FOLLOW_SIDE,
+    /** Always a known [BoardColors.id] once decoded. */
     val boardThemeId: String = DEFAULT_THEME_ID,
+    /** Always a known [PieceSet.id] once decoded. */
     val pieceSetId: String = DEFAULT_PIECE_SET_ID,
     /** The chosen coach (decision D20). Always a known [Mascot.id] once decoded. */
     val mascotId: String = Mascot.DEFAULT.id,
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
 
+    val boardTheme: BoardTheme get() = BoardTheme(BoardColors.fromId(boardThemeId), PieceSet.fromId(pieceSetId))
+
     companion object {
-        const val DEFAULT_THEME_ID = "classic"
-        const val DEFAULT_PIECE_SET_ID = "classic"
+        val DEFAULT_THEME_ID = BoardColors.DEFAULT.id
+        val DEFAULT_PIECE_SET_ID = PieceSet.DEFAULT.id
     }
 }
 
@@ -63,8 +69,6 @@ object AppSettingsCodec {
     fun decode(values: Map<String, Any?>): AppSettings {
         val defaults = AppSettings()
         fun bool(key: String, fallback: Boolean) = values[key] as? Boolean ?: fallback
-        fun text(key: String, fallback: String) =
-            (values[key] as? String)?.takeIf { it.isNotBlank() } ?: fallback
         val orientation = (values[ORIENTATION] as? String)
             ?.let { name -> BoardOrientation.entries.firstOrNull { it.name == name } }
             ?: defaults.boardOrientation
@@ -76,8 +80,8 @@ object AppSettingsCodec {
             reduceMotion = bool(REDUCE_MOTION, defaults.reduceMotion),
             autoQueen = bool(AUTO_QUEEN, defaults.autoQueen),
             boardOrientation = orientation,
-            boardThemeId = text(BOARD_THEME, defaults.boardThemeId),
-            pieceSetId = text(PIECE_SET, defaults.pieceSetId),
+            boardThemeId = BoardColors.fromId(values[BOARD_THEME] as? String).id,
+            pieceSetId = PieceSet.fromId(values[PIECE_SET] as? String).id,
             mascotId = Mascot.fromId(values[MASCOT] as? String).id,
         )
     }

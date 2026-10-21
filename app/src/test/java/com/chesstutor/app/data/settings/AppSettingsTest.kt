@@ -1,5 +1,8 @@
 package com.chesstutor.app.data.settings
 
+import com.chesstutor.app.board.BoardColors
+import com.chesstutor.app.board.BoardTheme
+import com.chesstutor.app.board.PieceSet
 import com.chesstutor.app.domain.Mascot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -26,7 +29,7 @@ class AppSettingsTest {
             autoQueen = true,
             boardOrientation = BoardOrientation.WHITE_ALWAYS_BOTTOM,
             boardThemeId = "walnut",
-            pieceSetId = "glass",
+            pieceSetId = "merida",
             mascotId = Mascot.SAGE.id,
         )
         assertEquals(custom, AppSettingsCodec.decode(AppSettingsCodec.encode(custom)))
@@ -74,6 +77,26 @@ class AppSettingsTest {
             val decoded = AppSettingsCodec.decode(mapOf(AppSettingsCodec.MASCOT to stored))
             assertEquals("stored value $stored", Mascot.PIP.id, decoded.mascotId)
         }
+    }
+
+    @Test
+    fun boardThemeAndPieceSetDecodeToKnownIdsOnly() {
+        for (stored in listOf<Any?>("glass", "", 7, null)) {
+            val decoded = AppSettingsCodec.decode(
+                mapOf(AppSettingsCodec.BOARD_THEME to stored, AppSettingsCodec.PIECE_SET to stored)
+            )
+            assertEquals("stored value $stored", BoardColors.DEFAULT.id, decoded.boardThemeId)
+            assertEquals("stored value $stored", PieceSet.DEFAULT.id, decoded.pieceSetId)
+        }
+        // Phase 0 stored the placeholder piece set "classic"; it now means the Classic set.
+        assertEquals(PieceSet.CBURNETT, AppSettingsCodec.decode(mapOf(AppSettingsCodec.PIECE_SET to "classic")).boardTheme.pieceSet)
+    }
+
+    @Test
+    fun boardThemeCombinesTheStoredColoursAndPieces() {
+        val theme = AppSettings(boardThemeId = "neon", pieceSetId = "chessnut").boardTheme
+        assertEquals(BoardTheme(BoardColors.NEON, PieceSet.CHESSNUT), theme)
+        assertEquals(BoardTheme(), AppSettings().boardTheme)
     }
 
     @Test
