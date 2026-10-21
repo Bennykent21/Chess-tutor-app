@@ -53,7 +53,14 @@ object EngineResultValidator {
             }
         }
 
-        return analysis.normalizedScore(position.sideToMove, scorePerspective)
+        // Candidate lines are untrusted too: keep only lines that start with a legal move.
+        val checkedLines = analysis.lines.filter { line ->
+            val first = line.firstMove ?: return@filter false
+            val move = runCatching { Move.fromUci(first) }.getOrNull()
+            move != null && move in legalMoves
+        }
+
+        return analysis.copy(lines = checkedLines).normalizedScore(position.sideToMove, scorePerspective)
     }
 
     private fun PositionAnalysis.normalizedScore(
@@ -67,6 +74,12 @@ object EngineResultValidator {
         return copy(
             centipawns = centipawns?.let { -it },
             mateInMoves = mateInMoves?.let { -it },
+            lines = lines.map { line ->
+                line.copy(
+                    centipawns = line.centipawns?.let { -it },
+                    mateInMoves = line.mateInMoves?.let { -it },
+                )
+            },
         )
     }
 }

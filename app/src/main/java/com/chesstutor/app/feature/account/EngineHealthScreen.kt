@@ -1,0 +1,130 @@
+package com.chesstutor.app.feature.account
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.HourglassTop
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import com.chesstutor.app.design.CtButton
+import com.chesstutor.app.design.CtCard
+import com.chesstutor.app.design.CtColors
+import com.chesstutor.app.design.CtIconBubble
+import com.chesstutor.app.design.CtScreenBackground
+import com.chesstutor.app.design.CtShapes
+import com.chesstutor.app.design.CtSpacing
+import com.chesstutor.app.design.CtTopBar
+import com.chesstutor.app.design.CtType
+import com.chesstutor.app.engine.EngineSource
+import com.chesstutor.app.engine.EngineStatus
+import com.chesstutor.app.engine.NativeEngineState
+import com.chesstutor.app.ui.theme.JetBrainsMonoFontFamily
+
+/**
+ * Engine health (plan section 4.5): which engine is answering, and an on-demand check
+ * whose numbers all come from Stockfish's own output.
+ */
+@Composable
+fun EngineHealthScreen(
+    status: EngineStatus,
+    report: String?,
+    isRunning: Boolean,
+    onRunCheck: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val healthy = !status.isDegraded && status.nativeState == NativeEngineState.READY
+    val (headline, detail) = when {
+        healthy -> "Stockfish is running" to
+            "Bots, hints and analysis use Stockfish on this phone, with its neural network."
+        status.nativeState == NativeEngineState.NOT_STARTED || status.nativeState == NativeEngineState.STARTING ->
+            "Starting Stockfish" to "Run the check below to start it now."
+        else -> "Using the Lite engine" to
+            "Stockfish is not running on this phone, so answers come from " +
+            "${if (status.lastAnswerSource == EngineSource.CLOUD) "an online engine" else "the small built-in engine"}. " +
+            "Bots and analysis are weaker until it works. Run the check for details."
+    }
+
+    CtScreenBackground(modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
+            CtTopBar(title = "Engine health", onBack = onBack)
+            Column(
+                modifier = Modifier.padding(horizontal = CtSpacing.gutter),
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
+            ) {
+                CtCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CtIconBubble(
+                            icon = when {
+                                healthy -> Icons.Rounded.CheckCircle
+                                status.nativeState == NativeEngineState.STARTING -> Icons.Rounded.HourglassTop
+                                else -> Icons.Rounded.Warning
+                            },
+                            tint = if (healthy) CtColors.Lime else CtColors.Coral,
+                            size = 52.dp,
+                        )
+                        Spacer(Modifier.width(CtSpacing.md))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = headline, style = CtType.Title)
+                            Text(text = detail, style = CtType.BodySmall)
+                        }
+                    }
+                    val problem = status.problem
+                    if (problem != null) {
+                        Spacer(Modifier.height(CtSpacing.md))
+                        Text(text = problem, style = CtType.Caption.copy(color = CtColors.Coral))
+                    }
+                }
+
+                CtButton(
+                    text = if (isRunning) "Checking..." else "Run engine check",
+                    icon = Icons.Rounded.Memory,
+                    onClick = onRunCheck,
+                    enabled = !isRunning,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                if (!report.isNullOrBlank()) {
+                    Text(
+                        text = report,
+                        style = CtType.Caption.copy(color = CtColors.Text, fontFamily = JetBrainsMonoFontFamily),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(CtShapes.CardSmall)
+                            .background(CtColors.BgDeep)
+                            .padding(CtSpacing.md),
+                    )
+                }
+
+                Text(
+                    text = "The check runs a one-second search from the starting position. A healthy " +
+                        "result names Stockfish 19, reports its network file, and shows the speed in " +
+                        "nodes per second as Stockfish measured it.",
+                    style = CtType.Caption,
+                )
+                Spacer(Modifier.height(CtSpacing.lg))
+            }
+        }
+    }
+}

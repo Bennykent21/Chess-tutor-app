@@ -123,7 +123,8 @@ class OnlineStockfishEngineClient(
                                     centipawns = cp,
                                     mateInMoves = mateVal,
                                     principalVariation = if (pvList.isNotEmpty()) pvList else listOf(bestMoveUci),
-                                    depth = targetDepth
+                                    depth = targetDepth,
+                                    source = EngineSource.CLOUD
                                 ),
                                 scorePerspective = EngineResultValidator.ScorePerspective.WHITE
                             )
@@ -198,7 +199,8 @@ class OnlineStockfishEngineClient(
                                 centipawns = cp,
                                 mateInMoves = mate,
                                 principalVariation = pv,
-                                depth = targetDepth
+                                depth = targetDepth,
+                                source = EngineSource.CLOUD
                             ),
                             scorePerspective = EngineResultValidator.ScorePerspective.WHITE
                         )

@@ -3,8 +3,15 @@ Chess Tutor — Open Source Notices
 1. Stockfish Chess Engine
    License: GNU General Public License v3.0 (GPL-3.0)
    Upstream Repository: https://github.com/official-stockfish/Stockfish
-   Bundled Native Binary Version: Stockfish 16.1 (Android NDK ELF PIE for arm64-v8a and x86_64)
+   Bundled Native Binary Version: Stockfish 19 (tag sf_19, commit edb0d9db6731067ec50ce619ff372b463bc4dd5d),
+   built from that unmodified source by tools/build_stockfish_android.sh for arm64-v8a and x86_64,
+   with its neural network (nn-1a298aa575a0.nnue) embedded.
    Communication: Independent subprocess via standard UCI (Universal Chess Interface) pipes.
+
+3. Fonts
+   Nunito, Inter and JetBrains Mono: SIL Open Font License 1.1. See licenses/OFL-1.1.txt.
+
+A full list of bundled assets and their licences is in LICENSES.md.
 
 2. Curated Puzzle & Opening Reference Data
    Lichess Open Puzzle & Chess Openings datasets (Creative Commons CC0 1.0 Universal Public Domain Dedication).

@@ -11,6 +11,10 @@ import com.chesstutor.app.data.repository.RoomLearningRepository
 import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.data.repository.RoomRatingRepository
 import com.chesstutor.app.data.repository.RoomReviewRepository
+import com.chesstutor.app.data.settings.DataStoreSettingsStore
+import com.chesstutor.app.data.settings.SettingsStore
+import com.chesstutor.app.engine.EngineService
+import com.chesstutor.app.engine.ManagerEngineService
 import com.chesstutor.app.engine.ChessEngineManager
 import com.chesstutor.app.engine.EngineClient
 import com.chesstutor.app.engine.LocalFallbackEngineClient
@@ -39,6 +43,22 @@ object AppContainer {
 
     @Volatile
     private var soundManagerInstance: com.chesstutor.app.audio.ChessSoundManager? = null
+
+    @Volatile
+    private var settingsStoreInstance: SettingsStore? = null
+
+    /** Player settings (DataStore). One instance per process, as DataStore requires. */
+    fun provideSettingsStore(context: Context): SettingsStore {
+        return settingsStoreInstance ?: synchronized(this) {
+            settingsStoreInstance ?: DataStoreSettingsStore(context.applicationContext).also {
+                settingsStoreInstance = it
+            }
+        }
+    }
+
+    /** The engine API for new features (plan section 4.4). */
+    fun provideEngineService(context: Context): EngineService =
+        ManagerEngineService(provideChessEngineManager(context))
 
     fun provideSoundManager(context: Context): com.chesstutor.app.audio.ChessSoundManager {
         return soundManagerInstance ?: synchronized(this) {
@@ -86,7 +106,7 @@ object AppContainer {
 
     @Volatile
     var engineResolutionDiagnostic: String =
-        "Local Stockfish primary; cloud Stockfish fallback; deterministic fallback last"
+        "On-device Stockfish first; online engine second; built-in Lite engine last"
         private set
 
     fun provideEngineClient(context: Context): EngineClient {
@@ -99,7 +119,7 @@ object AppContainer {
                 fallbackClient = cloudFallback
             )
             engineResolutionDiagnostic =
-                "Engine: Local UCI Stockfish with cloud and local fallback"
+                "Engine: on-device Stockfish, with online and Lite engine fallbacks"
             runCatching { Log.i("AppContainer", engineResolutionDiagnostic) }
             engineClientInstance = primaryClient
             primaryClient

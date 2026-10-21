@@ -17,12 +17,21 @@ android {
     applicationId = "io.github.bennykent21.chesstutor"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    // CI builds carry the GitHub Actions run number, so Android's App info screen shows
+    // exactly which build is installed. Local builds are "0.1-local".
+    val ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+    versionCode = ciRunNumber ?: 1
+    versionName = if (ciRunNumber != null) "0.1.$ciRunNumber" else "0.1-local"
+    // App name shown under the launcher icon. Debug builds override it below.
+    manifestPlaceholders["appLabel"] = "@string/app_name"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     ndk {
-      abiFilters += listOf("arm64-v8a", "x86_64")
+      // CI passes -PctAbis=arm64-v8a so test APKs carry a single copy of Stockfish, whose
+      // embedded network is large. Local builds include the emulator ABI too.
+      val requestedAbis = (project.findProperty("ctAbis") as String?)
+        ?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+      abiFilters += requestedAbis ?: listOf("arm64-v8a", "x86_64")
     }
   }
 
@@ -61,7 +70,13 @@ android {
         signingConfig = releaseSigning
       }
     }
-    debug { signingConfig = signingConfigs.getByName("debugConfig") }
+    debug {
+      signingConfig = signingConfigs.getByName("debugConfig")
+      // Debug installs as a separate app ("Chess Tutor Debug") with its own data, so the
+      // debug APK and the minified release APK can sit side by side on the phone.
+      applicationIdSuffix = ".debug"
+      manifestPlaceholders["appLabel"] = "Chess Tutor Debug"
+    }
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -88,6 +103,32 @@ android {
     includeInBundle = true
   }
 }
+
+// Robolectric needs Java 21 to run Android SDK 36. Only the unit tests run on a Java 21
+// toolchain (found locally, or downloaded by the foojay resolver in settings.gradle.kts),
+// so `./gradlew test` passes whichever JDK runs Gradle itself.
+tasks.withType<Test>().configureEach {
+  javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+// The Stockfish binaries are built by CI (or tools/build_stockfish_android.sh) and are not
+// in git. Without them the app silently runs on the weak Lite engine, so every build says so.
+val checkStockfishBinaries by tasks.registering {
+  val abis = android.defaultConfig.ndk.abiFilters.toList()
+  val jniLibs = layout.projectDirectory.dir("src/main/jniLibs").asFile
+  outputs.upToDateWhen { false }
+  doLast {
+    val missing = abis.filter { !File(jniLibs, "$it/libstockfish.so").isFile }
+    if (missing.isNotEmpty()) {
+      logger.warn(
+        "WARNING: Stockfish is missing for ${missing.joinToString()} " +
+          "(src/main/jniLibs/<abi>/libstockfish.so). This build will use the Lite engine. " +
+          "Build it with tools/build_stockfish_android.sh or download the stockfish-android CI artifact."
+      )
+    }
+  }
+}
+tasks.named("preBuild") { dependsOn(checkStockfishBinaries) }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
 // to match the convention used in Web projects.
@@ -120,7 +161,7 @@ dependencies {
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
-  // implementation(libs.androidx.datastore.preferences)
+  implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)

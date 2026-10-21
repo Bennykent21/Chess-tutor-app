@@ -34,7 +34,8 @@ class MainActivity : ComponentActivity() {
         val engineManager = AppContainer.provideChessEngineManager(context)
         val gameRepo = AppContainer.provideGameRepository(context)
         val soundManager = AppContainer.provideSoundManager(context)
-        AppViewModelFactory(repo, engine, ratingRepo, learningRepo, engineManager, gameRepo, soundManager)
+        val settingsStore = AppContainer.provideSettingsStore(context)
+        AppViewModelFactory(repo, engine, ratingRepo, learningRepo, engineManager, gameRepo, soundManager, settingsStore)
       }
       val appViewModel: AppViewModel = viewModel(factory = factory)
 

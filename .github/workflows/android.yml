@@ -39,10 +39,24 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Create debug keystore
+      - name: Set up test signing key
+        # Every APK must be signed with the SAME key, or Android refuses to install it over the
+        # previous build (you would have to uninstall and lose your progress each time).
+        # The key lives in the CI_DEBUG_KEYSTORE_B64 repository secret: a base64-encoded
+        # debug keystore (password "android", alias "androiddebugkey"). It is a test key only.
+        # NEVER use it, or any APK it signs, for Google Play.
         shell: bash
+        env:
+          CI_DEBUG_KEYSTORE_B64: ${{ secrets.CI_DEBUG_KEYSTORE_B64 }}
         run: |
           mkdir -p "$HOME/.android"
+          if [ -n "$CI_DEBUG_KEYSTORE_B64" ]; then
+            printf '%s' "$CI_DEBUG_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
+            keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey > /dev/null
+            echo "Using the saved test key from CI_DEBUG_KEYSTORE_B64."
+            exit 0
+          fi
+          echo "::warning title=No saved signing key::CI_DEBUG_KEYSTORE_B64 is not set, so this run uses a brand-new key. These APKs will NOT install over earlier builds."
           keytool -genkeypair \
             -keystore "$HOME/.android/debug.keystore" \
             -storepass android \
@@ -76,8 +90,45 @@ jobs:
           path: app/build/reports/lint-results-debug.*
           if-no-files-found: ignore
 
+      # Stockfish 19 with its network embedded, 16 KB aligned (plan section 4.5). Built from
+      # the pinned official source once, then cached until the build script changes.
+      - name: Restore Stockfish build
+        id: stockfish-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/src/main/jniLibs/arm64-v8a/libstockfish.so
+            app/src/main/jniLibs/x86_64/libstockfish.so
+            stockfish-build
+          key: stockfish-${{ hashFiles('tools/build_stockfish_android.sh') }}-ndk27.2.12479018
+
+      - name: Install Android NDK r27c
+        if: steps.stockfish-cache.outputs.cache-hit != 'true'
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;27.2.12479018" > /dev/null
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+
+      - name: Build Stockfish for Android
+        if: steps.stockfish-cache.outputs.cache-hit != 'true'
+        run: bash tools/build_stockfish_android.sh app/src/main/jniLibs stockfish-build/STOCKFISH_BUILD.txt
+
+      - name: Check Stockfish binaries
+        run: |
+          cat stockfish-build/STOCKFISH_BUILD.txt
+          ls -la app/src/main/jniLibs/*/libstockfish.so
+
+      - name: Upload Stockfish binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockfish-android
+          path: |
+            app/src/main/jniLibs/*/libstockfish.so
+            stockfish-build/STOCKFISH_BUILD.txt
+          if-no-files-found: error
+
+      # Test APKs are arm64 only (every modern phone), so they carry one copy of the engine.
       - name: Assemble debug APK
-        run: ./gradlew assembleDebug --no-configuration-cache -Dhttps.protocols=TLSv1.2
+        run: ./gradlew assembleDebug -PctAbis=arm64-v8a --no-configuration-cache -Dhttps.protocols=TLSv1.2
 
       - name: Assemble release APK
         # R8 is on for release. Sign this CI build with the throwaway debug key so the minified
@@ -85,7 +136,7 @@ jobs:
         run: |
           KEYSTORE_PATH="$HOME/.android/debug.keystore" \
           STORE_PASSWORD=android KEY_ALIAS=androiddebugkey KEY_PASSWORD=android \
-          ./gradlew assembleRelease --no-configuration-cache -Dhttps.protocols=TLSv1.2
+          ./gradlew assembleRelease -PctAbis=arm64-v8a --no-configuration-cache -Dhttps.protocols=TLSv1.2
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
