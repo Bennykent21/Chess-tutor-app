@@ -32,6 +32,8 @@ import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.account.BoardLabScreen
+import com.chesstutor.app.feature.account.BoardSettingsActions
+import com.chesstutor.app.feature.account.BoardSettingsScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
@@ -146,6 +148,7 @@ fun AppNavHost(
                             onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
                             onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
                             onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
+                            onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
                             onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) }
                         )
                     }
@@ -166,6 +169,23 @@ fun AppNavHost(
                     }
                     composable(AppRoutes.DESIGN_GALLERY) {
                         DesignGalleryScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(AppRoutes.BOARD_SETTINGS) {
+                        BoardSettingsScreen(
+                            settings = state.appSettings,
+                            actions = BoardSettingsActions(
+                                onPieceSet = viewModel::setPieceSet,
+                                onBoardColors = viewModel::setBoardColors,
+                                onShowCoordinates = viewModel::setShowCoordinates,
+                                onShowLegalDots = viewModel::setShowLegalDots,
+                                onAutoQueen = viewModel::setAutoQueen,
+                                onOrientation = viewModel::setBoardOrientation,
+                                onSound = viewModel::setSoundEnabled,
+                                onHaptics = viewModel::setHapticsEnabled,
+                                onReduceMotion = viewModel::setReduceMotion
+                            ),
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                     composable(AppRoutes.BOARD_LAB) {
                         val context = LocalContext.current

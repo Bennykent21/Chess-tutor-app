@@ -44,6 +44,7 @@ object AppRoutes {
     const val ENGINE_HEALTH = "account/engine"
     const val DEVELOPER_MENU = "account/developer"
     const val DESIGN_GALLERY = "account/design"
+    const val BOARD_SETTINGS = "account/board"
     /** Full screen (no bottom bar), like every activity that hosts a board. */
     const val BOARD_LAB = "board/lab"
 
@@ -59,7 +60,7 @@ object AppRoutes {
     fun parseCategory(value: String?): LearnCategory? =
         value?.let { name -> LearnCategory.entries.firstOrNull { it.name == name } }
 
-    private val accountPages = setOf(ENGINE_HEALTH, DEVELOPER_MENU, DESIGN_GALLERY)
+    private val accountPages = setOf(ENGINE_HEALTH, DEVELOPER_MENU, DESIGN_GALLERY, BOARD_SETTINGS)
 
     /**
      * The bottom bar shows on tab pages and hides on full-screen activities (any legacy
