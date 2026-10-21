@@ -22,7 +22,22 @@ known before release (plan.md, section 9). Add a row whenever an asset is added.
 | Board colour themes | `app/src/main/java/com/chesstutor/app/board/BoardTheme.kt` | Original, made for this project | GPL-3.0, with the app |
 | Launcher icon | `app/src/main/res/drawable/ic_launcher_*.xml`; the `mipmap-*/ic_launcher*.webp` files (Android 7 only) are rendered from those by `tools/render_launcher_icons.py` | Origin of the vector art not recorded | **To confirm** before release, or replace with original art |
 
-Sounds are generated in code today (`ChessSoundManager`), so no sound files are bundled.
-When the sound pack is added (Phase 1, step 1B), record it here first.
+Sound effects (`app/src/main/res/raw/sfx_*.ogg`), played by `audio/ChessSoundManager.kt`:
+
+| File | Original file | Pack | Licence |
+|---|---|---|---|
+| `sfx_move.ogg` | `impactWood_light_002.ogg` | Kenney "Impact Sounds" 1.0 (kenney.nl) | CC0 1.0 |
+| `sfx_capture.ogg` | `impactWood_heavy_001.ogg` | Kenney "Impact Sounds" 1.0 | CC0 1.0 |
+| `sfx_castle.ogg` | `impactPlank_medium_000.ogg` | Kenney "Impact Sounds" 1.0 | CC0 1.0 |
+| `sfx_check.ogg` | `glass_002.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
+| `sfx_promote.ogg` | `maximize_006.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
+| `sfx_win.ogg` | `confirmation_004.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
+| `sfx_lose.ogg` | `minimize_008.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
+| `sfx_correct.ogg` | `confirmation_001.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
+| `sfx_wrong.ogg` | `error_008.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
+| `sfx_tap.ogg` | `click_002.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
+
+The files are unchanged copies. CC0 needs no credit; Kenney asks for an optional one, so the
+in-app licences page (Phase 6) should name kenney.nl.
 
 This is a record, not legal advice.

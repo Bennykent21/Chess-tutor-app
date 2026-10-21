@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Memory
@@ -57,6 +58,7 @@ fun AccountScreen(
     onOpenSettings: () -> Unit,
     onOpenEngineHealth: () -> Unit,
     onOpenDesignGallery: () -> Unit,
+    onOpenBoardLab: () -> Unit,
     onOpenDeveloperMenu: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -190,12 +192,20 @@ fun AccountScreen(
                     modifier = Modifier.ctEnter(10),
                 )
                 CtListRow(
+                    title = "Board lab",
+                    subtitle = "Try the new board: moves, sounds and motion",
+                    icon = Icons.Rounded.GridView,
+                    iconTint = CtColors.Gold,
+                    onClick = onOpenBoardLab,
+                    modifier = Modifier.ctEnter(11),
+                )
+                CtListRow(
                     title = "Classic screens",
                     subtitle = "Every screen from before the revamp",
                     icon = Icons.Rounded.Build,
                     iconTint = CtColors.Text2,
                     onClick = onOpenDeveloperMenu,
-                    modifier = Modifier.ctEnter(11),
+                    modifier = Modifier.ctEnter(12),
                 )
                 Spacer(Modifier.height(CtSpacing.lg))
             }
