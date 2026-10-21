@@ -84,8 +84,13 @@ fun BoardHost(
     arrows: List<BoardArrow> = emptyList(),
     rings: List<SquareRing> = emptyList(),
     onFeedback: (BoardFeedback) -> Unit = {},
+    /** In draw mode (analysis), drags draw arrows and taps ring squares instead of moving. */
+    drawMode: Boolean = false,
+    onDrawArrow: (from: Square, to: Square) -> Unit = { _, _ -> },
+    onDrawRing: (Square) -> Unit = {},
 ) {
     val state by session.state.collectAsState()
+    var drawPreview by remember { mutableStateOf<Pair<Square, Square>?>(null) }
     val reduceMotion = LocalReduceMotion.current
 
     var selected by remember { mutableStateOf<Square?>(null) }
@@ -168,6 +173,9 @@ fun BoardHost(
     val currentWhiteAtBottom by rememberUpdatedState(shownWhiteAtBottom)
     val currentAutoQueen by rememberUpdatedState(autoQueen)
     val currentPromotion by rememberUpdatedState(pendingPromotion)
+    val currentDrawMode by rememberUpdatedState(drawMode)
+    val currentOnDrawArrow by rememberUpdatedState(onDrawArrow)
+    val currentOnDrawRing by rememberUpdatedState(onDrawRing)
 
     val marks = BoardMarks(
         lastMove = state.lastMove?.let { it.from to it.to },
@@ -175,7 +183,8 @@ fun BoardHost(
         legalTargets = (selected ?: dragged?.from)?.let { BoardInput.targetsFrom(it, state.legalMoves) } ?: emptySet(),
         check = checkSquare,
         // Arrows wait until the move has landed, so they never point from a moving piece.
-        arrows = if (progress < 1f) emptyList() else arrows,
+        arrows = (if (progress < 1f) emptyList() else arrows) +
+            listOfNotNull(drawPreview?.let { (from, to) -> BoardArrow(from, to, MarkKind.USER) }),
         rings = rings,
     )
     val shakeOffset = if (checkSquare != null && shake.value < 1f) {
@@ -207,6 +216,22 @@ fun BoardHost(
                         val boardSize = size.width.toFloat()
                         val start = BoardGeometry.squareAt(down.position.x, down.position.y, boardSize, currentWhiteAtBottom)
                             ?: return@awaitEachGesture
+                        if (currentDrawMode) {
+                            var target = start
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                change.consume()
+                                BoardGeometry.squareAt(change.position.x, change.position.y, boardSize, currentWhiteAtBottom)?.let { target = it }
+                                if (!change.pressed) {
+                                    if (target == start) currentOnDrawRing(start) else currentOnDrawArrow(start, target)
+                                    break
+                                }
+                                drawPreview = if (target != start) start to target else null
+                            }
+                            drawPreview = null
+                            return@awaitEachGesture
+                        }
                         // Read live state, not the last composition: two quick taps can arrive between frames.
                         val now = currentSession.state.value
                         val pickable = BoardInput.canPick(now.position, start, now.movable)
