@@ -2,6 +2,7 @@ package com.chesstutor.app.feature.account
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,12 +27,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.board.BoardColors
+import com.chesstutor.app.board.BoardMarks
+import com.chesstutor.app.board.BoardTheme
+import com.chesstutor.app.board.BoardView
+import com.chesstutor.app.board.PieceSet
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.Square
 import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
@@ -136,6 +145,9 @@ fun DesignGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     onAction = {},
                 )
 
+                CtSectionHeader(title = "Board")
+                BoardSample()
+
                 CtSectionHeader(title = "Coaches")
                 Mascot.entries.forEach { mascot ->
                     CtCoachBubble(mascot = mascot, text = mascot.tagline + ".", modifier = Modifier.fillMaxWidth())
@@ -155,4 +167,50 @@ private fun Swatch(color: Color) {
             .background(color)
             .border(1.dp, CtColors.Line, CtShapes.CardSmall),
     )
+}
+
+/** Italian Game after 3...Bc5, with every kind of mark, so a theme can be judged at a glance. */
+private val SAMPLE_POSITION = Position.fromFen("r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4")
+private val SAMPLE_MARKS = BoardMarks(
+    lastMove = Square.fromAlgebraic("f8") to Square.fromAlgebraic("c5"),
+    selected = Square.fromAlgebraic("f3"),
+    legalTargets = setOf("g5", "e5", "h4", "d4", "g1").map(Square::fromAlgebraic).toSet(),
+)
+
+/** The step 1A board in every piece set and colour theme (the settings page arrives in 1D). */
+@Composable
+private fun BoardSample() {
+    var pieceSet by remember { mutableStateOf(PieceSet.DEFAULT) }
+    var colors by remember { mutableStateOf(BoardColors.DEFAULT) }
+    var whiteAtBottom by remember { mutableStateOf(true) }
+
+    BoardView(
+        position = SAMPLE_POSITION,
+        theme = BoardTheme(colors, pieceSet),
+        whiteAtBottom = whiteAtBottom,
+        marks = SAMPLE_MARKS,
+    )
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+    ) {
+        PieceSet.entries.forEach { set ->
+            CtChip(text = set.displayName, selected = set == pieceSet, onClick = { pieceSet = set })
+        }
+    }
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+    ) {
+        BoardColors.entries.forEach { option ->
+            CtChip(text = option.displayName, color = CtColors.Gold, selected = option == colors, onClick = { colors = option })
+        }
+    }
+    CtButton(
+        text = if (whiteAtBottom) "Show Black at the bottom" else "Show White at the bottom",
+        style = CtButtonStyle.Secondary,
+        onClick = { whiteAtBottom = !whiteAtBottom },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Text("Pieces: ${pieceSet.credit}", style = CtType.Caption)
 }
