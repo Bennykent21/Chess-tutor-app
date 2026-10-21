@@ -1,0 +1,4 @@
+# Shell scripts run on Linux CI; keep LF endings even when committed from Windows.
+*.sh text eol=lf
+gradlew text eol=lf
+*.bat text eol=crlf

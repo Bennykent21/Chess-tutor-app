@@ -14,11 +14,16 @@ import com.chesstutor.app.data.repository.InMemoryRatingRepository
 import com.chesstutor.app.data.repository.LearningRepository
 import com.chesstutor.app.data.repository.RatingRepository
 import com.chesstutor.app.data.repository.ReviewRepository
+import com.chesstutor.app.data.settings.AppSettings
+import com.chesstutor.app.data.settings.BoardOrientation
+import com.chesstutor.app.data.settings.InMemorySettingsStore
+import com.chesstutor.app.data.settings.SettingsStore
 import com.chesstutor.app.domain.AdaptiveTrainingPlanner
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.LearnTopic
 import com.chesstutor.app.domain.LessonSessionFactory
+import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.MoveAssessment
 import com.chesstutor.app.domain.MoveChoice
 import com.chesstutor.app.domain.OpeningBook
@@ -56,7 +61,8 @@ class AppViewModel(
     private val chessEngineManager: ChessEngineManager = ChessEngineManager(engine),
     private val gameRepository: GameRepository = InMemoryGameRepository(),
     private val soundManager: com.chesstutor.app.audio.ChessSoundManager? = null,
-    val navigator: AppNavigator = AppNavigator()
+    val navigator: AppNavigator = AppNavigator(),
+    private val settingsStore: SettingsStore = InMemorySettingsStore()
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
@@ -111,6 +117,25 @@ class AppViewModel(
             loadLearningState()
             selectDrill(0)
             observeLinkedProfile()
+        }
+        viewModelScope.launch {
+            // DataStore is the single source of truth for player settings.
+            settingsStore.settings.collect { settings ->
+                soundManager?.hapticsEnabled = settings.hapticsEnabled
+                _state.update {
+                    it.copy(
+                        appSettings = settings,
+                        isSoundEnabled = settings.soundEnabled,
+                        showCoordinates = settings.showCoordinates,
+                        showLegalDots = settings.showLegalDots
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            chessEngineManager.engineStatus.collect { status ->
+                _state.update { it.copy(engineStatus = status) }
+            }
         }
         viewModelScope.launch {
             chessEngineManager.currentEvaluation.collect { eval ->
@@ -434,6 +459,8 @@ class AppViewModel(
     private suspend fun loadLearningState() {
         runCatching {
             val profile = learningRepository.getProfile()
+            // Sound used to live in the learning profile; copy it over once.
+            settingsStore.importLegacyOnce(profile.soundEnabled)
             val progress = learningRepository.getModuleProgress()
             val recommendation = AdaptiveTrainingPlanner.recommend(profile, progress)
             val assessmentFen = if (profile.assessmentState == "IN_PROGRESS") {
@@ -452,7 +479,6 @@ class AppViewModel(
                     learningGoal = profile.learningGoal,
                     tacticalAttempts = profile.totalTacticalAttempts,
                     tacticalCorrect = profile.totalTacticalCorrect,
-                    isSoundEnabled = profile.soundEnabled,
                     trainingRecommendation = recommendation.topic.title,
                     trainingRecommendationReason = recommendation.reason,
                     fen = assessmentFen ?: it.fen
@@ -1323,17 +1349,40 @@ class AppViewModel(
         )
     }
 
-    fun setSoundEnabled(enabled: Boolean) {
-        _state.update { it.copy(isSoundEnabled = enabled) }
-        persistProfile { it.copy(soundEnabled = enabled) }
-    }
+    fun setSoundEnabled(enabled: Boolean) = updateSettings { it.copy(soundEnabled = enabled) }
 
-    fun setShowCoordinates(enabled: Boolean) {
-        _state.update { it.copy(showCoordinates = enabled) }
-    }
+    fun setShowCoordinates(enabled: Boolean) = updateSettings { it.copy(showCoordinates = enabled) }
 
-    fun setShowLegalDots(enabled: Boolean) {
-        _state.update { it.copy(showLegalDots = enabled) }
+    fun setShowLegalDots(enabled: Boolean) = updateSettings { it.copy(showLegalDots = enabled) }
+
+    fun setHapticsEnabled(enabled: Boolean) = updateSettings { it.copy(hapticsEnabled = enabled) }
+
+    fun setReduceMotion(enabled: Boolean) = updateSettings { it.copy(reduceMotion = enabled) }
+
+    fun setAutoQueen(enabled: Boolean) = updateSettings { it.copy(autoQueen = enabled) }
+
+    fun setMascot(mascot: Mascot) = updateSettings { it.copy(mascotId = mascot.id) }
+
+    fun setBoardOrientation(orientation: BoardOrientation) =
+        updateSettings { it.copy(boardOrientation = orientation) }
+
+    /** Saves a settings change. The state follows through the settings flow collected in init. */
+    private fun updateSettings(transform: (AppSettings) -> AppSettings) {
+        // Update the screen at once; the store confirms the same value a moment later.
+        _state.update { current ->
+            val next = transform(current.appSettings)
+            current.copy(
+                appSettings = next,
+                isSoundEnabled = next.soundEnabled,
+                showCoordinates = next.showCoordinates,
+                showLegalDots = next.showLegalDots
+            )
+        }
+        viewModelScope.launch {
+            runCatching { settingsStore.update(transform) }.onFailure { ex ->
+                _state.update { it.copy(storageWarning = "Could not save settings: ${ex.message}") }
+            }
+        }
     }
 
     fun setSettingsVisible(visible: Boolean) {
@@ -1547,7 +1596,8 @@ class AppViewModelFactory(
     private val learningRepository: LearningRepository,
     private val chessEngineManager: ChessEngineManager,
     private val gameRepository: GameRepository,
-    private val soundManager: com.chesstutor.app.audio.ChessSoundManager?
+    private val soundManager: com.chesstutor.app.audio.ChessSoundManager?,
+    private val settingsStore: SettingsStore = InMemorySettingsStore()
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -1559,7 +1609,8 @@ class AppViewModelFactory(
                 learningRepository = learningRepository,
                 chessEngineManager = chessEngineManager,
                 gameRepository = gameRepository,
-                soundManager = soundManager
+                soundManager = soundManager,
+                settingsStore = settingsStore
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,6 +38,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,6 +80,8 @@ fun Modifier.bouncyClickable(
     if (!enabled) return@composed this
 
     var isPressed by remember { mutableStateOf(false) }
+    // pointerInput(Unit) never restarts, so always call the latest onClick, not the first one.
+    val currentOnClick by rememberUpdatedState(onClick)
     val scale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
         animationSpec = EmilKowalskiMotion.BouncySpring,
@@ -86,6 +93,14 @@ fun Modifier.bouncyClickable(
             scaleX = scale
             scaleY = scale
         }
+        // Announce as a button so TalkBack users can activate it.
+        .semantics {
+            role = Role.Button
+            onClick {
+                currentOnClick()
+                true
+            }
+        }
         .pointerInput(Unit) {
             detectTapGestures(
                 onPress = {
@@ -93,7 +108,7 @@ fun Modifier.bouncyClickable(
                     tryAwaitRelease()
                     isPressed = false
                 },
-                onTap = { onClick() }
+                onTap = { currentOnClick() }
             )
         }
 }

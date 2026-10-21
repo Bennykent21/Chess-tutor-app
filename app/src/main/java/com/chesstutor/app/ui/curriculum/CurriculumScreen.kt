@@ -66,7 +66,9 @@ import com.chesstutor.app.viewmodel.AppViewModel
 fun CurriculumScreen(
     state: AppUiState,
     viewModel: AppViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Opens only this category's section, when coming from the new Learn hub. */
+    initialOpenCategory: LearnCategory? = null
 ) {
     val allTopics = LearnCurriculumRepository.topics
     var selectedLesson by remember(state.selectedLearnTopicId) {
@@ -81,14 +83,15 @@ fun CurriculumScreen(
     val inProgressCount = allTopics.count { it.id in state.practicedModules && it.id !in state.masteredModules }
     val progressRatio = if (totalCount > 0) completedCount.toFloat() / totalCount.toFloat() else 0f
 
-    // Accordion state: Openings open by default
-    val openSections = remember {
+    // Accordion state: the category chosen in the Learn hub, or Openings by default
+    val openSections = remember(initialOpenCategory) {
+        val open = initialOpenCategory ?: LearnCategory.OPENING
         mutableStateMapOf(
-            LearnCategory.OPENING to true,
-            LearnCategory.TACTICS to false,
-            LearnCategory.MIDDLEGAME to false,
-            LearnCategory.ENDGAME to false,
-            LearnCategory.BLUNDER_PATTERNS to false
+            LearnCategory.OPENING to (open == LearnCategory.OPENING),
+            LearnCategory.TACTICS to (open == LearnCategory.TACTICS),
+            LearnCategory.MIDDLEGAME to (open == LearnCategory.MIDDLEGAME),
+            LearnCategory.ENDGAME to (open == LearnCategory.ENDGAME),
+            LearnCategory.BLUNDER_PATTERNS to (open == LearnCategory.BLUNDER_PATTERNS)
         )
     }
 

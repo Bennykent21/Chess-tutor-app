@@ -194,7 +194,7 @@ fun ChessBoard(
                 // Draw Piece (accurate Staunton-style silhouette)
                 val pieceChar = pos.pieceAt(squareStr)
                 if (pieceChar != null) {
-                    val isWhite = pos.internalPosition.pieceAt(com.example.chess.core.Square.fromAlgebraic(squareStr))?.color == com.example.chess.core.PieceColor.WHITE
+                    val isWhite = pos.internalPosition.pieceAt(com.chesstutor.app.core.Square.fromAlgebraic(squareStr))?.color == com.chesstutor.app.core.PieceColor.WHITE
                     drawSvgPiece(
                         piece = pieceChar.lowercaseChar(),
                         isWhite = isWhite,

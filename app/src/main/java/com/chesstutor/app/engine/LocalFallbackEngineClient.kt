@@ -1,7 +1,7 @@
 package com.chesstutor.app.engine
 
-import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.Position
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.Position
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -36,7 +36,8 @@ class LocalFallbackEngineClient(
                     centipawns = if (inCheck) -10000 else 0,
                     mateInMoves = if (inCheck) -1 else null,
                     principalVariation = emptyList(),
-                    depth = targetDepth
+                    depth = targetDepth,
+                    source = EngineSource.LITE
                 ),
                 EngineResultValidator.ScorePerspective.SIDE_TO_MOVE
             )
@@ -57,7 +58,8 @@ class LocalFallbackEngineClient(
                 centipawns = eval.centipawns,
                 mateInMoves = normalizedMate,
                 principalVariation = listOf(bestMove.uci),
-                depth = targetDepth
+                depth = targetDepth,
+                source = EngineSource.LITE
             ),
             EngineResultValidator.ScorePerspective.WHITE
         )

@@ -80,7 +80,7 @@ import com.chesstutor.app.ui.theme.bouncyClickable
 import com.chesstutor.app.viewmodel.AppUiState
 import com.chesstutor.app.viewmodel.AppViewModel
 import com.chesstutor.app.viewmodel.CoachingLevel
-import com.example.chess.engine.BotStrength
+import com.chesstutor.app.core.engine.BotStrength
 import kotlin.math.roundToInt
 
 data class MockupBot(

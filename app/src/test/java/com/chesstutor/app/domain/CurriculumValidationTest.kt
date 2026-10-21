@@ -1,10 +1,10 @@
 package com.chesstutor.app.domain
 
-import com.example.chess.core.LegalMoveGenerator
-import com.example.chess.core.Move
-import com.example.chess.core.PieceColor
-import com.example.chess.core.Position
-import com.example.chess.core.Square
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.Square
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
