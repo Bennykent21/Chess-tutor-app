@@ -3,6 +3,7 @@ package com.chesstutor.app.di
 import android.content.Context
 import android.util.Log
 import com.chesstutor.app.data.local.AppDatabase
+import com.chesstutor.app.data.opening.OpeningAssetLoader
 import com.chesstutor.app.data.puzzle.RoomPuzzleRepository
 import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
 import com.chesstutor.app.data.repository.GameRepository
@@ -69,6 +70,16 @@ object AppContainer {
                 db = AppDatabase.getInstance(context),
                 legacy = { SharedPrefsPuzzleProgressStore(context.applicationContext).readLegacy() },
             ).also { puzzleRepositoryInstance = it }
+        }
+    }
+
+    @Volatile
+    private var openingLoaderInstance: OpeningAssetLoader? = null
+
+    /** The opening database, read from its asset on first use and kept for the process. */
+    fun provideOpeningLoader(context: Context): OpeningAssetLoader {
+        return openingLoaderInstance ?: synchronized(this) {
+            openingLoaderInstance ?: OpeningAssetLoader(context.applicationContext).also { openingLoaderInstance = it }
         }
     }
 
