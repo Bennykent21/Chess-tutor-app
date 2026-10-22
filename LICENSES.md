@@ -11,7 +11,7 @@ known before release (plan.md, section 9). Add a row whenever an asset is added.
 | Nunito (Bold, ExtraBold, Black) | `app/src/main/res/font/nunito_*.ttf` | Google Fonts release, version 3.602 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
 | Inter (Regular) | `app/src/main/res/font/inter.ttf` | Inter 4.001 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
 | JetBrains Mono | `app/src/main/res/font/jetbrains_mono.ttf` | JetBrains Mono 2.211 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
-| Puzzle pack | `app/src/main/assets/puzzles.tsv.gz` | Lichess open puzzle database, built by `tools/build_puzzle_pack.py` | CC0 1.0 (public domain dedication) |
+| Puzzle pack v2 (13,485 puzzles, with accepted alternative moves) | `app/src/main/assets/puzzles.tsv.gz` | Lichess open puzzle database (download of 2 Oct 2026), selected and checked by `tools/build_puzzle_pack.py`; the alternatives were found with Stockfish 19 on the developer's PC at build time (the engine is not part of this file) | CC0 1.0 (public domain dedication) |
 | Opening names and lines | `app/src/main/java/com/chesstutor/app/domain/OpeningBook.kt` | Based on `lichess-org/chess-openings` | CC0 1.0 |
 | Mascots (Pip, Rookie, Sage) | Sources: `design/mascot/pip.svg`, `rook.svg`, `turtle.svg`. In the app: `app/src/main/res/drawable/mascot_pip.xml`, `mascot_rookie.xml`, `mascot_sage.xml`, generated from the SVGs by `tools/mascot_svg_to_vector.py` | Original artwork made for this project | GPL-3.0, with the app |
 | Design system colours and components | `app/src/main/java/com/chesstutor/app/design/` | Original, made for this project | GPL-3.0, with the app |
