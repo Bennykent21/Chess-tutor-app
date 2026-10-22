@@ -114,6 +114,7 @@ class RoomPuzzleRepository(
                 totalXp = total,
                 playerLevel = PlayerLevel.fromXp(total),
                 dayStreak = DayStreak.compute(days, today()),
+                solvedToday = today() in days,
                 cleanStreak = profile?.streak ?: 0,
                 bestStreak = profile?.bestStreak ?: 0,
                 solved = profile?.solved ?: 0,

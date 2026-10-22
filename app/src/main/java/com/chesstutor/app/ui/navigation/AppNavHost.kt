@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -30,6 +32,7 @@ import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.account.BoardLabScreen
 import com.chesstutor.app.feature.account.BoardSettingsActions
@@ -40,6 +43,7 @@ import com.chesstutor.app.feature.account.EngineHealthScreen
 import com.chesstutor.app.feature.home.HomeScreen
 import com.chesstutor.app.feature.learn.LearnScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
+import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.LegacyTab
 import com.chesstutor.app.navigation.TopTab
@@ -126,11 +130,16 @@ fun AppNavHost(
                     }
                 }
                 navigation(startDestination = TopTab.PUZZLES.startRoute, route = TopTab.PUZZLES.graphRoute) {
-                    composable(TopTab.PUZZLES.startRoute) {
+                    composable(TopTab.PUZZLES.startRoute) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        val home by puzzles.home.collectAsStateWithLifecycle()
                         PuzzlesHomeScreen(
+                            state = home,
                             mascot = state.appSettings.mascot,
                             dueReviewCount = dueReviews,
-                            onSolvePuzzles = { openLegacy(LegacyTab.PUZZLES) },
+                            // The new puzzle player arrives in step 2D; until then levels open the trainer.
+                            onPlayLevel = { openLegacy(LegacyTab.PUZZLES) },
+                            onOpenModes = { openLegacy(LegacyTab.PUZZLES) },
                             onReviewMistakes = {
                                 viewModel.startTrain(TrainRequest.ReviewDue)
                                 navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
@@ -261,4 +270,15 @@ private fun NavHostController.navigateToTab(tab: TopTab) {
         launchSingleTop = true
         restoreState = true
     }
+}
+
+/** The Puzzles tab's view model, shared by every screen in the tab (scoped to its graph). */
+@Composable
+private fun puzzlesViewModel(navController: NavHostController, entry: NavBackStackEntry): PuzzlesViewModel {
+    val owner = remember(entry) { navController.getBackStackEntry(TopTab.PUZZLES.graphRoute) }
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = PuzzlesViewModel.Factory(AppContainer.providePuzzleRepository(context)) { PuzzleAssetLoader(context).load() },
+    )
 }
