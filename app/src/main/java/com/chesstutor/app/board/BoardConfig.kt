@@ -64,6 +64,7 @@ data class BoardConfig(
         val PUZZLE = BoardConfig("Puzzle", evalBar = N, arrows = O, moveList = N, clocks = O, coachStrip = A, engineLines = N, takebacks = A)
         /** After solving, the engine may explain the position. */
         val PUZZLE_SOLVED = BoardConfig("Puzzle solved", evalBar = O, arrows = O, moveList = N, clocks = N, coachStrip = A, engineLines = O, takebacks = A)
+        /** Clocks in review show the times recorded in the game, and only when it has them. */
         val REVIEW = BoardConfig("Game review", evalBar = A, arrows = A, moveList = A, clocks = A, coachStrip = N, engineLines = A, takebacks = N)
         val ANALYSIS = BoardConfig("Free analysis", evalBar = A, arrows = A, moveList = A, clocks = N, coachStrip = N, engineLines = A, takebacks = N)
 
