@@ -89,6 +89,28 @@ class PuzzlePlayerScreenTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/PuzzlePlayer_solved.png")
     }
 
+    /** Regression: after solving, Analyse must send the puzzle's start and its solution. */
+    @Test
+    fun analyseSendsThePuzzleStartAndSolutionNotTheFinalPosition() {
+        val player = PuzzlePlayer(
+            PuzzleRunSpec(PuzzleMode.LEVEL, "Level 1", level = 1, plannedCount = 5, nextPuzzle = { i, _ -> fools("a$i") }),
+            InMemoryPuzzleRepository(), scope, clock = { scheduler.currentTime },
+        )
+        var analysed: Pair<String, List<String>>? = null
+        player.start()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                PuzzlePlayerScreen(player, AppSettings(), onFeedback = {}, onAnalyse = { fen, line -> analysed = fen to line }, onPlayLevel = {}, onBack = {})
+            }
+        }
+        step(700)
+        val start = player.state.value.board!!.state.value.position.toFen()
+        player.state.value.board!!.onMove(Move.fromUci("d8h4"))
+        step(100)
+        compose.onNode(hasText("Analyse")).performScrollTo().performClick()
+        assertEquals(start to listOf("d8h4"), analysed)
+    }
+
     @Test
     fun aPassedLevelOffersTheNextOne() {
         val player = PuzzlePlayer(

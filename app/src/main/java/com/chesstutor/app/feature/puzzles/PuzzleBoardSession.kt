@@ -54,8 +54,11 @@ class PuzzleBoardSession private constructor(
     /** Told about every judged move (the player screen reacts: reply, flash, finish). */
     var onOutcome: ((PuzzleMoveOutcome) -> Unit)? = null
 
-    /** The position the player is looking at when they start (after the opponent's move). */
-    val solvingFen: String get() = judge.fen
+    /**
+     * The position the puzzle starts from (after the opponent's set-up move), captured once.
+     * Not the judge's current position: that one moves on as the puzzle is played.
+     */
+    val solvingFen: String = judge.fen
 
     val mistakes: Int get() = judge.mistakes
     val hintsUsed: Int get() = judge.hintsUsed

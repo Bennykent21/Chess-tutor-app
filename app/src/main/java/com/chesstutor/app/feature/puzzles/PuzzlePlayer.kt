@@ -76,6 +76,8 @@ data class PuzzlePlayerState(
     val xpEarned: Int? = null,
     val results: List<ResultMark> = emptyList(),
     val lastWrongMove: Move? = null,
+    /** Where [lastWrongMove] was tried (puzzles with several moves change position). */
+    val lastWrongFen: String? = null,
     val reported: Boolean = false,
     val levelResult: LevelRunResult? = null,
     val levelPassed: Boolean? = null,
@@ -156,6 +158,7 @@ class PuzzlePlayer(
                 ratingDelta = null,
                 xpEarned = null,
                 lastWrongMove = null,
+                lastWrongFen = null,
                 reported = false,
             )
         }
@@ -184,7 +187,7 @@ class PuzzlePlayer(
                 finishPuzzle(board)
             }
             is PuzzleMoveOutcome.Wrong -> {
-                mutableState.update { it.copy(mistakeSquare = outcome.move.to, lastWrongMove = outcome.move) }
+                mutableState.update { it.copy(mistakeSquare = outcome.move.to, lastWrongMove = outcome.move, lastWrongFen = board.currentFen) }
                 if (spec.oneTry) {
                     giveUp(autoAdvance = true)
                     return
@@ -305,7 +308,7 @@ class PuzzlePlayer(
         if (s.reported) return
         mutableState.update { it.copy(reported = true) }
         scope.launch {
-            repository.reportAnotherMove(board.puzzle.id, board.solvingFen, s.lastWrongMove?.uci.orEmpty(), note, clock())
+            repository.reportAnotherMove(board.puzzle.id, s.lastWrongFen ?: board.solvingFen, s.lastWrongMove?.uci.orEmpty(), note, clock())
         }
     }
 
