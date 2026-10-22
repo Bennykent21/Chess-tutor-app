@@ -35,6 +35,23 @@ class PuzzleAssetLoaderTest {
         assertTrue(first.moves.size >= 2)
     }
 
+    /** Pack v2: every line parses, it covers the level path, and the alternatives come through. */
+    @Test
+    fun bundledPackV2_parsesFullyAndCarriesAlternatives() = runBlocking {
+        val pack = PuzzleAssetLoader(context).load()
+        assertEquals("no line may be dropped by the parser", 0, pack.skippedLines)
+        assertTrue("expected the v2 pack (13,485 puzzles), found ${pack.size}", pack.size >= 13_000)
+        assertTrue(pack.puzzles.any { it.alternatives.isNotEmpty() })
+        // Every level of the path has puzzles near its rating.
+        (1..50).forEach { level ->
+            val levelPuzzles = com.chesstutor.app.domain.puzzle.PuzzleLevels.puzzlesFor(level, 0, pack)
+            assertEquals("level $level", 5, levelPuzzles.size)
+        }
+        // Every puzzle can be set up (its opening and first solution move are legal).
+        val unplayable = pack.puzzles.count { com.chesstutor.app.domain.puzzle.PuzzleSession.start(it) == null }
+        assertEquals("unplayable puzzles", 0, unplayable)
+    }
+
     @Test
     fun fromStream_handlesBothGzipAndPlainText() {
         val line = "p1\trnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\te2e4 e7e5\t1000\tfork\tfork\t90\n"

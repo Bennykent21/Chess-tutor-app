@@ -43,6 +43,22 @@ class PuzzleTrainerTest {
     }
 
     @Test
+    fun anAcceptedAlternativeFinishesAsSolvedWithAlternative() {
+        val store = InMemoryPuzzleProgressStore()
+        // Rating 800 serves the scholar's mate first; Fool's mate (500) is the next puzzle.
+        val t = trainer(scholars.copy(alternatives = listOf(setOf("d1f3"))), foolsMate, rating = 800, store = store)
+        assertEquals("scholar", t.state.puzzle?.id)
+        t.onSquareTapped("d1")
+        t.onSquareTapped("f3")
+        assertEquals(PuzzlePhase.SOLVED, t.state.phase)
+        assertTrue(t.state.solvedWithAlternative)
+        assertEquals("a clean alternative still counts as a clean solve", 1, store.load(800).cleanSolves)
+
+        assertTrue(t.loadNext())
+        assertFalse("the next puzzle starts fresh", t.state.solvedWithAlternative)
+    }
+
+    @Test
     fun setupShowsPositionBeforeOpponentMoveThenAfter() {
         val t = PuzzleTrainer(PuzzlePack(listOf(foolsMate)), PuzzleProgress(rating = 500), null, Random(1))
         assertTrue(t.loadNext())

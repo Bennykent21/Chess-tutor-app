@@ -7,6 +7,10 @@ package com.chesstutor.app.domain.puzzle
  * Lichess convention: [fen] is the position BEFORE the opponent's move. [moves] is a UCI list whose
  * first move is the opponent's move (played automatically to set the puzzle up); the solver then
  * has to find moves[1], moves[3], ... while the opponent answers with moves[2], moves[4], ...
+ *
+ * [alternatives] holds, for each move the solver must find, the other moves that also win
+ * (found with Stockfish when the pack was built, plan section 6.3.5). Index 0 is for
+ * moves[1], index 1 for moves[3], and so on; missing entries mean "none".
  */
 data class Puzzle(
     val id: String,
@@ -15,10 +19,14 @@ data class Puzzle(
     val rating: Int,
     val primaryTheme: String,
     val themes: Set<String>,
-    val popularity: Int = 0
+    val popularity: Int = 0,
+    val alternatives: List<Set<String>> = emptyList(),
 ) {
     /** How many moves the solver has to find. */
     val solverMoveCount: Int get() = moves.size / 2
+
+    /** Other winning moves for solver step [step] (0 = the first move to find). */
+    fun alternativesAt(step: Int): Set<String> = alternatives.getOrNull(step).orEmpty()
 }
 
 object PuzzleParser {
@@ -26,7 +34,8 @@ object PuzzleParser {
 
     /**
      * Parses one tab-separated pack line:
-     * `id  fen  moves  rating  primaryTheme  themes  popularity`.
+     * `id  fen  moves  rating  primaryTheme  themes  popularity  [alternatives]`.
+     * `alternatives` (pack v2) is per solver step, steps split by "|", moves by ",".
      * Returns null for anything malformed so one bad line can never break the whole pack.
      */
     fun parseLine(line: String): Puzzle? {
@@ -41,6 +50,12 @@ object PuzzleParser {
         val primaryTheme = cols[4].trim()
         val themes = cols[5].trim().split(' ').filter { it.isNotEmpty() }.toSet()
         val popularity = cols.getOrNull(6)?.trim()?.toIntOrNull() ?: 0
+        // A malformed alternative is dropped on its own; the puzzle itself stays usable.
+        val alternatives = cols.getOrNull(7)?.trim().orEmpty()
+            .takeIf { it.isNotEmpty() }
+            ?.split('|')
+            ?.map { step -> step.split(',').map { it.trim().lowercase() }.filter { UCI_MOVE.matches(it) }.toSet() }
+            .orEmpty()
 
         if (id.isEmpty() || primaryTheme.isEmpty()) return null
         if (fen.split(' ').size < 4) return null
@@ -53,7 +68,8 @@ object PuzzleParser {
             rating = rating,
             primaryTheme = primaryTheme,
             themes = if (themes.isEmpty()) setOf(primaryTheme) else themes,
-            popularity = popularity
+            popularity = popularity,
+            alternatives = alternatives,
         )
     }
 }
