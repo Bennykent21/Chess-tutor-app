@@ -39,6 +39,8 @@ data class BotProfile(
     /** Opening names it plays as White and as Black (see [com.chesstutor.app.domain.opening.Repertoire]). */
     val whiteOpenings: List<String> = emptyList(),
     val blackOpenings: List<String> = emptyList(),
+    /** Whose face it wears: a roster bot's id (its own for roster bots, borrowed for "My bots"). */
+    val face: String = id,
 ) {
     init {
         require(rating in MIN_RATING..MAX_RATING) { "rating $rating outside $MIN_RATING..$MAX_RATING" }

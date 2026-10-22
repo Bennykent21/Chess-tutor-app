@@ -56,6 +56,7 @@ data class HomeActions(
     val onQuickMatch: () -> Unit,
     val onResume: () -> Unit,
     val onOpenBot: (String) -> Unit,
+    val onNewBot: () -> Unit,
     val onContinueLearning: () -> Unit,
     val onDailyPuzzle: () -> Unit,
     val onOpenEngineHealth: () -> Unit,
@@ -132,7 +133,15 @@ fun HomeScreen(
                     onClick = actions.onQuickMatch,
                     modifier = Modifier.weight(1f),
                 )
-                PlannedTile("Custom bot", "Build your own opponent", Icons.Rounded.Tune, Modifier.weight(1f))
+                PlayTile(
+                    title = "Custom bot",
+                    subtitle = "Build your own opponent",
+                    icon = Icons.Rounded.Tune,
+                    tint = CtColors.Violet,
+                    onClick = actions.onNewBot,
+                    modifier = Modifier.weight(1f),
+                    buttonText = "Build",
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(5)) {
                 PlannedTile("Opening battle", "Play or drill one opening", Icons.Rounded.Flag, Modifier.weight(1f))
@@ -146,6 +155,20 @@ fun HomeScreen(
                 modifier = Modifier.ctEnter(6),
             ) {
                 items(home.roster, key = { it.id }) { bot -> BotCard(bot, onClick = { actions.onOpenBot(bot.id) }) }
+            }
+
+            if (home.myBots.isNotEmpty()) {
+                CtSectionHeader(title = "My bots", actionLabel = "New", onAction = actions.onNewBot, modifier = gutter.ctEnter(6))
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = CtSpacing.gutter),
+                    horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+                    modifier = Modifier.ctEnter(6),
+                ) {
+                    items(home.myBots, key = { it.id }) { mine ->
+                        val bot = mine.asRosterBot()
+                        BotCard(bot, onClick = { actions.onOpenBot(bot.id) })
+                    }
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(7)) {
@@ -166,7 +189,7 @@ fun HomeScreen(
                         onClickLabel = "Open ${rec.bot.name}",
                         modifier = Modifier.weight(1f),
                     ) {
-                        BotAvatar(rec.bot.id, rec.bot.rating, size = 36.dp)
+                        BotAvatar(rec.bot.profile.face, rec.bot.rating, size = 36.dp)
                         Spacer(Modifier.height(CtSpacing.sm))
                         Text("Recommended", style = CtType.TitleSmall, maxLines = 1)
                         Text(rec.reason, style = CtType.Caption, maxLines = 3, overflow = TextOverflow.Ellipsis)
@@ -192,7 +215,7 @@ private fun ContinueCard(state: AppUiState, home: HomeUiState, actions: HomeActi
     if (resume != null) {
         CtCard(background = CtGradients.Teal, onClick = actions.onResume, onClickLabel = "Resume your game", modifier = modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                BotAvatar(resume.bot.id, resume.bot.rating, size = 48.dp)
+                BotAvatar(resume.bot.profile.face, resume.bot.rating, size = 48.dp)
                 Spacer(Modifier.width(CtSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = "Continue", style = CtType.Caption.copy(color = CtColors.Teal))
@@ -234,7 +257,7 @@ private fun BotCard(bot: RosterBot, onClick: () -> Unit) {
         modifier = Modifier.width(112.dp),
     ) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            BotAvatar(bot.id, bot.rating, size = 64.dp)
+            BotAvatar(bot.profile.face, bot.rating, size = 64.dp)
             Spacer(Modifier.height(CtSpacing.sm))
             Text(bot.name, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("${bot.rating}", style = CtType.Label.copy(color = botAccent(bot.rating)))
@@ -244,14 +267,22 @@ private fun BotCard(bot: RosterBot, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PlayTile(title: String, subtitle: String, icon: ImageVector, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit, modifier: Modifier) {
+private fun PlayTile(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    tint: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+    modifier: Modifier,
+    buttonText: String = "Play",
+) {
     CtCard(onClick = onClick, onClickLabel = title, background = CtGradients.Card, modifier = modifier) {
         CtIconBubble(icon = icon, tint = tint, size = 36.dp)
         Spacer(Modifier.height(CtSpacing.sm))
         Text(text = title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(text = subtitle, style = CtType.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(CtSpacing.sm))
-        CtButton(text = "Play", icon = Icons.Rounded.PlayArrow, onClick = onClick, modifier = Modifier.fillMaxWidth())
+        CtButton(text = buttonText, icon = Icons.Rounded.PlayArrow.takeIf { buttonText == "Play" }, onClick = onClick, modifier = Modifier.fillMaxWidth())
     }
 }
 

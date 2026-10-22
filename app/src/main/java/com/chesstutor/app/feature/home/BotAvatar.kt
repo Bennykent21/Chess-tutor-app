@@ -53,8 +53,13 @@ fun botAccent(rating: Int): Color = when {
 
 /** A bot's face on a disc with a coloured ring. Decorative: the name is always shown beside it. */
 @Composable
-fun BotAvatar(botId: String, rating: Int, modifier: Modifier = Modifier, size: Dp = 64.dp) {
-    val accent = botAccent(rating)
+fun BotAvatar(
+    botId: String,
+    rating: Int,
+    modifier: Modifier = Modifier,
+    size: Dp = 64.dp,
+    accent: Color = botAccent(rating),
+) {
     Box(
         modifier = modifier
             .size(size)

@@ -7,6 +7,9 @@ import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.domain.bot.BotBrain
+import com.chesstutor.app.domain.bot.BotDraft
+import com.chesstutor.app.domain.bot.BotRepository
+import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.bot.RosterBot
 import com.chesstutor.app.domain.game.GameRules
@@ -43,6 +46,8 @@ data class HomeUiState(
     val dayStreak: Int = 0,
     val dailySolved: Boolean = false,
     val gamesPlayed: Int = 0,
+    /** The player's own bots, oldest first. */
+    val myBots: List<CustomBot> = emptyList(),
 )
 
 /**
@@ -53,6 +58,7 @@ class HomeViewModel(
     private val engine: EngineService,
     private val openings: suspend () -> OpeningTree,
     private val games: GameRepository,
+    private val bots: BotRepository,
     puzzleStats: Flow<PuzzleStats>,
     private val store: ActiveGameStore,
     private val random: Random = Random.Default,
@@ -61,18 +67,73 @@ class HomeViewModel(
     private val playerRating = MutableStateFlow(800)
     private val snapshot = MutableStateFlow(store.load())
 
+    /** Loaded eagerly, so a saved game against one of them can be resumed at once. */
+    val myBots: StateFlow<List<CustomBot>> = bots.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     val home: StateFlow<HomeUiState> =
-        combine(games.observeGames(), puzzleStats, snapshot, playerRating) { list, stats, saved, rating ->
+        combine(games.observeGames(), puzzleStats, snapshot, playerRating, myBots) { list, stats, saved, rating, mine ->
             HomeUiState(
-                resume = saved?.let { s -> BotRoster.byId(s.botId)?.let { ResumeCard(it, s.moves.size, s.playerColor) } },
+                resume = saved?.let { s -> findBot(s.botId, mine)?.let { ResumeCard(it, s.moves.size, s.playerColor) } },
                 recommendation = PlayRecommender.recommend(list.botGamesNewestFirst(), rating),
                 dayStreak = stats.dayStreak,
                 dailySolved = stats.solvedToday,
                 gamesPlayed = list.count { it.id.startsWith("bot_") },
+                myBots = mine,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
             BotRoster.byId(s.botId)?.let { ResumeCard(it, s.moves.size, s.playerColor) }
         }))
+
+    /** A roster bot or one of the player's own, by id. */
+    fun findBot(id: String): RosterBot? = findBot(id, myBots.value)
+
+    private fun findBot(id: String, mine: List<CustomBot>): RosterBot? =
+        BotRoster.byId(id) ?: customBot(id, mine)?.asRosterBot()
+
+    /** The rules a bot's page starts with: the player's own bots bring their saved rules. */
+    fun rulesFor(id: String): GameRules = customBot(id, myBots.value)?.rules ?: GameRules()
+
+    /** A just-saved bot counts before Room reports it back, so its page can open at once. */
+    private var lastSaved: CustomBot? = null
+
+    private fun customBot(id: String, mine: List<CustomBot>): CustomBot? =
+        mine.firstOrNull { it.id == id } ?: lastSaved?.takeIf { it.id == id }
+
+    // ------------------------------------------------------------------ bot builder (3D)
+
+    private val mutableDraft = MutableStateFlow(BotDraft())
+    /** The bot being built or edited. */
+    val draft: StateFlow<BotDraft> = mutableDraft.asStateFlow()
+
+    fun newBot() {
+        mutableDraft.value = BotDraft()
+    }
+
+    fun editBot(id: String) {
+        myBots.value.firstOrNull { it.id == id }?.let { mutableDraft.value = BotDraft.from(it) }
+    }
+
+    fun updateDraft(change: (BotDraft) -> BotDraft) {
+        mutableDraft.value = change(mutableDraft.value)
+    }
+
+    /** Saves the draft and returns the bot's id, or null if it cannot be saved yet. */
+    fun saveDraft(): String? {
+        val current = mutableDraft.value
+        if (!current.canSave) return null
+        val now = clock()
+        val bot = current.toCustomBot(newId = "${CustomBot.ID_PREFIX}$now${random.nextInt(1000)}", now = now)
+        lastSaved = bot
+        viewModelScope.launch { bots.save(bot) }
+        mutableDraft.value = BotDraft.from(bot)
+        return bot.id
+    }
+
+    fun deleteBot(id: String) {
+        if (lastSaved?.id == id) lastSaved = null
+        viewModelScope.launch { bots.delete(id) }
+        if (snapshot.value?.botId == id) clearSaved()
+    }
 
     private val mutableGame = MutableStateFlow<BotGame?>(null)
     /** The game on screen, if any. */
@@ -108,7 +169,7 @@ class HomeViewModel(
     /** Picks up the saved unfinished game. */
     fun resume() {
         val saved = snapshot.value ?: return
-        val bot = BotRoster.byId(saved.botId)
+        val bot = findBot(saved.botId)
         if (bot == null) {
             clearSaved()
             return
@@ -180,12 +241,13 @@ class HomeViewModel(
         private val engine: EngineService,
         private val openings: suspend () -> OpeningTree,
         private val games: GameRepository,
+        private val bots: BotRepository,
         private val puzzleStats: Flow<PuzzleStats>,
         private val store: ActiveGameStore,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(engine, openings, games, puzzleStats, store) as T
+            HomeViewModel(engine, openings, games, bots, puzzleStats, store) as T
     }
 }
 
