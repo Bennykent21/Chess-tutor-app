@@ -126,8 +126,8 @@ fun BoardLabScreen(
     // ---- clocks: the side to move ticks down
     var whiteClock by remember { mutableLongStateOf(LAB_CLOCK_MS) }
     var blackClock by remember { mutableLongStateOf(LAB_CLOCK_MS) }
-    LaunchedEffect(extras.clocks, state.movable) {
-        if (!extras.clocks) return@LaunchedEffect
+    LaunchedEffect(extras.clocks, config, state.movable) {
+        if (!extras.clocks || config == BoardConfig.REVIEW) return@LaunchedEffect
         while (true) {
             delay(100)
             when (state.movable) {
@@ -145,6 +145,8 @@ fun BoardLabScreen(
         listOfNotNull(best.arrow(bestKind)) + alternatives.mapNotNull { it.arrow(MarkKind.ALTERNATIVE) }
     }
     val mine = drawn[session.currentId] ?: Drawn()
+    // Review clocks show a game's recorded times. The lab's test game has none, so none show.
+    val showClocks = extras.clocks && config != BoardConfig.REVIEW
     val topIsWhite = !whiteAtBottom
 
     CtScreenBackground(modifier) {
@@ -162,7 +164,7 @@ fun BoardLabScreen(
                     val side = if (state.start.sideToMove == PieceColor.WHITE) "White" else "Black"
                     CtCoachStrip(settings.mascot, coachLine(config), label = "You play $side", modifier = Modifier.fillMaxWidth())
                 }
-                if (extras.clocks) {
+                if (showClocks) {
                     PlayerRow(if (topIsWhite) "White" else "Black", if (topIsWhite) whiteClock else blackClock, state.movable == (if (topIsWhite) PieceColor.WHITE else PieceColor.BLACK))
                 }
                 BoardWithEvalBar(
@@ -194,7 +196,7 @@ fun BoardLabScreen(
                         },
                     )
                 }
-                if (extras.clocks) {
+                if (showClocks) {
                     PlayerRow(if (topIsWhite) "Black" else "White", if (topIsWhite) blackClock else whiteClock, state.movable == (if (topIsWhite) PieceColor.BLACK else PieceColor.WHITE))
                 }
                 if (extras.engineLines) {
@@ -228,6 +230,9 @@ fun BoardLabScreen(
                             CtButton("Make main line", onClick = session::promoteCurrent, style = CtButtonStyle.Secondary, modifier = Modifier.weight(1f))
                             CtButton("Delete line", onClick = session::deleteCurrent, style = CtButtonStyle.Ghost, modifier = Modifier.weight(1f))
                         }
+                    }
+                    if (config == BoardConfig.REVIEW) {
+                        Text("Review shows clocks only for games with recorded times. This test game has none.", style = CtType.Caption)
                     }
                     if (drawing) {
                         Text("Drag between squares to draw an arrow, tap a square to ring it. Draw it again to erase.", style = CtType.Caption)
