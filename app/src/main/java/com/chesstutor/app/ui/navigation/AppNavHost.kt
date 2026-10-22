@@ -44,6 +44,8 @@ import com.chesstutor.app.feature.account.EngineHealthScreen
 import com.chesstutor.app.feature.home.HomeScreen
 import com.chesstutor.app.feature.learn.LearnScreen
 import com.chesstutor.app.feature.analysis.AnalysisScreen
+import com.chesstutor.app.feature.puzzles.PuzzleModeActions
+import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
 import com.chesstutor.app.feature.puzzles.PuzzlePlayerScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
@@ -144,11 +146,29 @@ fun AppNavHost(
                                 puzzles.startLevel(level)
                                 navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
                             },
-                            onOpenModes = { openLegacy(LegacyTab.PUZZLES) },
+                            onOpenModes = { navController.navigate(AppRoutes.PUZZLE_MODES) { launchSingleTop = true } },
                             onReviewMistakes = {
                                 viewModel.startTrain(TrainRequest.ReviewDue)
                                 navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
                             }
+                        )
+                    }
+                    composable(AppRoutes.PUZZLE_MODES) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        fun play(start: () -> Unit) {
+                            start()
+                            navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
+                        }
+                        PuzzleModesScreen(
+                            patternsFor = puzzles::patternsFor,
+                            actions = PuzzleModeActions(
+                                onRush = { minutes -> play { puzzles.startRush(minutes) } },
+                                onDaily = { play { puzzles.startDaily() } },
+                                onThemed = { goal, pattern, difficulty -> play { puzzles.startThemed(goal, pattern, difficulty) } },
+                                onCustom = { band, pattern, count, timed -> play { puzzles.startCustom(band, pattern, count, timed) } },
+                                onMistakes = { play { puzzles.startMistakes() } }
+                            ),
+                            onBack = { navController.popBackStack() }
                         )
                     }
                     composable(AppRoutes.PUZZLE_PLAYER) { entry ->

@@ -25,10 +25,15 @@ object LegacyTab {
     const val ARENA = 2
     /** ReviewScreen: linked accounts, game history and review. Removed in Phase 5. */
     const val REVIEW = 3
-    /** PuzzleScreen: the current puzzle trainer. Removed in Phase 2. */
+    /**
+     * PuzzleScreen: the old puzzle trainer, replaced by the Puzzles tab in Phase 2. It is no
+     * longer listed: it saves to the old SharedPreferences store, so playing it would split
+     * the player's stats from the new history in Room.
+     */
     const val PUZZLES = 4
 
-    val ALL = listOf(SESSION, CURRICULUM, ARENA, REVIEW, PUZZLES)
+    /** The classic screens still offered (Account > Classic screens). */
+    val ALL = listOf(SESSION, CURRICULUM, ARENA, REVIEW)
 
     fun title(index: Int): String = when (index) {
         SESSION -> "Lesson and drill player"
@@ -47,6 +52,7 @@ object AppRoutes {
     const val BOARD_SETTINGS = "account/board"
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
+    const val PUZZLE_MODES = "puzzles/modes"
 
     const val ANALYSIS_FEN_ARG = "fen"
     const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}"
