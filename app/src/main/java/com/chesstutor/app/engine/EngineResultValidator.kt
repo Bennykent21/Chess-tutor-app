@@ -35,6 +35,9 @@ object EngineResultValidator {
         }
 
         val legalMoves = LegalMoveGenerator.generateLegalMoves(position)
+        // Compare by UCI text: a move parsed from UCI has no castling or en passant flag, so
+        // comparing whole Move objects would reject every castling and en passant answer.
+        val legalUci = legalMoves.mapTo(HashSet()) { it.uci }
         val bestMove = analysis.bestMoveUci.trim()
 
         if (bestMove == "0000") {
@@ -48,7 +51,7 @@ object EngineResultValidator {
                 throw IllegalArgumentException("Engine returned malformed UCI move: $bestMove", e)
             }
 
-            require(parsed in legalMoves) {
+            require(parsed.uci in legalUci) {
                 "Engine returned illegal move $bestMove for FEN ${request.fen}"
             }
         }
@@ -57,7 +60,7 @@ object EngineResultValidator {
         val checkedLines = analysis.lines.filter { line ->
             val first = line.firstMove ?: return@filter false
             val move = runCatching { Move.fromUci(first) }.getOrNull()
-            move != null && move in legalMoves
+            move != null && move.uci in legalUci
         }
 
         return analysis.copy(lines = checkedLines).normalizedScore(position.sideToMove, scorePerspective)
