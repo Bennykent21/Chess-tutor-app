@@ -3,6 +3,8 @@ package com.chesstutor.app.di
 import android.content.Context
 import android.util.Log
 import com.chesstutor.app.data.local.AppDatabase
+import com.chesstutor.app.data.puzzle.RoomPuzzleRepository
+import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.data.repository.RoomGameRepository
 import com.chesstutor.app.data.repository.RatingRepository
@@ -13,6 +15,7 @@ import com.chesstutor.app.data.repository.RoomRatingRepository
 import com.chesstutor.app.data.repository.RoomReviewRepository
 import com.chesstutor.app.data.settings.DataStoreSettingsStore
 import com.chesstutor.app.data.settings.SettingsStore
+import com.chesstutor.app.domain.puzzle.PuzzleRepository
 import com.chesstutor.app.engine.EngineService
 import com.chesstutor.app.engine.ManagerEngineService
 import com.chesstutor.app.engine.ChessEngineManager
@@ -53,6 +56,19 @@ object AppContainer {
             settingsStoreInstance ?: DataStoreSettingsStore(context.applicationContext).also {
                 settingsStoreInstance = it
             }
+        }
+    }
+
+    @Volatile
+    private var puzzleRepositoryInstance: PuzzleRepository? = null
+
+    /** Puzzle history in Room; copies the old SharedPreferences progress in once (plan 7.4). */
+    fun providePuzzleRepository(context: Context): PuzzleRepository {
+        return puzzleRepositoryInstance ?: synchronized(this) {
+            puzzleRepositoryInstance ?: RoomPuzzleRepository(
+                db = AppDatabase.getInstance(context),
+                legacy = { SharedPrefsPuzzleProgressStore(context.applicationContext).readLegacy() },
+            ).also { puzzleRepositoryInstance = it }
         }
     }
 

@@ -13,9 +13,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LinkedProfileEntity::class,
         LearningProfileEntity::class,
         ModuleProgressEntity::class,
-        GameRecordEntity::class
+        GameRecordEntity::class,
+        PuzzleAttemptEntity::class,
+        XpEventEntity::class,
+        PuzzleProfileEntity::class,
+        LevelProgressEntity::class,
+        ReportIssueEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -23,6 +28,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun linkedProfileDao(): LinkedProfileDao
     abstract fun learningDao(): LearningDao
     abstract fun gameRecordDao(): GameRecordDao
+    abstract fun puzzleDao(): PuzzleDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -91,13 +97,55 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Puzzles move into Room (plan Phase 2B): attempts, XP, profile, level path, reports. */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS puzzle_attempt (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, puzzleId TEXT NOT NULL, " +
+                        "puzzleRating INTEGER NOT NULL, mode TEXT NOT NULL, levelNumber INTEGER, " +
+                        "solved INTEGER NOT NULL, clean INTEGER NOT NULL, viaAlternative INTEGER NOT NULL, " +
+                        "revealed INTEGER NOT NULL, mistakes INTEGER NOT NULL, hintsUsed INTEGER NOT NULL, " +
+                        "elapsedMs INTEGER NOT NULL, ratingBefore INTEGER NOT NULL, ratingAfter INTEGER NOT NULL, " +
+                        "xpEarned INTEGER NOT NULL, finishedAt INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_puzzle_attempt_puzzleId ON puzzle_attempt (puzzleId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_puzzle_attempt_finishedAt ON puzzle_attempt (finishedAt)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS xp_event (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, amount INTEGER NOT NULL, " +
+                        "reason TEXT NOT NULL, attemptId INTEGER, createdAt INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_xp_event_createdAt ON xp_event (createdAt)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS puzzle_profile (" +
+                        "id INTEGER NOT NULL, rating INTEGER NOT NULL, attempts INTEGER NOT NULL, " +
+                        "solved INTEGER NOT NULL, cleanSolves INTEGER NOT NULL, streak INTEGER NOT NULL, " +
+                        "bestStreak INTEGER NOT NULL, legacySeenIds TEXT NOT NULL, updatedAt INTEGER NOT NULL, " +
+                        "PRIMARY KEY(id))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS puzzle_level_progress (" +
+                        "levelNumber INTEGER NOT NULL, bestScore INTEGER NOT NULL, passed INTEGER NOT NULL, " +
+                        "plays INTEGER NOT NULL, lastPlayedAt INTEGER NOT NULL, PRIMARY KEY(levelNumber))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS report_issue (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, puzzleId TEXT NOT NULL, " +
+                        "fen TEXT NOT NULL, moveUci TEXT NOT NULL, note TEXT NOT NULL, createdAt INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_report_issue_puzzleId ON report_issue (puzzleId)")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
             MIGRATION_3_4,
             MIGRATION_4_5,
             MIGRATION_5_6,
-            MIGRATION_6_7
+            MIGRATION_6_7,
+            MIGRATION_7_8,
         )
 
         @Volatile

@@ -24,6 +24,12 @@ class SharedPrefsPuzzleProgressStore(context: Context) : PuzzleProgressStore {
         )
     }
 
+    /**
+     * What this store saved, or null if it never saved anything. Used once, to copy the old
+     * progress into Room ([com.chesstutor.app.data.puzzle.RoomPuzzleRepository]).
+     */
+    fun readLegacy(): PuzzleProgress? = if (prefs.contains(KEY_RATING)) load(PuzzleRating.MIN) else null
+
     override fun save(progress: PuzzleProgress) {
         prefs.edit()
             .putInt(KEY_RATING, progress.rating)
