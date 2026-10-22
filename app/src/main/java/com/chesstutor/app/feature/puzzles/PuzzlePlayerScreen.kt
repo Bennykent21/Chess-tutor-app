@@ -69,7 +69,8 @@ fun PuzzlePlayerScreen(
     player: PuzzlePlayer?,
     settings: AppSettings,
     onFeedback: (BoardFeedback) -> Unit,
-    onAnalyse: (fen: String) -> Unit,
+    /** Opens analysis on [fen] with [line] (the solution) as the main line. */
+    onAnalyse: (fen: String, line: List<String>) -> Unit,
     onPlayLevel: (Int) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -112,7 +113,7 @@ private fun Playing(
     state: PuzzlePlayerState,
     settings: AppSettings,
     onFeedback: (BoardFeedback) -> Unit,
-    onAnalyse: (String) -> Unit,
+    onAnalyse: (String, List<String>) -> Unit,
 ) {
     val board = state.board ?: return
     ProgressDots(state)
@@ -142,7 +143,7 @@ private fun Playing(
     )
     InfoRow(state)
     when (state.phase) {
-        PlayerPhase.SOLVED, PlayerPhase.REVEALED -> AfterPuzzle(player, state, onAnalyse = { onAnalyse(board.solvingFen) })
+        PlayerPhase.SOLVED, PlayerPhase.REVEALED -> AfterPuzzle(player, state, onAnalyse = { onAnalyse(board.solvingFen, board.puzzle.moves.drop(1)) })
         else -> Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
             CtButton(
                 text = "Hint",
