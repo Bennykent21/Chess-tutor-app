@@ -30,9 +30,14 @@ object SystemProcessLauncher : NativeProcessLauncher {
         ProcessBuilder(path).redirectErrorStream(true).start()
 }
 
-/** Tuning for the native engine. Values are starting points, to be tuned on a real phone. */
+/** Tuning for the native engine. */
 data class NativeEngineConfig(
-    val threads: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, 4),
+    /**
+     * At most 2 (tuned on a Galaxy S22, 21 Oct 2026): 4 threads gave 527k nodes/s against
+     * about 185k to 260k on one, but filled every fast core, so the UI stuttered and the
+     * phone ran hot during analysis. Two threads leave fast cores free for the screen.
+     */
+    val threads: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, 2),
     val hashMb: Int = 32,
     /** Generous: the first start on a slow phone also maps a large binary into memory. */
     val startupTimeoutMs: Long = 10_000L,
