@@ -32,6 +32,7 @@ import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.core.Position
 import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.account.BoardLabScreen
@@ -42,6 +43,8 @@ import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
 import com.chesstutor.app.feature.home.HomeScreen
 import com.chesstutor.app.feature.learn.LearnScreen
+import com.chesstutor.app.feature.analysis.AnalysisScreen
+import com.chesstutor.app.feature.puzzles.PuzzlePlayerScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
@@ -137,12 +140,29 @@ fun AppNavHost(
                             state = home,
                             mascot = state.appSettings.mascot,
                             dueReviewCount = dueReviews,
-                            // The new puzzle player arrives in step 2D; until then levels open the trainer.
-                            onPlayLevel = { openLegacy(LegacyTab.PUZZLES) },
+                            onPlayLevel = { level ->
+                                puzzles.startLevel(level)
+                                navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
+                            },
                             onOpenModes = { openLegacy(LegacyTab.PUZZLES) },
                             onReviewMistakes = {
                                 viewModel.startTrain(TrainRequest.ReviewDue)
                                 navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
+                            }
+                        )
+                    }
+                    composable(AppRoutes.PUZZLE_PLAYER) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        val player by puzzles.player.collectAsStateWithLifecycle()
+                        PuzzlePlayerScreen(
+                            player = player,
+                            settings = state.appSettings,
+                            onFeedback = viewModel::playBoardFeedback,
+                            onAnalyse = { fen -> navController.navigate(AppRoutes.analysis(fen)) },
+                            onPlayLevel = puzzles::startLevel,
+                            onBack = {
+                                puzzles.closePlayer()
+                                navController.popBackStack()
                             }
                         )
                     }
@@ -206,6 +226,25 @@ fun AppNavHost(
                             onBack = { navController.popBackStack() }
                         )
                     }
+                }
+                composable(
+                    route = AppRoutes.ANALYSIS_PATTERN,
+                    arguments = listOf(
+                        navArgument(AppRoutes.ANALYSIS_FEN_ARG) {
+                            type = NavType.StringType
+                            defaultValue = Position.STARTING_FEN
+                        }
+                    )
+                ) { entry ->
+                    val context = LocalContext.current
+                    val engine = remember(context) { AppContainer.provideEngineService(context) }
+                    AnalysisScreen(
+                        startFen = entry.arguments?.getString(AppRoutes.ANALYSIS_FEN_ARG) ?: Position.STARTING_FEN,
+                        settings = state.appSettings,
+                        engine = engine,
+                        onFeedback = viewModel::playBoardFeedback,
+                        onBack = { navController.popBackStack() }
+                    )
                 }
                 composable(
                     route = AppRoutes.LEGACY_PATTERN,

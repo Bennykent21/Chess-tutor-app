@@ -5,13 +5,17 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.chesstutor.app.domain.puzzle.LevelProgress
 import com.chesstutor.app.domain.puzzle.PuzzleLevels
+import com.chesstutor.app.domain.puzzle.PuzzleMode
 import com.chesstutor.app.domain.puzzle.PuzzlePack
 import com.chesstutor.app.domain.puzzle.PuzzleRepository
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -53,6 +57,42 @@ class PuzzlesViewModel(
 
     /** The loaded pack, or null while it is still loading. */
     val loadedPack: PuzzlePack? get() = pack.value
+
+    private val mutablePlayer = MutableStateFlow<PuzzlePlayer?>(null)
+
+    /** The run being played, if any (plan section 6.3.3). */
+    val player: StateFlow<PuzzlePlayer?> = mutablePlayer.asStateFlow()
+
+    /**
+     * Starts a play of [level]: five puzzles near its rating, new ones on each play, puzzles
+     * already seen avoided while enough remain.
+     */
+    fun startLevel(level: Int) {
+        closePlayer()
+        viewModelScope.launch {
+            val loaded = pack.filterNotNull().first()
+            val seen = repository.loadProgress(seedRating = PuzzleLevels.FIRST_RATING).seenIds
+            val plays = home.value.levels[level]?.plays ?: 0
+            val puzzles = PuzzleLevels.puzzlesFor(level, plays, loaded, avoid = seen)
+            val spec = PuzzleRunSpec(
+                mode = PuzzleMode.LEVEL,
+                title = "Level $level",
+                level = level,
+                plannedCount = puzzles.size,
+                nextPuzzle = { index, _ -> puzzles.getOrNull(index) },
+            )
+            mutablePlayer.value = PuzzlePlayer(spec, repository, viewModelScope).also { it.start() }
+        }
+    }
+
+    fun closePlayer() {
+        mutablePlayer.value?.close()
+        mutablePlayer.value = null
+    }
+
+    override fun onCleared() {
+        closePlayer()
+    }
 
     class Factory(
         private val repository: PuzzleRepository,
