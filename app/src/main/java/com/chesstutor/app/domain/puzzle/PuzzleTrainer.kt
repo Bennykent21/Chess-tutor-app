@@ -52,7 +52,9 @@ data class PuzzleScreenState(
     val hintsUsed: Int = 0,
     /** 1-based number of the move the player is looking for. */
     val step: Int = 1,
-    val totalSteps: Int = 1
+    val totalSteps: Int = 1,
+    /** Solved with another winning move than the listed one ("Solved: a great alternative"). */
+    val solvedWithAlternative: Boolean = false,
 )
 
 /**
@@ -134,7 +136,8 @@ class PuzzleTrainer(
                 mistakes = 0,
                 hintsUsed = 0,
                 step = 1,
-                totalSteps = puzzle.solverMoveCount.coerceAtLeast(1)
+                totalSteps = puzzle.solverMoveCount.coerceAtLeast(1),
+                solvedWithAlternative = false,
             )
             return true
         }
@@ -330,7 +333,12 @@ class PuzzleTrainer(
             )
         }
         if (state.phase != PuzzlePhase.REVEALED) {
-            state = state.copy(phase = PuzzlePhase.SOLVED, mistakes = s.mistakes, hintsUsed = s.hintsUsed)
+            state = state.copy(
+                phase = PuzzlePhase.SOLVED,
+                mistakes = s.mistakes,
+                hintsUsed = s.hintsUsed,
+                solvedWithAlternative = s.solvedWithAlternative,
+            )
         }
     }
 
