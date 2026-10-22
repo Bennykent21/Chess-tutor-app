@@ -70,7 +70,6 @@ private fun replacedIn(index: Int): String = when (index) {
     LegacyTab.SESSION, LegacyTab.CURRICULUM -> "Replaced in Phase 4 (Learn)"
     LegacyTab.ARENA -> "Replaced in Phase 3 (Home and bots)"
     LegacyTab.REVIEW -> "Replaced in Phase 5 (Account)"
-    LegacyTab.PUZZLES -> "Replaced in Phase 2 (Puzzles)"
     else -> ""
 }
 
