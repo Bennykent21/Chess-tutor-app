@@ -20,9 +20,11 @@ class AppDatabaseMigrationTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun allMigrationsArrayContainsAllVersionsFrom1To7() {
+    fun allMigrationsArrayContainsAllVersionsFrom1To8() {
         val migrations = AppDatabase.ALL_MIGRATIONS
-        assertEquals(6, migrations.size)
+        assertEquals(7, migrations.size)
+        assertEquals(7, migrations[6].startVersion)
+        assertEquals(8, migrations[6].endVersion)
         assertEquals(1, migrations[0].startVersion)
         assertEquals(2, migrations[0].endVersion)
         assertEquals(2, migrations[1].startVersion)
@@ -139,6 +141,49 @@ class AppDatabaseMigrationTest {
         db.close()
     }
 
+    /**
+     * Builds a real version-7 database file, then lets Room open it at version 8. Room runs
+     * MIGRATION_7_8 and refuses to open if the new tables do not match the entities exactly,
+     * so this proves the hand-written SQL. Existing data must survive.
+     */
+    @Test
+    fun migration7To8IsAcceptedByRoomAndKeepsData() {
+        val name = "migration-7-8-test.db"
+        context.deleteDatabase(name)
+        val config = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(object : SupportSQLiteOpenHelper.Callback(7) {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS review_items (" +
+                            "id TEXT NOT NULL, fen TEXT NOT NULL, dueAt INTEGER NOT NULL, " +
+                            "stage INTEGER NOT NULL DEFAULT -1, attempts INTEGER NOT NULL DEFAULT 0, " +
+                            "mistakeUci TEXT NOT NULL DEFAULT '', bestMoveUci TEXT NOT NULL DEFAULT '', " +
+                            "explanation TEXT NOT NULL DEFAULT '', PRIMARY KEY(id))"
+                    )
+                    AppDatabase.ALL_MIGRATIONS.filter { it.endVersion <= 7 }.forEach { it.migrate(db) }
+                    db.execSQL("INSERT INTO review_items (id, fen, dueAt) VALUES ('kept', 'fen', 1)")
+                }
+
+                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(config).also { it.writableDatabase.close() }
+
+        val room = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        val db = room.openHelper.writableDatabase
+        assertEquals(8, db.version)
+        db.query("SELECT id FROM review_items").use { assertTrue(it.moveToFirst()); assertEquals("kept", it.getString(0)) }
+        listOf("puzzle_attempt", "xp_event", "puzzle_profile", "puzzle_level_progress", "report_issue").forEach { table ->
+            db.query("SELECT COUNT(*) FROM $table").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
+        }
+        room.close()
+        context.deleteDatabase(name)
+    }
+
     @Test
     fun roomDatabaseBuildsAndOpensWithAllMigrations() {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
@@ -149,6 +194,7 @@ class AppDatabaseMigrationTest {
         assertNotNull(db.linkedProfileDao())
         assertNotNull(db.learningDao())
         assertNotNull(db.gameRecordDao())
+        assertNotNull(db.puzzleDao())
 
         db.close()
     }
