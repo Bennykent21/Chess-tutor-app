@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -41,7 +42,13 @@ import com.chesstutor.app.feature.account.BoardSettingsScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
+import com.chesstutor.app.domain.bot.BotRoster
+import com.chesstutor.app.feature.home.BotSetupScreen
+import com.chesstutor.app.feature.home.HomeActions
 import com.chesstutor.app.feature.home.HomeScreen
+import com.chesstutor.app.feature.home.HomeViewModel
+import com.chesstutor.app.feature.play.PlayScreen
+import com.chesstutor.app.feature.play.SharedPrefsActiveGameStore
 import com.chesstutor.app.feature.learn.LearnScreen
 import com.chesstutor.app.feature.analysis.AnalysisScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
@@ -116,12 +123,74 @@ fun AppNavHost(
                 popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) }
             ) {
                 navigation(startDestination = TopTab.HOME.startRoute, route = TopTab.HOME.graphRoute) {
-                    composable(TopTab.HOME.startRoute) {
+                    composable(TopTab.HOME.startRoute) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val home by homeModel.home.collectAsStateWithLifecycle()
+                        LaunchedEffect(state.effectiveUserRating) { homeModel.setPlayerRating(state.effectiveUserRating) }
                         HomeScreen(
                             state = state,
-                            onQuickMatch = { openLegacy(LegacyTab.ARENA) },
-                            onContinueLearning = { navController.navigateToTab(TopTab.LEARN) },
-                            onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) }
+                            home = home,
+                            actions = HomeActions(
+                                onQuickMatch = {
+                                    homeModel.quickMatch()
+                                    navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                                },
+                                onResume = {
+                                    homeModel.resume()
+                                    navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                                },
+                                onOpenBot = { id -> navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true } },
+                                onContinueLearning = { navController.navigateToTab(TopTab.LEARN) },
+                                onDailyPuzzle = {
+                                    navController.navigateToTab(TopTab.PUZZLES)
+                                    navController.navigate(AppRoutes.PUZZLE_DAILY) { launchSingleTop = true }
+                                },
+                                onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) }
+                            )
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.BOT_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.BOT_ID_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val bot = BotRoster.byId(entry.arguments?.getString(AppRoutes.BOT_ID_ARG).orEmpty())
+                        if (bot == null) {
+                            LaunchedEffect(Unit) { navController.popBackStack() }
+                            return@composable
+                        }
+                        BotSetupScreen(
+                            bot = bot,
+                            onPlay = { side, rules ->
+                                homeModel.start(bot, side, rules)
+                                navController.navigate(AppRoutes.PLAY) {
+                                    popUpTo(AppRoutes.BOT_PATTERN) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.PLAY) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val game by homeModel.game.collectAsStateWithLifecycle()
+                        val current = game
+                        if (current == null) {
+                            LaunchedEffect(Unit) { navController.popBackStack() }
+                            return@composable
+                        }
+                        val leave = {
+                            homeModel.closeGame()
+                            navController.popBackStack()
+                        }
+                        BackHandler { leave() }
+                        PlayScreen(
+                            game = current,
+                            settings = state.appSettings,
+                            onFeedback = viewModel::playBoardFeedback,
+                            onRematch = homeModel::rematch,
+                            onAnalyse = { fen, moves -> navController.navigate(AppRoutes.analysis(fen, moves)) },
+                            onBack = { leave() }
                         )
                     }
                 }
@@ -152,6 +221,16 @@ fun AppNavHost(
                                 navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
                             }
                         )
+                    }
+                    // Home's daily challenge card: starts today's puzzle, then shows the player.
+                    composable(AppRoutes.PUZZLE_DAILY) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        LaunchedEffect(Unit) {
+                            puzzles.startDaily()
+                            navController.navigate(AppRoutes.PUZZLE_PLAYER) {
+                                popUpTo(AppRoutes.PUZZLE_DAILY) { inclusive = true }
+                            }
+                        }
                     }
                     composable(AppRoutes.PUZZLE_MODES) { entry ->
                         val puzzles = puzzlesViewModel(navController, entry)
@@ -334,6 +413,23 @@ private fun NavHostController.navigateToTab(tab: TopTab) {
         launchSingleTop = true
         restoreState = true
     }
+}
+
+/** The Home tab's view model, shared by Home, the bot pages and the game (scoped to its graph). */
+@Composable
+private fun homeViewModel(navController: NavHostController, entry: NavBackStackEntry): HomeViewModel {
+    val owner = remember(entry) { navController.getBackStackEntry(TopTab.HOME.graphRoute) }
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = HomeViewModel.Factory(
+            engine = AppContainer.provideEngineService(context),
+            openings = { AppContainer.provideOpeningLoader(context).load() },
+            games = AppContainer.provideGameRepository(context),
+            puzzleStats = AppContainer.providePuzzleRepository(context).stats(),
+            store = SharedPrefsActiveGameStore(context),
+        ),
+    )
 }
 
 /** The Puzzles tab's view model, shared by every screen in the tab (scoped to its graph). */

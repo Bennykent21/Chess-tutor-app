@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Titan, a chess bot">
+  <path d="M64 66 C56 44 60 26 72 14 C72 34 78 48 86 58 Z" fill="#F5E6C8"/>
+  <path d="M 136 66 C 144 44 140 26 128 14 C 128 34 122 48 114 58 Z" fill="#F5E6C8"/>
+  <path d="M90 56 L100 38 L110 56 Z" fill="#1E8E5A"/>
+  <path d="M28 200 C32 170 60 152 100 152 C140 152 168 170 172 200 Z" fill="#1E8E5A"/>
+  <path d="M84 200 L90 176 L110 176 L116 200 Z" fill="#7BE0AE"/>
+  <ellipse cx="100" cy="104" rx="54" ry="50" fill="#2BB673"/>
+  <ellipse cx="78" cy="72" rx="12" ry="6" fill="#FFFFFF" opacity=".3"/>
+  <ellipse cx="100" cy="128" rx="32" ry="22" fill="#5FD39A"/>
+  <ellipse cx="90" cy="124" rx="4" ry="3" fill="#121838"/>
+  <ellipse cx="110" cy="124" rx="4" ry="3" fill="#121838"/>
+  <path d="M80 136 Q100 148 120 136" fill="none" stroke="#121838" stroke-width="4" stroke-linecap="round"/>
+  <path d="M88 139 L92 147 L96 140 Z" fill="#FFFFFF"/>
+  <path d="M64 80 L90 86" fill="none" stroke="#145E3C" stroke-width="5" stroke-linecap="round"/>
+  <path d="M136 80 L110 86" fill="none" stroke="#145E3C" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="80" cy="98" rx="9.0" ry="10.8" fill="#FFFFFF"/>
+  <circle cx="81.8" cy="100.7" r="5.4" fill="#121838"/>
+  <circle cx="83.6" cy="98.0" r="1.8" fill="#FFFFFF"/>
+  <ellipse cx="120" cy="98" rx="9.0" ry="10.8" fill="#FFFFFF"/>
+  <circle cx="121.8" cy="100.7" r="5.4" fill="#121838"/>
+  <circle cx="123.6" cy="98.0" r="1.8" fill="#FFFFFF"/>
+</svg>

@@ -53,6 +53,13 @@ object AppRoutes {
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
+    /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
+    const val PUZZLE_DAILY = "puzzles/daily"
+    /** A bot's page (pick colour, clock and rules), then the game itself, full screen in Home. */
+    const val BOT_ID_ARG = "botId"
+    const val BOT_PATTERN = "home/bot/{$BOT_ID_ARG}"
+    fun bot(id: String): String = "home/bot/$id"
+    const val PLAY = "home/play"
 
     const val ANALYSIS_FEN_ARG = "fen"
     const val ANALYSIS_LINE_ARG = "line"

@@ -18,9 +18,12 @@ data class Opening(val eco: String, val name: String, val moves: List<String>) {
     /** "Najdorf Variation, English Attack", or "" for a family's own line. */
     val variation: String get() = name.substringAfter(':', "").trim()
 
-    /** True for this opening itself and every line named under it. */
+    /**
+     * True for this opening itself and every line named under it, including names that only
+     * add a word ("King's Gambit" covers "King's Gambit Accepted").
+     */
     fun isWithin(selection: String): Boolean =
-        name == selection || name.startsWith("$selection:") || name.startsWith("$selection,")
+        name == selection || name.startsWith("$selection:") || name.startsWith("$selection,") || name.startsWith("$selection ")
 }
 
 /** A move the book plays from a position; [weight] is how many named lines go through it. */

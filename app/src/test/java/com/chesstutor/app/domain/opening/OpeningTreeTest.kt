@@ -93,7 +93,8 @@ class OpeningTreeTest {
         assertEquals("Sicilian Defense", najdorf.family)
         assertEquals("Najdorf Variation", najdorf.variation)
         assertTrue(najdorf.isWithin("Sicilian Defense"))
-        assertFalse("a longer family name is a different opening", Opening("C", "Italian Gambit", listOf("e2e4")).isWithin("Italian Game"))
+        assertFalse("a different word is a different opening", Opening("C", "Italian Gambit", listOf("e2e4")).isWithin("Italian Game"))
+        assertTrue("an added word stays inside", Opening("C", "King's Gambit Accepted", listOf("e2e4")).isWithin("King's Gambit"))
     }
 
     @Test

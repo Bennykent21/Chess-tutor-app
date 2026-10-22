@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tessa: generated from design/bots/tessa.svg (the source of truth).
+     Original art, GPL-3.0 with the app. See LICENSES.md. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M28 200 C32 170 60 152 100 152 C140 152 168 170 172 200 Z"
+        android:fillColor="#FF7A4A2E" />
+    <path
+        android:pathData="M41,82a11,11 0 1,0 22,0a11,11 0 1,0 -22,0Z"
+        android:fillColor="#FF8C5A3C" />
+    <path
+        android:pathData="M137,82a11,11 0 1,0 22,0a11,11 0 1,0 -22,0Z"
+        android:fillColor="#FF8C5A3C" />
+    <path
+        android:pathData="M46,106a54,50 0 1,0 108,0a54,50 0 1,0 -108,0Z"
+        android:fillColor="#FF8C5A3C" />
+    <path
+        android:pathData="M68,72a12,6 0 1,0 24,0a12,6 0 1,0 -24,0Z"
+        android:fillColor="#FFFFFFFF"
+        android:fillAlpha="0.3" />
+    <path
+        android:pathData="M60,124a40,30 0 1,0 80,0a40,30 0 1,0 -80,0Z"
+        android:fillColor="#FFE2BE98" />
+    <path
+        android:pathData="M62 124 L38 118"
+        android:strokeColor="#FFF4E2CC"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M62 131 L38 133"
+        android:strokeColor="#FFF4E2CC"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M138 124 L162 118"
+        android:strokeColor="#FFF4E2CC"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M138 131 L162 133"
+        android:strokeColor="#FFF4E2CC"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M92 112 C92 106 108 106 108 112 C108 118 102 122 100 122 C98 122 92 118 92 112 Z"
+        android:fillColor="#FF121838" />
+    <path
+        android:pathData="M100 122 L100 128 M90 130 Q95 136 100 130 Q105 136 110 130"
+        android:strokeColor="#FF121838"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M72,96a8,9.6 0 1,0 16,0a8,9.6 0 1,0 -16,0Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M76.8,98.4a4.8,4.8 0 1,0 9.6,0a4.8,4.8 0 1,0 -9.6,0Z"
+        android:fillColor="#FF121838" />
+    <path
+        android:pathData="M81.6,96a1.6,1.6 0 1,0 3.2,0a1.6,1.6 0 1,0 -3.2,0Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M112,96a8,9.6 0 1,0 16,0a8,9.6 0 1,0 -16,0Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M116.8,98.4a4.8,4.8 0 1,0 9.6,0a4.8,4.8 0 1,0 -9.6,0Z"
+        android:fillColor="#FF121838" />
+    <path
+        android:pathData="M121.6,96a1.6,1.6 0 1,0 3.2,0a1.6,1.6 0 1,0 -3.2,0Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M64,96a16,16 0 1,0 32,0a16,16 0 1,0 -32,0Z"
+        android:strokeColor="#FFFFC53D"
+        android:strokeWidth="4" />
+    <path
+        android:pathData="M104,96a16,16 0 1,0 32,0a16,16 0 1,0 -32,0Z"
+        android:strokeColor="#FFFFC53D"
+        android:strokeWidth="4" />
+    <path
+        android:pathData="M96 96 L104 96"
+        android:strokeColor="#FFFFC53D"
+        android:strokeWidth="4"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M54,114a8,5 0 1,0 16,0a8,5 0 1,0 -16,0Z"
+        android:fillColor="#FFFF6F6F"
+        android:fillAlpha="0.55" />
+    <path
+        android:pathData="M130,114a8,5 0 1,0 16,0a8,5 0 1,0 -16,0Z"
+        android:fillColor="#FFFF6F6F"
+        android:fillAlpha="0.55" />
+</vector>

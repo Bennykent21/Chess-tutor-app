@@ -17,7 +17,7 @@ class OpeningAssetLoaderTest {
 
     @Test
     fun theBundledAssetLoadsOnceAndIsShared() = runBlocking {
-        val loader = OpeningAssetLoader(context)
+        val loader = OpeningAssetLoader(context.assets)
         val tree = loader.load()
         assertEquals(0, tree.skippedLines)
         assertTrue(tree.openings.size > 3_500)
@@ -26,6 +26,6 @@ class OpeningAssetLoaderTest {
 
     @Test
     fun aMissingAssetGivesAnEmptyTree() = runBlocking {
-        assertTrue(OpeningAssetLoader(context, "missing.tsv.gz").load().isEmpty)
+        assertTrue(OpeningAssetLoader(context.assets, "missing.tsv.gz").load().isEmpty)
     }
 }

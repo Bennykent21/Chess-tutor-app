@@ -79,7 +79,7 @@ object AppContainer {
     /** The opening database, read from its asset on first use and kept for the process. */
     fun provideOpeningLoader(context: Context): OpeningAssetLoader {
         return openingLoaderInstance ?: synchronized(this) {
-            openingLoaderInstance ?: OpeningAssetLoader(context.applicationContext).also { openingLoaderInstance = it }
+            openingLoaderInstance ?: OpeningAssetLoader(context.applicationContext.assets).also { openingLoaderInstance = it }
         }
     }
 
