@@ -178,7 +178,7 @@ fun AppNavHost(
                             player = player,
                             settings = state.appSettings,
                             onFeedback = viewModel::playBoardFeedback,
-                            onAnalyse = { fen -> navController.navigate(AppRoutes.analysis(fen)) },
+                            onAnalyse = { fen, line -> navController.navigate(AppRoutes.analysis(fen, line)) },
                             onPlayLevel = puzzles::startLevel,
                             onBack = {
                                 puzzles.closePlayer()
@@ -253,6 +253,10 @@ fun AppNavHost(
                         navArgument(AppRoutes.ANALYSIS_FEN_ARG) {
                             type = NavType.StringType
                             defaultValue = Position.STARTING_FEN
+                        },
+                        navArgument(AppRoutes.ANALYSIS_LINE_ARG) {
+                            type = NavType.StringType
+                            defaultValue = ""
                         }
                     )
                 ) { entry ->
@@ -260,6 +264,7 @@ fun AppNavHost(
                     val engine = remember(context) { AppContainer.provideEngineService(context) }
                     AnalysisScreen(
                         startFen = entry.arguments?.getString(AppRoutes.ANALYSIS_FEN_ARG) ?: Position.STARTING_FEN,
+                        line = entry.arguments?.getString(AppRoutes.ANALYSIS_LINE_ARG).orEmpty().split(' ').filter { it.isNotBlank() },
                         settings = state.appSettings,
                         engine = engine,
                         onFeedback = viewModel::playBoardFeedback,

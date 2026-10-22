@@ -24,11 +24,22 @@ enum class PuzzleGoal(val title: String) {
             }
         }
 
-        /** The coach's question for [puzzle], for example "Find mate in 2" or "Can you win material?". */
+        /** Below this rating the prompt gives the whole goal, including how many moves a mate takes. */
+        const val FULL_PROMPT_BELOW = 1200
+
+        /** From this rating the prompt says only "Find the best move", as in a real game. */
+        const val NEUTRAL_FROM = 1800
+
+        /**
+         * The coach's question for [puzzle]. It fades with difficulty (developer's choice,
+         * 22 Oct 2026): easy puzzles get the whole goal ("Find mate in 2"), middle ones only
+         * the goal ("Find the checkmate"), hard ones just "Find the best move".
+         */
         fun prompt(puzzle: Puzzle): String {
+            if (puzzle.rating >= NEUTRAL_FROM) return "Find the best move"
             val mateIn = (puzzle.themes + puzzle.primaryTheme).firstNotNullOfOrNull { tag ->
                 tag.removePrefix("mateIn").takeIf { tag.startsWith("mateIn") }?.toIntOrNull()
-            }
+            }?.takeIf { puzzle.rating < FULL_PROMPT_BELOW }
             return when (of(puzzle)) {
                 CHECKMATE -> if (mateIn == 1) "Find the checkmate in one move" else if (mateIn != null) "Find mate in $mateIn" else "Find the checkmate"
                 WIN_MATERIAL -> "Can you win material?"

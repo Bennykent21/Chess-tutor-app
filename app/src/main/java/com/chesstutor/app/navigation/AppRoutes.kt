@@ -55,11 +55,17 @@ object AppRoutes {
     const val PUZZLE_MODES = "puzzles/modes"
 
     const val ANALYSIS_FEN_ARG = "fen"
-    const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}"
+    const val ANALYSIS_LINE_ARG = "line"
+    const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}&$ANALYSIS_LINE_ARG={$ANALYSIS_LINE_ARG}"
 
-    /** Route to the analysis board on [fen]. Spaces and slashes are encoded for the URL. */
-    fun analysis(fen: String): String =
-        "analysis?$ANALYSIS_FEN_ARG=" + java.net.URLEncoder.encode(fen, "UTF-8").replace("+", "%20")
+    /**
+     * Route to the analysis board on [fen], with [line] (UCI moves) loaded as the main line,
+     * for example a puzzle's solution. Spaces and slashes are encoded for the URL.
+     */
+    fun analysis(fen: String, line: List<String> = emptyList()): String =
+        "analysis?$ANALYSIS_FEN_ARG=${encode(fen)}&$ANALYSIS_LINE_ARG=${encode(line.joinToString(" "))}"
+
+    private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
     /** Full screen (no bottom bar), like every activity that hosts a board. */
     const val BOARD_LAB = "board/lab"
 

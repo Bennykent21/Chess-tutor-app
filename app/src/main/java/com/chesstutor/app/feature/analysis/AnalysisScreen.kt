@@ -42,6 +42,7 @@ import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
+import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
@@ -56,20 +57,39 @@ private val ANALYSIS_STEPS_MS = listOf(300, 1500)
 private data class Drawn(val arrows: List<BoardArrow> = emptyList(), val rings: List<SquareRing> = emptyList())
 
 /**
- * Free analysis from any position (plan section 4.2), opened from a puzzle's "Analyse":
- * engine lines with an eval bar, variations, and arrows you draw yourself.
+ * Free analysis from any position (plan section 4.2). From a puzzle's "Analyse" it opens on
+ * the puzzle with its solution loaded as the main line: step forward to see why each move
+ * works (eval bar, Stockfish's arrows and lines), or play another move to see what would
+ * have happened; it becomes a side line.
  */
 @Composable
 fun AnalysisScreen(
     startFen: String,
     settings: AppSettings,
+    line: List<String> = emptyList(),
     engine: EngineService?,
     onFeedback: (BoardFeedback) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val start = remember(startFen) { Position.tryFromFen(startFen).getOrDefault(Position.initial()) }
-    val session = remember(start) { AnalysisSession(start) }
+    val parsed = remember(startFen) { Position.tryFromFen(startFen).getOrNull() }
+    if (parsed == null) {
+        CtScreenBackground(modifier) {
+            Column(Modifier.fillMaxSize()) {
+                CtTopBar(title = "Analysis", onBack = onBack)
+                CtEmptyState(icon = Icons.Rounded.Warning, title = "This position could not be opened", body = "The position was not valid, so there is nothing to analyse.")
+            }
+        }
+        return
+    }
+    val start: Position = parsed
+    val session = remember(start, line) {
+        AnalysisSession(start).apply {
+            // Load the line as the main line, then go back to the start to step through it.
+            line.forEach { uci -> runCatching { Move.fromUci(uci) }.getOrNull()?.let(::onMove) }
+            toStart()
+        }
+    }
     val state by session.state.collectAsState()
     val view by session.view.collectAsState()
     var whiteAtBottom by remember { mutableStateOf(start.sideToMove == PieceColor.WHITE) }
@@ -96,7 +116,11 @@ fun AnalysisScreen(
 
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtTopBar(title = "Analysis", subtitle = "Try moves; the engine follows along", onBack = onBack)
+            CtTopBar(
+                title = "Analysis",
+                subtitle = if (line.isNotEmpty()) "Step through the solution, or try your own moves" else "Try moves; the engine follows along",
+                onBack = onBack,
+            )
             Column(
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter),
                 verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),

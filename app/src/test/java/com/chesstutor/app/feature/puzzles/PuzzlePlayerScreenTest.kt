@@ -60,7 +60,7 @@ class PuzzlePlayerScreenTest {
     private fun show(player: PuzzlePlayer, onPlayLevel: (Int) -> Unit = {}) {
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                PuzzlePlayerScreen(player, AppSettings(), onFeedback = {}, onAnalyse = {}, onPlayLevel = onPlayLevel, onBack = {})
+                PuzzlePlayerScreen(player, AppSettings(), onFeedback = {}, onAnalyse = { _, _ -> }, onPlayLevel = onPlayLevel, onBack = {})
             }
         }
     }
