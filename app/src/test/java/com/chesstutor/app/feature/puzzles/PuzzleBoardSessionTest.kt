@@ -61,6 +61,26 @@ class PuzzleBoardSessionTest {
         assertTrue(s.outcome()!!.clean)
     }
 
+    /** Regression: "Analyse" opened the final position because this followed the game. */
+    @Test
+    fun theStartingPositionStaysPutWhileThePuzzleIsPlayed() {
+        val s = session()
+        s.playOpening()
+        val start = s.state.value.position.toFen()
+        assertEquals(start, s.solvingFen)
+        s.onMove(m("d1h5"))
+        s.playReply()
+        s.onMove(m("h5f7"))
+        assertTrue(s.isFinished)
+        assertEquals("still the puzzle's starting position", start, s.solvingFen)
+        // The solution replays from there, which is what the analysis board does.
+        var position = Position.fromFen(s.solvingFen)
+        scholars.moves.drop(1).forEach { uci ->
+            val legal = com.chesstutor.app.core.LegalMoveGenerator.generateLegalMoves(position).first { it.uci == uci }
+            position = com.chesstutor.app.core.LegalMoveGenerator.makeMove(position, legal)
+        }
+    }
+
     @Test
     fun aWrongMoveLeavesTheBoardAndBuzzes() {
         val s = session()
