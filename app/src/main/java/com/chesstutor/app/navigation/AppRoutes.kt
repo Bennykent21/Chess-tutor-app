@@ -45,6 +45,15 @@ object AppRoutes {
     const val DEVELOPER_MENU = "account/developer"
     const val DESIGN_GALLERY = "account/design"
     const val BOARD_SETTINGS = "account/board"
+    /** The puzzle player, full screen inside the Puzzles tab. */
+    const val PUZZLE_PLAYER = "puzzles/play"
+
+    const val ANALYSIS_FEN_ARG = "fen"
+    const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}"
+
+    /** Route to the analysis board on [fen]. Spaces and slashes are encoded for the URL. */
+    fun analysis(fen: String): String =
+        "analysis?$ANALYSIS_FEN_ARG=" + java.net.URLEncoder.encode(fen, "UTF-8").replace("+", "%20")
     /** Full screen (no bottom bar), like every activity that hosts a board. */
     const val BOARD_LAB = "board/lab"
 

@@ -42,7 +42,7 @@ data class BoardMarks(
 )
 
 /** What an arrow or ring means, which sets its colour. */
-enum class MarkKind { BEST, HINT, USER, ALTERNATIVE }
+enum class MarkKind { BEST, HINT, USER, ALTERNATIVE, MISTAKE }
 
 data class BoardArrow(val from: Square, val to: Square, val kind: MarkKind = MarkKind.BEST)
 
@@ -53,6 +53,7 @@ internal fun MarkKind.argb(): Long = when (this) {
     MarkKind.HINT -> BoardMarkColors.ARROW_HINT
     MarkKind.USER -> BoardMarkColors.ARROW_USER
     MarkKind.ALTERNATIVE -> BoardMarkColors.ARROW_ALTERNATIVE
+    MarkKind.MISTAKE -> BoardMarkColors.MISTAKE
 }
 
 /** A piece held under the finger, at [position] in board pixels. */
