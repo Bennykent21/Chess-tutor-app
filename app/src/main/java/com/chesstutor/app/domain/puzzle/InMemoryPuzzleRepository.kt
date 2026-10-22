@@ -61,6 +61,7 @@ class InMemoryPuzzleRepository(
                 totalXp = total,
                 playerLevel = PlayerLevel.fromXp(total),
                 dayStreak = DayStreak.compute(days, today()),
+                solvedToday = today() in days,
                 cleanStreak = p?.streak ?: 0,
                 bestStreak = p?.bestStreak ?: 0,
                 solved = p?.solved ?: 0,

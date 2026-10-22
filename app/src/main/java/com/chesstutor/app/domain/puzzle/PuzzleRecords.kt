@@ -34,6 +34,8 @@ data class PuzzleStats(
     val cleanStreak: Int = 0,
     val bestStreak: Int = 0,
     val solved: Int = 0,
+    /** A puzzle was solved today, so the day streak is safe until midnight. */
+    val solvedToday: Boolean = false,
 )
 
 /** Pure bookkeeping shared by every [PuzzleRepository], so the rules are tested once. */
