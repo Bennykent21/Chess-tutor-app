@@ -27,7 +27,6 @@ import com.chesstutor.app.navigation.NavCommand
 import com.chesstutor.app.ui.arena.ArenaScreen
 import com.chesstutor.app.ui.coach.CoachScreen
 import com.chesstutor.app.ui.curriculum.CurriculumScreen
-import com.chesstutor.app.ui.puzzles.PuzzleScreen
 import com.chesstutor.app.ui.review.ReviewScreen
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.viewmodel.AppUiState
@@ -77,11 +76,7 @@ fun LegacyHost(
                     )
                     LegacyTab.ARENA -> ArenaScreen(state = state, viewModel = viewModel)
                     LegacyTab.REVIEW -> ReviewScreen(state = state, viewModel = viewModel)
-                    LegacyTab.PUZZLES -> PuzzleScreen(
-                        seedRating = state.effectiveUserRating,
-                        showCoordinates = state.showCoordinates,
-                        showLegalDots = state.showLegalDots
-                    )
+                    // LegacyTab.PUZZLES: the old trainer was removed in Phase 2 (the Puzzles tab replaces it).
                 }
             }
         }

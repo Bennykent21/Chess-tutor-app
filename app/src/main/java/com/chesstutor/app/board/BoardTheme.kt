@@ -64,6 +64,8 @@ object BoardMarkColors {
     const val ARROW_HINT = 0xC7FFC53DL
     const val ARROW_USER = 0xC7A8E63AL
     const val ARROW_ALTERNATIVE = 0x99A487FFL
+    /** A wrong move in a puzzle, flashed on its target square. */
+    const val MISTAKE = 0xE6FF6F6FL
 }
 
 /** Who you are on every board: colours and pieces, from user settings (plan section 4.1). */

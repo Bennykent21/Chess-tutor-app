@@ -25,10 +25,15 @@ object LegacyTab {
     const val ARENA = 2
     /** ReviewScreen: linked accounts, game history and review. Removed in Phase 5. */
     const val REVIEW = 3
-    /** PuzzleScreen: the current puzzle trainer. Removed in Phase 2. */
+    /**
+     * PuzzleScreen: the old puzzle trainer, replaced by the Puzzles tab in Phase 2. It is no
+     * longer listed: it saves to the old SharedPreferences store, so playing it would split
+     * the player's stats from the new history in Room.
+     */
     const val PUZZLES = 4
 
-    val ALL = listOf(SESSION, CURRICULUM, ARENA, REVIEW, PUZZLES)
+    /** The classic screens still offered (Account > Classic screens). */
+    val ALL = listOf(SESSION, CURRICULUM, ARENA, REVIEW)
 
     fun title(index: Int): String = when (index) {
         SESSION -> "Lesson and drill player"
@@ -45,6 +50,22 @@ object AppRoutes {
     const val DEVELOPER_MENU = "account/developer"
     const val DESIGN_GALLERY = "account/design"
     const val BOARD_SETTINGS = "account/board"
+    /** The puzzle player, full screen inside the Puzzles tab. */
+    const val PUZZLE_PLAYER = "puzzles/play"
+    const val PUZZLE_MODES = "puzzles/modes"
+
+    const val ANALYSIS_FEN_ARG = "fen"
+    const val ANALYSIS_LINE_ARG = "line"
+    const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}&$ANALYSIS_LINE_ARG={$ANALYSIS_LINE_ARG}"
+
+    /**
+     * Route to the analysis board on [fen], with [line] (UCI moves) loaded as the main line,
+     * for example a puzzle's solution. Spaces and slashes are encoded for the URL.
+     */
+    fun analysis(fen: String, line: List<String> = emptyList()): String =
+        "analysis?$ANALYSIS_FEN_ARG=${encode(fen)}&$ANALYSIS_LINE_ARG=${encode(line.joinToString(" "))}"
+
+    private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
     /** Full screen (no bottom bar), like every activity that hosts a board. */
     const val BOARD_LAB = "board/lab"
 

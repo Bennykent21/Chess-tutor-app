@@ -22,3 +22,6 @@ debug.keystore*
 # For local builds, download the "stockfish-android" artifact from a CI run (see README).
 app/src/main/jniLibs/**/libstockfish.so
 stockfish-build/
+# Large inputs for tools/build_puzzle_pack.py (Lichess puzzle database, Stockfish for Windows).
+/tools/.cache/
+__pycache__/

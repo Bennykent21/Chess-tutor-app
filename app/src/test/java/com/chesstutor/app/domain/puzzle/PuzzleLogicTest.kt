@@ -162,6 +162,50 @@ class PuzzleLogicTest {
         assertTrue(s.outcome()!!.clean)
     }
 
+    // ---------- accepted alternatives (pack v2, plan section 6.3.5) ----------
+
+    @Test
+    fun parser_readsAlternativesPerSolverStep() {
+        val base = "ab12\tfenfenfen a b c d\te2e4 e7e5 g1f3 b8c6 f1b5\t1234\tfork\tfork\t97"
+        assertEquals(emptyList<Set<String>>(), PuzzleParser.parseLine(base)!!.alternatives)
+        assertEquals(emptyList<Set<String>>(), PuzzleParser.parseLine("$base\t")!!.alternatives)
+        val p = PuzzleParser.parseLine("$base\td2d4,b1c3||f1c4")!!
+        assertEquals(setOf("d2d4", "b1c3"), p.alternativesAt(0))
+        assertEquals(emptySet<String>(), p.alternativesAt(1))
+        assertEquals(setOf("f1c4"), p.alternativesAt(2))
+        assertEquals("steps past the list have none", emptySet<String>(), p.alternativesAt(7))
+        assertEquals("a malformed move is dropped, the puzzle kept", setOf("d2d4"), PuzzleParser.parseLine("$base\td2d4,zz99")!!.alternativesAt(0))
+    }
+
+    @Test
+    fun session_acceptsAListedAlternativeAndEndsAsAGreatAlternative() {
+        // 2.Qf3 also prepares Qxf7#, so the pack lists it as another winning first move.
+        val s = start(scholars.copy(alternatives = listOf(setOf("d1f3"))))
+        assertEquals(PuzzleMoveResult.Correct(reply = null, solved = true, alternative = true), s.submit("d1f3"))
+        val outcome = s.outcome()!!
+        assertTrue(outcome.solved && outcome.clean && outcome.viaAlternative)
+        assertTrue(s.solvedWithAlternative)
+        assertEquals("the main line from before the player's move", listOf("d1h5", "g8f6", "h5f7"), s.mainLineFromHere())
+    }
+
+    @Test
+    fun session_alternativesOnlyCountAtTheirOwnStep() {
+        val p = scholars.copy(alternatives = listOf(emptySet(), setOf("c4f7")))
+        val s = start(p)
+        assertEquals("Bxf7+ is not accepted at step 1", PuzzleMoveResult.Wrong(1), s.submit("c4f7"))
+        s.submit("d1h5")
+        assertEquals(PuzzleMoveResult.Correct(reply = null, solved = true, alternative = true), s.submit("c4f7"))
+        assertFalse("a mistake earlier still costs the clean solve", s.outcome()!!.clean)
+    }
+
+    @Test
+    fun session_listedMoveIsNotAnAlternative() {
+        val s = start(scholars.copy(alternatives = listOf(setOf("d1f3"))))
+        assertEquals(PuzzleMoveResult.Correct(reply = "g8f6", solved = false), s.submit("d1h5"))
+        s.submit("h5f7")
+        assertFalse(s.outcome()!!.viaAlternative)
+    }
+
     @Test
     fun session_nonMatingAlternativeIsWrong() {
         val s = start(tworooks)

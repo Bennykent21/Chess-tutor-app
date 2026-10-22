@@ -6,8 +6,12 @@ enum class PuzzleStatus { SOLVING, SOLVED, REVEALED }
 
 /** What happened when the player tried a move. */
 sealed interface PuzzleMoveResult {
-    /** Right move. [reply] is the opponent's answer that was auto-played (null if none). */
-    data class Correct(val reply: String?, val solved: Boolean) : PuzzleMoveResult
+    /**
+     * Right move. [reply] is the opponent's answer that was auto-played (null if none).
+     * [alternative] is true when it was a different winning move than the listed one: the
+     * puzzle then ends as "Solved: a great alternative" (plan section 6.3.5).
+     */
+    data class Correct(val reply: String?, val solved: Boolean, val alternative: Boolean = false) : PuzzleMoveResult
 
     /** Legal but not the solution. The board is unchanged so the player can try again. */
     data class Wrong(val mistakes: Int) : PuzzleMoveResult
@@ -33,7 +37,9 @@ data class PuzzleOutcome(
     val clean: Boolean,
     val mistakes: Int,
     val hintsUsed: Int,
-    val revealed: Boolean
+    val revealed: Boolean,
+    /** Solved with a different winning move than the listed solution. */
+    val viaAlternative: Boolean = false,
 )
 
 /**
@@ -41,7 +47,8 @@ data class PuzzleOutcome(
  *
  * Flow: [start] plays the opponent's opening move, then the UI calls [submit] with each move the
  * player makes. Correct moves trigger the opponent's scripted reply; a wrong move leaves the board
- * untouched. Like Lichess, any move that checkmates is accepted even if it is not the listed one.
+ * untouched. Like Lichess, any move that checkmates is accepted even if it is not the listed one,
+ * and so is any move the pack lists as another winning move for this step.
  */
 class PuzzleSession private constructor(
     val puzzle: Puzzle,
@@ -57,6 +64,9 @@ class PuzzleSession private constructor(
     var mistakes: Int = 0
         private set
     var hintsUsed: Int = 0
+        private set
+    /** True when the puzzle was finished with an accepted alternative instead of the listed move. */
+    var solvedWithAlternative: Boolean = false
         private set
 
     /** UCI of the last move played on the board (opening move, player move or reply). */
@@ -75,10 +85,11 @@ class PuzzleSession private constructor(
         if (position.legalMoves.none { it.uci == move }) return PuzzleMoveResult.Illegal
 
         val isExpected = move == puzzle.moves[index]
+        val isAlternative = !isExpected && move in puzzle.alternativesAt((index - 1) / 2)
         val deliversMate = !isExpected && ChessPosition(position.fen).let { trial ->
             trial.play(move) && trial.isCheckmate
         }
-        if (!isExpected && !deliversMate) {
+        if (!isExpected && !isAlternative && !deliversMate) {
             mistakes++
             return PuzzleMoveResult.Wrong(mistakes)
         }
@@ -87,7 +98,13 @@ class PuzzleSession private constructor(
         lastMove = move
         hintLevel = 0
         index++
-        if (deliversMate || index >= puzzle.moves.size) return finishSolved(reply = null)
+        if (deliversMate) return finishSolved(reply = null)
+        // The listed replies only follow the listed move, so an alternative ends the puzzle here.
+        if (isAlternative) {
+            solvedWithAlternative = true
+            return finishSolved(reply = null, alternative = true)
+        }
+        if (index >= puzzle.moves.size) return finishSolved(reply = null)
 
         val reply = puzzle.moves[index]
         if (!position.play(reply)) return finishSolved(reply = null)   // corrupt tail: don't trap the player
@@ -120,7 +137,8 @@ class PuzzleSession private constructor(
             clean = mistakes == 0 && hintsUsed == 0,
             mistakes = mistakes,
             hintsUsed = hintsUsed,
-            revealed = false
+            revealed = false,
+            viaAlternative = solvedWithAlternative,
         )
         PuzzleStatus.REVEALED -> PuzzleOutcome(
             solved = false,
@@ -131,10 +149,13 @@ class PuzzleSession private constructor(
         )
     }
 
-    private fun finishSolved(reply: String?): PuzzleMoveResult {
+    private fun finishSolved(reply: String?, alternative: Boolean = false): PuzzleMoveResult {
         status = PuzzleStatus.SOLVED
-        return PuzzleMoveResult.Correct(reply, solved = true)
+        return PuzzleMoveResult.Correct(reply, solved = true, alternative = alternative)
     }
+
+    /** The listed solution from the position before the player's move, to show after an alternative. */
+    fun mainLineFromHere(): List<String> = puzzle.moves.subList(index - 1, puzzle.moves.size)
 
     companion object {
         /**

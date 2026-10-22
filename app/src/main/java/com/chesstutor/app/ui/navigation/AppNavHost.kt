@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -30,6 +32,8 @@ import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.account.BoardLabScreen
 import com.chesstutor.app.feature.account.BoardSettingsActions
@@ -39,7 +43,12 @@ import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
 import com.chesstutor.app.feature.home.HomeScreen
 import com.chesstutor.app.feature.learn.LearnScreen
+import com.chesstutor.app.feature.analysis.AnalysisScreen
+import com.chesstutor.app.feature.puzzles.PuzzleModeActions
+import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
+import com.chesstutor.app.feature.puzzles.PuzzlePlayerScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
+import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.LegacyTab
 import com.chesstutor.app.navigation.TopTab
@@ -126,14 +135,54 @@ fun AppNavHost(
                     }
                 }
                 navigation(startDestination = TopTab.PUZZLES.startRoute, route = TopTab.PUZZLES.graphRoute) {
-                    composable(TopTab.PUZZLES.startRoute) {
+                    composable(TopTab.PUZZLES.startRoute) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        val home by puzzles.home.collectAsStateWithLifecycle()
                         PuzzlesHomeScreen(
+                            state = home,
                             mascot = state.appSettings.mascot,
                             dueReviewCount = dueReviews,
-                            onSolvePuzzles = { openLegacy(LegacyTab.PUZZLES) },
+                            onPlayLevel = { level ->
+                                puzzles.startLevel(level)
+                                navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
+                            },
+                            onOpenModes = { navController.navigate(AppRoutes.PUZZLE_MODES) { launchSingleTop = true } },
                             onReviewMistakes = {
                                 viewModel.startTrain(TrainRequest.ReviewDue)
                                 navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
+                            }
+                        )
+                    }
+                    composable(AppRoutes.PUZZLE_MODES) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        fun play(start: () -> Unit) {
+                            start()
+                            navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
+                        }
+                        PuzzleModesScreen(
+                            patternsFor = puzzles::patternsFor,
+                            actions = PuzzleModeActions(
+                                onRush = { minutes -> play { puzzles.startRush(minutes) } },
+                                onDaily = { play { puzzles.startDaily() } },
+                                onThemed = { goal, pattern, difficulty -> play { puzzles.startThemed(goal, pattern, difficulty) } },
+                                onCustom = { band, pattern, count, timed -> play { puzzles.startCustom(band, pattern, count, timed) } },
+                                onMistakes = { play { puzzles.startMistakes() } }
+                            ),
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.PUZZLE_PLAYER) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        val player by puzzles.player.collectAsStateWithLifecycle()
+                        PuzzlePlayerScreen(
+                            player = player,
+                            settings = state.appSettings,
+                            onFeedback = viewModel::playBoardFeedback,
+                            onAnalyse = { fen, line -> navController.navigate(AppRoutes.analysis(fen, line)) },
+                            onPlayLevel = puzzles::startLevel,
+                            onBack = {
+                                puzzles.closePlayer()
+                                navController.popBackStack()
                             }
                         )
                     }
@@ -199,6 +248,30 @@ fun AppNavHost(
                     }
                 }
                 composable(
+                    route = AppRoutes.ANALYSIS_PATTERN,
+                    arguments = listOf(
+                        navArgument(AppRoutes.ANALYSIS_FEN_ARG) {
+                            type = NavType.StringType
+                            defaultValue = Position.STARTING_FEN
+                        },
+                        navArgument(AppRoutes.ANALYSIS_LINE_ARG) {
+                            type = NavType.StringType
+                            defaultValue = ""
+                        }
+                    )
+                ) { entry ->
+                    val context = LocalContext.current
+                    val engine = remember(context) { AppContainer.provideEngineService(context) }
+                    AnalysisScreen(
+                        startFen = entry.arguments?.getString(AppRoutes.ANALYSIS_FEN_ARG) ?: Position.STARTING_FEN,
+                        line = entry.arguments?.getString(AppRoutes.ANALYSIS_LINE_ARG).orEmpty().split(' ').filter { it.isNotBlank() },
+                        settings = state.appSettings,
+                        engine = engine,
+                        onFeedback = viewModel::playBoardFeedback,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
                     route = AppRoutes.LEGACY_PATTERN,
                     arguments = listOf(
                         navArgument(AppRoutes.LEGACY_CATEGORY_ARG) {
@@ -261,4 +334,15 @@ private fun NavHostController.navigateToTab(tab: TopTab) {
         launchSingleTop = true
         restoreState = true
     }
+}
+
+/** The Puzzles tab's view model, shared by every screen in the tab (scoped to its graph). */
+@Composable
+private fun puzzlesViewModel(navController: NavHostController, entry: NavBackStackEntry): PuzzlesViewModel {
+    val owner = remember(entry) { navController.getBackStackEntry(TopTab.PUZZLES.graphRoute) }
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = PuzzlesViewModel.Factory(AppContainer.providePuzzleRepository(context)) { PuzzleAssetLoader(context).load() },
+    )
 }
