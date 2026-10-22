@@ -40,6 +40,10 @@ Which alternatives count (all scores from the solver's side, at the same search)
   are clearly winning (at least --winning) and it trails by no more than --wide-tolerance.
 - A move never counts if it throws away an advantage the listed move keeps (the listed
   move scores at least --keep and the other move does not).
+- The search must confirm the listed move first: unless the listed move scores at least
+  --keep (or, in "save the game" puzzles tagged equality, at least --hold), the engine has
+  not seen the idea and the step accepts nothing except a mate it actually found. Every
+  alternative must itself score at least that floor.
 """
 import argparse
 import csv
@@ -92,6 +96,10 @@ def parse_args():
                    help="how far a clearly winning alternative may trail a clearly winning listed move")
     p.add_argument("--keep", type=int, default=150,
                    help="an advantage this large must not be thrown away by an alternative")
+    p.add_argument("--hold", type=int, default=-100,
+                   help="the floor for equality (save the game) puzzles: a holding move")
+    p.add_argument("--recheck-alternatives", action="store_true",
+                   help="re-analyse only puzzles whose cached result has alternatives (after a rule change)")
     p.add_argument("--cache", default=os.path.join("tools", ".cache", "alternatives.jsonl"))
     return p.parse_args()
 
@@ -216,13 +224,15 @@ class Engine:
             self.proc.kill()
 
 
-def accepted_alternatives(listed, lines, args):
+def accepted_alternatives(listed, lines, args, defensive=False):
     """The other moves at one step that also win, by the rules in the module docstring."""
     if listed in lines:
         ref_score, ref_mate = lines[listed]
     else:
         # The listed move fell out of the engine's top lines: compare with its best line.
         ref_score, ref_mate = max(lines.values(), key=lambda v: v[0])
+    floor = args.hold if defensive else args.keep
+    confirmed = (ref_mate is not None and ref_mate > 0) or ref_score >= floor
     alts = []
     for move, (score, mate) in lines.items():
         if move == listed:
@@ -232,8 +242,10 @@ def accepted_alternatives(listed, lines, args):
                 alts.append(move)
             continue
         if mate is not None and mate > 0:
-            alts.append(move)  # a forced mate always keeps the win
+            alts.append(move)  # a mate the engine found is proof the move wins
             continue
+        if not confirmed or score < floor:
+            continue  # the search did not confirm the idea, or this move is not good enough
         if ref_score >= args.keep and score < args.keep:
             continue
         both_winning = ref_score >= args.winning and score >= args.winning and score >= ref_score - args.wide_tolerance
@@ -248,7 +260,8 @@ def analyse_puzzle(engine, puzzle, args):
     moves = puzzle["moves"]
     for i in range(1, len(moves), 2):
         lines = engine.lines(puzzle["fen"], moves[:i], args.nodes)
-        steps.append(accepted_alternatives(moves[i], lines, args) if lines else [])
+        defensive = "equality" in puzzle["themes"].split()
+        steps.append(accepted_alternatives(moves[i], lines, args, defensive) if lines else [])
     return "|".join(",".join(step) for step in steps) if any(steps) else ""
 
 
@@ -259,7 +272,10 @@ def find_alternatives(rows, args):
             for line in f:
                 entry = json.loads(line)
                 cache[entry["id"]] = entry["alts"]
-    todo = [r for r in rows if r["id"] not in cache]
+    if args.recheck_alternatives:
+        todo = [r for r in rows if cache.get(r["id"])]
+    else:
+        todo = [r for r in rows if r["id"] not in cache]
     print(f"alternatives: {len(rows) - len(todo):,} cached, {len(todo):,} to analyse "
           f"with {args.workers} Stockfish processes", flush=True)
 
