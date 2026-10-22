@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Bramble, a chess bot">
+  <path d="M55.0 132.0 L31.0 126.6 L48.1 109.0 L29.1 93.5 L52.3 85.4 L42.2 63.0 L66.6 66.2 L67.7 41.7 L88.0 55.4 L100.0 34.0 L112.0 55.4 L132.3 41.7 L133.4 66.2 L157.8 63.0 L147.7 85.4 L170.9 93.5 L151.9 109.0 L169.0 126.6 L145.0 132.0 Z" fill="#7A5236"/>
+  <path d="M28 200 C32 170 60 152 100 152 C140 152 168 170 172 200 Z" fill="#7A5236"/>
+  <ellipse cx="100" cy="112" rx="46" ry="44" fill="#F3D2A2"/>
+  <circle cx="64" cy="76" r="10" fill="#E3B47E"/>
+  <circle cx="136" cy="76" r="10" fill="#E3B47E"/>
+  <ellipse cx="84" cy="84" rx="10" ry="5" fill="#FFFFFF" opacity=".3"/>
+  <ellipse cx="100" cy="128" rx="16" ry="12" fill="#FBE3C0"/>
+  <circle cx="100" cy="122" r="6" fill="#121838"/>
+  <path d="M92 136 Q100 141 108 136" fill="none" stroke="#121838" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="84" cy="104" rx="8.0" ry="9.600000000000001" fill="#FFFFFF"/>
+  <circle cx="85.6" cy="106.4" r="4.800000000000001" fill="#121838"/>
+  <circle cx="87.2" cy="104.0" r="1.6" fill="#FFFFFF"/>
+  <ellipse cx="116" cy="104" rx="8.0" ry="9.600000000000001" fill="#FFFFFF"/>
+  <circle cx="117.6" cy="106.4" r="4.800000000000001" fill="#121838"/>
+  <circle cx="119.2" cy="104.0" r="1.6" fill="#FFFFFF"/>
+  <ellipse cx="72" cy="124" rx="8" ry="5" fill="#FF6F6F" opacity=".55"/>
+  <ellipse cx="128" cy="124" rx="8" ry="5" fill="#FF6F6F" opacity=".55"/>
+  <path d="M32 150 L60 142 L88 150 L86 172 C84 186 72 194 60 198 C48 194 36 186 34 172 Z" fill="#4C8DFF"/>
+  <path d="M46 164 L60 174 L74 164" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+</svg>

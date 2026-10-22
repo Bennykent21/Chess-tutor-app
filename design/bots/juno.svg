@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Juno, a chess bot">
+  <path d="M28 200 C32 170 60 152 100 152 C140 152 168 170 172 200 Z" fill="#FF8A3D"/>
+  <path d="M76 200 C80 176 90 164 100 164 C110 164 120 176 124 200 Z" fill="#FFF4E6"/>
+  <path d="M50 84 L56 30 L92 62 Z" fill="#FF8A3D"/>
+  <path d="M 150 84 L 144 30 L 108 62 Z" fill="#FF8A3D"/>
+  <path d="M54 50 L56 30 L70 42 Z" fill="#3B2416"/>
+  <path d="M 146 50 L 144 30 L 130 42 Z" fill="#3B2416"/>
+  <path d="M60 74 L62 46 L82 64 Z" fill="#FFD6B8"/>
+  <path d="M 140 74 L 138 46 L 118 64 Z" fill="#FFD6B8"/>
+  <path d="M44 96 C44 64 70 52 100 52 C130 52 156 64 156 96 C156 124 132 150 100 156 C68 150 44 124 44 96 Z" fill="#FF8A3D"/>
+  <path d="M48 104 C60 118 80 124 100 150 C120 124 140 118 152 104 C150 132 128 154 100 158 C72 154 50 132 48 104 Z" fill="#FFF4E6"/>
+  <ellipse cx="78" cy="66" rx="12" ry="6" fill="#FFFFFF" opacity=".3"/>
+  <path d="M56 84 C70 74 90 78 100 86 C110 78 130 74 144 84 C146 98 132 106 118 104 C110 102 104 98 100 96 C96 98 90 102 82 104 C68 106 54 98 56 84 Z" fill="#6A4BE0"/>
+  <ellipse cx="82" cy="90" rx="8.5" ry="10.2" fill="#FFFFFF"/>
+  <circle cx="83.7" cy="92.55" r="5.1" fill="#121838"/>
+  <circle cx="85.4" cy="90.0" r="1.7" fill="#FFFFFF"/>
+  <ellipse cx="118" cy="90" rx="8.5" ry="10.2" fill="#FFFFFF"/>
+  <circle cx="119.7" cy="92.55" r="5.1" fill="#121838"/>
+  <circle cx="121.4" cy="90.0" r="1.7" fill="#FFFFFF"/>
+  <ellipse cx="100" cy="128" rx="7" ry="5" fill="#121838"/>
+  <path d="M92 136 Q100 141 108 136" fill="none" stroke="#121838" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="66" cy="118" rx="8" ry="5" fill="#FF6F6F" opacity=".55"/>
+  <ellipse cx="134" cy="118" rx="8" ry="5" fill="#FF6F6F" opacity=".55"/>
+</svg>

@@ -1,6 +1,6 @@
 package com.chesstutor.app.data.opening
 
-import android.content.Context
+import android.content.res.AssetManager
 import com.chesstutor.app.domain.opening.OpeningTree
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -13,7 +13,7 @@ import java.io.IOException
  * tools/build_openings.py) once per process. A missing or unreadable asset gives an empty
  * tree, so bots simply play without a book instead of crashing.
  */
-class OpeningAssetLoader(private val context: Context, private val assetName: String? = null) {
+class OpeningAssetLoader(private val assets: AssetManager, private val assetName: String? = null) {
     private val lock = Mutex()
     @Volatile private var cached: OpeningTree? = null
 
@@ -26,7 +26,7 @@ class OpeningAssetLoader(private val context: Context, private val assetName: St
         val candidates = assetName?.let(::listOf) ?: listOf(DEFAULT_ASSET, DEFAULT_ASSET.removeSuffix(".gz"))
         for (candidate in candidates) {
             try {
-                val tree = context.assets.open(candidate).use(OpeningTree::fromStream)
+                val tree = assets.open(candidate).use(OpeningTree::fromStream)
                 if (!tree.isEmpty) return tree
             } catch (_: IOException) {
                 // Try the next name.

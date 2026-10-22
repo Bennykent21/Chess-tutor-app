@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Marlo, a chess bot">
+  <path d="M28 200 C32 170 60 152 100 152 C140 152 168 170 172 200 Z" fill="#8A93A6"/>
+  <path d="M50 84 C44 60 48 44 56 38 C70 44 82 54 88 64 Z" fill="#9AA3B5"/>
+  <path d="M 150 84 C 156 60 152 44 144 38 C 130 44 118 54 112 64 Z" fill="#9AA3B5"/>
+  <path d="M58 74 C56 60 58 52 62 48 C70 54 76 60 80 66 Z" fill="#3B4255"/>
+  <path d="M 142 74 C 144 60 142 52 138 48 C 130 54 124 60 120 66 Z" fill="#3B4255"/>
+  <ellipse cx="100" cy="106" rx="56" ry="50" fill="#9AA3B5"/>
+  <path d="M48 108 C60 92 84 92 100 104 C116 92 140 92 152 108 C146 132 124 150 100 152 C76 150 54 132 48 108 Z" fill="#E6E9F0"/>
+  <path d="M94 60 L106 60 L104 94 L96 94 Z" fill="#3B4255"/>
+  <path d="M50 96 C62 82 86 84 100 98 C114 84 138 82 150 96 C150 110 134 116 120 112 C110 110 104 104 100 102 C96 104 90 110 80 112 C66 116 50 110 50 96 Z" fill="#3B4255"/>
+  <ellipse cx="76" cy="70" rx="10" ry="5" fill="#FFFFFF" opacity=".3"/>
+  <ellipse cx="80" cy="100" rx="8.5" ry="10.2" fill="#FFFFFF"/>
+  <circle cx="81.7" cy="102.55" r="5.1" fill="#121838"/>
+  <circle cx="83.4" cy="100.0" r="1.7" fill="#FFFFFF"/>
+  <ellipse cx="120" cy="100" rx="8.5" ry="10.2" fill="#FFFFFF"/>
+  <circle cx="121.7" cy="102.55" r="5.1" fill="#121838"/>
+  <circle cx="123.4" cy="100.0" r="1.7" fill="#FFFFFF"/>
+  <ellipse cx="100" cy="126" rx="8" ry="6" fill="#121838"/>
+  <path d="M90 134 Q100 140 110 134" fill="none" stroke="#121838" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="64" cy="126" rx="8" ry="5" fill="#FF6F6F" opacity=".55"/>
+  <ellipse cx="136" cy="126" rx="8" ry="5" fill="#FF6F6F" opacity=".55"/>
+  <circle cx="134" cy="168" r="20" fill="#FFC53D"/>
+  <circle cx="134" cy="168" r="15" fill="none" stroke="#F29A1F" stroke-width="3"/>
+  <circle cx="134" cy="160" r="5" fill="#B87512"/>
+  <path d="M127 178 C127 170 130 166 134 166 C138 166 141 170 141 178 Z" fill="#B87512"/>
+</svg>
