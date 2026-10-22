@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -83,7 +86,7 @@ class HomeScreensTest {
         compose.waitForIdle()
     }
 
-    private val noActions = HomeActions({}, {}, {}, {}, {}, {})
+    private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {})
 
     @Test
     fun homeShowsTheRosterAndTheResumeCard() {
@@ -154,5 +157,29 @@ class HomeScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play_result.png")
         compose.onNode(hasText("Rematch")).performScrollTo().performClick()
         assertEquals(true, rematch)
+    }
+
+    @Test
+    fun theBuilderEditsTheDraft() {
+        var draft by mutableStateOf(com.chesstutor.app.domain.bot.BotDraft())
+        var saved = false
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BotBuilderScreen(
+                    draft = draft,
+                    onChange = { change -> draft = change(draft) },
+                    onSave = { saved = true },
+                    onDelete = {},
+                    onBack = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Give your bot a name to save it.").assertExists()
+        compose.onNodeWithText("Endgame grinder").performScrollTo().performClick()
+        compose.onNodeWithText("Sicilian Defense").performScrollTo().performClick()
+        assertEquals(com.chesstutor.app.domain.bot.BotStyle.GRINDER, draft.style)
+        assertEquals(true, "Sicilian Defense" in draft.black)
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/BotBuilder.png")
+        assertEquals(false, saved)
     }
 }

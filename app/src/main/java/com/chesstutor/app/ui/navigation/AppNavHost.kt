@@ -42,7 +42,8 @@ import com.chesstutor.app.feature.account.BoardSettingsScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
-import com.chesstutor.app.domain.bot.BotRoster
+import com.chesstutor.app.domain.bot.CustomBot
+import com.chesstutor.app.feature.home.BotBuilderScreen
 import com.chesstutor.app.feature.home.BotSetupScreen
 import com.chesstutor.app.feature.home.HomeActions
 import com.chesstutor.app.feature.home.HomeScreen
@@ -140,6 +141,10 @@ fun AppNavHost(
                                     navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
                                 },
                                 onOpenBot = { id -> navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true } },
+                                onNewBot = {
+                                    homeModel.newBot()
+                                    navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
+                                },
                                 onContinueLearning = { navController.navigateToTab(TopTab.LEARN) },
                                 onDailyPuzzle = {
                                     navController.navigateToTab(TopTab.PUZZLES)
@@ -154,19 +159,61 @@ fun AppNavHost(
                         arguments = listOf(navArgument(AppRoutes.BOT_ID_ARG) { type = NavType.StringType })
                     ) { entry ->
                         val homeModel = homeViewModel(navController, entry)
-                        val bot = BotRoster.byId(entry.arguments?.getString(AppRoutes.BOT_ID_ARG).orEmpty())
+                        val myBots by homeModel.myBots.collectAsStateWithLifecycle()
+                        val botId = entry.arguments?.getString(AppRoutes.BOT_ID_ARG).orEmpty()
+                        val bot = remember(botId, myBots) { homeModel.findBot(botId) }
                         if (bot == null) {
                             LaunchedEffect(Unit) { navController.popBackStack() }
                             return@composable
                         }
-                        BotSetupScreen(
-                            bot = bot,
-                            onPlay = { side, rules ->
-                                homeModel.start(bot, side, rules)
-                                navController.navigate(AppRoutes.PLAY) {
-                                    popUpTo(AppRoutes.BOT_PATTERN) { inclusive = true }
-                                    launchSingleTop = true
+                        val isMine = bot.id.startsWith(CustomBot.ID_PREFIX)
+                        // Keyed on the saved bot, so its page shows its latest rules after an edit.
+                        androidx.compose.runtime.key(myBots.firstOrNull { it.id == bot.id }) {
+                            BotSetupScreen(
+                                bot = bot,
+                                initialRules = homeModel.rulesFor(bot.id),
+                                onEdit = if (isMine) {
+                                    {
+                                        homeModel.editBot(bot.id)
+                                        navController.navigate(AppRoutes.builder(bot.id)) { launchSingleTop = true }
+                                    }
+                                } else null,
+                                onPlay = { side, rules ->
+                                    homeModel.start(bot, side, rules)
+                                    navController.navigate(AppRoutes.PLAY) {
+                                        popUpTo(AppRoutes.BOT_PATTERN) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                    }
+                    composable(
+                        route = AppRoutes.BUILDER_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.BOT_ID_ARG) {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        })
+                    ) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.draft.collectAsStateWithLifecycle()
+                        BotBuilderScreen(
+                            draft = draft,
+                            onChange = homeModel::updateDraft,
+                            onSave = {
+                                val wasNew = draft.isNew
+                                val id = homeModel.saveDraft()
+                                if (id != null) {
+                                    navController.popBackStack()
+                                    // A new bot opens its page, ready to play; an edit returns to it.
+                                    if (wasNew) navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true }
                                 }
+                            },
+                            onDelete = {
+                                draft.id?.let(homeModel::deleteBot)
+                                navController.popBackStack(TopTab.HOME.startRoute, inclusive = false)
                             },
                             onBack = { navController.popBackStack() }
                         )
@@ -426,6 +473,7 @@ private fun homeViewModel(navController: NavHostController, entry: NavBackStackE
             engine = AppContainer.provideEngineService(context),
             openings = { AppContainer.provideOpeningLoader(context).load() },
             games = AppContainer.provideGameRepository(context),
+            bots = AppContainer.provideBotRepository(context),
             puzzleStats = AppContainer.providePuzzleRepository(context).stats(),
             store = SharedPrefsActiveGameStore(context),
         ),

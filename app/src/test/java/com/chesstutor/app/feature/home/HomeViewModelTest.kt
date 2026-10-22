@@ -3,6 +3,7 @@ package com.chesstutor.app.feature.home
 import com.chesstutor.app.core.LegalMoveGenerator
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
+import com.chesstutor.app.data.bot.InMemoryBotRepository
 import com.chesstutor.app.data.repository.InMemoryGameRepository
 import com.chesstutor.app.domain.MoveChoice
 import com.chesstutor.app.domain.bot.BotRoster
@@ -34,6 +35,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import kotlin.random.Random
@@ -57,6 +59,7 @@ class HomeViewModelTest {
     private val test = TestScope(dispatcher)
     private val store = InMemoryActiveGameStore()
     private val games = InMemoryGameRepository()
+    private val bots = InMemoryBotRepository()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -65,7 +68,7 @@ class HomeViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun model() = HomeViewModel(
-        FakeEngine(), { OpeningTree.EMPTY }, games, flowOf(PuzzleStats(dayStreak = 3)), store,
+        FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(PuzzleStats(dayStreak = 3)), store,
         random = Random(1), clock = { test.testScheduler.currentTime },
     )
 
@@ -133,5 +136,39 @@ class HomeViewModelTest {
         test.runCurrent()
         assertEquals("wayne", vm.game.value!!.setup.bot.id)
         vm.closeGame()
+    }
+
+    @Test
+    fun aBuiltBotIsSavedPlayableAtOnceEditableAndDeletable() {
+        val vm = model()
+        test.backgroundScope.launch(dispatcher) { vm.home.collect {} }
+        vm.newBot()
+        assertNull("no name, no save", vm.saveDraft())
+        vm.updateDraft { it.copy(name = "Captain Fork", rating = 1500, face = "kofi").copy(rules = GameRules(takebacks = false)) }
+        val id = vm.saveDraft()!!
+        assertEquals("Captain Fork", vm.findBot(id)?.name)
+        assertEquals("its saved rules open with its page", false, vm.rulesFor(id).takebacks)
+        test.runCurrent()
+        assertEquals(listOf("Captain Fork"), vm.home.value.myBots.map { it.profile.name })
+
+        vm.editBot(id)
+        vm.updateDraft { it.copy(name = "Major Pin") }
+        assertEquals(id, vm.saveDraft())
+        test.runCurrent()
+        assertEquals(listOf("Major Pin"), vm.home.value.myBots.map { it.profile.name })
+
+        vm.start(vm.findBot(id)!!, SideChoice.WHITE, vm.rulesFor(id))
+        test.runCurrent()
+        vm.game.value!!.play("e2e4")
+        test.advanceTimeBy(5_000)
+        test.runCurrent()
+        vm.closeGame()
+        test.runCurrent()
+        assertEquals("a game against my own bot resumes too", "Major Pin", vm.home.value.resume?.bot?.name)
+
+        vm.deleteBot(id)
+        test.runCurrent()
+        assertTrue(vm.home.value.myBots.isEmpty())
+        assertNull("a deleted bot's game is no longer offered", vm.home.value.resume)
     }
 }

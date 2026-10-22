@@ -107,7 +107,7 @@ fun PlayScreen(
                     detail = if (state.phase == GamePhase.BOT_TURN) "Thinking…" else "${bot.rating} · ${bot.style.label}",
                     clock = clockOf(state.botColor),
                     running = state.phase == GamePhase.BOT_TURN && toMove == state.botColor,
-                    avatar = { BotAvatar(bot.id, bot.rating, size = 40.dp) },
+                    avatar = { BotAvatar(bot.face, bot.rating, size = 40.dp) },
                 )
                 BoardWithEvalBar(
                     evalBar = if (setup.rules.evalBar) { modifier ->

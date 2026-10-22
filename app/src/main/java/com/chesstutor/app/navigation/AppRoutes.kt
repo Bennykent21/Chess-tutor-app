@@ -60,6 +60,9 @@ object AppRoutes {
     const val BOT_PATTERN = "home/bot/{$BOT_ID_ARG}"
     fun bot(id: String): String = "home/bot/$id"
     const val PLAY = "home/play"
+    /** The bot builder: a new bot, or one of "My bots" to edit. */
+    const val BUILDER_PATTERN = "home/builder?$BOT_ID_ARG={$BOT_ID_ARG}"
+    fun builder(botId: String? = null): String = if (botId == null) "home/builder" else "home/builder?$BOT_ID_ARG=$botId"
 
     const val ANALYSIS_FEN_ARG = "fen"
     const val ANALYSIS_LINE_ARG = "line"

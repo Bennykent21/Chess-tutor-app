@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtButton
+import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
@@ -46,12 +48,15 @@ fun BotSetupScreen(
     bot: RosterBot,
     onPlay: (SideChoice, GameRules) -> Unit,
     onBack: () -> Unit,
+    initialRules: GameRules = GameRules(),
+    /** Set for the player's own bots. */
+    onEdit: (() -> Unit)? = null,
 ) {
     var side by rememberSaveable { mutableStateOf(SideChoice.RANDOM) }
-    var time by rememberSaveable { mutableStateOf(TimeControl.NONE) }
-    var takebacks by rememberSaveable { mutableStateOf(true) }
-    var hints by rememberSaveable { mutableStateOf(true) }
-    var evalBar by rememberSaveable { mutableStateOf(false) }
+    var time by rememberSaveable { mutableStateOf(initialRules.timeControl) }
+    var takebacks by rememberSaveable { mutableStateOf(initialRules.takebacks) }
+    var hints by rememberSaveable { mutableStateOf(initialRules.hints) }
+    var evalBar by rememberSaveable { mutableStateOf(initialRules.evalBar) }
 
     CtScreenBackground {
         Column(Modifier.fillMaxSize()) {
@@ -65,7 +70,7 @@ fun BotSetupScreen(
             ) {
                 CtCard(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        BotAvatar(bot.id, bot.rating, size = 120.dp)
+                        BotAvatar(bot.profile.face, bot.rating, size = 120.dp)
                         Spacer(Modifier.height(CtSpacing.sm))
                         Text(bot.name, style = CtType.Headline)
                         Spacer(Modifier.height(CtSpacing.xs))
@@ -78,6 +83,9 @@ fun BotSetupScreen(
                     }
                 }
                 Repertoire(bot)
+                if (onEdit != null) {
+                    CtButton(text = "Edit ${bot.name}", icon = Icons.Rounded.Edit, style = CtButtonStyle.Secondary, onClick = onEdit, modifier = Modifier.fillMaxWidth())
+                }
 
                 CtSectionHeader(title = "You play")
                 Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
