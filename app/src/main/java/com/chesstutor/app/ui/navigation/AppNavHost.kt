@@ -31,6 +31,8 @@ import com.chesstutor.app.design.CtBottomBar
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
+import com.chesstutor.app.domain.LearnCurriculumRepository
+import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
 import com.chesstutor.app.core.Position
@@ -58,6 +60,9 @@ import com.chesstutor.app.feature.home.HomeScreen
 import com.chesstutor.app.feature.home.HomeViewModel
 import com.chesstutor.app.feature.play.PlayScreen
 import com.chesstutor.app.feature.play.SharedPrefsActiveGameStore
+import com.chesstutor.app.feature.learn.CourseScreen
+import com.chesstutor.app.feature.learn.LearnCategoryScreen
+import com.chesstutor.app.feature.learn.LearnHubActions
 import com.chesstutor.app.feature.learn.LearnScreen
 import com.chesstutor.app.feature.learn.LearnViewModel
 import com.chesstutor.app.feature.learn.LessonPlayerScreen
@@ -343,14 +348,54 @@ fun AppNavHost(
                         val learn = learnViewModel(navController, entry)
                         val lessons by learn.learn.collectAsStateWithLifecycle()
                         LearnScreen(
-                            state = state,
-                            lessons = lessons,
+                            learn = lessons,
+                            legacyTopics = LearnCurriculumRepository.topics,
+                            legacyMastered = state.masteredModules,
+                            legacyPracticed = state.practicedModules,
+                            actions = LearnHubActions(
+                                onOpenCategory = { category -> navController.navigate(AppRoutes.learnCategory(category.key)) { launchSingleTop = true } },
+                                onOpenLegacy = { category -> openLegacy(LegacyTab.CURRICULUM, category) },
+                                onOpenLesson = { id ->
+                                    learn.openLesson(id)
+                                    navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
+                                },
+                                onOpenDrills = { openLegacy(LegacyTab.SESSION) }
+                            )
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.LEARN_CATEGORY_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.CATEGORY_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val learn = learnViewModel(navController, entry)
+                        val lessons by learn.learn.collectAsStateWithLifecycle()
+                        val category = LessonCategory.fromKey(entry.arguments?.getString(AppRoutes.CATEGORY_ARG).orEmpty())
+                        if (category == null) {
+                            LaunchedEffect(Unit) { navController.popBackStack() }
+                            return@composable
+                        }
+                        LearnCategoryScreen(
+                            category = category,
+                            learn = lessons,
+                            onOpenCourse = { id -> navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.COURSE_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.COURSE_ID_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val learn = learnViewModel(navController, entry)
+                        val lessons by learn.learn.collectAsStateWithLifecycle()
+                        val courseId = entry.arguments?.getString(AppRoutes.COURSE_ID_ARG).orEmpty()
+                        CourseScreen(
+                            course = lessons.library.course(courseId),
+                            progress = lessons.progress,
                             onOpenLesson = { id ->
                                 learn.openLesson(id)
                                 navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
                             },
-                            onOpenCategory = { category -> openLegacy(LegacyTab.CURRICULUM, category) },
-                            onOpenDrills = { openLegacy(LegacyTab.SESSION) }
+                            onBack = { navController.popBackStack() }
                         )
                     }
                     composable(AppRoutes.LESSON) { entry ->

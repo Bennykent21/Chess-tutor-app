@@ -57,6 +57,14 @@ object AppRoutes {
     const val PUZZLE_DAILY = "puzzles/daily"
     /** The lesson player, full screen inside the Learn tab (the lesson is chosen before opening it). */
     const val LESSON = "learn/lesson"
+    /** A Learn category page (courses with search and filters); the argument is a `LessonCategory.key`. */
+    const val CATEGORY_ARG = "category"
+    const val LEARN_CATEGORY_PATTERN = "learn/category/{$CATEGORY_ARG}"
+    fun learnCategory(key: String): String = "learn/category/$key"
+    /** A course page: intro, numbered lessons and practice links. */
+    const val COURSE_ID_ARG = "courseId"
+    const val COURSE_PATTERN = "learn/course/{$COURSE_ID_ARG}"
+    fun course(id: String): String = "learn/course/$id"
     /** A bot's page (pick colour, clock and rules), then the game itself, full screen in Home. */
     const val BOT_ID_ARG = "botId"
     const val BOT_PATTERN = "home/bot/{$BOT_ID_ARG}"
@@ -105,6 +113,8 @@ object AppRoutes {
         value?.let { name -> LearnCategory.entries.firstOrNull { it.name == name } }
 
     private val accountPages = setOf(ENGINE_HEALTH, DEVELOPER_MENU, DESIGN_GALLERY, BOARD_SETTINGS)
+    /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN)
 
     /**
      * The bottom bar shows on tab pages and hides on full-screen activities (any legacy
@@ -114,13 +124,14 @@ object AppRoutes {
     fun showsBottomBar(route: String?): Boolean {
         if (route == null) return true
         if (TopTab.entries.any { it.startRoute == route }) return true
-        return route in accountPages
+        return route in accountPages || route in learnPages
     }
 
     /** The tab a destination belongs to, used to highlight the bottom bar. */
     fun tabFor(route: String?): TopTab? = when {
         route == null -> null
         route in accountPages -> TopTab.ACCOUNT
+        route in learnPages -> TopTab.LEARN
         else -> TopTab.entries.firstOrNull { it.startRoute == route }
     }
 }
