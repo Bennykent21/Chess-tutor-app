@@ -233,7 +233,10 @@ class BotGame(
         val began = clock()
         val clockMs = remainingFor(color)
         val bookDepth = if (plan != null) Int.MAX_VALUE else BotStrengthModel.bookDepth(profile.rating)
-        val decision = brain.decide(position, session.moves.size, profile, book, clockMs, bookDepth) ?: return
+        val decision = brain.decide(
+            position, session.moves.size, profile, book, clockMs, bookDepth,
+            history = session.positions, fromStandardStart = standardStart,
+        ) ?: return
         var playerBlundered = false
         decision.evalForBot?.let { eval ->
             evals += eval

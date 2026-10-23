@@ -571,6 +571,7 @@ private fun homeViewModel(navController: NavHostController, entry: NavBackStackE
             bots = AppContainer.provideBotRepository(context),
             puzzleStats = AppContainer.providePuzzleRepository(context).stats(),
             store = SharedPrefsActiveGameStore(context),
+            maia = AppContainer.provideMaia(context),
         ),
     )
 }

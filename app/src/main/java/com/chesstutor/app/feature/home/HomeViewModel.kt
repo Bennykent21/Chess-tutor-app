@@ -13,6 +13,7 @@ import com.chesstutor.app.domain.bot.BotBrain
 import com.chesstutor.app.domain.bot.BotDraft
 import com.chesstutor.app.domain.bot.BotRepository
 import com.chesstutor.app.domain.bot.ChatLevel
+import com.chesstutor.app.domain.bot.MaiaSource
 import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.bot.RosterBot
@@ -97,6 +98,8 @@ class HomeViewModel(
     private val store: ActiveGameStore,
     private val random: Random = Random.Default,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Maia's human-like networks (D26); null plays every bot in the engine mode. */
+    private val maia: MaiaSource? = null,
 ) : ViewModel() {
     private val playerRating = MutableStateFlow(800)
     private val snapshot = MutableStateFlow(store.load())
@@ -306,7 +309,7 @@ class HomeViewModel(
         closeGame()
         val game = BotGame(
             setup = setup,
-            brain = BotBrain(engine, random),
+            brain = BotBrain(engine, random, maia),
             engine = engine,
             openings = openings,
             games = games,
@@ -364,10 +367,11 @@ class HomeViewModel(
         private val bots: BotRepository,
         private val puzzleStats: Flow<PuzzleStats>,
         private val store: ActiveGameStore,
+        private val maia: MaiaSource? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(engine, openings, games, bots, puzzleStats, store) as T
+            HomeViewModel(engine, openings, games, bots, puzzleStats, store, maia = maia) as T
     }
 }
 

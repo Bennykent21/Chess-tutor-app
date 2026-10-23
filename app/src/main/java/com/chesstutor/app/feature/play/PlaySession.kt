@@ -36,6 +36,8 @@ class PlaySession(
     val game: GameState get() = history.last()
     val start: Position get() = history.first().position
     val moves: List<Move> get() = played.toList()
+    /** Every position of the game so far, oldest first (Maia reads the last eight). */
+    val positions: List<Position> get() = history.map { it.position }
 
     override fun onMove(move: Move): BoardFeedback {
         if (mutableState.value.movable != player) return MoveEffects.ILLEGAL
