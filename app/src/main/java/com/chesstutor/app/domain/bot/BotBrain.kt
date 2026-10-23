@@ -248,22 +248,23 @@ object BotStrengthModel {
 
     /**
      * Rating to the human-like mode, up to [MAIA_UP_TO]. Tuned from tools/calibrate_bots.py
-     * (23 Oct 2026, 560 games against plain Maia anchors): the first estimate made 1400 too weak
-     * and 1600 upwards too strong, the more so the higher the rating.
+     * against plain Maia anchors: a first run (560 games) found 1400 too weak and 1600 upwards
+     * too strong; a check run (280 games) put most rows within about 100 and these last rows
+     * were nudged. Below about 900 the anchors are far away, so those rows are rougher.
      */
     private data class MaiaRow(val rating: Int, val net: Int, val temperature: Double, val random: Double, val checkDepth: Int?, val margin: Int?)
 
     private val maiaTable = listOf(
-        MaiaRow(250, 1100, 2.5, 0.30, null, null),
+        MaiaRow(250, 1100, 2.2, 0.25, null, null),
         MaiaRow(500, 1100, 1.6, 0.10, null, null),
-        MaiaRow(800, 1100, 1.25, 0.03, null, null),
+        MaiaRow(800, 1100, 1.1, 0.03, null, null),
         MaiaRow(1000, 1100, 0.9, 0.0, null, null),
-        MaiaRow(1200, 1500, 0.9, 0.0, null, null),
+        MaiaRow(1200, 1500, 0.75, 0.0, null, null),
         MaiaRow(1400, 1900, 0.9, 0.0, 4, 450),
         MaiaRow(1600, 1900, 0.8, 0.0, 5, 330),
-        MaiaRow(1800, 1900, 0.65, 0.0, 7, 200),
-        MaiaRow(2000, 1900, 0.55, 0.0, 8, 140),
-        MaiaRow(2200, 1900, 0.45, 0.0, 10, 90),
+        MaiaRow(1800, 1900, 0.7, 0.0, 6, 230),
+        MaiaRow(2000, 1900, 0.6, 0.0, 7, 170),
+        MaiaRow(2200, 1900, 0.5, 0.0, 9, 110),
         MaiaRow(2400, 1900, 0.42, 0.0, 11, 70),
     )
 

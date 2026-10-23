@@ -58,11 +58,11 @@ class MaiaBotTest {
     @Test
     fun ratingPicksTheMaiaNetworkHowFreelyItSamplesAndWhetherItChecks() {
         val at1800 = BotStrengthModel.settingsFor(bot(1800), maiaAvailable = true).maia!!
-        assertEquals(MaiaSettings(1900, 0.65, 7, 200), at1800.copy(temperature = Math.round(at1800.temperature * 100) / 100.0))
+        assertEquals(MaiaSettings(1900, 0.7, 6, 230), at1800.copy(temperature = Math.round(at1800.temperature * 100) / 100.0))
         val beginner = BotStrengthModel.settingsFor(bot(250), maiaAvailable = true)
         assertEquals(1100, beginner.maia!!.net)
-        assertEquals(2.5, beginner.maia!!.temperature, 1e-9)
-        assertEquals(0.30, beginner.randomMoveChance, 1e-9)
+        assertEquals(2.2, beginner.maia!!.temperature, 1e-9)
+        assertEquals(0.25, beginner.randomMoveChance, 1e-9)
         assertNull("beginners do not check their moves", beginner.maia!!.checkMargin)
         assertNull("above 2400: engine mode", BotStrengthModel.settingsFor(bot(2600), maiaAvailable = true).maia)
         assertNull("without Maia: engine mode", BotStrengthModel.settingsFor(bot(1800), maiaAvailable = false).maia)
@@ -87,7 +87,7 @@ class MaiaBotTest {
         val engine = ScriptedEngine(mapOf(e5.toFen().substringBefore(" ") to 500))
         val strong = (0 until 30).map { brain(engine, it).decide(afterE4, 30, bot(2000), Repertoire.NONE, history = listOf(Position.initial(), afterE4))!! }
         assertTrue("never e5", strong.none { it.uci == "e7e5" })
-        assertTrue(engine.searchedDepths.contains(8))
+        assertTrue(engine.searchedDepths.contains(7))
         val weak = (0 until 30).map { brain(ScriptedEngine(mapOf(e5.toFen().substringBefore(" ") to 500)), it).decide(afterE4, 30, bot(1000), Repertoire.NONE)!!.uci }
         assertTrue("a 1000 bot does not check, so it still plays e5 often", weak.count { it == "e7e5" } > 5)
     }
