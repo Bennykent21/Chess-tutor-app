@@ -88,7 +88,7 @@ class HomeScreensTest {
         compose.waitForIdle()
     }
 
-    private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {}, {}, {})
+    private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 
     @Test
     fun homeShowsTheRosterAndTheResumeCard() {

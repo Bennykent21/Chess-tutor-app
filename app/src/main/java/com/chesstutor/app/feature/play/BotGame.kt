@@ -18,6 +18,10 @@ import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.domain.PgnFormatter
 import com.chesstutor.app.domain.bot.BotBrain
+import com.chesstutor.app.domain.bot.BotChat
+import com.chesstutor.app.domain.bot.BotProfile
+import com.chesstutor.app.domain.bot.ChatEvent
+import com.chesstutor.app.domain.bot.ChatLevel
 import com.chesstutor.app.domain.bot.BotResign
 import com.chesstutor.app.domain.bot.BotStrengthModel
 import com.chesstutor.app.domain.game.GameEnd
@@ -42,6 +46,9 @@ import java.util.Date
 import kotlin.random.Random
 
 enum class GamePhase { STARTING, PLAYER_TURN, BOT_TURN, OVER, /** Opening Battle drill: the line is finished. */ DRILL_DONE }
+
+/** Something a bot says (review R6); [speaker] is the side of the bot talking. */
+data class ChatLine(val id: Int, val text: String, val speaker: PieceColor)
 
 /** A sound for the screen to play once; [id] changes with every new event. */
 data class GameSoundEvent(val id: Int, val feedback: BoardFeedback)
@@ -68,13 +75,17 @@ data class BotGameState(
     val battleTitle: String? = null,
     val drillMistakes: Int = 0,
     val drillMessage: String? = null,
+    val chat: ChatLine? = null,
+    /** Watch mode only: the game is held. */
+    val paused: Boolean = false,
 ) {
     val playerWon: Boolean get() = result?.winner == setup.playerColor
+    val isWatch: Boolean get() = setup.watch != null
     val botColor: PieceColor get() = setup.playerColor.opposite()
 }
 
 /** Pauses and clock ticks (shortened in tests). */
-data class GameTiming(val tickMs: Long = 100, val hintMovetimeMs: Int = 800, val evalMovetimeMs: Int = 400)
+data class GameTiming(val tickMs: Long = 100, val hintMovetimeMs: Int = 800, val evalMovetimeMs: Int = 400, val chatMs: Long = 5_000)
 
 /**
  * One game against a bot (plan 6.1, step 3C): whose turn it is, the bot's moves through
@@ -96,6 +107,8 @@ class BotGame(
     /** Set for an Opening Battle (step 3E); its book replaces the bot's own repertoire. */
     val battle: BattleChoice? = null,
     private val random: Random = Random.Default,
+    /** How chatty the bots are; read at every line, so the setting applies at once. */
+    private val chatLevel: () -> ChatLevel = { ChatLevel.SOME },
 ) {
     val session = PlaySession(Position.fromFen(setup.startFen), setup.playerColor, ::onPlayerMoved)
 
@@ -112,6 +125,15 @@ class BotGame(
     /** Where the player's current move starts, to judge it in a drill. */
     private var playerTurnStart: Position? = null
     private val botEvals = mutableListOf<Int>()
+    /** Watch mode: the second bot's book and evaluations. */
+    private var watchRepertoire: Repertoire = Repertoire.NONE
+    private val watchEvals = mutableListOf<Int>()
+    /** The bot's view after the player's previous move, to notice a blunder. */
+    private var lastBotEval: Int? = null
+    private var lastChatPly = -10
+    private var chatId = 0
+    private var chatJob: Job? = null
+    private var paused = false
     private var botJob: Job? = null
     private var evalJob: Job? = null
     private var ticker: Job? = null
@@ -124,6 +146,7 @@ class BotGame(
             if (standardStart) {
                 tree = runCatching { openings() }.getOrDefault(OpeningTree.EMPTY)
                 repertoire = Repertoire.of(tree, setup.bot.whiteOpenings, setup.bot.blackOpenings)
+                setup.watch?.let { watchRepertoire = Repertoire.of(tree, it.whiteOpenings, it.blackOpenings) }
                 battle?.let { choice ->
                     val battlePlan = OpeningBattles.plan(tree, choice, random)
                     plan = battlePlan
@@ -138,7 +161,10 @@ class BotGame(
             updateOpening()
             turnStartedAt = clock()
             if (setup.rules.timeControl.initialMs != null) startTicker()
-            if (!checkGameOver()) nextTurn()
+            if (!checkGameOver()) {
+                if (resumeMoves.isEmpty()) say(ChatEvent.GREETING, setup.bot, state.value.botColor)
+                nextTurn()
+            }
         }
     }
 
@@ -146,11 +172,17 @@ class BotGame(
 
     private fun nextTurn() {
         val playerToMove = session.game.position.sideToMove == setup.playerColor
-        session.open = playerToMove
+        val watch = setup.watch
+        session.open = playerToMove && watch == null
         if (playerToMove) playerTurnStart = session.game.position
         mutableState.update { it.copy(phase = if (playerToMove) GamePhase.PLAYER_TURN else GamePhase.BOT_TURN, canTakeBack = canTakeBack(playerToMove)) }
+        if (paused) return
         // The engine does one thing at a time: the eval bar updates while the player thinks.
-        if (playerToMove) refreshEval() else botJob = scope.launch { botMove() }
+        botJob = when {
+            playerToMove && watch != null -> scope.launch { moveFor(watch, setup.playerColor, watchRepertoire, watchEvals) }
+            playerToMove -> null.also { refreshEval() }
+            else -> scope.launch { moveFor(setup.bot, state.value.botColor, repertoire, botEvals) }
+        }
     }
 
     private fun onPlayerMoved(move: Move) {
@@ -164,7 +196,20 @@ class BotGame(
             }
             mutableState.update { it.copy(drillMessage = null) }
         }
+        val (capture, check) = lastMoveFacts()
+        when {
+            check -> say(ChatEvent.PLAYER_CHECKS, setup.bot, state.value.botColor)
+            capture -> say(ChatEvent.PLAYER_CAPTURES, setup.bot, state.value.botColor)
+        }
         afterMove(setup.playerColor)
+    }
+
+    /** Whether the last move took a piece, and whether it gives check. */
+    private fun lastMoveFacts(): Pair<Boolean, Boolean> {
+        val board = session.state.value
+        val before = board.previous?.squares?.count { it != null } ?: return false to false
+        val after = board.position.squares.count { it != null }
+        return (after < before) to LegalMoveGenerator.isKingInCheck(board.position, board.position.sideToMove)
     }
 
     /** A drill move off the line is taken back, and the book move is shown. */
@@ -182,22 +227,38 @@ class BotGame(
         }
     }
 
-    private suspend fun botMove() {
+    /** One move for the bot [profile] playing [color] (the opponent, or either side when watching). */
+    private suspend fun moveFor(profile: BotProfile, color: PieceColor, book: Repertoire, evals: MutableList<Int>) {
         val position = session.game.position
         val began = clock()
-        val clockMs = remainingFor(state.value.botColor)
-        val bookDepth = if (plan != null) Int.MAX_VALUE else BotStrengthModel.bookDepth(setup.bot.rating)
-        val decision = brain.decide(position, session.moves.size, setup.bot, repertoire, clockMs, bookDepth) ?: return
-        decision.evalForBot?.let { botEvals += it }
-        if (BotResign.shouldResign(setup.bot, botEvals)) {
-            finish(GameResult(setup.playerColor, GameEnd.RESIGNATION))
+        val clockMs = remainingFor(color)
+        val bookDepth = if (plan != null) Int.MAX_VALUE else BotStrengthModel.bookDepth(profile.rating)
+        val decision = brain.decide(position, session.moves.size, profile, book, clockMs, bookDepth) ?: return
+        var playerBlundered = false
+        decision.evalForBot?.let { eval ->
+            evals += eval
+            if (setup.watch == null) {
+                // A big jump in the bot's favour right after the player's move: the player slipped.
+                val before = lastBotEval
+                playerBlundered = before != null && eval - before >= BLUNDER_JUMP && eval >= BLUNDER_FLOOR
+                lastBotEval = eval
+            }
+        }
+        if (BotResign.shouldResign(profile, evals)) {
+            finish(GameResult(color.opposite(), GameEnd.RESIGNATION))
             return
         }
         val wait = decision.thinkMs - (clock() - began)
         if (wait > 0) delay(wait)
         val legal = LegalMoveGenerator.generateLegalMoves(position).firstOrNull { it.uci == decision.uci } ?: return
         sound(session.play(legal))
-        afterMove(state.value.botColor)
+        val (capture, check) = lastMoveFacts()
+        when {
+            playerBlundered -> say(ChatEvent.PLAYER_BLUNDER, profile, color)
+            check -> say(ChatEvent.BOT_CHECKS, profile, color)
+            capture -> say(ChatEvent.BOT_CAPTURES, profile, color)
+        }
+        afterMove(color)
     }
 
     private fun afterMove(mover: PieceColor) {
@@ -235,7 +296,9 @@ class BotGame(
         botJob?.cancel()
         session.undo(plies)
         botEvals.clear()
+        lastBotEval = null
         mutableState.update { it.copy(takebacksUsed = it.takebacksUsed + 1, hint = null) }
+        say(ChatEvent.TAKEBACK, setup.bot, state.value.botColor)
         updateOpening()
         turnStartedAt = clock()
         nextTurn()
@@ -266,6 +329,14 @@ class BotGame(
         finish(GameResult(state.value.botColor, GameEnd.RESIGNATION))
     }
 
+    /** Watch mode: holds the game, or lets it go on. */
+    fun togglePause() {
+        if (setup.watch == null || state.value.phase == GamePhase.OVER) return
+        paused = !paused
+        mutableState.update { it.copy(paused = paused) }
+        if (paused) botJob?.cancel() else nextTurn()
+    }
+
     /** Stops the bot and the clock, for leaving the screen without ending the game. */
     fun pause() {
         botJob?.cancel()
@@ -276,7 +347,7 @@ class BotGame(
     // ------------------------------------------------------------------ rules
 
     private fun canTakeBack(playerToMove: Boolean): Boolean {
-        if (!setup.rules.takebacks) return false
+        if (!setup.rules.takebacks || setup.watch != null) return false
         val playerMovesFirst = Position.fromFen(setup.startFen).sideToMove == setup.playerColor
         val plies = session.moves.size
         // On the player's turn two plies go (the bot's reply and the player's move); the bot's
@@ -316,8 +387,19 @@ class BotGame(
         }
         mutableState.update { it.copy(phase = GamePhase.OVER, result = result, hint = null, canTakeBack = false) }
         sound(feedback)
-        // Drills are practice, not games: they stay out of the games list.
-        if (isDrill) return
+        val botColor = state.value.botColor
+        val watch = setup.watch
+        when {
+            result.winner == null -> say(ChatEvent.DRAW, setup.bot, botColor)
+            watch != null -> {
+                val winner = if (result.winner == botColor) setup.bot else watch
+                say(ChatEvent.BOT_WINS, winner, result.winner)
+            }
+            result.winner == botColor -> say(ChatEvent.BOT_WINS, setup.bot, botColor)
+            else -> say(ChatEvent.PLAYER_WINS, setup.bot, botColor)
+        }
+        // Drills are practice and watched games are not the player's: neither goes in the games list.
+        if (isDrill || setup.watch != null) return
         scope.launch {
             runCatching { games.saveGame(record(result)) }
             mutableState.update { it.copy(saved = true) }
@@ -429,7 +511,34 @@ class BotGame(
         }
     }
 
+    /**
+     * A line from [profile] about [event], if the chat setting and a little chance allow. Lines
+     * during play are spaced at least two plies apart and fade after a few seconds.
+     */
+    private fun say(event: ChatEvent, profile: BotProfile, speaker: PieceColor) {
+        if (isDrill || !BotChat.shouldSpeak(event, chatLevel(), random)) return
+        val plies = session.moves.size
+        val ending = event == ChatEvent.BOT_WINS || event == ChatEvent.PLAYER_WINS || event == ChatEvent.DRAW
+        if (!ending && event != ChatEvent.GREETING && event != ChatEvent.PLAYER_BLUNDER && plies - lastChatPly < 2) return
+        val text = BotChat.lineFor(profile.id, profile.style, event, random) ?: return
+        lastChatPly = plies
+        val id = ++chatId
+        mutableState.update { it.copy(chat = ChatLine(id, text, speaker)) }
+        chatJob?.cancel()
+        if (ending) return
+        chatJob = scope.launch {
+            delay(timing.chatMs)
+            mutableState.update { if (it.chat?.id == id) it.copy(chat = null) else it }
+        }
+    }
+
     private fun sound(feedback: BoardFeedback) {
         mutableState.update { it.copy(sound = GameSoundEvent(++soundId, feedback)) }
+    }
+
+    private companion object {
+        /** Centipawns the bot's view must jump, and reach, to call the player's move a blunder. */
+        const val BLUNDER_JUMP = 250
+        const val BLUNDER_FLOOR = 150
     }
 }

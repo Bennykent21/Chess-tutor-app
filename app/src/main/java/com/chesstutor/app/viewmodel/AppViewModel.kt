@@ -1245,6 +1245,8 @@ class AppViewModel(
 
     fun setReduceMotion(enabled: Boolean) = updateSettings { it.copy(reduceMotion = enabled) }
 
+    fun setChatLevel(level: com.chesstutor.app.domain.bot.ChatLevel) = updateSettings { it.copy(chatLevel = level) }
+
     fun setAutoQueen(enabled: Boolean) = updateSettings { it.copy(autoQueen = enabled) }
 
     fun setMascot(mascot: Mascot) = updateSettings { it.copy(mascotId = mascot.id) }

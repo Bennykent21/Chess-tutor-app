@@ -1,5 +1,13 @@
 package com.chesstutor.app.feature.play
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.rounded.Chat
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.ui.draw.clip
+import com.chesstutor.app.design.CtChip
+import com.chesstutor.app.domain.bot.ChatLevel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,12 +77,14 @@ fun PlayScreen(
     onRematch: () -> Unit,
     onAnalyse: (startFen: String, moves: List<String>) -> Unit,
     onBack: () -> Unit,
+    onChatLevel: (ChatLevel) -> Unit = {},
 ) {
     val state by game.state.collectAsState()
     val board by game.session.state.collectAsState()
     val tick by game.clockTicks.collectAsState()
     val setup = game.setup
     val bot = setup.bot
+    val watch = setup.watch
     val whiteBottom = whiteAtBottom(settings.boardOrientation, setup.playerColor)
 
     // Each sound plays once, even when the screen recomposes.
@@ -93,11 +103,31 @@ fun PlayScreen(
 
     CtScreenBackground {
         Column(Modifier.fillMaxSize()) {
+            val title = when {
+                watch != null -> "Bot vs bot"
+                state.battleTitle != null -> "Opening battle"
+                else -> "vs ${bot.name}"
+            }
+            val subtitle = when {
+                state.battleTitle != null -> "vs ${bot.name} · ${if (game.battle?.mode == BattleMode.DRILL) "drill" else game.battle?.mode?.label?.lowercase()}"
+                else -> openingLine(state)
+            }
             CtTopBar(
-                title = state.battleTitle?.let { "Opening battle" } ?: "vs ${bot.name}",
-                subtitle = state.battleTitle?.let { "vs ${bot.name} · ${if (game.battle?.mode == BattleMode.DRILL) "drill" else game.battle?.mode?.label?.lowercase()}" }
-                    ?: openingLine(state),
+                title = title,
+                subtitle = subtitle,
                 onBack = onBack,
+                trailing = if (game.battle?.mode != BattleMode.DRILL) {
+                    {
+                        // Cycles Off, Some, Lots; the bots' chat setting (review R6).
+                        val next = ChatLevel.entries[(settings.chatLevel.ordinal + 1) % ChatLevel.entries.size]
+                        CtChip(
+                            text = "Chat: ${settings.chatLevel.label}",
+                            color = CtColors.Violet,
+                            icon = Icons.AutoMirrored.Rounded.Chat,
+                            onClick = { onChatLevel(next) },
+                        )
+                    }
+                } else null,
             )
             Column(
                 modifier = Modifier
@@ -113,6 +143,7 @@ fun PlayScreen(
                     running = state.phase == GamePhase.BOT_TURN && toMove == state.botColor,
                     avatar = { BotAvatar(bot.face, bot.rating, size = 40.dp) },
                 )
+                state.chat?.takeIf { it.speaker == state.botColor }?.let { ChatBubble(it) }
                 state.battleTitle?.let { title ->
                     CtCoachStrip(
                         mascot = settings.mascot,
@@ -138,13 +169,24 @@ fun PlayScreen(
                         onFeedback = onFeedback,
                     )
                 }
-                PlayerBar(
-                    name = "You",
-                    detail = if (setup.playerColor == PieceColor.WHITE) "White" else "Black",
-                    clock = clockOf(setup.playerColor),
-                    running = state.phase == GamePhase.PLAYER_TURN,
-                    avatar = null,
-                )
+                if (watch != null) {
+                    PlayerBar(
+                        name = watch.name,
+                        detail = if (state.phase == GamePhase.PLAYER_TURN) "Thinking…" else "${watch.rating} · ${watch.style.label}",
+                        clock = clockOf(setup.playerColor),
+                        running = state.phase == GamePhase.PLAYER_TURN,
+                        avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
+                    )
+                } else {
+                    PlayerBar(
+                        name = "You",
+                        detail = if (setup.playerColor == PieceColor.WHITE) "White" else "Black",
+                        clock = clockOf(setup.playerColor),
+                        running = state.phase == GamePhase.PLAYER_TURN,
+                        avatar = null,
+                    )
+                }
+                state.chat?.takeIf { it.speaker == setup.playerColor }?.let { ChatBubble(it) }
                 BoardMoveList(entries = remember(board.version) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
                 if (state.phase == GamePhase.DRILL_DONE) {
                     DrillDoneCard(state, onDrillAgain = onRematch, onAnalyse = { onAnalyse(setup.startFen, board.moves.map { it.uci }) }, onBack = onBack)
@@ -156,12 +198,43 @@ fun PlayScreen(
                         onAnalyse = { onAnalyse(setup.startFen, board.moves.map { it.uci }) },
                         onBack = onBack,
                     )
+                } else if (watch != null) {
+                    WatchActions(game, state, onStop = onBack)
                 } else {
                     GameActions(game, state, onLeave = onBack)
                 }
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }
+    }
+}
+
+/** A bot's line, under its name; read out by TalkBack as it appears. */
+@Composable
+private fun ChatBubble(line: ChatLine) {
+    Text(
+        text = line.text,
+        style = CtType.BodySmall.copy(color = CtColors.Text),
+        modifier = Modifier
+            .padding(start = 48.dp)
+            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 16.dp))
+            .background(CtColors.SurfaceRaised)
+            .padding(horizontal = CtSpacing.md, vertical = CtSpacing.sm)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    )
+}
+
+@Composable
+private fun WatchActions(game: BotGame, state: BotGameState, onStop: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        CtButton(
+            text = if (state.paused) "Resume" else "Pause",
+            icon = if (state.paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
+            style = CtButtonStyle.Secondary,
+            onClick = game::togglePause,
+            modifier = Modifier.weight(1f),
+        )
+        CtButton(text = "Stop", style = CtButtonStyle.Secondary, onClick = onStop, modifier = Modifier.weight(1f))
     }
 }
 
@@ -265,12 +338,15 @@ private fun ResultCard(
 ) {
     val result = state.result ?: return
     val bot = state.setup.bot
+    val watch = state.setup.watch
     val title = when {
         result.winner == null -> "Draw"
+        watch != null -> "${if (result.winner == state.botColor) bot.name else watch.name} won"
         state.playerWon -> "You won!"
         else -> "${bot.name} won"
     }
     val coach = when {
+        watch != null -> "What a game! Want to watch them swap colours?"
         result.winner == null -> "A fair fight. Want to go again?"
         state.playerWon && state.hintsUsed == 0 && state.takebacksUsed == 0 -> "Clean win, no help at all. Brilliant!"
         state.playerWon -> "Well played! Try it with fewer hints next time."

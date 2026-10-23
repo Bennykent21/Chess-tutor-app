@@ -32,6 +32,8 @@ data class GameSetup(
     val playerColor: PieceColor,
     val rules: GameRules = GameRules(),
     val startFen: String = Position.STARTING_FEN,
+    /** Watch mode (review R6): a second bot plays the side named by [playerColor]. */
+    val watch: BotProfile? = null,
 )
 
 /** Why a game ended. */
