@@ -59,6 +59,7 @@ data class HomeActions(
     val onNewBot: () -> Unit,
     val onOpeningBattle: () -> Unit,
     val onFromPosition: () -> Unit,
+    val onWatch: () -> Unit,
     val onContinueLearning: () -> Unit,
     val onDailyPuzzle: () -> Unit,
     val onOpenEngineHealth: () -> Unit,
@@ -185,7 +186,7 @@ fun HomeScreen(
                 )
             }
 
-            CtSectionHeader(title = "Meet the bots", modifier = gutter.ctEnter(6))
+            CtSectionHeader(title = "Meet the bots", actionLabel = "Watch two", onAction = actions.onWatch, modifier = gutter.ctEnter(6))
             LazyRow(
                 contentPadding = PaddingValues(horizontal = CtSpacing.gutter),
                 horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),

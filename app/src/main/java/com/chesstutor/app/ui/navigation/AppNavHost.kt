@@ -50,6 +50,7 @@ import com.chesstutor.app.feature.home.OpeningSelection
 import com.chesstutor.app.domain.bot.BotOpeningChoices
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.feature.home.PositionSetupScreen
+import com.chesstutor.app.feature.home.WatchSetupScreen
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.feature.home.BotSetupScreen
 import com.chesstutor.app.feature.home.HomeActions
@@ -150,6 +151,7 @@ fun AppNavHost(
                                 onOpenBot = { id -> navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true } },
                                 onOpeningBattle = { navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true } },
                                 onFromPosition = { navController.navigate(AppRoutes.POSITION) { launchSingleTop = true } },
+                                onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
                                 onNewBot = {
                                     homeModel.newBot()
                                     navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
@@ -254,6 +256,20 @@ fun AppNavHost(
                             ),
                         )
                     }
+                    composable(AppRoutes.WATCH) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.watchDraft.collectAsStateWithLifecycle()
+                        val myBots by homeModel.myBots.collectAsStateWithLifecycle()
+                        WatchSetupScreen(
+                            draft = draft,
+                            bots = BotRoster.bots + myBots.map { it.asRosterBot() },
+                            onChange = homeModel::updateWatch,
+                            onStart = {
+                                if (homeModel.startWatch()) navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                     composable(AppRoutes.POSITION) { entry ->
                         val homeModel = homeViewModel(navController, entry)
                         val draft by homeModel.positionDraft.collectAsStateWithLifecycle()
@@ -308,7 +324,9 @@ fun AppNavHost(
                             navController.popBackStack()
                         }
                         BackHandler { leave() }
+                        LaunchedEffect(state.appSettings.chatLevel) { homeModel.setChatLevel(state.appSettings.chatLevel) }
                         PlayScreen(
+                            onChatLevel = viewModel::setChatLevel,
                             game = current,
                             settings = state.appSettings,
                             onFeedback = viewModel::playBoardFeedback,

@@ -11,6 +11,7 @@ import com.chesstutor.app.domain.MoveChoice
 import com.chesstutor.app.domain.bot.BotBrain
 import com.chesstutor.app.domain.bot.BotProfile
 import com.chesstutor.app.domain.bot.BotRoster
+import com.chesstutor.app.domain.bot.ChatLevel
 import com.chesstutor.app.domain.bot.ResignPolicy
 import com.chesstutor.app.domain.game.GameEnd
 import com.chesstutor.app.domain.game.GameRules
@@ -79,9 +80,11 @@ class BotGameTest {
         fen: String = Position.STARTING_FEN,
         resume: List<String> = emptyList(),
         battle: BattleChoice? = null,
+        watch: BotProfile? = null,
+        chat: ChatLevel = ChatLevel.SOME,
     ) = BotGame(
-        GameSetup(bot, color, rules, fen), BotBrain(engine, Random(7)), engine, { tree }, games, scope,
-        clock = { scheduler.currentTime }, resumeMoves = resume, battle = battle,
+        GameSetup(bot, color, rules, fen, watch), BotBrain(engine, Random(7)), engine, { tree }, games, scope,
+        clock = { scheduler.currentTime }, resumeMoves = resume, battle = battle, random = Random(11), chatLevel = { chat },
     ).also { it.start(); step() }
 
     private fun BotGame.play(uci: String) {
@@ -285,6 +288,51 @@ class BotGameTest {
         }
         assertEquals(najdorf.moves, g.session.moves.map(Move::uci))
         assertEquals("Sicilian Defense: Najdorf Variation", g.state.value.opening)
+    }
+
+    @Test
+    fun theBotGreetsAndChatsUnlessChatIsOff() {
+        val chatty = game(chat = ChatLevel.LOTS)
+        assertEquals("Wayne greets in his own words", PieceColor.BLACK, chatty.state.value.chat?.speaker)
+        assertTrue(chatty.state.value.chat!!.text.isNotBlank())
+        step(6_000)
+        assertNull("lines fade after a few seconds", chatty.state.value.chat)
+        assertNull(game(chat = ChatLevel.OFF).state.value.chat)
+    }
+
+    @Test
+    fun theBotNoticesAPlayerBlunder() {
+        val g = game(fen = "4k3/8/8/8/8/8/3QQ3/4K3 b - - 0 1", color = PieceColor.WHITE, chat = ChatLevel.LOTS)
+        // The bot (Black) moves first; the engine then sees White far better, then far worse.
+        engine.whiteScore = 0
+        step(5_000)
+        // The bot judges the position as soon as the player has moved.
+        engine.whiteScore = -900
+        g.play(LegalMoveGenerator.generateLegalMoves(g.session.game.position).first().uci)
+        step(5_000)
+        val said = g.state.value.chat?.text.orEmpty()
+        assertTrue("got: $said", said.contains("gift") || said.contains("second"))
+    }
+
+    @Test
+    fun twoBotsPlayEachOtherWhileThePlayerWatches() = runBlocking {
+        val g = game(color = PieceColor.WHITE, watch = BotRoster.byId("juno")!!.profile.copy(mistakeLevel = 0f))
+        repeat(6) { step(5_000) }
+        assertTrue("both sides moved: ${g.session.moves.size}", g.session.moves.size >= 6)
+        assertNull("the player cannot move", g.session.state.value.movable)
+        assertFalse(g.state.value.canTakeBack)
+
+        g.togglePause()
+        val held = g.session.moves.size
+        repeat(3) { step(5_000) }
+        assertEquals("paused", held, g.session.moves.size)
+        g.togglePause()
+        step(5_000)
+        assertTrue(g.session.moves.size > held)
+
+        g.resign()
+        step()
+        assertTrue("watched games stay out of the games list", games.getRecentGames().isEmpty())
     }
 
     companion object {

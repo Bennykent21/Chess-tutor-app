@@ -12,6 +12,7 @@ import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.domain.bot.BotBrain
 import com.chesstutor.app.domain.bot.BotDraft
 import com.chesstutor.app.domain.bot.BotRepository
+import com.chesstutor.app.domain.bot.ChatLevel
 import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.bot.RosterBot
@@ -55,6 +56,9 @@ data class BattleDraft(
         val OPPONENTS = listOf("juno", "ziggy", "tessa", "ingrid", "bolt")
     }
 }
+
+/** "Watch two bots": who plays White and who plays Black. */
+data class WatchDraft(val whiteId: String = "kofi", val blackId: String = "ingrid")
 
 /** The "From a position" page: the board being set up, the player's side and the opponent. */
 data class PositionDraft(
@@ -170,6 +174,31 @@ class HomeViewModel(
     val game: StateFlow<BotGame?> = mutableGame.asStateFlow()
     private var saver: Job? = null
 
+    private val chatLevel = MutableStateFlow(ChatLevel.SOME)
+
+    /** How chatty bots are, from the player's settings. */
+    fun setChatLevel(level: ChatLevel) {
+        chatLevel.value = level
+    }
+
+    // ------------------------------------------------------------------ Watch two bots (review R6)
+
+    private val mutableWatch = MutableStateFlow(WatchDraft())
+    val watchDraft: StateFlow<WatchDraft> = mutableWatch.asStateFlow()
+
+    fun updateWatch(change: (WatchDraft) -> WatchDraft) {
+        mutableWatch.value = change(mutableWatch.value)
+    }
+
+    /** Starts a bot-vs-bot game: the second bot plays the "player" side, White. */
+    fun startWatch(): Boolean {
+        val draft = mutableWatch.value
+        val white = findBot(draft.whiteId) ?: return false
+        val black = findBot(draft.blackId) ?: return false
+        launch(GameSetup(black.profile, PieceColor.WHITE, GameRules(takebacks = false, hints = false), watch = white.profile))
+        return true
+    }
+
     /** The player's rating, for picking a fair bot (it lives in the app's older state for now). */
     fun setPlayerRating(rating: Int) {
         playerRating.value = rating
@@ -268,7 +297,7 @@ class HomeViewModel(
         saver?.cancel()
         mutableGame.value?.let { game ->
             game.pause()
-            if (game.state.value.phase != GamePhase.OVER && game.battle == null) save(game)
+            if (game.state.value.phase != GamePhase.OVER && game.battle == null && game.setup.watch == null) save(game)
         }
         mutableGame.value = null
     }
@@ -287,11 +316,12 @@ class HomeViewModel(
             resumeClocks = resumeFrom?.let { it.whiteMs to it.blackMs },
             battle = battle,
             random = random,
+            chatLevel = { chatLevel.value },
         )
         mutableGame.value = game
         game.start()
-        // Battles are short practice: they are not saved for resuming.
-        if (battle != null) return
+        // Battles are short practice and watched games are not the player's: neither is saved for resuming.
+        if (battle != null || setup.watch != null) return
         saver = viewModelScope.launch {
             combine(game.session.state, game.state) { board, state -> board.moves.size to state.phase }.collect { (moves, phase) ->
                 when {
