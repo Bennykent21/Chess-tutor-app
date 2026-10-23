@@ -46,6 +46,8 @@ import com.chesstutor.app.board.BoardFeedback
 import com.chesstutor.app.board.BoardHost
 import com.chesstutor.app.board.BoardMoveList
 import com.chesstutor.app.board.BoardWithEvalBar
+import com.chesstutor.app.board.CapturedPieces
+import com.chesstutor.app.board.MaterialBalance
 import com.chesstutor.app.board.moveListOf
 import com.chesstutor.app.board.whiteAtBottom
 import com.chesstutor.app.core.PieceColor
@@ -100,6 +102,11 @@ fun PlayScreen(
     val (whiteLeft, blackLeft) = remember(tick, state.whiteMs, state.blackMs, state.phase) { game.liveClocks }
     fun clockOf(color: PieceColor) = if (color == PieceColor.WHITE) whiteLeft else blackLeft
     val toMove = board.position.sideToMove
+    // Captured pieces and the material lead, worked out from the board (chess.com style).
+    val material = remember(board.version) { MaterialBalance.of(board.start, board.position) }
+    val pieceSet = settings.boardTheme.pieceSet
+    @Composable
+    fun takenBy(color: PieceColor) = CapturedPieces(material.takenBy(color), color.opposite(), material.leadOf(color), pieceSet)
 
     CtScreenBackground {
         Column(Modifier.fillMaxSize()) {
@@ -142,6 +149,7 @@ fun PlayScreen(
                     clock = clockOf(state.botColor),
                     running = state.phase == GamePhase.BOT_TURN && toMove == state.botColor,
                     avatar = { BotAvatar(bot.face, bot.rating, size = 40.dp) },
+                    captured = { takenBy(state.botColor) },
                 )
                 state.chat?.takeIf { it.speaker == state.botColor }?.let { ChatBubble(it) }
                 state.battleTitle?.let { title ->
@@ -176,6 +184,7 @@ fun PlayScreen(
                         clock = clockOf(setup.playerColor),
                         running = state.phase == GamePhase.PLAYER_TURN,
                         avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
+                        captured = { takenBy(setup.playerColor) },
                     )
                 } else {
                     PlayerBar(
@@ -184,6 +193,7 @@ fun PlayScreen(
                         clock = clockOf(setup.playerColor),
                         running = state.phase == GamePhase.PLAYER_TURN,
                         avatar = null,
+                        captured = { takenBy(setup.playerColor) },
                     )
                 }
                 state.chat?.takeIf { it.speaker == setup.playerColor }?.let { ChatBubble(it) }
@@ -269,6 +279,8 @@ private fun PlayerBar(
     clock: Long?,
     running: Boolean,
     avatar: (@Composable () -> Unit)?,
+    /** The pieces this player has taken and its material lead, under the name. */
+    captured: @Composable () -> Unit = {},
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
@@ -277,8 +289,11 @@ private fun PlayerBar(
     ) {
         avatar?.invoke()
         Column(Modifier.weight(1f)) {
-            Text(name, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(detail, style = CtType.Caption, maxLines = 1)
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                Text(name, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                Text(detail, style = CtType.Caption, maxLines = 1)
+            }
+            captured()
         }
         if (clock != null) BoardClock(millis = clock, running = running)
     }

@@ -148,6 +148,11 @@ class HomeScreensTest {
         step(5_000)
         compose.onNodeWithText("Scandinavian Defense · in book").assertExists()
         compose.onNodeWithText("vs Wayne").assertExists()
+        // Take the pawn: the captured pieces and the lead appear by the players.
+        game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e4d5" })
+        compose.waitForIdle()
+        compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("Taken: a pawn.", substring = true))[0].assertExists()
+        step(5_000)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play.png")
 
         compose.onNodeWithText("Resign").performClick()
