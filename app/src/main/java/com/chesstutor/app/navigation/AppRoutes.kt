@@ -21,7 +21,7 @@ object LegacyTab {
     const val SESSION = 0
     /** CurriculumScreen: the old Learn list. Removed in Phase 4. */
     const val CURRICULUM = 1
-    /** ArenaScreen: games against bots. Removed in Phase 3. */
+    /** ArenaScreen: games against bots. Removed in Phase 3 (Home and its games replace it); the index stays reserved. */
     const val ARENA = 2
     /** ReviewScreen: linked accounts, game history and review. Removed in Phase 5. */
     const val REVIEW = 3
@@ -33,7 +33,7 @@ object LegacyTab {
     const val PUZZLES = 4
 
     /** The classic screens still offered (Account > Classic screens). */
-    val ALL = listOf(SESSION, CURRICULUM, ARENA, REVIEW)
+    val ALL = listOf(SESSION, CURRICULUM, REVIEW)
 
     fun title(index: Int): String = when (index) {
         SESSION -> "Lesson and drill player"
@@ -53,6 +53,27 @@ object AppRoutes {
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
+    /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
+    const val PUZZLE_DAILY = "puzzles/daily"
+    /** A bot's page (pick colour, clock and rules), then the game itself, full screen in Home. */
+    const val BOT_ID_ARG = "botId"
+    const val BOT_PATTERN = "home/bot/{$BOT_ID_ARG}"
+    fun bot(id: String): String = "home/bot/$id"
+    const val PLAY = "home/play"
+    /** Opening Battle's setup page and its opening picker. */
+    const val BATTLE = "home/battle"
+    /** "From a position": the board editor, then a game from there. */
+    const val POSITION = "home/position"
+    /** "Watch two bots": pick both, then a bot-vs-bot game. */
+    const val WATCH = "home/watch"
+    const val BATTLE_PICK = "home/battle/pick"
+    /** The bot builder: a new bot, or one of "My bots" to edit. */
+    const val BUILDER_PATTERN = "home/builder?$BOT_ID_ARG={$BOT_ID_ARG}"
+    /** The full opening list for the bot being built; the side is "white" or "black". */
+    const val SIDE_ARG = "side"
+    const val BUILDER_OPENINGS_PATTERN = "home/builder/openings/{$SIDE_ARG}"
+    fun builderOpenings(side: String): String = "home/builder/openings/$side"
+    fun builder(botId: String? = null): String = if (botId == null) "home/builder" else "home/builder?$BOT_ID_ARG=$botId"
 
     const val ANALYSIS_FEN_ARG = "fen"
     const val ANALYSIS_LINE_ARG = "line"

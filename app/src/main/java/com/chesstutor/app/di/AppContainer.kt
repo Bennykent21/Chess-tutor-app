@@ -2,7 +2,11 @@ package com.chesstutor.app.di
 
 import android.content.Context
 import android.util.Log
+import com.chesstutor.app.data.bot.RoomBotRepository
 import com.chesstutor.app.data.local.AppDatabase
+import com.chesstutor.app.data.maia.MaiaAssetLoader
+import com.chesstutor.app.domain.bot.BotRepository
+import com.chesstutor.app.data.opening.OpeningAssetLoader
 import com.chesstutor.app.data.puzzle.RoomPuzzleRepository
 import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
 import com.chesstutor.app.data.repository.GameRepository
@@ -69,6 +73,36 @@ object AppContainer {
                 db = AppDatabase.getInstance(context),
                 legacy = { SharedPrefsPuzzleProgressStore(context.applicationContext).readLegacy() },
             ).also { puzzleRepositoryInstance = it }
+        }
+    }
+
+    @Volatile
+    private var openingLoaderInstance: OpeningAssetLoader? = null
+
+    /** The opening database, read from its asset on first use and kept for the process. */
+    fun provideOpeningLoader(context: Context): OpeningAssetLoader {
+        return openingLoaderInstance ?: synchronized(this) {
+            openingLoaderInstance ?: OpeningAssetLoader(context.applicationContext.assets).also { openingLoaderInstance = it }
+        }
+    }
+
+    @Volatile
+    private var botRepositoryInstance: BotRepository? = null
+
+    /** The player's own bots ("My bots", Room `bot_profile`). */
+    fun provideBotRepository(context: Context): BotRepository {
+        return botRepositoryInstance ?: synchronized(this) {
+            botRepositoryInstance ?: RoomBotRepository(AppDatabase.getInstance(context).botProfileDao()).also { botRepositoryInstance = it }
+        }
+    }
+
+    @Volatile
+    private var maiaInstance: MaiaAssetLoader? = null
+
+    /** Maia's human-like networks for the bots (plan D26), loaded on first use. */
+    fun provideMaia(context: Context): MaiaAssetLoader {
+        return maiaInstance ?: synchronized(this) {
+            maiaInstance ?: MaiaAssetLoader(context.applicationContext.assets).also { maiaInstance = it }
         }
     }
 

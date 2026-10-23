@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Nova, a chess bot">
+  <path d="M28 200 C32 170 60 152 100 152 C140 152 168 170 172 200 Z" fill="#8F7BE8"/>
+  <path d="M50 92 L52 36 L94 62 Z" fill="#B9A6FF"/>
+  <path d="M 150 92 L 148 36 L 106 62 Z" fill="#B9A6FF"/>
+  <path d="M60 80 L62 50 L84 64 Z" fill="#FF9EC4"/>
+  <path d="M 140 80 L 138 50 L 116 64 Z" fill="#FF9EC4"/>
+  <ellipse cx="100" cy="106" rx="56" ry="50" fill="#B9A6FF"/>
+  <ellipse cx="78" cy="74" rx="12" ry="6" fill="#FFFFFF" opacity=".3"/>
+  <path d="M100.0 61.0 L102.9 68.0 L110.5 68.6 L104.7 73.5 L106.5 80.9 L100.0 77.0 L93.5 80.9 L95.3 73.5 L89.5 68.6 L97.1 68.0 Z" fill="#FFC53D"/>
+  <path d="M64 118 L38 112" fill="none" stroke="#F4F0FF" stroke-width="3" stroke-linecap="round"/>
+  <path d="M64 125 L38 127" fill="none" stroke="#F4F0FF" stroke-width="3" stroke-linecap="round"/>
+  <path d="M136 118 L162 112" fill="none" stroke="#F4F0FF" stroke-width="3" stroke-linecap="round"/>
+  <path d="M136 125 L162 127" fill="none" stroke="#F4F0FF" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="82" cy="100" rx="9.0" ry="10.8" fill="#FFFFFF"/>
+  <circle cx="83.8" cy="102.7" r="5.4" fill="#121838"/>
+  <circle cx="85.6" cy="100.0" r="1.8" fill="#FFFFFF"/>
+  <path d="M109 102 Q118 93 127 102" fill="none" stroke="#121838" stroke-width="4" stroke-linecap="round"/>
+  <path d="M94 115 L106 115 L100 122 Z" fill="#FF7FAF"/>
+  <path d="M100 122 Q95 130 88 126 M100 122 Q105 130 112 126" fill="none" stroke="#121838" stroke-width="3.5" stroke-linecap="round"/>
+  <ellipse cx="68" cy="116" rx="8" ry="5" fill="#FF6F6F" opacity=".55"/>
+  <ellipse cx="132" cy="116" rx="8" ry="5" fill="#FF6F6F" opacity=".55"/>
+</svg>

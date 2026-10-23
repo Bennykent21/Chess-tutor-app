@@ -4,6 +4,7 @@ import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.PieceSet
 import com.chesstutor.app.domain.Mascot
+import com.chesstutor.app.domain.bot.ChatLevel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,8 @@ data class AppSettings(
     val pieceSetId: String = DEFAULT_PIECE_SET_ID,
     /** The chosen coach (decision D20). Always a known [Mascot.id] once decoded. */
     val mascotId: String = Mascot.DEFAULT.id,
+    /** How much bots chat during games (review R6). */
+    val chatLevel: ChatLevel = ChatLevel.SOME,
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
 
@@ -62,6 +65,7 @@ object AppSettingsCodec {
     const val BOARD_THEME = "board_theme_id"
     const val PIECE_SET = "piece_set_id"
     const val MASCOT = "mascot_id"
+    const val BOT_CHAT = "bot_chat"
 
     /** Marks that settings formerly kept elsewhere were copied in (see [SettingsStore]). */
     const val LEGACY_IMPORTED = "legacy_imported_v1"
@@ -83,6 +87,7 @@ object AppSettingsCodec {
             boardThemeId = BoardColors.fromId(values[BOARD_THEME] as? String).id,
             pieceSetId = PieceSet.fromId(values[PIECE_SET] as? String).id,
             mascotId = Mascot.fromId(values[MASCOT] as? String).id,
+            chatLevel = (values[BOT_CHAT] as? String)?.let { name -> ChatLevel.entries.firstOrNull { it.name == name } } ?: defaults.chatLevel,
         )
     }
 
@@ -98,6 +103,7 @@ object AppSettingsCodec {
         BOARD_THEME to settings.boardThemeId,
         PIECE_SET to settings.pieceSetId,
         MASCOT to settings.mascotId,
+        BOT_CHAT to settings.chatLevel.name,
     )
 }
 

@@ -20,9 +20,11 @@ class AppDatabaseMigrationTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun allMigrationsArrayContainsAllVersionsFrom1To8() {
+    fun allMigrationsArrayContainsAllVersionsFrom1To9() {
         val migrations = AppDatabase.ALL_MIGRATIONS
-        assertEquals(7, migrations.size)
+        assertEquals(8, migrations.size)
+        assertEquals(8, migrations[7].startVersion)
+        assertEquals(9, migrations[7].endVersion)
         assertEquals(7, migrations[6].startVersion)
         assertEquals(8, migrations[6].endVersion)
         assertEquals(1, migrations[0].startVersion)
@@ -175,11 +177,54 @@ class AppDatabaseMigrationTest {
             .allowMainThreadQueries()
             .build()
         val db = room.openHelper.writableDatabase
-        assertEquals(8, db.version)
+        assertEquals(9, db.version)
         db.query("SELECT id FROM review_items").use { assertTrue(it.moveToFirst()); assertEquals("kept", it.getString(0)) }
         listOf("puzzle_attempt", "xp_event", "puzzle_profile", "puzzle_level_progress", "report_issue").forEach { table ->
             db.query("SELECT COUNT(*) FROM $table").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
         }
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    /**
+     * Builds a real version-8 database with a saved game and puzzle history, then lets Room
+     * open it at version 9: MIGRATION_8_9 must create bot_profile exactly as the entity
+     * describes, and keep the old data.
+     */
+    @Test
+    fun migration8To9AddsMyBotsAndKeepsData() {
+        val name = "migration-8-9-test.db"
+        context.deleteDatabase(name)
+        val config = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(object : SupportSQLiteOpenHelper.Callback(8) {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS review_items (" +
+                            "id TEXT NOT NULL, fen TEXT NOT NULL, dueAt INTEGER NOT NULL, " +
+                            "stage INTEGER NOT NULL DEFAULT -1, attempts INTEGER NOT NULL DEFAULT 0, " +
+                            "mistakeUci TEXT NOT NULL DEFAULT '', bestMoveUci TEXT NOT NULL DEFAULT '', " +
+                            "explanation TEXT NOT NULL DEFAULT '', PRIMARY KEY(id))"
+                    )
+                    AppDatabase.ALL_MIGRATIONS.filter { it.endVersion <= 8 }.forEach { it.migrate(db) }
+                    db.execSQL("INSERT INTO review_items (id, fen, dueAt) VALUES ('kept', 'fen', 1)")
+                    db.execSQL("INSERT INTO xp_event (amount, reason, createdAt) VALUES (10, 'solve', 5)")
+                }
+
+                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(config).also { it.writableDatabase.close() }
+
+        val room = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        val db = room.openHelper.writableDatabase
+        assertEquals(9, db.version)
+        db.query("SELECT id FROM review_items").use { assertTrue(it.moveToFirst()); assertEquals("kept", it.getString(0)) }
+        db.query("SELECT amount FROM xp_event").use { assertTrue(it.moveToFirst()); assertEquals(10, it.getInt(0)) }
+        db.query("SELECT COUNT(*) FROM bot_profile").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
         room.close()
         context.deleteDatabase(name)
     }
@@ -195,6 +240,7 @@ class AppDatabaseMigrationTest {
         assertNotNull(db.learningDao())
         assertNotNull(db.gameRecordDao())
         assertNotNull(db.puzzleDao())
+        assertNotNull(db.botProfileDao())
 
         db.close()
     }
