@@ -8,6 +8,23 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.ui.draw.clip
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.domain.bot.ChatLevel
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.zIndex
+import com.chesstutor.app.design.LocalReduceMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -143,15 +160,16 @@ fun PlayScreen(
                     .padding(horizontal = CtSpacing.gutter),
                 verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
             ) {
-                PlayerBar(
-                    name = bot.name,
-                    detail = if (state.phase == GamePhase.BOT_TURN) "Thinking…" else "${bot.rating} · ${bot.style.label}",
-                    clock = clockOf(state.botColor),
-                    running = state.phase == GamePhase.BOT_TURN && toMove == state.botColor,
-                    avatar = { BotAvatar(bot.face, bot.rating, size = 40.dp) },
-                    captured = { takenBy(state.botColor) },
-                )
-                state.chat?.takeIf { it.speaker == state.botColor }?.let { ChatBubble(it) }
+                BarWithChat(chat = state.chat?.takeIf { it.speaker == state.botColor }, below = true, onDismiss = game::dismissChat) {
+                    PlayerBar(
+                        name = bot.name,
+                        detail = if (state.phase == GamePhase.BOT_TURN) "Thinking…" else "${bot.rating} · ${bot.style.label}",
+                        clock = clockOf(state.botColor),
+                        running = state.phase == GamePhase.BOT_TURN && toMove == state.botColor,
+                        avatar = { BotAvatar(bot.face, bot.rating, size = 40.dp) },
+                        captured = { takenBy(state.botColor) },
+                    )
+                }
                 state.battleTitle?.let { title ->
                     CtCoachStrip(
                         mascot = settings.mascot,
@@ -178,14 +196,16 @@ fun PlayScreen(
                     )
                 }
                 if (watch != null) {
-                    PlayerBar(
-                        name = watch.name,
-                        detail = if (state.phase == GamePhase.PLAYER_TURN) "Thinking…" else "${watch.rating} · ${watch.style.label}",
-                        clock = clockOf(setup.playerColor),
-                        running = state.phase == GamePhase.PLAYER_TURN,
-                        avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
-                        captured = { takenBy(setup.playerColor) },
-                    )
+                    BarWithChat(chat = state.chat?.takeIf { it.speaker == setup.playerColor }, below = false, onDismiss = game::dismissChat) {
+                        PlayerBar(
+                            name = watch.name,
+                            detail = if (state.phase == GamePhase.PLAYER_TURN) "Thinking…" else "${watch.rating} · ${watch.style.label}",
+                            clock = clockOf(setup.playerColor),
+                            running = state.phase == GamePhase.PLAYER_TURN,
+                            avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
+                            captured = { takenBy(setup.playerColor) },
+                        )
+                    }
                 } else {
                     PlayerBar(
                         name = "You",
@@ -196,7 +216,6 @@ fun PlayScreen(
                         captured = { takenBy(setup.playerColor) },
                     )
                 }
-                state.chat?.takeIf { it.speaker == setup.playerColor }?.let { ChatBubble(it) }
                 BoardMoveList(entries = remember(board.version) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
                 if (state.phase == GamePhase.DRILL_DONE) {
                     DrillDoneCard(state, onDrillAgain = onRematch, onAnalyse = { onAnalyse(setup.startFen, board.moves.map { it.uci }) }, onBack = onBack)
@@ -219,19 +238,57 @@ fun PlayScreen(
     }
 }
 
-/** A bot's line, under its name; read out by TalkBack as it appears. */
+/**
+ * A player's bar with its bot's chat line hanging off it, drawn over the edge of the board.
+ * The line takes no room in the layout, so the board never moves when a bot speaks.
+ * [below]: the line hangs under the bar (top player) or above it (bottom player).
+ */
 @Composable
-private fun ChatBubble(line: ChatLine) {
-    Text(
-        text = line.text,
-        style = CtType.BodySmall.copy(color = CtColors.Text),
-        modifier = Modifier
-            .padding(start = 48.dp)
-            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 16.dp))
-            .background(CtColors.SurfaceRaised)
-            .padding(horizontal = CtSpacing.md, vertical = CtSpacing.sm)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-    )
+private fun BarWithChat(chat: ChatLine?, below: Boolean, onDismiss: () -> Unit, bar: @Composable () -> Unit) {
+    Box(Modifier.fillMaxWidth().zIndex(1f)) {
+        bar()
+        Box(Modifier.align(if (below) Alignment.BottomStart else Alignment.TopStart).hanging(below)) {
+            ChatBubble(chat, below, onDismiss)
+        }
+    }
+}
+
+/** Measures the content but reports no height, placing it just below (or above) its slot. */
+private fun Modifier.hanging(below: Boolean): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+    layout(placeable.width, 0) { placeable.place(0, if (below) 0 else -placeable.height) }
+}
+
+/** A bot's line beside its avatar; fades in and out (or just appears with Reduce motion), tap to close. */
+@Composable
+private fun ChatBubble(chat: ChatLine?, below: Boolean, onDismiss: () -> Unit) {
+    // Keep the last line while it fades out.
+    var last by remember { mutableStateOf(chat) }
+    if (chat != null && chat != last) last = chat
+    val reduceMotion = LocalReduceMotion.current
+    val shape = if (below) RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 16.dp)
+    else RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
+    AnimatedVisibility(
+        visible = chat != null,
+        enter = if (reduceMotion) EnterTransition.None else fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.9f, transformOrigin = TransformOrigin(0.1f, if (below) 0f else 1f)),
+        exit = if (reduceMotion) ExitTransition.None else fadeOut(tween(220)),
+    ) {
+        val line = last ?: return@AnimatedVisibility
+        Text(
+            text = line.text,
+            style = CtType.BodySmall.copy(color = CtColors.Text),
+            modifier = Modifier
+                .padding(start = 44.dp, top = if (below) CtSpacing.xs else 0.dp, bottom = if (below) 0.dp else CtSpacing.xs)
+                .widthIn(max = 280.dp)
+                .shadow(6.dp, shape)
+                .clip(shape)
+                .background(CtColors.SurfaceRaised)
+                .border(1.dp, CtColors.Line, shape)
+                .clickable(onClickLabel = "Close message", onClick = onDismiss)
+                .padding(horizontal = CtSpacing.md, vertical = CtSpacing.sm)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
 }
 
 @Composable

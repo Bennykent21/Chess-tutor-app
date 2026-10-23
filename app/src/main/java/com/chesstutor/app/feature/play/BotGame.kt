@@ -332,6 +332,12 @@ class BotGame(
         finish(GameResult(state.value.botColor, GameEnd.RESIGNATION))
     }
 
+    /** Closes the bot's current chat line early (a tap on the bubble). */
+    fun dismissChat() {
+        chatJob?.cancel()
+        mutableState.update { it.copy(chat = null) }
+    }
+
     /** Watch mode: holds the game, or lets it go on. */
     fun togglePause() {
         if (setup.watch == null || state.value.phase == GamePhase.OVER) return

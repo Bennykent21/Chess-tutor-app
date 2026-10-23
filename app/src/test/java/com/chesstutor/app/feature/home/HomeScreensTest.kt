@@ -7,6 +7,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -282,6 +283,41 @@ class HomeScreensTest {
         compose.onNode(hasSetTextAction()).performTextInput("Najdorf")
         compose.onAllNodes(hasText("B90 ·", substring = true))[0].performClick()
         assertEquals(setOf("Sicilian Defense: Najdorf Variation"), picked)
+    }
+
+    /** Regression (phone review): a bot's chat line used to push the board down and up. */
+    @Test
+    fun aChatLineFloatsOverTheBoardWithoutMovingIt() {
+        val engine = FakeEngine()
+        val game = BotGame(
+            GameSetup(BotRoster.byId("wayne")!!.profile, PieceColor.WHITE), BotBrain(engine, Random(3)), engine,
+            { OpeningTree.EMPTY }, InMemoryGameRepository(), scope, clock = { scheduler.currentTime },
+            chatLevel = { com.chesstutor.app.domain.bot.ChatLevel.LOTS },
+        )
+        game.start()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                PlayScreen(game, AppSettings(), onFeedback = {}, onRematch = {}, onAnalyse = { _, _ -> }, onBack = {})
+            }
+        }
+        step()
+        val greeting = game.state.value.chat!!.text
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        val withChat = board.fetchSemanticsNode().boundsInRoot
+        compose.onNodeWithText(greeting).assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play_chat.png")
+        step(6_000)
+        assertEquals("the line faded", null, game.state.value.chat)
+        assertEquals("the board did not move", withChat, board.fetchSemanticsNode().boundsInRoot)
+
+        game.session.onMove(com.chesstutor.app.core.LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e2e4" })
+        step(5_000)
+        game.state.value.chat?.let { line ->
+            compose.onNodeWithText(line.text).performClick()
+            compose.waitForIdle()
+            assertEquals("a tap closes it", null, game.state.value.chat)
+        }
+        assertEquals(withChat, board.fetchSemanticsNode().boundsInRoot)
     }
 }
 
