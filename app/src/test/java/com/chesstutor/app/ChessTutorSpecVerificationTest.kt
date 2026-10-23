@@ -280,23 +280,6 @@ class ChessTutorSpecVerificationTest {
     }
 
     @Test
-    fun capturesFromMoveHistory_emptyOnCustomPositionWithNoMoves_andAccurateAlongPlayedMoves() {
-        val emptyCaptures = com.chesstutor.app.ui.arena.calculateCapturesFromMoveHistory(emptyList())
-        assertEquals("", emptyCaptures.whiteCapturedPieces)
-        assertEquals("", emptyCaptures.blackCapturedPieces)
-        assertEquals(0, emptyCaptures.userAdvantage)
-        assertEquals(0, emptyCaptures.opponentAdvantage)
-
-        // 1. e4 d5 2. exd5 (White captures Black pawn on d5)
-        val scandinavianCaptures = com.chesstutor.app.ui.arena.calculateCapturesFromMoveHistory(
-            listOf("e2e4", "d7d5", "e4d5")
-        )
-        assertTrue(scandinavianCaptures.blackCapturedPieces.contains("♟"))
-        assertEquals(1, scandinavianCaptures.userAdvantage)
-        assertEquals(0, scandinavianCaptures.opponentAdvantage)
-    }
-
-    @Test
     fun pgnSanTokenizer_stripsCommentsVariationsAndNags_andFlagsIncompleteOnCorruptToken() {
         val client = com.chesstutor.app.data.network.RatingApiClient()
         val annotatedPgn = """

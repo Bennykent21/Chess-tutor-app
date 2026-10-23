@@ -34,6 +34,11 @@ class BotBrainTest {
             lastMovetime = movetimeMs
             return this.lines.take(lines)
         }
+        var lastDepth: Int? = null
+        override suspend fun analyseToDepth(fen: String, lines: Int, depth: Int): List<EngineLine> {
+            lastDepth = depth
+            return analyse(fen, lines, 0)
+        }
         override suspend fun botMove(fen: String, elo: Int): MoveChoice? = botMove?.let { MoveChoice.fromUci(it) }
         override suspend fun healthCheck(): EngineHealthReport? = null
     }
@@ -60,7 +65,7 @@ class BotBrainTest {
         val decision = BotBrain(engine, Random(1)).decide(start, 4, bot(400), Repertoire.line(listOf("e2e4")))!!
         assertEquals(BotMoveKind.ENGINE, decision.kind)
         assertEquals(1, engine.analyseCalls)
-        assertEquals(BotStrengthModel.searchMs(400), engine.lastMovetime)
+        assertEquals("a beginner searches only one ply deep", 1, engine.lastDepth)
     }
 
     @Test
@@ -71,45 +76,41 @@ class BotBrainTest {
             assertEquals("e2e4", decision.uci)
             assertEquals(40, decision.evalForBot)
         }
+        assertEquals("full strength has no depth cap", null, engine.lastDepth)
+        assertEquals(BotBrain.FULL_STRENGTH_MS, engine.lastMovetime)
     }
 
     @Test
-    fun withoutSlipsABotOnlyPlaysMovesWithinItsTolerance() {
-        val candidates = listOf(BotCandidate("e2e4", 50), BotCandidate("d2d4", 30), BotCandidate("a2a3", -100))
-        val legal = candidates.map { it.uci }
-        val picks = (0 until 300).map { BotMoveChooser.choose(start, candidates, legal, bot(1200), Random(it)).uci }.toSet()
-        assertEquals("a 20 cp gap is fine at 1200, 150 cp is not", setOf("e2e4", "d2d4"), picks)
+    fun levelTwentyAlwaysPlaysTheBestMove() {
+        val candidates = listOf(BotCandidate("e2e4", 50), BotCandidate("d2d4", 45), BotCandidate("c2c4", 40))
+        assertTrue((0 until 100).all { SkillPicker.pick(start, candidates, 20, bot(3000), Random(it)).uci == "e2e4" })
     }
 
     @Test
-    fun slipsCostNoMoreThanTheRatingAllows() {
-        val candidates = listOf(
-            BotCandidate("e2e4", 50), BotCandidate("d2d4", -40), BotCandidate("c2c4", -120), BotCandidate("a2a3", -400),
-        )
-        val legal = candidates.map { it.uci }
-        val choices = (0 until 400).map { BotMoveChooser.choose(start, candidates, legal, bot(1600, mistakes = 6f), Random(it)) }
-        val slips = choices.filter { it.kind == BotMoveKind.MISTAKE }.map { it.uci }.toSet()
-        // At 1600 a slip loses 60 to 200 cp: d2d4 (-90) or c2c4 (-170), never a2a3 (-450).
-        assertEquals(setOf("d2d4", "c2c4"), slips)
+    fun lowLevelsPickFreelyAmongCloseMoves() {
+        val candidates = listOf(BotCandidate("e2e4", 30), BotCandidate("d2d4", 20), BotCandidate("g1f3", 10), BotCandidate("c2c4", 0))
+        val picks = (0 until 300).map { SkillPicker.pick(start, candidates, 0, bot(250), Random(it)).uci }.toSet()
+        assertEquals(4, picks.size)
     }
 
     @Test
-    fun beginnersSometimesBlunderWithAMoveTheEngineDidNotSuggest() {
-        val candidates = listOf(BotCandidate("e2e4", 30))
-        val legal = listOf("e2e4", "d2d4", "g1f3", "a2a3")
-        val choices = (0 until 200).map { BotMoveChooser.choose(start, candidates, legal, bot(400, mistakes = 2f), Random(it)) }
-        assertTrue(choices.any { it.kind == BotMoveKind.MISTAKE && it.uci != "e2e4" })
-        assertTrue("most moves are still the engine's", choices.count { it.uci == "e2e4" } > 80)
-        assertFalse("strong bots never make random moves", (0 until 200).any {
-            BotMoveChooser.choose(start, candidates, legal, bot(2000, mistakes = 2f), Random(it)).uci != "e2e4"
-        })
+    fun strongLevelsDoNotHangPiecesButBeginnersSometimesDo() {
+        val candidates = listOf(BotCandidate("e2e4", 0), BotCandidate("d2d4", -20), BotCandidate("g1f3", -40), BotCandidate("a2a3", -400))
+        fun hangs(level: Int) = (0 until 400).count { SkillPicker.pick(start, candidates, level, bot(1000), Random(it)).uci == "a2a3" }
+        assertEquals(0, hangs(18))
+        assertEquals(0, hangs(9))
+        assertTrue("level 0 drops the piece now and then", hangs(0) in 1..120)
+        val mistake = (0 until 400).map { SkillPicker.pick(start, candidates, 0, bot(250), Random(it)) }.first { it.uci == "a2a3" }
+        assertEquals(BotMoveKind.MISTAKE, mistake.kind)
     }
 
     @Test
-    fun aBotThatCanMateDoesNotSettleForLess() {
-        val candidates = listOf(BotCandidate("e2e4", BotBrain.MATE - 200), BotCandidate("d2d4", BotBrain.MATE - 300), BotCandidate("c2c4", 900))
-        val picks = (0 until 100).map { BotMoveChooser.choose(start, candidates, candidates.map { it.uci }, bot(1500), Random(it)).uci }.toSet()
-        assertFalse(picks.contains("c2c4"))
+    fun beginnersSometimesPlayARandomMove() = runBlocking {
+        val engine = FakeEngine(listOf(line(1, "e2e4", 30)))
+        val kinds = (0 until 200).map { BotBrain(engine, Random(it)).decide(start, 20, bot(250, mistakes = 1f), Repertoire.NONE)!!.kind }
+        assertTrue(kinds.count { it == BotMoveKind.MISTAKE } in 20..90)
+        val strong = (0 until 100).map { BotBrain(engine, Random(it)).decide(start, 20, bot(1800, mistakes = 1f), Repertoire.NONE)!!.uci }
+        assertTrue("1800 never plays a random move", strong.all { it == "e2e4" })
     }
 
     @Test
@@ -118,7 +119,7 @@ class BotBrainTest {
         val position = Position.fromFen("4k3/8/8/8/8/8/8/3QK3 w - - 0 1")
         val candidates = listOf(BotCandidate("d1a4", 0), BotCandidate("d1c1", 0))
         fun checks(profile: BotProfile) = (0 until 400).count {
-            BotMoveChooser.choose(position, candidates, candidates.map { c -> c.uci }, profile, Random(it)).uci == "d1a4"
+            SkillPicker.pick(position, candidates, 10, profile, Random(it)).uci == "d1a4"
         }
         val attacker = checks(bot(2400, aggression = 1f))
         val calm = checks(bot(2400, aggression = -1f))
@@ -131,7 +132,7 @@ class BotBrainTest {
         val position = Position.fromFen("k7/8/8/3n4/8/4N3/8/K7 w - - 0 1")
         val candidates = listOf(BotCandidate("e3d5", 0), BotCandidate("a1b1", 0))
         fun trades(profile: BotProfile) = (0 until 400).count {
-            BotMoveChooser.choose(position, candidates, candidates.map { c -> c.uci }, profile, Random(it)).uci == "e3d5"
+            SkillPicker.pick(position, candidates, 10, profile, Random(it)).uci == "e3d5"
         }
         val trader = trades(bot(2400, trades = 1f))
         val hoarder = trades(bot(2400, trades = -1f))
@@ -173,11 +174,13 @@ class BotBrainTest {
     }
 
     @Test
-    fun strengthTablesInterpolateBetweenRows() {
-        assertEquals(85, BotStrengthModel.tolerance(1000))
-        assertEquals(150, BotStrengthModel.tolerance(250))
-        assertEquals(0.0, BotStrengthModel.mistakeChance(bot(1200, mistakes = 0f)), 0.0)
-        assertEquals(0.10, BotStrengthModel.mistakeChance(bot(1200, mistakes = 1f)), 1e-9)
+    fun ratingSetsSkillLevelDepthAndRandomMoves() {
+        assertEquals(StrengthSettings(9, 7, 0.0), BotStrengthModel.settingsFor(bot(1800, mistakes = 1f)))
+        assertEquals(StrengthSettings(0, 1, 0.25), BotStrengthModel.settingsFor(bot(250, mistakes = 1f)))
+        assertEquals(StrengthSettings(20, null, 0.0), BotStrengthModel.settingsFor(bot(3000, mistakes = 1f)))
+        assertEquals("halfway between 1800 and 2000", StrengthSettings(10, 8, 0.0), BotStrengthModel.settingsFor(bot(1900, mistakes = 1f)))
+        assertEquals("Never makes mistakes: 4 levels cleaner", 13, BotStrengthModel.settingsFor(bot(1800, mistakes = 0f)).skillLevel)
+        assertEquals("Often: 4 levels sloppier", 5, BotStrengthModel.settingsFor(bot(1800, mistakes = 2f)).skillLevel)
         assertTrue(BotStrengthModel.bookDepth(2000) > 100)
         assertThrows(IllegalArgumentException::class.java) { bot(100) }
     }
