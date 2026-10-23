@@ -58,7 +58,9 @@ object PgnFormatter {
         blackElo: Int? = null,
         result: String = "*",
         date: Date = Date(),
-        event: String = "Chess Tutor Arena Match"
+        event: String = "Chess Tutor Arena Match",
+        /** A game from a set-up position records it (PGN SetUp and FEN tags) and numbers from there. */
+        startFen: String? = null
     ): String {
         val dateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.US)
         val dateStr = dateFormat.format(date)
@@ -72,20 +74,25 @@ object PgnFormatter {
         headerBuilder.append("[Black \"$blackPlayer\"]\n")
         if (whiteElo != null) headerBuilder.append("[WhiteElo \"$whiteElo\"]\n")
         if (blackElo != null) headerBuilder.append("[BlackElo \"$blackElo\"]\n")
+        val customFen = startFen?.trim()?.takeIf { it != ChessPosition.STARTING_FEN }
+        if (customFen != null) {
+            headerBuilder.append("[SetUp \"1\"]\n")
+            headerBuilder.append("[FEN \"$customFen\"]\n")
+        }
         headerBuilder.append("[Result \"$result\"]\n\n")
 
+        val fenParts = customFen?.split(Regex("\\s+")).orEmpty()
+        val blackFirst = fenParts.getOrNull(1) == "b"
+        var moveNum = fenParts.getOrNull(5)?.toIntOrNull() ?: 1
         val moveBuilder = StringBuilder()
-        var moveNum = 1
-        for (i in moves.indices step 2) {
-            val whiteMove = moves[i]
-            val blackMove = moves.getOrNull(i + 1)
-            moveBuilder.append("$moveNum. $whiteMove")
-            if (blackMove != null) {
-                moveBuilder.append(" $blackMove ")
-            } else {
-                moveBuilder.append(" ")
+        moves.forEachIndexed { index, san ->
+            val whiteToMove = (index % 2 == 0) != blackFirst
+            when {
+                whiteToMove -> moveBuilder.append("$moveNum. $san ")
+                index == 0 -> moveBuilder.append("$moveNum... $san ")
+                else -> moveBuilder.append("$san ")
             }
-            moveNum++
+            if (!whiteToMove) moveNum++
         }
         moveBuilder.append(result)
 

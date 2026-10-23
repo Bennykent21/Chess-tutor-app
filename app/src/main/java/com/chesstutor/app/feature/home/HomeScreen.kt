@@ -39,7 +39,7 @@ import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
-import com.chesstutor.app.design.CtCoachBubble
+import com.chesstutor.app.design.CtMascotArt
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtGradients
 import com.chesstutor.app.design.CtIconBubble
@@ -58,6 +58,7 @@ data class HomeActions(
     val onOpenBot: (String) -> Unit,
     val onNewBot: () -> Unit,
     val onOpeningBattle: () -> Unit,
+    val onFromPosition: () -> Unit,
     val onContinueLearning: () -> Unit,
     val onDailyPuzzle: () -> Unit,
     val onOpenEngineHealth: () -> Unit,
@@ -81,16 +82,15 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
         ) {
             val gutter = Modifier.padding(horizontal = CtSpacing.gutter)
+            // D28: one slim header row; the coach speaks once, inside the Continue card.
             Row(verticalAlignment = Alignment.CenterVertically, modifier = gutter.ctEnter(0)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (name != null) "Hi, $name" else "Ready to play?",
-                        style = CtType.Display,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(text = "Choose what to play today.", style = CtType.Body)
-                }
+                Text(
+                    text = if (name != null) "Hi, $name" else "Ready to play?",
+                    style = CtType.Headline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 if (home.dayStreak > 0) {
                     CtChip(text = "${home.dayStreak}", color = CtColors.Coral, icon = Icons.Rounded.LocalFireDepartment)
                     Spacer(Modifier.width(CtSpacing.sm))
@@ -98,17 +98,39 @@ fun HomeScreen(
                 CtChip(text = "${state.effectiveUserRating}", color = CtColors.Gold, icon = Icons.Rounded.EmojiEvents)
             }
 
-            CtCoachBubble(
-                mascot = state.appSettings.mascot,
-                text = coachLine(home),
-                modifier = gutter.fillMaxWidth().ctEnter(1),
-            )
+            ContinueCard(state, home, actions, gutter.fillMaxWidth().ctEnter(1))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(2)) {
+                CtCard(
+                    onClick = actions.onDailyPuzzle,
+                    onClickLabel = "Open the daily puzzle",
+                    background = CtGradients.Violet,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    CtIconBubble(icon = Icons.Rounded.Bolt, tint = CtColors.Gold, size = 36.dp)
+                    Spacer(Modifier.height(CtSpacing.sm))
+                    Text("Daily challenge", style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (home.dailySolved) "Solved today. Well done!" else "Today's puzzle is waiting", style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 2)
+                }
+                home.recommendation?.let { rec ->
+                    CtCard(
+                        onClick = { actions.onOpenBot(rec.bot.id) },
+                        onClickLabel = "Open ${rec.bot.name}",
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        BotAvatar(rec.bot.profile.face, rec.bot.rating, size = 36.dp)
+                        Spacer(Modifier.height(CtSpacing.sm))
+                        Text("Recommended", style = CtType.TitleSmall, maxLines = 1)
+                        Text(rec.reason, style = CtType.Caption, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
 
             if (state.engineStatus.isDegraded) {
                 CtCard(
                     onClick = actions.onOpenEngineHealth,
                     onClickLabel = "Open engine health",
-                    modifier = gutter.fillMaxWidth().ctEnter(1),
+                    modifier = gutter.fillMaxWidth().ctEnter(2),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning)
@@ -120,8 +142,6 @@ fun HomeScreen(
                     }
                 }
             }
-
-            ContinueCard(state, home, actions, gutter.fillMaxWidth().ctEnter(2))
 
             CtSectionHeader(title = "Play", modifier = gutter.ctEnter(3))
             Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(4)) {
@@ -154,7 +174,15 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f),
                     buttonText = "Battle",
                 )
-                PlannedTile("From a position", "Set up any position", Icons.Rounded.GridOn, Modifier.weight(1f))
+                PlayTile(
+                    title = "From a position",
+                    subtitle = "Set up any position",
+                    icon = Icons.Rounded.GridOn,
+                    tint = CtColors.Lime,
+                    onClick = actions.onFromPosition,
+                    modifier = Modifier.weight(1f),
+                    buttonText = "Set up",
+                )
             }
 
             CtSectionHeader(title = "Meet the bots", modifier = gutter.ctEnter(6))
@@ -167,41 +195,15 @@ fun HomeScreen(
             }
 
             if (home.myBots.isNotEmpty()) {
-                CtSectionHeader(title = "My bots", actionLabel = "New", onAction = actions.onNewBot, modifier = gutter.ctEnter(6))
+                CtSectionHeader(title = "My bots", actionLabel = "New", onAction = actions.onNewBot, modifier = gutter.ctEnter(7))
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = CtSpacing.gutter),
                     horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-                    modifier = Modifier.ctEnter(6),
+                    modifier = Modifier.ctEnter(7),
                 ) {
                     items(home.myBots, key = { it.id }) { mine ->
                         val bot = mine.asRosterBot()
                         BotCard(bot, onClick = { actions.onOpenBot(bot.id) })
-                    }
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(7)) {
-                CtCard(
-                    onClick = actions.onDailyPuzzle,
-                    onClickLabel = "Open the daily puzzle",
-                    background = CtGradients.Violet,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    CtIconBubble(icon = Icons.Rounded.Bolt, tint = CtColors.Gold, size = 36.dp)
-                    Spacer(Modifier.height(CtSpacing.sm))
-                    Text("Daily challenge", style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(if (home.dailySolved) "Solved today. Well done!" else "Today's puzzle is waiting", style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 2)
-                }
-                home.recommendation?.let { rec ->
-                    CtCard(
-                        onClick = { actions.onOpenBot(rec.bot.id) },
-                        onClickLabel = "Open ${rec.bot.name}",
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        BotAvatar(rec.bot.profile.face, rec.bot.rating, size = 36.dp)
-                        Spacer(Modifier.height(CtSpacing.sm))
-                        Text("Recommended", style = CtType.TitleSmall, maxLines = 1)
-                        Text(rec.reason, style = CtType.Caption, maxLines = 3, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -218,41 +220,42 @@ internal fun coachLine(home: HomeUiState): String = when {
     else -> "Fancy a game? I'll be cheering you on."
 }
 
+/**
+ * The coach and the next thing to do, in one card (D28): resume the unfinished game, or else
+ * pick up learning. The coach's line is said here once.
+ */
 @Composable
 private fun ContinueCard(state: AppUiState, home: HomeUiState, actions: HomeActions, modifier: Modifier) {
     val resume = home.resume
-    if (resume != null) {
-        CtCard(background = CtGradients.Teal, onClick = actions.onResume, onClickLabel = "Resume your game", modifier = modifier) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BotAvatar(resume.bot.profile.face, resume.bot.rating, size = 48.dp)
-                Spacer(Modifier.width(CtSpacing.md))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Continue", style = CtType.Caption.copy(color = CtColors.Teal))
-                    Text(text = "Your game vs ${resume.bot.name}", style = CtType.Title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    val side = if (resume.playerColor == PieceColor.WHITE) "White" else "Black"
-                    Text(text = "Move ${resume.moveCount / 2 + 1} · you play $side", style = CtType.BodySmall)
-                }
-                CtIconBubble(icon = Icons.Rounded.PlayArrow, tint = CtColors.Teal)
-            }
-        }
-        return
-    }
-    CtCard(background = CtGradients.Teal, onClick = actions.onContinueLearning, onClickLabel = "Continue learning", modifier = modifier) {
+    val mascot = state.appSettings.mascot
+    CtCard(
+        background = CtGradients.Teal,
+        onClick = if (resume != null) actions.onResume else actions.onContinueLearning,
+        onClickLabel = if (resume != null) "Resume your game" else "Continue learning",
+        contentPadding = PaddingValues(horizontal = CtSpacing.md, vertical = CtSpacing.md),
+        modifier = modifier,
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            CtIconBubble(icon = Icons.Rounded.Lightbulb, tint = CtColors.Teal)
+            CtMascotArt(mascot = mascot, height = 52.dp, modifier = Modifier.width(48.dp))
             Spacer(Modifier.width(CtSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Continue", style = CtType.Caption.copy(color = CtColors.Teal))
-                Text(
-                    text = state.trainingRecommendation.ifBlank { "Pick up your next lesson" },
-                    style = CtType.Title,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (state.trainingRecommendationReason.isNotBlank()) {
-                    Text(text = state.trainingRecommendationReason, style = CtType.BodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(text = mascot.displayName, style = CtType.Caption.copy(color = CtColors.Teal))
+                if (resume != null) {
+                    Text(text = coachLine(home), style = CtType.Body.copy(color = CtColors.Text), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    val side = if (resume.playerColor == PieceColor.WHITE) "White" else "Black"
+                    Text(text = "Move ${resume.moveCount / 2 + 1} · you play $side", style = CtType.Caption.copy(color = CtColors.Text2))
+                } else {
+                    Text(
+                        text = state.trainingRecommendation.ifBlank { coachLine(home) },
+                        style = CtType.Body.copy(color = CtColors.Text),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(text = "Continue learning", style = CtType.Caption.copy(color = CtColors.Text2))
                 }
             }
+            if (resume != null) BotAvatar(resume.bot.profile.face, resume.bot.rating, size = 40.dp)
+            else CtIconBubble(icon = Icons.Rounded.Lightbulb, tint = CtColors.Teal, size = 40.dp)
         }
     }
 }
@@ -292,18 +295,5 @@ private fun PlayTile(
         Text(text = subtitle, style = CtType.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(CtSpacing.sm))
         CtButton(text = buttonText, icon = Icons.Rounded.PlayArrow.takeIf { buttonText == "Play" }, onClick = onClick, modifier = Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-private fun PlannedTile(title: String, subtitle: String, icon: ImageVector, modifier: Modifier) {
-    CtCard(modifier = modifier) {
-        CtIconBubble(icon = icon, tint = CtColors.Violet, size = 36.dp)
-        Spacer(Modifier.height(CtSpacing.sm))
-        Text(text = title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(text = subtitle, style = CtType.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.height(CtSpacing.sm))
-        // The shared "Coming in Phase N" chip is too wide for a half-width tile.
-        CtChip(text = "Coming soon", color = CtColors.Violet, icon = Icons.Rounded.Lock)
     }
 }

@@ -178,7 +178,7 @@ private fun DrillDoneCard(state: BotGameState, onDrillAgain: () -> Unit, onAnaly
         CtButton(text = "Drill again", icon = Icons.Rounded.Refresh, onClick = onDrillAgain, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(CtSpacing.sm))
         Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            CtButton(text = "Analyse", icon = Icons.Rounded.Search, style = CtButtonStyle.Secondary, onClick = onAnalyse, modifier = Modifier.weight(1f))
+            CtButton(text = "Explore", icon = Icons.Rounded.Search, style = CtButtonStyle.Secondary, onClick = onAnalyse, modifier = Modifier.weight(1f))
             CtButton(text = "Done", style = CtButtonStyle.Secondary, onClick = onBack, modifier = Modifier.weight(1f))
         }
     }
@@ -274,7 +274,7 @@ private fun ResultCard(
         result.winner == null -> "A fair fight. Want to go again?"
         state.playerWon && state.hintsUsed == 0 && state.takebacksUsed == 0 -> "Clean win, no help at all. Brilliant!"
         state.playerWon -> "Well played! Try it with fewer hints next time."
-        else -> "Every loss teaches something. Analyse it to see where it turned."
+        else -> "Every loss teaches something. Explore it to see where it turned."
     }
     CtCard(
         background = if (state.playerWon) CtGradients.Teal else CtGradients.Card,
@@ -291,7 +291,8 @@ private fun ResultCard(
         CtButton(text = "Rematch", icon = Icons.Rounded.Refresh, onClick = onRematch, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(CtSpacing.sm))
         Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            CtButton(text = "Analyse", icon = Icons.Rounded.Search, style = CtButtonStyle.Secondary, onClick = onAnalyse, modifier = Modifier.weight(1f))
+            // "Explore" opens the analysis board; full game review comes in Phase 5.
+            CtButton(text = "Explore", icon = Icons.Rounded.Search, style = CtButtonStyle.Secondary, onClick = onAnalyse, modifier = Modifier.weight(1f))
             CtButton(text = "Other bots", style = CtButtonStyle.Secondary, onClick = onBack, modifier = Modifier.weight(1f))
         }
     }
