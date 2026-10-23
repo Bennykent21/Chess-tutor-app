@@ -24,7 +24,6 @@ import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.navigation.LegacyTab
 import com.chesstutor.app.navigation.NavCommand
-import com.chesstutor.app.ui.arena.ArenaScreen
 import com.chesstutor.app.ui.coach.CoachScreen
 import com.chesstutor.app.ui.curriculum.CurriculumScreen
 import com.chesstutor.app.ui.review.ReviewScreen
@@ -74,7 +73,7 @@ fun LegacyHost(
                         viewModel = viewModel,
                         initialOpenCategory = initialCategory
                     )
-                    LegacyTab.ARENA -> ArenaScreen(state = state, viewModel = viewModel)
+                    // LegacyTab.ARENA: the old Arena was removed in Phase 3 (Home and its games replace it).
                     LegacyTab.REVIEW -> ReviewScreen(state = state, viewModel = viewModel)
                     // LegacyTab.PUZZLES: the old trainer was removed in Phase 2 (the Puzzles tab replaces it).
                 }

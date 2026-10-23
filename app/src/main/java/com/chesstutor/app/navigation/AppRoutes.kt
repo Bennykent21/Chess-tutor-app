@@ -21,7 +21,7 @@ object LegacyTab {
     const val SESSION = 0
     /** CurriculumScreen: the old Learn list. Removed in Phase 4. */
     const val CURRICULUM = 1
-    /** ArenaScreen: games against bots. Removed in Phase 3. */
+    /** ArenaScreen: games against bots. Removed in Phase 3 (Home and its games replace it); the index stays reserved. */
     const val ARENA = 2
     /** ReviewScreen: linked accounts, game history and review. Removed in Phase 5. */
     const val REVIEW = 3
@@ -33,7 +33,7 @@ object LegacyTab {
     const val PUZZLES = 4
 
     /** The classic screens still offered (Account > Classic screens). */
-    val ALL = listOf(SESSION, CURRICULUM, ARENA, REVIEW)
+    val ALL = listOf(SESSION, CURRICULUM, REVIEW)
 
     fun title(index: Int): String = when (index) {
         SESSION -> "Lesson and drill player"

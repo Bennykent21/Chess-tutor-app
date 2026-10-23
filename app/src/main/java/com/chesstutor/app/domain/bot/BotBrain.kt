@@ -10,9 +10,9 @@ import com.chesstutor.app.domain.opening.Repertoire
 import com.chesstutor.app.engine.EngineLine
 import com.chesstutor.app.engine.EngineService
 import kotlin.math.abs
-import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /** How a bot came to its move: for the coach strip, the game record and tests. */
@@ -31,10 +31,10 @@ data class BotDecision(
 data class BotCandidate(val uci: String, val score: Int)
 
 /**
- * Plays a bot's moves (plan 6.1, step 3B). In book it picks from its [Repertoire]; out of
- * book it asks the engine for its best few moves at full strength, once per move, and lets
- * [BotMoveChooser] pick among them for the bot's rating and style, sometimes slipping on
- * purpose ([BotStrengthModel.mistakeChance]). One search per move keeps the phone cool.
+ * Plays a bot's moves (plan 6.1, step 3B; reworked by D26). In book it picks from its
+ * [Repertoire]. Out of book it searches only as deep as its rating allows, so it genuinely
+ * misses deeper tactics, and picks among the 4 best moves of that shallow search the way
+ * Stockfish's own Skill Level does ([SkillPicker]). Beginners sometimes play a random move.
  */
 class BotBrain(private val engine: EngineService, private val random: Random = Random.Default) {
 
@@ -63,17 +63,23 @@ class BotBrain(private val engine: EngineService, private val random: Random = R
             }
         }
 
+        val strength = BotStrengthModel.settingsFor(profile)
+        if (random.nextDouble() < strength.randomMoveChance) {
+            return BotDecision(legal.random(random), BotMoveKind.MISTAKE, thinkMs(BotMoveKind.MISTAKE, profile, 1, clockMs))
+        }
+
         val fen = position.toFen()
         val lines = runCatching {
-            engine.analyse(fen, lines = CANDIDATES, movetimeMs = BotStrengthModel.searchMs(profile.rating))
+            if (strength.depth == null) engine.analyse(fen, lines = CANDIDATES, movetimeMs = FULL_STRENGTH_MS)
+            else engine.analyseToDepth(fen, lines = CANDIDATES, depth = strength.depth)
         }.getOrDefault(emptyList())
         val candidates = candidatesOf(lines, side).filter { it.uci in legal }
         if (candidates.isEmpty()) {
             val fallback = runCatching { engine.botMove(fen, profile.rating) }.getOrNull()?.uci?.takeIf { it in legal }
             return BotDecision(fallback ?: legal.random(random), BotMoveKind.FALLBACK, thinkMs(BotMoveKind.FALLBACK, profile, 1, clockMs))
         }
-        val choice = BotMoveChooser.choose(position, candidates, legal, profile, random)
-        return BotDecision(choice.uci, choice.kind, thinkMs(choice.kind, profile, choice.options, clockMs), candidates.first().score)
+        val choice = SkillPicker.pick(position, candidates, strength.skillLevel, profile, random)
+        return BotDecision(choice.uci, choice.kind, thinkMs(choice.kind, profile, candidates.size, clockMs), candidates.first().score)
     }
 
     private fun thinkMs(kind: BotMoveKind, profile: BotProfile, options: Int, clockMs: Long?): Long {
@@ -88,6 +94,8 @@ class BotBrain(private val engine: EngineService, private val random: Random = R
 
     companion object {
         const val CANDIDATES = 4
+        /** Search time for a full-strength bot, which has no depth limit. */
+        const val FULL_STRENGTH_MS = 800
 
         /** Engine lines as bot-side candidates; a mate scores beyond any material count. */
         fun candidatesOf(lines: List<EngineLine>, side: PieceColor): List<BotCandidate> {
@@ -118,23 +126,42 @@ internal fun pickWeighted(options: List<Pair<String, Double>>, random: Random): 
     return options.last().first
 }
 
-/** How strength turns into behaviour. Ratings between the table rows are interpolated. */
+/** What strength means for one bot: Stockfish skill level (0 to 20), search depth, random moves. */
+data class StrengthSettings(val skillLevel: Int, val depth: Int?, val randomMoveChance: Double)
+
+/**
+ * Rating (Chess.com scale, D27) to engine settings, interpolated between rows. Built like
+ * Lichess's computer levels, which pair Stockfish's Skill Level with a shallow depth cap
+ * (fishnet: levels 1 to 5 search depth 5, level 8 depth 22). A first estimate, to be
+ * measured against Maia's human-calibrated networks (D26).
+ */
 object BotStrengthModel {
-    /** Rating to how far (centipawns) below the best move a bot still considers a move fine. */
-    private val tolerance = listOf(400 to 150, 800 to 100, 1200 to 70, 1600 to 45, 2000 to 25, 2400 to 10, 3000 to 0)
-    /** Rating to the chance that a move out of book is a deliberate slip. */
-    private val mistakes = listOf(400 to 0.30, 800 to 0.18, 1200 to 0.10, 1600 to 0.05, 2000 to 0.02, 2400 to 0.005, 3000 to 0.0)
-    /** Rating to the largest loss (centipawns) a slip may cost. */
-    private val slipSize = listOf(400 to 1_000, 800 to 600, 1200 to 300, 1600 to 200, 2000 to 120, 2400 to 80, 3000 to 60)
+    private data class Row(val rating: Int, val level: Double, val depth: Double, val random: Double)
 
-    fun tolerance(rating: Int): Int = interpolate(tolerance, rating).toInt()
-    fun maxSlip(rating: Int): Int = interpolate(slipSize, rating).toInt()
+    private val table = listOf(
+        Row(250, 0.0, 1.0, 0.25),
+        Row(500, 0.0, 1.0, 0.12),
+        Row(800, 1.0, 2.0, 0.04),
+        Row(1000, 2.0, 3.0, 0.0),
+        Row(1200, 3.0, 4.0, 0.0),
+        Row(1400, 5.0, 5.0, 0.0),
+        Row(1600, 7.0, 6.0, 0.0),
+        Row(1800, 9.0, 7.0, 0.0),
+        Row(2000, 11.0, 8.0, 0.0),
+        Row(2200, 13.0, 10.0, 0.0),
+        Row(2500, 16.0, 13.0, 0.0),
+        Row(2800, 19.0, 18.0, 0.0),
+    )
 
-    fun mistakeChance(profile: BotProfile): Double =
-        (interpolate(mistakes, profile.rating) * profile.mistakeLevel).coerceIn(0.0, 0.6)
-
-    /** Below 1000 some slips are a random move (a beginner's blunder), not just a weaker line. */
-    fun wildShare(rating: Int): Double = ((1000 - rating) / 1000.0).coerceIn(0.0, 0.75)
+    fun settingsFor(profile: BotProfile): StrengthSettings {
+        val rating = profile.rating
+        if (rating >= 3000) return StrengthSettings(20, null, 0.0)
+        val row = interpolate(rating)
+        // "Mistakes" in the builder: Never plays 4 levels cleaner, Often 4 levels sloppier.
+        val level = (row.level + (1f - profile.mistakeLevel) * 4).roundToInt().coerceIn(0, 20)
+        val randomChance = (row.random * profile.mistakeLevel).coerceIn(0.0, 0.5)
+        return StrengthSettings(level, row.depth.roundToInt().coerceAtLeast(1), randomChance)
+    }
 
     /** How many plies a bot follows its book: beginners leave theory early. */
     fun bookDepth(rating: Int): Int = when {
@@ -145,62 +172,59 @@ object BotStrengthModel {
         else -> Int.MAX_VALUE
     }
 
-    /** Engine search time per move; weak bots do not need deep searches. */
-    fun searchMs(rating: Int): Int = when {
-        rating < 1000 -> 250
-        rating < 1600 -> 400
-        rating < 2200 -> 600
-        else -> 800
-    }
-
-    private fun interpolate(table: List<Pair<Int, Number>>, rating: Int): Double {
-        if (rating <= table.first().first) return table.first().second.toDouble()
-        val upper = table.indexOfFirst { it.first >= rating }
-        if (upper < 0) return table.last().second.toDouble()
-        val (r0, v0) = table[upper - 1]
-        val (r1, v1) = table[upper]
-        val t = (rating - r0).toDouble() / (r1 - r0)
-        return v0.toDouble() + (v1.toDouble() - v0.toDouble()) * t
+    private fun interpolate(rating: Int): Row {
+        if (rating <= table.first().rating) return table.first()
+        val upper = table.indexOfFirst { it.rating >= rating }
+        if (upper < 0) return table.last()
+        val a = table[upper - 1]
+        val b = table[upper]
+        val t = (rating - a.rating).toDouble() / (b.rating - a.rating)
+        fun mix(x: Double, y: Double) = x + (y - x) * t
+        return Row(rating, mix(a.level, b.level), mix(a.depth, b.depth), mix(a.random, b.random))
     }
 }
 
-/** Picks among scored candidates for a bot's rating and style. Pure, so it is tested directly. */
-object BotMoveChooser {
-    data class Choice(val uci: String, val kind: BotMoveKind, val options: Int)
+/**
+ * Chooses among a shallow search's best moves like Stockfish's Skill Level
+ * (`Skill::pick_best`): each move gets a push of `(weakness * gap + delta * random) / 128`,
+ * where weakness is `120 - 2 * level`, gap is how far it trails the best move and delta the
+ * spread of the candidates, capped at a pawn. Low levels pick almost freely among the four;
+ * level 20 always plays the best move. A bot's style adds a small lean on top.
+ */
+object SkillPicker {
+    data class Choice(val uci: String, val kind: BotMoveKind)
 
-    /** Smallest loss that counts as a slip; anything less is just a different good move. */
-    const val MIN_SLIP = 60
-    private const val STYLE_STRENGTH = 1.2
+    private const val PAWN = 100
+    /** How much a style can tilt the choice, in centipawns. */
+    private const val STYLE_CP = 25.0
+    /** A pick this far below the best move counts as a mistake. */
+    const val MISTAKE_CP = 90
 
-    fun choose(position: Position, candidates: List<BotCandidate>, legal: List<String>, profile: BotProfile, random: Random): Choice {
-        val best = candidates.first().score
-        if (random.nextDouble() < BotStrengthModel.mistakeChance(profile)) {
-            slip(candidates, legal, best, profile.rating, random)?.let { return it }
+    fun pick(position: Position, candidates: List<BotCandidate>, level: Int, profile: BotProfile, random: Random): Choice {
+        val top = candidates.first().score
+        if (level >= 20 || candidates.size == 1) return Choice(candidates.first().uci, BotMoveKind.ENGINE)
+        val weakness = 120 - 2 * level
+        val delta = min(top - candidates.last().score, PAWN)
+        var best = candidates.first()
+        var bestValue = Long.MIN_VALUE
+        for (candidate in candidates) {
+            val gap = (top - candidate.score).toLong()
+            val push = (weakness * gap + delta * random.nextInt(weakness)) / 128
+            val value = candidate.score + push + styleLean(position, candidate.uci, profile)
+            if (value >= bestValue) {
+                bestValue = value
+                best = candidate
+            }
         }
-
-        val tolerance = BotStrengthModel.tolerance(profile.rating)
-        val mating = best > BotBrain.MATE / 2 && profile.rating >= 1000
-        val fine = candidates.filter { best - it.score <= tolerance && (!mating || it.score > BotBrain.MATE / 2) }
-        val moves = fine.map { candidate -> position.legalMove(candidate.uci) to candidate }
-        val weights = moves.map { (move, candidate) ->
-            val closeness = exp(-(best - candidate.score) / max(tolerance / 2.0, 1.0))
-            val lean = profile.aggression * BotStyleScore.aggression(position, move) + profile.trades * BotStyleScore.trade(position, move)
-            candidate.uci to closeness * exp(STYLE_STRENGTH * lean)
-        }
-        return Choice(pickWeighted(weights, random), BotMoveKind.ENGINE, fine.size)
+        return Choice(best.uci, if (top - best.score >= MISTAKE_CP) BotMoveKind.MISTAKE else BotMoveKind.ENGINE)
     }
 
-    private fun slip(candidates: List<BotCandidate>, legal: List<String>, best: Int, rating: Int, random: Random): Choice? {
-        if (random.nextDouble() < BotStrengthModel.wildShare(rating)) {
-            val unseen = legal - candidates.first().uci
-            if (unseen.isNotEmpty()) return Choice(unseen.random(random), BotMoveKind.MISTAKE, 1)
-        }
-        val maxSlip = BotStrengthModel.maxSlip(rating)
-        val worse = candidates.filter { abs(best - it.score) in MIN_SLIP..maxSlip }
-        return worse.takeIf { it.isNotEmpty() }?.let { Choice(it.random(random).uci, BotMoveKind.MISTAKE, 1) }
+    private fun styleLean(position: Position, uci: String, profile: BotProfile): Long {
+        if (profile.aggression == 0f && profile.trades == 0f) return 0
+        val move = LegalMoveGenerator.generateLegalMoves(position).firstOrNull { it.uci == uci } ?: return 0
+        val lean = profile.aggression * BotStyleScore.aggression(position, move) + profile.trades * BotStyleScore.trade(position, move)
+        return (lean * STYLE_CP).toLong()
     }
-
-    private fun Position.legalMove(uci: String): Move = LegalMoveGenerator.generateLegalMoves(this).first { it.uci == uci }
 }
 
 /** How well a move fits a style, each from -1 to 1. Simple board features, no search. */

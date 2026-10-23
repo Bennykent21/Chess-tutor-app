@@ -25,6 +25,13 @@ interface EngineService {
      */
     suspend fun analyse(fen: String, lines: Int = 3, movetimeMs: Int = 1000): List<EngineLine>
 
+    /**
+     * Up to [lines] candidate lines from a search stopped at [depth]. Bots use shallow depths
+     * so they really do miss deeper tactics (plan D26). Engines without depth control answer
+     * with a short timed search.
+     */
+    suspend fun analyseToDepth(fen: String, lines: Int, depth: Int): List<EngineLine> = analyse(fen, lines, 300)
+
     /** A move for a bot playing at [elo]. */
     suspend fun botMove(fen: String, elo: Int): MoveChoice?
 
@@ -44,6 +51,11 @@ class ManagerEngineService(private val manager: ChessEngineManager) : EngineServ
 
     override suspend fun analyse(fen: String, lines: Int, movetimeMs: Int): List<EngineLine> {
         val analysis = manager.analyseLines(fen, lines.coerceAtLeast(1), movetimeMs) ?: return emptyList()
+        return linesOf(analysis)
+    }
+
+    override suspend fun analyseToDepth(fen: String, lines: Int, depth: Int): List<EngineLine> {
+        val analysis = manager.analyseLinesToDepth(fen, lines.coerceAtLeast(1), depth.coerceAtLeast(1)) ?: return emptyList()
         return linesOf(analysis)
     }
 

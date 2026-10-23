@@ -68,7 +68,6 @@ fun DeveloperMenuScreen(
 
 private fun replacedIn(index: Int): String = when (index) {
     LegacyTab.SESSION, LegacyTab.CURRICULUM -> "Replaced in Phase 4 (Learn)"
-    LegacyTab.ARENA -> "Replaced in Phase 3 (Home and bots)"
     LegacyTab.REVIEW -> "Replaced in Phase 5 (Account)"
     else -> ""
 }
@@ -76,7 +75,6 @@ private fun replacedIn(index: Int): String = when (index) {
 private fun iconFor(index: Int): ImageVector = when (index) {
     LegacyTab.SESSION -> Icons.Rounded.AutoStories
     LegacyTab.CURRICULUM -> Icons.Rounded.School
-    LegacyTab.ARENA -> Icons.Rounded.SportsEsports
     LegacyTab.REVIEW -> Icons.Rounded.History
     else -> Icons.Rounded.Extension
 }
