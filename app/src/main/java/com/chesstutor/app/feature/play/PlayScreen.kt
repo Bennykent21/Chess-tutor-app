@@ -46,13 +46,16 @@ import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtCoachBubble
+import com.chesstutor.app.design.CtCoachStrip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtGradients
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
+import com.chesstutor.app.domain.opening.BattleMode
 import com.chesstutor.app.feature.home.BotAvatar
+import com.chesstutor.app.feature.home.battleCoachLine
 
 /**
  * A game against a bot on the shared board (plan 6.1, `BoardConfig.PLAY`): the bot above,
@@ -91,8 +94,9 @@ fun PlayScreen(
     CtScreenBackground {
         Column(Modifier.fillMaxSize()) {
             CtTopBar(
-                title = "vs ${bot.name}",
-                subtitle = openingLine(state),
+                title = state.battleTitle?.let { "Opening battle" } ?: "vs ${bot.name}",
+                subtitle = state.battleTitle?.let { "vs ${bot.name} · ${if (game.battle?.mode == BattleMode.DRILL) "drill" else game.battle?.mode?.label?.lowercase()}" }
+                    ?: openingLine(state),
                 onBack = onBack,
             )
             Column(
@@ -109,6 +113,14 @@ fun PlayScreen(
                     running = state.phase == GamePhase.BOT_TURN && toMove == state.botColor,
                     avatar = { BotAvatar(bot.face, bot.rating, size = 40.dp) },
                 )
+                state.battleTitle?.let { title ->
+                    CtCoachStrip(
+                        mascot = settings.mascot,
+                        label = title,
+                        text = battleCoachLine(title, state.opening, state.inBook, state.drillMessage),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 BoardWithEvalBar(
                     evalBar = if (setup.rules.evalBar) { modifier ->
                         BoardEvalBar(centipawns = state.evalCp, mateIn = state.evalMate, whiteAtBottom = whiteBottom, modifier = modifier)
@@ -134,7 +146,9 @@ fun PlayScreen(
                     avatar = null,
                 )
                 BoardMoveList(entries = remember(board.version) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
-                if (state.phase == GamePhase.OVER) {
+                if (state.phase == GamePhase.DRILL_DONE) {
+                    DrillDoneCard(state, onDrillAgain = onRematch, onAnalyse = { onAnalyse(setup.startFen, board.moves.map { it.uci }) }, onBack = onBack)
+                } else if (state.phase == GamePhase.OVER) {
                     ResultCard(
                         state = state,
                         settings = settings,
@@ -143,10 +157,29 @@ fun PlayScreen(
                         onBack = onBack,
                     )
                 } else {
-                    GameActions(game, state)
+                    GameActions(game, state, onLeave = onBack)
                 }
                 Spacer(Modifier.height(CtSpacing.lg))
             }
+        }
+    }
+}
+
+@Composable
+private fun DrillDoneCard(state: BotGameState, onDrillAgain: () -> Unit, onAnalyse: () -> Unit, onBack: () -> Unit) {
+    val clean = state.drillMistakes == 0
+    CtCard(
+        background = if (clean) CtGradients.Teal else CtGradients.Card,
+        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+    ) {
+        Text(if (clean) "Perfect drill!" else "Drill complete", style = CtType.Headline.copy(color = if (clean) CtColors.Teal else CtColors.Text))
+        Text(state.drillMessage.orEmpty(), style = CtType.Body)
+        Spacer(Modifier.height(CtSpacing.md))
+        CtButton(text = "Drill again", icon = Icons.Rounded.Refresh, onClick = onDrillAgain, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(CtSpacing.sm))
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            CtButton(text = "Analyse", icon = Icons.Rounded.Search, style = CtButtonStyle.Secondary, onClick = onAnalyse, modifier = Modifier.weight(1f))
+            CtButton(text = "Done", style = CtButtonStyle.Secondary, onClick = onBack, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -179,7 +212,7 @@ private fun PlayerBar(
 }
 
 @Composable
-private fun GameActions(game: BotGame, state: BotGameState) {
+private fun GameActions(game: BotGame, state: BotGameState, onLeave: () -> Unit) {
     var confirmResign by rememberSaveable { mutableStateOf(false) }
     if (confirmResign) {
         CtCard(modifier = Modifier.fillMaxWidth()) {
@@ -213,10 +246,10 @@ private fun GameActions(game: BotGame, state: BotGameState) {
             )
         }
         CtButton(
-            text = "Resign",
+            text = if (game.battle?.mode == BattleMode.DRILL) "Stop" else "Resign",
             style = CtButtonStyle.Secondary,
             enabled = state.phase != GamePhase.STARTING,
-            onClick = { confirmResign = true },
+            onClick = { if (game.battle?.mode == BattleMode.DRILL) onLeave() else confirmResign = true },
             modifier = Modifier.weight(1f),
         )
     }

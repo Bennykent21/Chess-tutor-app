@@ -3,6 +3,8 @@ package com.chesstutor.app.feature.home
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -86,7 +88,7 @@ class HomeScreensTest {
         compose.waitForIdle()
     }
 
-    private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {})
+    private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {}, {})
 
     @Test
     fun homeShowsTheRosterAndTheResumeCard() {
@@ -182,4 +184,45 @@ class HomeScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BotBuilder.png")
         assertEquals(false, saved)
     }
+
+    @Test
+    fun theOpeningPickerSearchesAndPicksALine() {
+        val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(OpeningTree::fromStream)
+        var picked: com.chesstutor.app.domain.opening.Opening? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                OpeningPickerScreen(tree = tree, onPick = { picked = it }, onBack = {})
+            }
+        }
+        compose.onNodeWithText("Sicilian Defense").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/OpeningPicker.png")
+        compose.onNode(hasText("Search")).assertExists()
+        // Searching narrows the list to the one family and opens it at the matching lines.
+        compose.onNode(hasSetTextAction()).performTextInput("Najdorf")
+        compose.onAllNodes(hasText("Najdorf Variation", substring = true))[0].assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/OpeningPicker_open.png")
+        compose.onAllNodes(hasText("B90 ·", substring = true))[0].performClick()
+        assertEquals("Sicilian Defense: Najdorf Variation", picked?.name)
+    }
+
+    @Test
+    fun theBattlePageNeedsAnOpeningBeforeItStarts() {
+        val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(OpeningTree::fromStream)
+        var draft by mutableStateOf(BattleDraft())
+        var started = false
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BattleSetupScreen(draft = draft, onChange = { draft = it(draft) }, onPickOpening = {}, onStart = { started = true }, onBack = {})
+            }
+        }
+        compose.onNodeWithText("Choose an opening to start.").assertExists()
+        draft = draft.copy(line = tree.openings.first { it.name == "Sicilian Defense: Najdorf Variation" })
+        compose.onNodeWithText("Drill it").performClick()
+        compose.onNodeWithText("Any Sicilian Defense").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/BattleSetup.png")
+        compose.onNode(hasText("Start")).performScrollTo().performClick()
+        assertEquals(true, started)
+        assertEquals(com.chesstutor.app.domain.opening.BattleMode.DRILL, draft.mode)
+    }
 }
+

@@ -12,14 +12,20 @@ import com.chesstutor.app.core.Move
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.PieceType
 import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.SanFormatter
+import com.chesstutor.app.core.repetitionKey
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.domain.PgnFormatter
 import com.chesstutor.app.domain.bot.BotBrain
 import com.chesstutor.app.domain.bot.BotResign
+import com.chesstutor.app.domain.bot.BotStrengthModel
 import com.chesstutor.app.domain.game.GameEnd
 import com.chesstutor.app.domain.game.GameResult
 import com.chesstutor.app.domain.game.GameSetup
+import com.chesstutor.app.domain.opening.BattleChoice
+import com.chesstutor.app.domain.opening.BattlePlan
+import com.chesstutor.app.domain.opening.OpeningBattles
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.opening.Repertoire
 import com.chesstutor.app.engine.EngineService
@@ -33,8 +39,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Date
+import kotlin.random.Random
 
-enum class GamePhase { STARTING, PLAYER_TURN, BOT_TURN, OVER }
+enum class GamePhase { STARTING, PLAYER_TURN, BOT_TURN, OVER, /** Opening Battle drill: the line is finished. */ DRILL_DONE }
 
 /** A sound for the screen to play once; [id] changes with every new event. */
 data class GameSoundEvent(val id: Int, val feedback: BoardFeedback)
@@ -57,6 +64,10 @@ data class BotGameState(
     val canTakeBack: Boolean = false,
     val sound: GameSoundEvent? = null,
     val saved: Boolean = false,
+    /** Opening Battle: the line or family being played, mistakes in a drill and the last drill note. */
+    val battleTitle: String? = null,
+    val drillMistakes: Int = 0,
+    val drillMessage: String? = null,
 ) {
     val playerWon: Boolean get() = result?.winner == setup.playerColor
     val botColor: PieceColor get() = setup.playerColor.opposite()
@@ -82,6 +93,9 @@ class BotGame(
     /** Moves to replay first, and the clocks as they were, for a resumed game. */
     private val resumeMoves: List<String> = emptyList(),
     resumeClocks: Pair<Long?, Long?>? = null,
+    /** Set for an Opening Battle (step 3E); its book replaces the bot's own repertoire. */
+    val battle: BattleChoice? = null,
+    private val random: Random = Random.Default,
 ) {
     val session = PlaySession(Position.fromFen(setup.startFen), setup.playerColor, ::onPlayerMoved)
 
@@ -93,6 +107,10 @@ class BotGame(
     private val standardStart = setup.startFen == Position.STARTING_FEN
     private var tree: OpeningTree = OpeningTree.EMPTY
     private var repertoire: Repertoire = Repertoire.NONE
+    private var plan: BattlePlan? = null
+    private val isDrill: Boolean get() = plan?.isDrill == true
+    /** Where the player's current move starts, to judge it in a drill. */
+    private var playerTurnStart: Position? = null
     private val botEvals = mutableListOf<Int>()
     private var botJob: Job? = null
     private var evalJob: Job? = null
@@ -106,6 +124,12 @@ class BotGame(
             if (standardStart) {
                 tree = runCatching { openings() }.getOrDefault(OpeningTree.EMPTY)
                 repertoire = Repertoire.of(tree, setup.bot.whiteOpenings, setup.bot.blackOpenings)
+                battle?.let { choice ->
+                    val battlePlan = OpeningBattles.plan(tree, choice, random)
+                    plan = battlePlan
+                    repertoire = battlePlan.repertoire
+                    mutableState.update { it.copy(battleTitle = battlePlan.title) }
+                }
             }
             for (uci in resumeMoves) {
                 val legal = LegalMoveGenerator.generateLegalMoves(session.game.position).firstOrNull { it.uci == uci } ?: break
@@ -123,6 +147,7 @@ class BotGame(
     private fun nextTurn() {
         val playerToMove = session.game.position.sideToMove == setup.playerColor
         session.open = playerToMove
+        if (playerToMove) playerTurnStart = session.game.position
         mutableState.update { it.copy(phase = if (playerToMove) GamePhase.PLAYER_TURN else GamePhase.BOT_TURN, canTakeBack = canTakeBack(playerToMove)) }
         // The engine does one thing at a time: the eval bar updates while the player thinks.
         if (playerToMove) refreshEval() else botJob = scope.launch { botMove() }
@@ -130,14 +155,39 @@ class BotGame(
 
     private fun onPlayerMoved(move: Move) {
         mutableState.update { it.copy(hint = null) }
+        val start = playerTurnStart
+        if (isDrill && start != null) {
+            val book = repertoire.movesFor(setup.playerColor, start.repetitionKey())
+            if (book.none { it.uci == move.uci }) {
+                rejectInDrill(start, book.firstOrNull()?.uci)
+                return
+            }
+            mutableState.update { it.copy(drillMessage = null) }
+        }
         afterMove(setup.playerColor)
+    }
+
+    /** A drill move off the line is taken back, and the book move is shown. */
+    private fun rejectInDrill(start: Position, expected: String?) {
+        session.undo(1)
+        val legal = expected?.let { uci -> LegalMoveGenerator.generateLegalMoves(start).firstOrNull { it.uci == uci } }
+        val san = legal?.let { SanFormatter.format(start, it) }
+        sound(BoardFeedback(BoardSound.WRONG, HapticPattern.DOUBLE))
+        mutableState.update {
+            it.copy(
+                drillMistakes = it.drillMistakes + 1,
+                drillMessage = if (san != null) "Not the book move. The line goes on with $san. Try again." else "Not the book move. Try again.",
+                hint = legal?.let { m -> BoardArrow(m.from, m.to, MarkKind.HINT) },
+            )
+        }
     }
 
     private suspend fun botMove() {
         val position = session.game.position
         val began = clock()
         val clockMs = remainingFor(state.value.botColor)
-        val decision = brain.decide(position, session.moves.size, setup.bot, repertoire, clockMs) ?: return
+        val bookDepth = if (plan != null) Int.MAX_VALUE else BotStrengthModel.bookDepth(setup.bot.rating)
+        val decision = brain.decide(position, session.moves.size, setup.bot, repertoire, clockMs, bookDepth) ?: return
         decision.evalForBot?.let { botEvals += it }
         if (BotResign.shouldResign(setup.bot, botEvals)) {
             finish(GameResult(setup.playerColor, GameEnd.RESIGNATION))
@@ -153,7 +203,27 @@ class BotGame(
     private fun afterMove(mover: PieceColor) {
         chargeClock(mover)
         updateOpening()
-        if (!checkGameOver()) nextTurn()
+        if (checkGameOver()) return
+        if (isDrill && repertoire.movesFor(session.game.position.sideToMove, session.game.position.repetitionKey()).isEmpty()) {
+            finishDrill()
+            return
+        }
+        nextTurn()
+    }
+
+    private fun finishDrill() {
+        ticker?.cancel()
+        session.open = false
+        val mistakes = state.value.drillMistakes
+        mutableState.update {
+            it.copy(
+                phase = GamePhase.DRILL_DONE,
+                canTakeBack = false,
+                hint = null,
+                drillMessage = if (mistakes == 0) "Line complete, without a single slip!" else "Line complete, with $mistakes ${if (mistakes == 1) "slip" else "slips"}.",
+            )
+        }
+        sound(BoardFeedback(BoardSound.WIN, HapticPattern.LONG))
     }
 
     // ------------------------------------------------------------------ player actions
@@ -174,6 +244,14 @@ class BotGame(
     fun hint() {
         val current = state.value
         if (!setup.rules.hints || current.phase != GamePhase.PLAYER_TURN) return
+        if (isDrill) {
+            // In a drill the hint is the book move, not the engine's.
+            val position = session.game.position
+            val uci = repertoire.movesFor(setup.playerColor, position.repetitionKey()).firstOrNull()?.uci ?: return
+            val move = LegalMoveGenerator.generateLegalMoves(position).firstOrNull { it.uci == uci } ?: return
+            mutableState.update { it.copy(hint = BoardArrow(move.from, move.to, MarkKind.HINT), hintsUsed = it.hintsUsed + 1) }
+            return
+        }
         val fen = session.game.position.toFen()
         scope.launch {
             val best = runCatching { engine.bestMove(fen, timing.hintMovetimeMs) }.getOrNull() ?: return@launch
@@ -184,7 +262,7 @@ class BotGame(
     }
 
     fun resign() {
-        if (state.value.phase == GamePhase.OVER) return
+        if (state.value.phase == GamePhase.OVER || state.value.phase == GamePhase.DRILL_DONE) return
         finish(GameResult(state.value.botColor, GameEnd.RESIGNATION))
     }
 
@@ -238,6 +316,8 @@ class BotGame(
         }
         mutableState.update { it.copy(phase = GamePhase.OVER, result = result, hint = null, canTakeBack = false) }
         sound(feedback)
+        // Drills are practice, not games: they stay out of the games list.
+        if (isDrill) return
         scope.launch {
             runCatching { games.saveGame(record(result)) }
             mutableState.update { it.copy(saved = true) }

@@ -48,12 +48,14 @@ class BotBrain(private val engine: EngineService, private val random: Random = R
         profile: BotProfile,
         repertoire: Repertoire,
         clockMs: Long? = null,
+        /** How many plies it follows its book; Opening Battle follows the whole line. */
+        bookDepth: Int = BotStrengthModel.bookDepth(profile.rating),
     ): BotDecision? {
         val legal = LegalMoveGenerator.generateLegalMoves(position).map { it.uci }
         if (legal.isEmpty()) return null
         val side = position.sideToMove
 
-        if (ply < BotStrengthModel.bookDepth(profile.rating)) {
+        if (ply < bookDepth) {
             val book = repertoire.movesFor(side, position.repetitionKey()).filter { it.uci in legal }
             if (book.isNotEmpty()) {
                 val pick = pickWeighted(book.map { it.uci to it.weight.toDouble() }, random)

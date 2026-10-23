@@ -17,6 +17,9 @@ import com.chesstutor.app.domain.game.GameSetup
 import com.chesstutor.app.domain.game.PlayRecommendation
 import com.chesstutor.app.domain.game.PlayRecommender
 import com.chesstutor.app.domain.game.SideChoice
+import com.chesstutor.app.domain.opening.BattleChoice
+import com.chesstutor.app.domain.opening.BattleMode
+import com.chesstutor.app.domain.opening.Opening
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.engine.EngineService
@@ -34,6 +37,20 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.random.Random
+
+/** Opening Battle's setup page (plan 6.1): side, opening line, mode, replies and opponent. */
+data class BattleDraft(
+    val side: SideChoice = SideChoice.RANDOM,
+    val line: Opening? = null,
+    val mode: BattleMode = BattleMode.PLAY,
+    val exactReplies: Boolean = true,
+    val opponentId: String = "ziggy",
+) {
+    companion object {
+        /** Opponents offered for a battle, easiest first. */
+        val OPPONENTS = listOf("juno", "ziggy", "tessa", "ingrid", "bolt")
+    }
+}
 
 /** An unfinished game shown on Home's Continue card. */
 data class ResumeCard(val bot: RosterBot, val moveCount: Int, val playerColor: PieceColor)
@@ -162,8 +179,45 @@ class HomeViewModel(
 
     /** The same bot and rules again, with colours swapped. */
     fun rematch() {
-        val last = mutableGame.value?.setup ?: return
-        launch(last.copy(playerColor = last.playerColor.opposite()))
+        val last = mutableGame.value ?: return
+        // A battle is replayed as it was (drill it again); a game swaps colours.
+        if (last.battle != null) launch(last.setup, battle = last.battle)
+        else launch(last.setup.copy(playerColor = last.setup.playerColor.opposite()))
+    }
+
+    // ------------------------------------------------------------------ Opening Battle (3E)
+
+    private val mutableBattle = MutableStateFlow(BattleDraft())
+    /** The battle being set up. */
+    val battle: StateFlow<BattleDraft> = mutableBattle.asStateFlow()
+
+    private val mutableTree = MutableStateFlow<OpeningTree?>(null)
+    /** The opening database for the picker; null until [loadOpenings] has read it. */
+    val openingTree: StateFlow<OpeningTree?> = mutableTree.asStateFlow()
+
+    fun loadOpenings() {
+        if (mutableTree.value != null) return
+        viewModelScope.launch { mutableTree.value = openings() }
+    }
+
+    fun updateBattle(change: (BattleDraft) -> BattleDraft) {
+        mutableBattle.value = change(mutableBattle.value)
+    }
+
+    /** Starts the battle; false while no opening is picked. */
+    fun startBattle(): Boolean {
+        val draft = mutableBattle.value
+        val line = draft.line ?: return false
+        val bot = BotRoster.byId(draft.opponentId) ?: return false
+        val color = when (draft.side) {
+            SideChoice.WHITE -> PieceColor.WHITE
+            SideChoice.BLACK -> PieceColor.BLACK
+            SideChoice.RANDOM -> if (random.nextBoolean()) PieceColor.WHITE else PieceColor.BLACK
+        }
+        // Drills undo wrong moves themselves, so they have no takebacks and no clock.
+        val rules = GameRules(takebacks = draft.mode != BattleMode.DRILL, hints = true)
+        launch(GameSetup(bot.profile, color, rules), battle = BattleChoice(line, draft.mode, draft.exactReplies))
+        return true
     }
 
     /** Picks up the saved unfinished game. */
@@ -182,12 +236,12 @@ class HomeViewModel(
         saver?.cancel()
         mutableGame.value?.let { game ->
             game.pause()
-            if (game.state.value.phase != GamePhase.OVER) save(game)
+            if (game.state.value.phase != GamePhase.OVER && game.battle == null) save(game)
         }
         mutableGame.value = null
     }
 
-    private fun launch(setup: GameSetup, resumeFrom: ActiveGameSnapshot? = null) {
+    private fun launch(setup: GameSetup, resumeFrom: ActiveGameSnapshot? = null, battle: BattleChoice? = null) {
         closeGame()
         val game = BotGame(
             setup = setup,
@@ -199,9 +253,13 @@ class HomeViewModel(
             clock = clock,
             resumeMoves = resumeFrom?.moves.orEmpty(),
             resumeClocks = resumeFrom?.let { it.whiteMs to it.blackMs },
+            battle = battle,
+            random = random,
         )
         mutableGame.value = game
         game.start()
+        // Battles are short practice: they are not saved for resuming.
+        if (battle != null) return
         saver = viewModelScope.launch {
             combine(game.session.state, game.state) { board, state -> board.moves.size to state.phase }.collect { (moves, phase) ->
                 when {
