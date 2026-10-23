@@ -59,6 +59,8 @@ import com.chesstutor.app.feature.home.HomeViewModel
 import com.chesstutor.app.feature.play.PlayScreen
 import com.chesstutor.app.feature.play.SharedPrefsActiveGameStore
 import com.chesstutor.app.feature.learn.LearnScreen
+import com.chesstutor.app.feature.learn.LearnViewModel
+import com.chesstutor.app.feature.learn.LessonPlayerScreen
 import com.chesstutor.app.feature.analysis.AnalysisScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
 import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
@@ -337,11 +339,33 @@ fun AppNavHost(
                     }
                 }
                 navigation(startDestination = TopTab.LEARN.startRoute, route = TopTab.LEARN.graphRoute) {
-                    composable(TopTab.LEARN.startRoute) {
+                    composable(TopTab.LEARN.startRoute) { entry ->
+                        val learn = learnViewModel(navController, entry)
+                        val lessons by learn.learn.collectAsStateWithLifecycle()
                         LearnScreen(
                             state = state,
+                            lessons = lessons,
+                            onOpenLesson = { id ->
+                                learn.openLesson(id)
+                                navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
+                            },
                             onOpenCategory = { category -> openLegacy(LegacyTab.CURRICULUM, category) },
                             onOpenDrills = { openLegacy(LegacyTab.SESSION) }
+                        )
+                    }
+                    composable(AppRoutes.LESSON) { entry ->
+                        val learn = learnViewModel(navController, entry)
+                        val player by learn.player.collectAsStateWithLifecycle()
+                        LessonPlayerScreen(
+                            player = player,
+                            settings = state.appSettings,
+                            onFeedback = viewModel::playBoardFeedback,
+                            onNextLesson = { id -> learn.openLesson(id) },
+                            onReplay = { player?.lesson?.id?.let { learn.openLesson(it, fromStart = true) } },
+                            onBack = {
+                                learn.closePlayer()
+                                navController.popBackStack()
+                            }
                         )
                     }
                 }
@@ -573,6 +597,17 @@ private fun homeViewModel(navController: NavHostController, entry: NavBackStackE
             store = SharedPrefsActiveGameStore(context),
             maia = AppContainer.provideMaia(context),
         ),
+    )
+}
+
+/** The Learn tab's view model, shared by the hub, its pages and the lesson player (scoped to its graph). */
+@Composable
+private fun learnViewModel(navController: NavHostController, entry: NavBackStackEntry): LearnViewModel {
+    val owner = remember(entry) { navController.getBackStackEntry(TopTab.LEARN.graphRoute) }
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = LearnViewModel.Factory(AppContainer.provideLessonProgress(context)) { AppContainer.provideLessonLoader(context).load() },
     )
 }
 
