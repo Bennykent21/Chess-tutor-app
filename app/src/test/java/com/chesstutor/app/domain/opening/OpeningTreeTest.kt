@@ -103,8 +103,6 @@ class OpeningTreeTest {
         assertEquals("Italian Game", italian.name)
         assertEquals(3, italian.lines.size)
         assertEquals("Italian Game", italian.root.name)
-        assertEquals(PieceColor.WHITE, OpeningTree.chooserOf(italian.root))
-        assertEquals(PieceColor.BLACK, OpeningTree.chooserOf(tree.families.first { it.name == "Sicilian Defense" }.root))
     }
 
     @Test

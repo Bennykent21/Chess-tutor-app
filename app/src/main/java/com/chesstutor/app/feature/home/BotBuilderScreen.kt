@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtButton
+import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtScreenBackground
@@ -38,12 +39,11 @@ import com.chesstutor.app.design.CtToggleRow
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
+import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.domain.bot.BotDraft
-import com.chesstutor.app.domain.bot.BotOpeningChoices
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.bot.BotStyle
 import com.chesstutor.app.domain.bot.MistakeLevel
-import com.chesstutor.app.domain.bot.OpeningChoice
 import com.chesstutor.app.domain.bot.ResignPolicy
 import com.chesstutor.app.domain.bot.ThinkSpeed
 import com.chesstutor.app.domain.game.TimeControl
@@ -60,6 +60,8 @@ fun BotBuilderScreen(
     onChange: ((BotDraft) -> BotDraft) -> Unit,
     onSave: () -> Unit,
     onBack: () -> Unit,
+    /** Opens the full opening list for one side. */
+    onChooseOpenings: (PieceColor) -> Unit = {},
 ) {
     CtScreenBackground {
         Column(Modifier.fillMaxSize()) {
@@ -121,9 +123,8 @@ fun BotBuilderScreen(
                 )
 
                 CtSectionHeader(title = "Openings")
-                OpeningChips("As White", BotOpeningChoices.white, draft.white) { label -> onChange { it.toggleWhite(label) } }
-                OpeningChips("As Black against 1.e4", BotOpeningChoices.blackVsE4, draft.black) { label -> onChange { it.toggleBlack(label) } }
-                OpeningChips("As Black against 1.d4", BotOpeningChoices.blackVsD4, draft.black) { label -> onChange { it.toggleBlack(label) } }
+                OpeningSummary("As White", draft.white) { onChooseOpenings(PieceColor.WHITE) }
+                OpeningSummary("As Black", draft.black) { onChooseOpenings(PieceColor.BLACK) }
 
                 CtSectionHeader(title = "Rules")
                 Text("Clock", style = CtType.Label)
@@ -174,13 +175,22 @@ private fun <T> ChipRow(options: List<T>, selected: T, label: (T) -> String, onS
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/** What a side plays, in a few names, and the button to the full list. */
 @Composable
-private fun OpeningChips(title: String, choices: List<OpeningChoice>, picked: Set<String>, onToggle: (String) -> Unit) {
-    Text(title, style = CtType.Label)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        choices.forEach { choice ->
-            CtChip(text = choice.label, selected = choice.label in picked, color = CtColors.Gold, onClick = { onToggle(choice.label) })
+private fun OpeningSummary(title: String, picked: Set<String>, onChoose: () -> Unit) {
+    val shown = picked.sorted()
+    val summary = when {
+        shown.isEmpty() -> "No book: it thinks for itself from the first move."
+        shown.size <= 3 -> shown.joinToString()
+        else -> shown.take(3).joinToString() + " and ${shown.size - 3} more"
+    }
+    CtCard(onClick = onChoose, onClickLabel = "Choose openings ${title.lowercase()}", modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = CtType.TitleSmall)
+                Text(summary, style = CtType.BodySmall)
+            }
+            Text("Choose", style = CtType.Label.copy(color = CtColors.Gold))
         }
     }
 }
