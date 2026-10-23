@@ -49,6 +49,8 @@ import com.chesstutor.app.viewmodel.AppUiState
 @Composable
 fun LearnScreen(
     state: AppUiState,
+    lessons: LearnState,
+    onOpenLesson: (lessonId: String) -> Unit,
     onOpenCategory: (LearnCategory) -> Unit,
     onOpenDrills: () -> Unit,
     modifier: Modifier = Modifier,
@@ -90,6 +92,23 @@ fun LearnScreen(
                             )
                         }
                         if (rowTiles.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+
+                // Step 4A preview of the new lesson player; the new hub (4B) replaces this list.
+                val newLessons = lessons.library.courses.flatMap { course -> course.lessons.map { course to it } }
+                if (newLessons.isNotEmpty()) {
+                    CtSectionHeader(title = "New lessons (preview)", modifier = Modifier.ctEnter(4))
+                    newLessons.forEach { (course, lesson) ->
+                        val done = lessons.progress[lesson.id]?.completed == true
+                        CtListRow(
+                            title = lesson.title,
+                            subtitle = if (done) "${course.title} · done" else course.title,
+                            icon = Icons.Rounded.School,
+                            iconTint = CtColors.Lime,
+                            onClick = { onOpenLesson(lesson.id) },
+                            modifier = Modifier.ctEnter(4),
+                        )
                     }
                 }
 
