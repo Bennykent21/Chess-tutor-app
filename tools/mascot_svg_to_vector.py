@@ -140,7 +140,7 @@ def pattern_squares(pat, area):
     return base, fg, squares
 
 
-def convert(src, out, name):
+def convert(src, out, name, source_dir="design/mascot"):
     root = ET.parse(src).getroot()
     vb = [float(v) for v in root.get("viewBox").split()]
     vw, vh = vb[2], vb[3]
@@ -155,7 +155,7 @@ def convert(src, out, name):
                 defs[child.get("id")] = child
     uses_gradient = any(t.replace(NS, "") == "linearGradient" for t in [c.tag for c in defs.values()])
     lines = ['<?xml version="1.0" encoding="utf-8"?>',
-             f"<!-- {name}: generated from design/mascot/{src.split('/')[-1]} (the source of truth).",
+             f"<!-- {name}: generated from {source_dir}/{src.split('/')[-1]} (the source of truth).",
              "     Original art, GPL-3.0 with the app. See LICENSES.md. -->",
              '<vector xmlns:android="http://schemas.android.com/apk/res/android"']
     if uses_gradient:

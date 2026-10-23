@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -41,7 +42,22 @@ import com.chesstutor.app.feature.account.BoardSettingsScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
+import com.chesstutor.app.domain.bot.CustomBot
+import com.chesstutor.app.feature.home.BattleSetupScreen
+import com.chesstutor.app.feature.home.BotBuilderScreen
+import com.chesstutor.app.feature.home.OpeningPickerScreen
+import com.chesstutor.app.feature.home.OpeningSelection
+import com.chesstutor.app.domain.bot.BotOpeningChoices
+import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.feature.home.PositionSetupScreen
+import com.chesstutor.app.feature.home.WatchSetupScreen
+import com.chesstutor.app.domain.bot.BotRoster
+import com.chesstutor.app.feature.home.BotSetupScreen
+import com.chesstutor.app.feature.home.HomeActions
 import com.chesstutor.app.feature.home.HomeScreen
+import com.chesstutor.app.feature.home.HomeViewModel
+import com.chesstutor.app.feature.play.PlayScreen
+import com.chesstutor.app.feature.play.SharedPrefsActiveGameStore
 import com.chesstutor.app.feature.learn.LearnScreen
 import com.chesstutor.app.feature.analysis.AnalysisScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
@@ -116,12 +132,207 @@ fun AppNavHost(
                 popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) }
             ) {
                 navigation(startDestination = TopTab.HOME.startRoute, route = TopTab.HOME.graphRoute) {
-                    composable(TopTab.HOME.startRoute) {
+                    composable(TopTab.HOME.startRoute) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val home by homeModel.home.collectAsStateWithLifecycle()
+                        LaunchedEffect(state.effectiveUserRating) { homeModel.setPlayerRating(state.effectiveUserRating) }
                         HomeScreen(
                             state = state,
-                            onQuickMatch = { openLegacy(LegacyTab.ARENA) },
-                            onContinueLearning = { navController.navigateToTab(TopTab.LEARN) },
-                            onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) }
+                            home = home,
+                            actions = HomeActions(
+                                onQuickMatch = {
+                                    homeModel.quickMatch()
+                                    navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                                },
+                                onResume = {
+                                    homeModel.resume()
+                                    navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                                },
+                                onOpenBot = { id -> navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true } },
+                                onOpeningBattle = { navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true } },
+                                onFromPosition = { navController.navigate(AppRoutes.POSITION) { launchSingleTop = true } },
+                                onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
+                                onNewBot = {
+                                    homeModel.newBot()
+                                    navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
+                                },
+                                onContinueLearning = { navController.navigateToTab(TopTab.LEARN) },
+                                onDailyPuzzle = {
+                                    navController.navigateToTab(TopTab.PUZZLES)
+                                    navController.navigate(AppRoutes.PUZZLE_DAILY) { launchSingleTop = true }
+                                },
+                                onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) }
+                            )
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.BOT_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.BOT_ID_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val myBots by homeModel.myBots.collectAsStateWithLifecycle()
+                        val botId = entry.arguments?.getString(AppRoutes.BOT_ID_ARG).orEmpty()
+                        val bot = remember(botId, myBots) { homeModel.findBot(botId) }
+                        if (bot == null) {
+                            LaunchedEffect(Unit) { navController.popBackStack() }
+                            return@composable
+                        }
+                        val isMine = bot.id.startsWith(CustomBot.ID_PREFIX)
+                        // Keyed on the saved bot, so its page shows its latest rules after an edit.
+                        androidx.compose.runtime.key(myBots.firstOrNull { it.id == bot.id }) {
+                            BotSetupScreen(
+                                bot = bot,
+                                initialRules = homeModel.rulesFor(bot.id),
+                                onEdit = if (isMine) {
+                                    {
+                                        homeModel.editBot(bot.id)
+                                        navController.navigate(AppRoutes.builder(bot.id)) { launchSingleTop = true }
+                                    }
+                                } else null,
+                                onDelete = if (isMine) {
+                                    {
+                                        homeModel.deleteBot(bot.id)
+                                        navController.popBackStack()
+                                    }
+                                } else null,
+                                onPlay = { side, rules ->
+                                    homeModel.start(bot, side, rules)
+                                    navController.navigate(AppRoutes.PLAY) {
+                                        popUpTo(AppRoutes.BOT_PATTERN) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                    }
+                    composable(
+                        route = AppRoutes.BUILDER_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.BOT_ID_ARG) {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        })
+                    ) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.draft.collectAsStateWithLifecycle()
+                        BotBuilderScreen(
+                            draft = draft,
+                            onChange = homeModel::updateDraft,
+                            onChooseOpenings = { side ->
+                                homeModel.loadOpenings()
+                                navController.navigate(AppRoutes.builderOpenings(if (side == PieceColor.WHITE) "white" else "black")) { launchSingleTop = true }
+                            },
+                            onSave = {
+                                val wasNew = draft.isNew
+                                val id = homeModel.saveDraft()
+                                if (id != null) {
+                                    navController.popBackStack()
+                                    // A new bot opens its page, ready to play; an edit returns to it.
+                                    if (wasNew) navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true }
+                                }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.BUILDER_OPENINGS_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.SIDE_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.draft.collectAsStateWithLifecycle()
+                        val tree by homeModel.openingTree.collectAsStateWithLifecycle()
+                        LaunchedEffect(Unit) { homeModel.loadOpenings() }
+                        val white = entry.arguments?.getString(AppRoutes.SIDE_ARG) == "white"
+                        OpeningPickerScreen(
+                            tree = tree,
+                            onPick = {},
+                            onBack = { navController.popBackStack() },
+                            title = if (white) "Openings as White" else "Openings as Black",
+                            selection = OpeningSelection(
+                                selected = if (white) draft.white else draft.black,
+                                onChange = { names -> homeModel.updateDraft { if (white) it.copy(white = names) else it.copy(black = names) } },
+                                popular = if (white) BotOpeningChoices.white else BotOpeningChoices.black,
+                            ),
+                        )
+                    }
+                    composable(AppRoutes.WATCH) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.watchDraft.collectAsStateWithLifecycle()
+                        val myBots by homeModel.myBots.collectAsStateWithLifecycle()
+                        WatchSetupScreen(
+                            draft = draft,
+                            bots = BotRoster.bots + myBots.map { it.asRosterBot() },
+                            onChange = homeModel::updateWatch,
+                            onStart = {
+                                if (homeModel.startWatch()) navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.POSITION) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.positionDraft.collectAsStateWithLifecycle()
+                        val myBots by homeModel.myBots.collectAsStateWithLifecycle()
+                        PositionSetupScreen(
+                            draft = draft,
+                            theme = state.appSettings.boardTheme,
+                            opponents = BotRoster.bots + myBots.map { it.asRosterBot() },
+                            onChange = homeModel::updatePosition,
+                            onStart = {
+                                if (homeModel.startFromPosition()) navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.BATTLE) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.battle.collectAsStateWithLifecycle()
+                        BattleSetupScreen(
+                            draft = draft,
+                            onChange = homeModel::updateBattle,
+                            onPickOpening = { navController.navigate(AppRoutes.BATTLE_PICK) { launchSingleTop = true } },
+                            onStart = {
+                                if (homeModel.startBattle()) navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.BATTLE_PICK) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val tree by homeModel.openingTree.collectAsStateWithLifecycle()
+                        LaunchedEffect(Unit) { homeModel.loadOpenings() }
+                        OpeningPickerScreen(
+                            tree = tree,
+                            onPick = { line ->
+                                homeModel.updateBattle { it.copy(line = line) }
+                                navController.popBackStack()
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.PLAY) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val game by homeModel.game.collectAsStateWithLifecycle()
+                        val current = game
+                        if (current == null) {
+                            LaunchedEffect(Unit) { navController.popBackStack() }
+                            return@composable
+                        }
+                        val leave = {
+                            homeModel.closeGame()
+                            navController.popBackStack()
+                        }
+                        BackHandler { leave() }
+                        LaunchedEffect(state.appSettings.chatLevel) { homeModel.setChatLevel(state.appSettings.chatLevel) }
+                        PlayScreen(
+                            onChatLevel = viewModel::setChatLevel,
+                            game = current,
+                            settings = state.appSettings,
+                            onFeedback = viewModel::playBoardFeedback,
+                            onRematch = homeModel::rematch,
+                            onAnalyse = { fen, moves -> navController.navigate(AppRoutes.analysis(fen, moves)) },
+                            onBack = { leave() }
                         )
                     }
                 }
@@ -152,6 +363,16 @@ fun AppNavHost(
                                 navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
                             }
                         )
+                    }
+                    // Home's daily challenge card: starts today's puzzle, then shows the player.
+                    composable(AppRoutes.PUZZLE_DAILY) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        LaunchedEffect(Unit) {
+                            puzzles.startDaily()
+                            navController.navigate(AppRoutes.PUZZLE_PLAYER) {
+                                popUpTo(AppRoutes.PUZZLE_DAILY) { inclusive = true }
+                            }
+                        }
                     }
                     composable(AppRoutes.PUZZLE_MODES) { entry ->
                         val puzzles = puzzlesViewModel(navController, entry)
@@ -334,6 +555,25 @@ private fun NavHostController.navigateToTab(tab: TopTab) {
         launchSingleTop = true
         restoreState = true
     }
+}
+
+/** The Home tab's view model, shared by Home, the bot pages and the game (scoped to its graph). */
+@Composable
+private fun homeViewModel(navController: NavHostController, entry: NavBackStackEntry): HomeViewModel {
+    val owner = remember(entry) { navController.getBackStackEntry(TopTab.HOME.graphRoute) }
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = HomeViewModel.Factory(
+            engine = AppContainer.provideEngineService(context),
+            openings = { AppContainer.provideOpeningLoader(context).load() },
+            games = AppContainer.provideGameRepository(context),
+            bots = AppContainer.provideBotRepository(context),
+            puzzleStats = AppContainer.providePuzzleRepository(context).stats(),
+            store = SharedPrefsActiveGameStore(context),
+            maia = AppContainer.provideMaia(context),
+        ),
+    )
 }
 
 /** The Puzzles tab's view model, shared by every screen in the tab (scoped to its graph). */

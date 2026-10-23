@@ -33,10 +33,15 @@ import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.School
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -48,7 +53,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -430,6 +437,111 @@ fun CtToggleRow(
                 uncheckedBorderColor = CtColors.Line,
             ),
         )
+    }
+}
+
+/** Asks before something that cannot be undone, such as deleting. [confirmLabel] names the action. */
+@Composable
+fun CtConfirmDialog(
+    title: String,
+    text: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CtColors.SurfaceRaised,
+        title = { Text(text = title, style = CtType.Title) },
+        text = { Text(text = text, style = CtType.Body) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(text = confirmLabel, style = CtType.Button.copy(color = CtColors.Coral)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = "Cancel", style = CtType.Button.copy(color = CtColors.Text)) }
+        },
+    )
+}
+
+/** A one-line text input with its label above, in the card style. */
+@Composable
+fun CtTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(text = label, style = CtType.Label)
+        Spacer(Modifier.height(CtSpacing.xs))
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = CtType.Body.copy(color = CtColors.Text),
+            cursorBrush = SolidColor(CtColors.Gold),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CtShapes.CardSmall)
+                .background(CtColors.Surface)
+                .border(1.dp, CtColors.Line, CtShapes.CardSmall)
+                .padding(horizontal = CtSpacing.md, vertical = CtSpacing.md)
+                .semantics { contentDescription = label },
+            decorationBox = { inner ->
+                Box {
+                    if (value.isEmpty() && placeholder != null) Text(text = placeholder, style = CtType.Body.copy(color = CtColors.Text3))
+                    inner()
+                }
+            },
+        )
+    }
+}
+
+/** A labelled slider with its current value on the right and optional end labels below. */
+@Composable
+fun CtSliderRow(
+    title: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    valueLabel: String,
+    modifier: Modifier = Modifier,
+    steps: Int = 0,
+    startLabel: String? = null,
+    endLabel: String? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CtShapes.CardSmall)
+            .background(CtColors.Surface)
+            .padding(horizontal = CtSpacing.md, vertical = CtSpacing.md),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = title, style = CtType.TitleSmall, modifier = Modifier.weight(1f))
+            Text(text = valueLabel, style = CtType.Label.copy(color = CtColors.Gold))
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            steps = steps,
+            colors = SliderDefaults.colors(
+                thumbColor = CtColors.Gold,
+                activeTrackColor = CtColors.Gold,
+                inactiveTrackColor = CtColors.SurfaceHigh,
+                activeTickColor = Color.Transparent,
+                inactiveTickColor = Color.Transparent,
+            ),
+            modifier = Modifier.semantics { contentDescription = title; stateDescription = valueLabel },
+        )
+        if (startLabel != null || endLabel != null) {
+            Row {
+                Text(text = startLabel.orEmpty(), style = CtType.Caption, modifier = Modifier.weight(1f))
+                Text(text = endLabel.orEmpty(), style = CtType.Caption)
+            }
+        }
     }
 }
 

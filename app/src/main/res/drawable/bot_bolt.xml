@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bolt: generated from design/bots/bolt.svg (the source of truth).
+     Original art, GPL-3.0 with the app. See LICENSES.md. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <path
+        android:pathData="M100 46 L100 24"
+        android:strokeColor="#FF8792AE"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M87,18a13,13 0 1,0 26,0a13,13 0 1,0 -26,0Z"
+        android:fillColor="#FF2EE6D6"
+        android:fillAlpha="0.3" />
+    <path
+        android:pathData="M92,18a8,8 0 1,0 16,0a8,8 0 1,0 -16,0Z"
+        android:fillColor="#FF2EE6D6" />
+    <path
+        android:pathData="M28 200 C32 170 60 152 100 152 C140 152 168 170 172 200 Z"
+        android:fillColor="#FF8792AE" />
+    <path
+        android:pathData="M88,168H112A6,6 0 0,1 118,174V184A6,6 0 0,1 112,190H88A6,6 0 0,1 82,184V174A6,6 0 0,1 88,168Z"
+        android:fillColor="#FF121838" />
+    <path
+        android:pathData="M95,179a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z"
+        android:fillColor="#FFA8E63A" />
+    <path
+        android:pathData="M30,104a10,10 0 1,0 20,0a10,10 0 1,0 -20,0Z"
+        android:fillColor="#FF8792AE" />
+    <path
+        android:pathData="M150,104a10,10 0 1,0 20,0a10,10 0 1,0 -20,0Z"
+        android:fillColor="#FF8792AE" />
+    <path
+        android:pathData="M70,46H130A26,26 0 0,1 156,72V132A26,26 0 0,1 130,158H70A26,26 0 0,1 44,132V72A26,26 0 0,1 70,46Z"
+        android:fillColor="#FFC9D3E8" />
+    <path
+        android:pathData="M54,56a12,5 0 1,0 24,0a12,5 0 1,0 -24,0Z"
+        android:fillColor="#FFFFFFFF"
+        android:fillAlpha="0.4" />
+    <path
+        android:pathData="M74,64H126A16,16 0 0,1 142,80V120A16,16 0 0,1 126,136H74A16,16 0 0,1 58,120V80A16,16 0 0,1 74,64Z"
+        android:fillColor="#FF121838" />
+    <path
+        android:pathData="M78,82H82A6,6 0 0,1 88,88V98A6,6 0 0,1 82,104H78A6,6 0 0,1 72,98V88A6,6 0 0,1 78,82Z"
+        android:fillColor="#FF2EE6D6" />
+    <path
+        android:pathData="M118,82H122A6,6 0 0,1 128,88V98A6,6 0 0,1 122,104H118A6,6 0 0,1 112,98V88A6,6 0 0,1 118,82Z"
+        android:fillColor="#FF2EE6D6" />
+    <path
+        android:pathData="M80 114 Q100 126 120 114"
+        android:strokeColor="#FF2EE6D6"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+</vector>

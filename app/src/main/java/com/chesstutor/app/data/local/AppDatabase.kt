@@ -19,8 +19,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PuzzleProfileEntity::class,
         LevelProgressEntity::class,
         ReportIssueEntity::class,
+        BotProfileEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun learningDao(): LearningDao
     abstract fun gameRecordDao(): GameRecordDao
     abstract fun puzzleDao(): PuzzleDao
+    abstract fun botProfileDao(): BotProfileDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -138,6 +140,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Phase 3D: the player's own bots ("My bots"). */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS bot_profile (" +
+                        "id TEXT NOT NULL, name TEXT NOT NULL, rating INTEGER NOT NULL, style TEXT NOT NULL, " +
+                        "aggression REAL NOT NULL, trades REAL NOT NULL, mistakeLevel REAL NOT NULL, " +
+                        "thinkSpeed TEXT NOT NULL, resign TEXT NOT NULL, whiteOpenings TEXT NOT NULL, " +
+                        "blackOpenings TEXT NOT NULL, face TEXT NOT NULL, timeControl TEXT NOT NULL, " +
+                        "takebacks INTEGER NOT NULL, hints INTEGER NOT NULL, evalBar INTEGER NOT NULL, " +
+                        "createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, PRIMARY KEY(id))"
+                )
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -146,6 +163,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
+            MIGRATION_8_9,
         )
 
         @Volatile

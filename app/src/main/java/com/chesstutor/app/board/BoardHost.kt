@@ -248,7 +248,12 @@ fun BoardHost(
                                     if (intent is BoardIntent.Play) droppedMove = intent.move
                                     handle(intent)
                                 } else {
-                                    handle(BoardInput.tap(selected, start, now.position, now.legalMoves, now.movable, currentAutoQueen))
+                                    // A tap counts only where the finger lifts: pressing a square and
+                                    // sliding off it is a change of mind, not a move.
+                                    val released = BoardGeometry.squareAt(change.position.x, change.position.y, boardSize, currentWhiteAtBottom)
+                                    if (released == start) {
+                                        handle(BoardInput.tap(selected, start, now.position, now.legalMoves, now.movable, currentAutoQueen))
+                                    }
                                 }
                                 break
                             }

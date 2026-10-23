@@ -88,16 +88,6 @@ class AppViewModel(
         profileMutex = learningProfileMutex,
         startEvaluation = chessEngineManager::startEvaluation
     )
-    private val arenaGameManager = ArenaGameManager(
-        chessEngineManager = chessEngineManager,
-        reviewRepository = repository,
-        gameRepository = gameRepository,
-        blunderClassifier = blunderClassifier,
-        learningRepository = learningRepository,
-        scope = viewModelScope,
-        soundManager = soundManager,
-        analysisEngineClient = engine
-    )
 
     companion object {
         const val FEN_MATE_IN_ONE = "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4"
@@ -280,52 +270,8 @@ class AppViewModel(
                 }
             }
             is NavCommand.StartPlay -> {
-                when (val req = command.request) {
-                    is PlayRequest.Free -> {
-                        _state.update { it.copy(tab = 2) }
-                        arenaGameManager.startNewGame(
-                            botName = _state.value.arenaBotName,
-                            updateState = _state::update,
-                            openingMode = OpeningMode.FREE,
-                            openingLineId = null
-                        )
-                    }
-                    is PlayRequest.Opening -> {
-                        val sideChar = req.userSide.resolveChar()
-                        _state.update { it.copy(tab = 2) }
-                        arenaGameManager.startNewGame(
-                            botName = _state.value.arenaBotName,
-                            updateState = _state::update,
-                            playerSide = sideChar,
-                            openingMode = req.mode,
-                            openingLineId = req.lineId
-                        )
-                    }
-                    is PlayRequest.FromPosition -> {
-                        val sideChar = req.userSide.resolveChar()
-                        _state.update {
-                            it.copy(
-                                tab = 2,
-                                fen = req.fen,
-                                arenaPlayerSide = sideChar,
-                                moveHistory = emptyList(),
-                                arenaUciHistory = emptyList(),
-                                message = "Playing from custom position."
-                            )
-                        }
-                        chessEngineManager.startEvaluation(req.fen)
-                    }
-                    is PlayRequest.Rematch -> {
-                        val sideChar = req.bot.userSide.resolveChar()
-                        setArenaBot(req.bot.tierKey, req.bot.botName, req.bot.elo)
-                        _state.update { it.copy(tab = 2) }
-                        arenaGameManager.startNewGame(
-                            botName = req.bot.botName,
-                            updateState = _state::update,
-                            playerSide = sideChar
-                        )
-                    }
-                }
+                // The classic Arena was replaced by Home's games and Opening Battle (Phase 3).
+                _state.update { it.copy(message = "Play bots and openings from the Home tab: Quick match or Opening battle.") }
             }
         }
     }
@@ -397,18 +343,6 @@ class AppViewModel(
     }
 
     fun selectTab(tabIndex: Int) {
-        if (tabIndex == 2 && !_state.value.arenaInitialized) {
-            _state.update {
-                it.copy(
-                    tab = 2,
-                    selectedSquare = null,
-                    legalTargets = emptySet()
-                )
-            }
-            arenaGameManager.startNewGame(_state.value.arenaBotName, _state::update)
-            return
-        }
-
         _state.update { current ->
             when (tabIndex) {
                 0 -> current.copy(
@@ -417,15 +351,6 @@ class AppViewModel(
                     message = current.trainMessage,
                     lastMove = current.trainLastMove,
                     recommendedArrow = current.trainRecommendedArrow,
-                    selectedSquare = null,
-                    legalTargets = emptySet()
-                )
-                2 -> current.copy(
-                    tab = 2,
-                    fen = current.arenaFen,
-                    message = current.arenaMessage,
-                    lastMove = current.arenaLastMove,
-                    recommendedArrow = current.arenaRecommendedArrow,
                     selectedSquare = null,
                     legalTargets = emptySet()
                 )
@@ -675,7 +600,6 @@ class AppViewModel(
         when (_state.value.tab) {
             0 -> playCoachMove(move)
             1 -> playCurriculumMove(move)
-            2 -> playArenaMove(move)
             3 -> playReviewMove(move)
         }
     }
@@ -1177,47 +1101,6 @@ class AppViewModel(
         }
     }
 
-    private fun playArenaMove(move: MoveChoice) {
-        arenaGameManager.playArenaMove(move, _state.value, { viewModelScope.launch { loadReviews() } }, _state::update)
-    }
-
-    fun showOpeningBookMoveArrow() {
-        val uci = _state.value.arenaNextBookMoveUci ?: _state.value.arenaDeviatedBookMoveUci ?: return
-        if (uci.length >= 4) {
-            val arrow = Pair(uci.take(2), uci.substring(2, 4))
-            _state.update {
-                it.copy(
-                    recommendedArrow = arrow,
-                    arenaRecommendedArrow = arrow
-                )
-            }
-        }
-    }
-
-    fun retryOpeningBookMove() {
-        val bookUci = _state.value.arenaDeviatedBookMoveUci
-        takebackArenaMove()
-        if (bookUci != null && bookUci.length >= 4) {
-            val arrow = Pair(bookUci.take(2), bookUci.substring(2, 4))
-            _state.update {
-                it.copy(
-                    recommendedArrow = arrow,
-                    arenaRecommendedArrow = arrow
-                )
-            }
-        }
-    }
-
-    fun continueOpeningFromDeviation() {
-        _state.update {
-            it.copy(
-                arenaDeviatedUserMoveSan = null,
-                arenaDeviatedBookMoveSan = null,
-                arenaDeviatedBookMoveUci = null
-            )
-        }
-    }
-
     fun switchOpeningToFreePlay() {
         _state.update {
             it.copy(
@@ -1362,6 +1245,8 @@ class AppViewModel(
 
     fun setReduceMotion(enabled: Boolean) = updateSettings { it.copy(reduceMotion = enabled) }
 
+    fun setChatLevel(level: com.chesstutor.app.domain.bot.ChatLevel) = updateSettings { it.copy(chatLevel = level) }
+
     fun setAutoQueen(enabled: Boolean) = updateSettings { it.copy(autoQueen = enabled) }
 
     fun setMascot(mascot: Mascot) = updateSettings { it.copy(mascotId = mascot.id) }
@@ -1415,10 +1300,6 @@ class AppViewModel(
         }
     }
 
-    fun setArenaOpponentSheetVisible(visible: Boolean) {
-        _state.update { it.copy(isArenaOpponentSheetVisible = visible) }
-    }
-
     fun setEngineDiagnosticsDialogVisible(visible: Boolean) {
         _state.update { it.copy(isEngineDiagnosticsDialogVisible = visible) }
     }
@@ -1427,63 +1308,8 @@ class AppViewModel(
         playCoachMove(move)
     }
 
-    fun setArenaDifficulty(difficulty: String) {
-        _state.update { it.copy(arenaDifficulty = difficulty, useLinkedRatingForBot = false) }
-        applyBotElo()
-    }
-
-    fun setArenaBot(tierKey: String, name: String, elo: Int) {
-        _state.update {
-            it.copy(
-                arenaDifficulty = tierKey,
-                arenaBotName = name,
-                customBotElo = elo,
-                useLinkedRatingForBot = false
-            )
-        }
-        applyBotElo()
-    }
-
-    fun setArenaPlayerSide(side: Char) {
-        val resolved = if (side == 'r') {
-            if (kotlin.random.Random.nextBoolean()) 'w' else 'b'
-        } else {
-            side.lowercaseChar()
-        }
-        arenaGameManager.startNewGame(
-            botName = _state.value.arenaBotName,
-            updateState = _state::update,
-            playerSide = resolved
-        )
-    }
-
     fun setCoachingLevel(level: CoachingLevel) {
         _state.update { it.copy(coachingLevel = level) }
-    }
-
-    fun setOpeningPractice(mode: OpeningMode, lineId: String? = null) {
-        arenaGameManager.startNewGame(
-            botName = _state.value.arenaBotName,
-            updateState = _state::update,
-            openingMode = mode,
-            openingLineId = lineId
-        )
-    }
-
-    fun startNewArenaGame() {
-        arenaGameManager.startNewGame(_state.value.arenaBotName, _state::update)
-    }
-
-    fun resignArenaGame() {
-        arenaGameManager.resignGame(_state.value, _state::update)
-    }
-
-    fun claimArenaDraw() {
-        arenaGameManager.claimDraw(_state.value, _state::update)
-    }
-
-    fun takebackArenaMove() {
-        arenaGameManager.takebackMove(_state.value, _state::update)
     }
 
     fun showAnalysisArrow(from: String, to: String) {
@@ -1515,10 +1341,6 @@ class AppViewModel(
             selectReviewItem(index)
         }
         onSquareTapped(square)
-    }
-
-    fun resetArenaGame() {
-        startNewArenaGame()
     }
 
     fun setGameHistorySheetVisible(visible: Boolean) {
