@@ -43,7 +43,9 @@ import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
 import com.chesstutor.app.domain.bot.CustomBot
+import com.chesstutor.app.feature.home.BattleSetupScreen
 import com.chesstutor.app.feature.home.BotBuilderScreen
+import com.chesstutor.app.feature.home.OpeningPickerScreen
 import com.chesstutor.app.feature.home.BotSetupScreen
 import com.chesstutor.app.feature.home.HomeActions
 import com.chesstutor.app.feature.home.HomeScreen
@@ -141,6 +143,7 @@ fun AppNavHost(
                                     navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
                                 },
                                 onOpenBot = { id -> navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true } },
+                                onOpeningBattle = { navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true } },
                                 onNewBot = {
                                     homeModel.newBot()
                                     navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
@@ -214,6 +217,32 @@ fun AppNavHost(
                             onDelete = {
                                 draft.id?.let(homeModel::deleteBot)
                                 navController.popBackStack(TopTab.HOME.startRoute, inclusive = false)
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.BATTLE) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.battle.collectAsStateWithLifecycle()
+                        BattleSetupScreen(
+                            draft = draft,
+                            onChange = homeModel::updateBattle,
+                            onPickOpening = { navController.navigate(AppRoutes.BATTLE_PICK) { launchSingleTop = true } },
+                            onStart = {
+                                if (homeModel.startBattle()) navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.BATTLE_PICK) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val tree by homeModel.openingTree.collectAsStateWithLifecycle()
+                        LaunchedEffect(Unit) { homeModel.loadOpenings() }
+                        OpeningPickerScreen(
+                            tree = tree,
+                            onPick = { line ->
+                                homeModel.updateBattle { it.copy(line = line) }
+                                navController.popBackStack()
                             },
                             onBack = { navController.popBackStack() }
                         )

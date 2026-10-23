@@ -16,6 +16,9 @@ import com.chesstutor.app.domain.game.GameEnd
 import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.GameSetup
 import com.chesstutor.app.domain.game.TimeControl
+import com.chesstutor.app.domain.opening.BattleChoice
+import com.chesstutor.app.domain.opening.BattleMode
+import com.chesstutor.app.domain.opening.Opening
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.engine.EngineEvaluation
 import com.chesstutor.app.engine.EngineHealthReport
@@ -75,9 +78,10 @@ class BotGameTest {
         rules: GameRules = GameRules(),
         fen: String = Position.STARTING_FEN,
         resume: List<String> = emptyList(),
+        battle: BattleChoice? = null,
     ) = BotGame(
         GameSetup(bot, color, rules, fen), BotBrain(engine, Random(7)), engine, { tree }, games, scope,
-        clock = { scheduler.currentTime }, resumeMoves = resume,
+        clock = { scheduler.currentTime }, resumeMoves = resume, battle = battle,
     ).also { it.start(); step() }
 
     private fun BotGame.play(uci: String) {
@@ -241,6 +245,46 @@ class BotGameTest {
         assertEquals(listOf("e2e4", "d7d5"), g.session.moves.map(Move::uci))
         assertEquals(GamePhase.PLAYER_TURN, g.state.value.phase)
         assertEquals("Scandinavian Defense", g.state.value.opening)
+    }
+
+    @Test
+    fun aDrillTakesBackMovesOffTheLineAndEndsWithTheLine() = runBlocking {
+        val italian = Opening("C50", "Italian Game", listOf("e2e4", "e7e5", "g1f3", "b8c6", "f1c4"))
+        val g = game(rules = GameRules(takebacks = false), battle = BattleChoice(italian, BattleMode.DRILL))
+        assertEquals("Italian Game", g.state.value.battleTitle)
+        g.play("e2e4")
+        step(5_000)
+        assertEquals("the bot plays the book reply", "e7e5", g.session.moves.last().uci)
+
+        g.play("d2d4")
+        assertEquals("the wrong move is taken back", listOf("e2e4", "e7e5"), g.session.moves.map(Move::uci))
+        assertEquals(1, g.state.value.drillMistakes)
+        assertTrue(g.state.value.drillMessage!!.contains("Nf3"))
+        assertEquals("g1" to "f3", g.state.value.hint!!.from.algebraic to g.state.value.hint!!.to.algebraic)
+        assertEquals(GamePhase.PLAYER_TURN, g.state.value.phase)
+        assertEquals(BoardSound.WRONG, g.state.value.sound?.feedback?.sound)
+
+        g.play("g1f3")
+        step(5_000)
+        g.play("f1c4")
+        assertEquals(GamePhase.DRILL_DONE, g.state.value.phase)
+        assertTrue(g.state.value.drillMessage!!.contains("1 slip"))
+        assertNull(g.session.state.value.movable)
+        step()
+        assertTrue("drills stay out of the games list", games.getRecentGames().isEmpty())
+    }
+
+    @Test
+    fun inABattleTheBotFollowsTheWholeLineWhateverItsStrength() {
+        val najdorf = Opening("B90", "Sicilian Defense: Najdorf Variation", "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6".split(' '))
+        // Wayne normally leaves his book after 6 plies.
+        val g = game(battle = BattleChoice(najdorf, BattleMode.PLAY))
+        listOf("e2e4", "g1f3", "d2d4", "f3d4", "b1c3").forEach { move ->
+            g.play(move)
+            step(5_000)
+        }
+        assertEquals(najdorf.moves, g.session.moves.map(Move::uci))
+        assertEquals("Sicilian Defense: Najdorf Variation", g.state.value.opening)
     }
 
     companion object {

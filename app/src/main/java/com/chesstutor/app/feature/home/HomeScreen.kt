@@ -57,6 +57,7 @@ data class HomeActions(
     val onResume: () -> Unit,
     val onOpenBot: (String) -> Unit,
     val onNewBot: () -> Unit,
+    val onOpeningBattle: () -> Unit,
     val onContinueLearning: () -> Unit,
     val onDailyPuzzle: () -> Unit,
     val onOpenEngineHealth: () -> Unit,
@@ -144,7 +145,15 @@ fun HomeScreen(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(5)) {
-                PlannedTile("Opening battle", "Play or drill one opening", Icons.Rounded.Flag, Modifier.weight(1f))
+                PlayTile(
+                    title = "Opening battle",
+                    subtitle = "Play or drill one opening",
+                    icon = Icons.Rounded.Flag,
+                    tint = CtColors.Teal,
+                    onClick = actions.onOpeningBattle,
+                    modifier = Modifier.weight(1f),
+                    buttonText = "Battle",
+                )
                 PlannedTile("From a position", "Set up any position", Icons.Rounded.GridOn, Modifier.weight(1f))
             }
 
