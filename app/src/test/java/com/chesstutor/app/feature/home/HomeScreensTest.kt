@@ -164,11 +164,13 @@ class HomeScreensTest {
     fun theBuilderEditsTheDraft() {
         var draft by mutableStateOf(com.chesstutor.app.domain.bot.BotDraft())
         var saved = false
+        var chose: com.chesstutor.app.core.PieceColor? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 BotBuilderScreen(
                     draft = draft,
                     onChange = { change -> draft = change(draft) },
+                    onChooseOpenings = { chose = it },
                     onSave = { saved = true },
                     onBack = {},
                 )
@@ -176,9 +178,9 @@ class HomeScreensTest {
         }
         compose.onNodeWithText("Give your bot a name to save it.").assertExists()
         compose.onNodeWithText("Endgame grinder").performScrollTo().performClick()
-        compose.onNodeWithText("Sicilian Defense").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.domain.bot.BotStyle.GRINDER, draft.style)
-        assertEquals(true, "Sicilian Defense" in draft.black)
+        compose.onNode(hasText("As Black")).performScrollTo().performClick()
+        assertEquals(com.chesstutor.app.core.PieceColor.BLACK, chose)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BotBuilder.png")
         assertEquals(false, saved)
     }
@@ -247,6 +249,34 @@ class HomeScreensTest {
         compose.onNode(hasText("Play from here")).performScrollTo().performClick()
         assertEquals(true, started)
         assertEquals("4k3/8/8/4Q3/8/8/8/4K3 b - - 0 1", draft.board.toFen())
+    }
+
+    @Test
+    fun theRepertoirePickerTicksFamiliesAndLines() {
+        val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(OpeningTree::fromStream)
+        var picked by mutableStateOf(setOf("Italian Game"))
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                OpeningPickerScreen(
+                    tree = tree,
+                    onPick = {},
+                    onBack = {},
+                    title = "Openings as Black",
+                    selection = OpeningSelection(picked, { picked = it }, com.chesstutor.app.domain.bot.BotOpeningChoices.black),
+                )
+            }
+        }
+        compose.onNodeWithText("1 picked").assertExists()
+        compose.onAllNodes(hasText("Caro-Kann Defense"))[0].performClick()
+        assertEquals(true, "Caro-Kann Defense" in picked)
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/RepertoirePicker.png")
+        compose.onNodeWithText("Select all").performClick()
+        assertEquals(tree.families.size, picked.size)
+        compose.onNodeWithText("Clear").performClick()
+        assertEquals(emptySet<String>(), picked)
+        compose.onNode(hasSetTextAction()).performTextInput("Najdorf")
+        compose.onAllNodes(hasText("B90 ·", substring = true))[0].performClick()
+        assertEquals(setOf("Sicilian Defense: Najdorf Variation"), picked)
     }
 }
 

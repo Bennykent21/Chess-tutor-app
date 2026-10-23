@@ -67,6 +67,10 @@ object AppRoutes {
     const val BATTLE_PICK = "home/battle/pick"
     /** The bot builder: a new bot, or one of "My bots" to edit. */
     const val BUILDER_PATTERN = "home/builder?$BOT_ID_ARG={$BOT_ID_ARG}"
+    /** The full opening list for the bot being built; the side is "white" or "black". */
+    const val SIDE_ARG = "side"
+    const val BUILDER_OPENINGS_PATTERN = "home/builder/openings/{$SIDE_ARG}"
+    fun builderOpenings(side: String): String = "home/builder/openings/$side"
     fun builder(botId: String? = null): String = if (botId == null) "home/builder" else "home/builder?$BOT_ID_ARG=$botId"
 
     const val ANALYSIS_FEN_ARG = "fen"

@@ -1,7 +1,6 @@
 package com.chesstutor.app.domain.opening
 
 import com.chesstutor.app.core.LegalMoveGenerator
-import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.repetitionKey
 import java.io.InputStream
@@ -123,9 +122,6 @@ class OpeningTree private constructor(
             buffered.reset()
             return if (gzip) fromGzipStream(buffered) else buffered.bufferedReader(Charsets.UTF_8).useLines { parse(it) }
         }
-
-        /** The side whose move defines a line, for example White for the Italian, Black for the Sicilian. */
-        fun chooserOf(line: Opening): PieceColor = if (line.moves.size % 2 == 1) PieceColor.WHITE else PieceColor.BLACK
 
         /** Book edges (position key to move to weight) of [lines] alone. */
         internal fun edgesFor(lines: List<Opening>): Map<String, Map<String, Int>> = edgesOf(lines).first

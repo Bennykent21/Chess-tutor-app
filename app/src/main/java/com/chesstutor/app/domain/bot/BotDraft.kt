@@ -13,7 +13,8 @@ enum class MistakeLevel(val label: String, val factor: Float) {
 
 /**
  * The bot builder's form (plan 6.1: one page, grouped controls, no dropdowns). Openings are
- * kept as the labels of [BotOpeningChoices]; saving turns them into database names.
+ * names from the opening database: a family ("Sicilian Defense") covers all its lines, a line
+ * name covers just that line (see [com.chesstutor.app.domain.opening.Opening.isWithin]).
  */
 data class BotDraft(
     val id: String? = null,
@@ -27,7 +28,7 @@ data class BotDraft(
     val thinkSpeed: ThinkSpeed = ThinkSpeed.NORMAL,
     val resign: ResignPolicy = ResignPolicy.WHEN_LOST,
     val white: Set<String> = setOf("Italian Game"),
-    val black: Set<String> = setOf("1...e5", "Queen's Gambit Declined"),
+    val black: Set<String> = setOf("Italian Game", "Ruy Lopez", "Scotch Game", "Petrov's Defense", "Queen's Gambit Declined"),
     val rules: GameRules = GameRules(),
     val createdAt: Long? = null,
 ) {
@@ -38,8 +39,8 @@ data class BotDraft(
     /** A style preset also moves the two style sliders to its values. */
     fun withStyle(style: BotStyle): BotDraft = copy(style = style, aggression = style.aggression, trades = style.trades)
 
-    fun toggleWhite(label: String): BotDraft = copy(white = white.toggle(label))
-    fun toggleBlack(label: String): BotDraft = copy(black = black.toggle(label))
+    fun toggleWhite(name: String): BotDraft = copy(white = white.toggle(name))
+    fun toggleBlack(name: String): BotDraft = copy(black = black.toggle(name))
 
     fun toCustomBot(newId: String, now: Long): CustomBot = CustomBot(
         profile = BotProfile(
@@ -52,8 +53,8 @@ data class BotDraft(
             mistakeLevel = mistakes.factor,
             thinkSpeed = thinkSpeed,
             resign = resign,
-            whiteOpenings = namesOf(BotOpeningChoices.white, white),
-            blackOpenings = namesOf(BotOpeningChoices.black, black),
+            whiteOpenings = white.sorted(),
+            blackOpenings = black.sorted(),
             face = face,
         ),
         rules = rules,
@@ -70,17 +71,11 @@ data class BotDraft(
                 id = p.id, name = p.name, face = p.face, rating = p.rating, style = p.style,
                 aggression = p.aggression, trades = p.trades, mistakes = MistakeLevel.closestTo(p.mistakeLevel),
                 thinkSpeed = p.thinkSpeed, resign = p.resign,
-                white = labelsOf(BotOpeningChoices.white, p.whiteOpenings),
-                black = labelsOf(BotOpeningChoices.black, p.blackOpenings),
+                white = p.whiteOpenings.toSet(),
+                black = p.blackOpenings.toSet(),
                 rules = bot.rules, createdAt = bot.createdAt,
             )
         }
-
-        private fun namesOf(choices: List<OpeningChoice>, labels: Set<String>): List<String> =
-            choices.filter { it.label in labels }.flatMap { it.names }.distinct()
-
-        private fun labelsOf(choices: List<OpeningChoice>, names: List<String>): Set<String> =
-            choices.filter { names.containsAll(it.names) }.map { it.label }.toSet()
 
         private fun Set<String>.toggle(label: String) = if (label in this) this - label else this + label
     }

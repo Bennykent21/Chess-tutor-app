@@ -46,6 +46,9 @@ import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.feature.home.BattleSetupScreen
 import com.chesstutor.app.feature.home.BotBuilderScreen
 import com.chesstutor.app.feature.home.OpeningPickerScreen
+import com.chesstutor.app.feature.home.OpeningSelection
+import com.chesstutor.app.domain.bot.BotOpeningChoices
+import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.feature.home.PositionSetupScreen
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.feature.home.BotSetupScreen
@@ -214,6 +217,10 @@ fun AppNavHost(
                         BotBuilderScreen(
                             draft = draft,
                             onChange = homeModel::updateDraft,
+                            onChooseOpenings = { side ->
+                                homeModel.loadOpenings()
+                                navController.navigate(AppRoutes.builderOpenings(if (side == PieceColor.WHITE) "white" else "black")) { launchSingleTop = true }
+                            },
                             onSave = {
                                 val wasNew = draft.isNew
                                 val id = homeModel.saveDraft()
@@ -224,6 +231,27 @@ fun AppNavHost(
                                 }
                             },
                             onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.BUILDER_OPENINGS_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.SIDE_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.draft.collectAsStateWithLifecycle()
+                        val tree by homeModel.openingTree.collectAsStateWithLifecycle()
+                        LaunchedEffect(Unit) { homeModel.loadOpenings() }
+                        val white = entry.arguments?.getString(AppRoutes.SIDE_ARG) == "white"
+                        OpeningPickerScreen(
+                            tree = tree,
+                            onPick = {},
+                            onBack = { navController.popBackStack() },
+                            title = if (white) "Openings as White" else "Openings as Black",
+                            selection = OpeningSelection(
+                                selected = if (white) draft.white else draft.black,
+                                onChange = { names -> homeModel.updateDraft { if (white) it.copy(white = names) else it.copy(black = names) } },
+                                popular = if (white) BotOpeningChoices.white else BotOpeningChoices.black,
+                            ),
                         )
                     }
                     composable(AppRoutes.POSITION) { entry ->
