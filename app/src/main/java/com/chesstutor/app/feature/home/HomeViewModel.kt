@@ -3,7 +3,10 @@ package com.chesstutor.app.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.chesstutor.app.core.Piece
 import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.PieceType
+import com.chesstutor.app.core.Position
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.domain.bot.BotBrain
@@ -16,6 +19,7 @@ import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.GameSetup
 import com.chesstutor.app.domain.game.PlayRecommendation
 import com.chesstutor.app.domain.game.PlayRecommender
+import com.chesstutor.app.domain.game.SetupBoard
 import com.chesstutor.app.domain.game.SideChoice
 import com.chesstutor.app.domain.opening.BattleChoice
 import com.chesstutor.app.domain.opening.BattleMode
@@ -51,6 +55,15 @@ data class BattleDraft(
         val OPPONENTS = listOf("juno", "ziggy", "tessa", "ingrid", "bolt")
     }
 }
+
+/** The "From a position" page: the board being set up, the player's side and the opponent. */
+data class PositionDraft(
+    val board: SetupBoard = SetupBoard.START,
+    val side: SideChoice = SideChoice.WHITE,
+    val opponentId: String = "ziggy",
+    /** The piece the next tap places; null erases. */
+    val brush: Piece? = Piece(PieceType.QUEEN, PieceColor.WHITE),
+)
 
 /** An unfinished game shown on Home's Continue card. */
 data class ResumeCard(val bot: RosterBot, val moveCount: Int, val playerColor: PieceColor)
@@ -168,13 +181,13 @@ class HomeViewModel(
         start(bot, SideChoice.RANDOM, GameRules())
     }
 
-    fun start(bot: RosterBot, side: SideChoice, rules: GameRules) {
+    fun start(bot: RosterBot, side: SideChoice, rules: GameRules, startFen: String = Position.STARTING_FEN) {
         val color = when (side) {
             SideChoice.WHITE -> PieceColor.WHITE
             SideChoice.BLACK -> PieceColor.BLACK
             SideChoice.RANDOM -> if (random.nextBoolean()) PieceColor.WHITE else PieceColor.BLACK
         }
-        launch(GameSetup(bot.profile, color, rules))
+        launch(GameSetup(bot.profile, color, rules, startFen))
     }
 
     /** The same bot and rules again, with colours swapped. */
@@ -183,6 +196,25 @@ class HomeViewModel(
         // A battle is replayed as it was (drill it again); a game swaps colours.
         if (last.battle != null) launch(last.setup, battle = last.battle)
         else launch(last.setup.copy(playerColor = last.setup.playerColor.opposite()))
+    }
+
+    // ------------------------------------------------------------------ From a position (review R4)
+
+    private val mutablePosition = MutableStateFlow(PositionDraft())
+    /** The position being set up. */
+    val positionDraft: StateFlow<PositionDraft> = mutablePosition.asStateFlow()
+
+    fun updatePosition(change: (PositionDraft) -> PositionDraft) {
+        mutablePosition.value = change(mutablePosition.value)
+    }
+
+    /** Starts a game from the set-up position; false while it is not playable. */
+    fun startFromPosition(): Boolean {
+        val draft = mutablePosition.value
+        if (draft.board.problem() != null) return false
+        val bot = findBot(draft.opponentId) ?: return false
+        start(bot, draft.side, GameRules(), startFen = draft.board.toFen())
+        return true
     }
 
     // ------------------------------------------------------------------ Opening Battle (3E)

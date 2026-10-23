@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,7 +27,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtButton
-import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtScreenBackground
@@ -61,7 +59,6 @@ fun BotBuilderScreen(
     draft: BotDraft,
     onChange: ((BotDraft) -> BotDraft) -> Unit,
     onSave: () -> Unit,
-    onDelete: () -> Unit,
     onBack: () -> Unit,
 ) {
     CtScreenBackground {
@@ -146,9 +143,6 @@ fun BotBuilderScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (!draft.canSave) Text("Give your bot a name to save it.", style = CtType.Caption)
-                if (!draft.isNew) {
-                    CtButton(text = "Delete bot", icon = Icons.Rounded.Delete, style = CtButtonStyle.Secondary, onClick = onDelete, modifier = Modifier.fillMaxWidth())
-                }
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }

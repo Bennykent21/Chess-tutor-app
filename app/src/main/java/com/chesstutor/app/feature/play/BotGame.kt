@@ -343,6 +343,7 @@ class BotGame(
                 result = result.pgn,
                 date = Date(startedAt),
                 event = "Chess Tutor: vs ${bot.name}",
+                startFen = setup.startFen,
             ),
             moveCount = session.moves.size,
             userColor = if (playerWhite) "white" else "black",

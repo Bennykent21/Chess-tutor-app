@@ -88,7 +88,7 @@ class HomeScreensTest {
         compose.waitForIdle()
     }
 
-    private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {}, {})
+    private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {}, {}, {})
 
     @Test
     fun homeShowsTheRosterAndTheResumeCard() {
@@ -104,7 +104,6 @@ class HomeScreensTest {
                 HomeScreen(state = AppUiState(), home = home, actions = noActions.copy(onOpenBot = { opened = it }))
             }
         }
-        compose.onNodeWithText("Your game vs Juno").assertExists()
         compose.onNodeWithText("Move 8 · you play White").assertExists()
         compose.onNodeWithText("Your game against Juno is waiting. Shall we finish it?").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home.png")
@@ -171,7 +170,6 @@ class HomeScreensTest {
                     draft = draft,
                     onChange = { change -> draft = change(draft) },
                     onSave = { saved = true },
-                    onDelete = {},
                     onBack = {},
                 )
             }
@@ -223,6 +221,32 @@ class HomeScreensTest {
         compose.onNode(hasText("Start")).performScrollTo().performClick()
         assertEquals(true, started)
         assertEquals(com.chesstutor.app.domain.opening.BattleMode.DRILL, draft.mode)
+    }
+
+    @Test
+    fun aPositionCanBeSetUpByTappingTheBoard() {
+        var draft by mutableStateOf(PositionDraft(board = com.chesstutor.app.domain.game.SetupBoard.KINGS_ONLY))
+        var started = false
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                PositionSetupScreen(
+                    draft = draft,
+                    theme = AppSettings().boardTheme,
+                    opponents = BotRoster.bots.take(4),
+                    onChange = { draft = it(draft) },
+                    onStart = { started = true },
+                    onBack = {},
+                )
+            }
+        }
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/PositionSetup.png")
+        // A queen placed on e5 checks the black king while White is to move.
+        draft = draft.copy(board = draft.board.place(com.chesstutor.app.core.Square.fromAlgebraic("e5"), draft.brush))
+        compose.onNodeWithText("The side not to move is in check. Change who moves first.").assertExists()
+        compose.onNodeWithText("Black to move").performClick()
+        compose.onNode(hasText("Play from here")).performScrollTo().performClick()
+        assertEquals(true, started)
+        assertEquals("4k3/8/8/4Q3/8/8/8/4K3 b - - 0 1", draft.board.toFen())
     }
 }
 

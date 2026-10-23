@@ -34,12 +34,14 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -436,6 +438,29 @@ fun CtToggleRow(
             ),
         )
     }
+}
+
+/** Asks before something that cannot be undone, such as deleting. [confirmLabel] names the action. */
+@Composable
+fun CtConfirmDialog(
+    title: String,
+    text: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CtColors.SurfaceRaised,
+        title = { Text(text = title, style = CtType.Title) },
+        text = { Text(text = text, style = CtType.Body) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(text = confirmLabel, style = CtType.Button.copy(color = CtColors.Coral)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = "Cancel", style = CtType.Button.copy(color = CtColors.Text)) }
+        },
+    )
 }
 
 /** A one-line text input with its label above, in the card style. */

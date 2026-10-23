@@ -108,6 +108,45 @@ class BoardHostTest {
         assertEquals(listOf(MoveEffects.ILLEGAL), feedback)
     }
 
+    /** Regression (phone review): while a pawn was dragged, the other pawns drew enlarged. */
+    @Test
+    fun draggingAPawnLeavesTheOtherPawnsTheirSize() {
+        val session = FreePlaySession()
+        show(session)
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        board.performTouchInput {
+            val size = width.toFloat()
+            down(centre("e2", size))
+            moveTo(centre("e3", size))
+            moveTo(centre("e4", size))
+        }
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/Board_dragging.png")
+        board.performTouchInput { up() }
+        compose.waitForIdle()
+        assertEquals(Move.fromUci("e2e4"), session.state.value.lastMove)
+    }
+
+    /** Regression (phone review): pressing a target and sliding off it used to play the move. */
+    @Test
+    fun pressingATargetAndSlidingOffItCancelsTheMove() {
+        val session = FreePlaySession()
+        show(session)
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        board.performTouchInput {
+            val size = width.toFloat()
+            click(centre("g1", size))
+            down(centre("f3", size))
+            moveTo(centre("h4", size))
+            up()
+        }
+        compose.waitForIdle()
+        assertEquals("released elsewhere: no move", null, session.state.value.lastMove)
+        board.performTouchInput { click(centre("f3", width.toFloat())) }
+        compose.waitForIdle()
+        assertEquals("the knight is still picked up", Move.fromUci("g1f3"), session.state.value.lastMove)
+    }
+
     @Test
     fun tapTapWorksWithBlackAtTheBottom() {
         val session = FreePlaySession(Position.fromFen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"))

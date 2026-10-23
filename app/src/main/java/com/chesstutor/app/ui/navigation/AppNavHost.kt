@@ -46,6 +46,8 @@ import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.feature.home.BattleSetupScreen
 import com.chesstutor.app.feature.home.BotBuilderScreen
 import com.chesstutor.app.feature.home.OpeningPickerScreen
+import com.chesstutor.app.feature.home.PositionSetupScreen
+import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.feature.home.BotSetupScreen
 import com.chesstutor.app.feature.home.HomeActions
 import com.chesstutor.app.feature.home.HomeScreen
@@ -144,6 +146,7 @@ fun AppNavHost(
                                 },
                                 onOpenBot = { id -> navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true } },
                                 onOpeningBattle = { navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true } },
+                                onFromPosition = { navController.navigate(AppRoutes.POSITION) { launchSingleTop = true } },
                                 onNewBot = {
                                     homeModel.newBot()
                                     navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
@@ -181,6 +184,12 @@ fun AppNavHost(
                                         navController.navigate(AppRoutes.builder(bot.id)) { launchSingleTop = true }
                                     }
                                 } else null,
+                                onDelete = if (isMine) {
+                                    {
+                                        homeModel.deleteBot(bot.id)
+                                        navController.popBackStack()
+                                    }
+                                } else null,
                                 onPlay = { side, rules ->
                                     homeModel.start(bot, side, rules)
                                     navController.navigate(AppRoutes.PLAY) {
@@ -214,9 +223,20 @@ fun AppNavHost(
                                     if (wasNew) navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true }
                                 }
                             },
-                            onDelete = {
-                                draft.id?.let(homeModel::deleteBot)
-                                navController.popBackStack(TopTab.HOME.startRoute, inclusive = false)
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.POSITION) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.positionDraft.collectAsStateWithLifecycle()
+                        val myBots by homeModel.myBots.collectAsStateWithLifecycle()
+                        PositionSetupScreen(
+                            draft = draft,
+                            theme = state.appSettings.boardTheme,
+                            opponents = BotRoster.bots + myBots.map { it.asRosterBot() },
+                            onChange = homeModel::updatePosition,
+                            onStart = {
+                                if (homeModel.startFromPosition()) navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
                             },
                             onBack = { navController.popBackStack() }
                         )

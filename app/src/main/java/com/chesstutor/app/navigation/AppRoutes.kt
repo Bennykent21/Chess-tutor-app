@@ -62,6 +62,8 @@ object AppRoutes {
     const val PLAY = "home/play"
     /** Opening Battle's setup page and its opening picker. */
     const val BATTLE = "home/battle"
+    /** "From a position": the board editor, then a game from there. */
+    const val POSITION = "home/position"
     const val BATTLE_PICK = "home/battle/pick"
     /** The bot builder: a new bot, or one of "My bots" to edit. */
     const val BUILDER_PATTERN = "home/builder?$BOT_ID_ARG={$BOT_ID_ARG}"

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Text
@@ -29,6 +30,7 @@ import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
+import com.chesstutor.app.design.CtConfirmDialog
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
@@ -51,7 +53,21 @@ fun BotSetupScreen(
     initialRules: GameRules = GameRules(),
     /** Set for the player's own bots. */
     onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
 ) {
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    if (confirmDelete && onDelete != null) {
+        CtConfirmDialog(
+            title = "Delete ${bot.name}?",
+            text = "Your bot and its settings are removed. Games you played against it stay in your games list.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                confirmDelete = false
+                onDelete()
+            },
+            onDismiss = { confirmDelete = false },
+        )
+    }
     var side by rememberSaveable { mutableStateOf(SideChoice.RANDOM) }
     var time by rememberSaveable { mutableStateOf(initialRules.timeControl) }
     var takebacks by rememberSaveable { mutableStateOf(initialRules.takebacks) }
@@ -84,7 +100,12 @@ fun BotSetupScreen(
                 }
                 Repertoire(bot)
                 if (onEdit != null) {
-                    CtButton(text = "Edit ${bot.name}", icon = Icons.Rounded.Edit, style = CtButtonStyle.Secondary, onClick = onEdit, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        CtButton(text = "Edit", icon = Icons.Rounded.Edit, style = CtButtonStyle.Secondary, onClick = onEdit, modifier = Modifier.weight(1f))
+                        if (onDelete != null) {
+                            CtButton(text = "Delete", icon = Icons.Rounded.Delete, style = CtButtonStyle.Secondary, onClick = { confirmDelete = true }, modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
 
                 CtSectionHeader(title = "You play")

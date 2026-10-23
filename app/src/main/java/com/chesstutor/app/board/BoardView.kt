@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.semantics.contentDescription
@@ -255,6 +256,9 @@ private fun DrawScope.drawLegalTargets(position: Position, targets: Set<Square>,
     }
 }
 
+/** How much bigger a dragged piece is drawn. */
+private const val LIFT_SCALE = 1.25f
+
 private fun DrawScope.drawPiece(painter: Painter, topLeft: Offset, size: Float, alpha: Float = 1f) {
     translate(topLeft.x, topLeft.y) {
         with(painter) { draw(Size(size, size), alpha = alpha) }
@@ -293,8 +297,13 @@ private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painte
     }
     motion.dragged?.let { dragged ->
         val painter = painters[dragged.piece] ?: return@let
-        // Lifted: a little larger and above the finger, so the finger does not hide it.
-        val lifted = cell * 1.25f
-        drawPiece(painter, dragged.position - Offset(lifted / 2f, lifted * 0.75f), lifted)
+        // Lifted: a little larger and above the finger, so the finger does not hide it. The
+        // canvas is scaled rather than the painter asked for a bigger size: a vector painter
+        // caches its last size, and every other piece of that kind would draw enlarged.
+        val lifted = cell * LIFT_SCALE
+        val topLeft = dragged.position - Offset(lifted / 2f, lifted * 0.75f)
+        translate(topLeft.x, topLeft.y) {
+            scale(LIFT_SCALE, pivot = Offset.Zero) { with(painter) { draw(Size(cell, cell)) } }
+        }
     }
 }
