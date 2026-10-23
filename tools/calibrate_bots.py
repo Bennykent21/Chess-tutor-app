@@ -62,12 +62,15 @@ ENGINE_TABLE = [(2500, 16, 13), (2800, 19, 18)]
 
 class Uci:
     def __init__(self, args):
+        self.last = ""
         self.p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                   text=True, bufsize=1, cwd=os.path.dirname(args[0]))
         self.send("uci")
         self.wait("uciok")
 
     def send(self, cmd):
+        if cmd.startswith("position"):
+            self.last = cmd
         self.p.stdin.write(cmd + "\n")
         self.p.stdin.flush()
 
@@ -76,7 +79,7 @@ class Uci:
         while True:
             line = self.p.stdout.readline()
             if not line:
-                raise RuntimeError("engine stopped")
+                raise RuntimeError(f"engine stopped after: {self.last}")
             lines.append(line)
             if line.startswith(token):
                 return lines
@@ -156,7 +159,8 @@ class Bot:
         fish = engines["fish"]
         if self.maia_net is None:
             return self.skill_pick(fish.lines(moves, self.depth, 4), rng)
-        probs = engines[f"maia{self.maia_net}"].policy(moves)
+        # lc0 may name castling king-takes-rook (e1h1): normalise every move to standard UCI.
+        probs = {board.parse_uci(u).uci(): p for u, p in engines[f"maia{self.maia_net}"].policy(moves).items()}
         if self.argmax:
             return max(probs, key=probs.get)
         weights = {u: p ** (1.0 / self.temperature) for u, p in probs.items() if p > 0}
@@ -225,7 +229,7 @@ def play_game(white, black, engines, rng, max_plies=300):
     board, moves = chess.Board(), []
     opener = engines["maia1500"]
     for _ in range(4):
-        probs = opener.policy(moves)
+        probs = {board.parse_uci(k).uci(): v for k, v in opener.policy(moves).items()}
         u = pick_weighted([(k, v) for k, v in probs.items() if v > 0], rng)
         board.push_uci(u)
         moves.append(u)
@@ -279,8 +283,9 @@ def play(games, workers):
     counter = [0]
     chunks = [jobs[i::workers] for i in range(workers)]
     with ThreadPoolExecutor(workers) as pool:
-        for i, chunk in enumerate(chunks):
-            pool.submit(worker, chunk, counter, 100 + i)
+        futures = [pool.submit(worker, chunk, counter, 100 + i) for i, chunk in enumerate(chunks)]
+        for future in futures:
+            future.result()  # re-raises a worker's error instead of hiding it
 
 
 def fit():
