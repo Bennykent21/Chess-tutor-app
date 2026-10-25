@@ -114,6 +114,23 @@ class AccountScreenTest {
     }
 
     @Test
+    fun performancePageShowsResultsAndOpensTheGamesBehindABar() {
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 0, actions = AccountActions(), initialTab = AccountTab.PERFORMANCE)
+            }
+        }
+        compose.onNodeWithText("Score 50%").assertExists()
+        compose.onNodeWithText("By time control").assertExists()
+        compose.onNodeWithText("Open a game and tap Review to analyse it. Accuracy by phase and your common mistakes then show here.").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_performance.png")
+
+        compose.onNodeWithText("Blitz").performClick()
+        compose.onNodeWithText("1 of 3 games").assertExists()
+        compose.onNodeWithText("vs rookie99 (1450) · Black").assertExists()
+    }
+
+    @Test
     fun linkedAccountOffersSyncAndUnlink() {
         val state = AppUiState(
             linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = 1848, blitzRating = 1720, bulletRating = null, selectedTimeControl = RatingTimeControl.RAPID),

@@ -61,6 +61,8 @@ data class GameSummary(
     val leftBookAt: Int?,
     /** The position the game started from when it was not the normal start, else null. */
     val startFen: String?,
+    /** The player's own rating in this game (PGN WhiteElo or BlackElo), for the rating trend. */
+    val playerRating: Int? = null,
 ) {
     val id: String get() = record.id
     val opponent: String get() = record.botName
@@ -116,15 +118,17 @@ object GameLibrary {
         // Opening names only mean something from the normal start.
         val match = if (startFen == null && moves.isNotEmpty() && !tree.isEmpty) tree.match(moves) else null
         val opening = match?.opening
+        val black = record.userColor.equals("black", ignoreCase = true)
         return GameSummary(
             record = record,
             outcome = outcomeOf(record),
-            userColor = if (record.userColor.equals("black", ignoreCase = true)) PieceColor.BLACK else PieceColor.WHITE,
+            userColor = if (black) PieceColor.BLACK else PieceColor.WHITE,
             timeClass = TimeClass.of(record.timeClass),
             opening = opening,
             openingName = opening?.name ?: if (startFen == null) pgnTag(record.pgn, "Opening") else null,
             leftBookAt = match?.leftBookAt,
             startFen = startFen,
+            playerRating = pgnTag(record.pgn, if (black) "BlackElo" else "WhiteElo")?.toIntOrNull()?.takeIf { it > 0 },
         )
     }
 

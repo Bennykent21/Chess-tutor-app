@@ -84,7 +84,7 @@ class AccountViewModel(
     puzzleStats: Flow<PuzzleStats>,
     private val analysis: GameAnalysisRepository = InMemoryGameAnalysisRepository(),
     private val engine: EngineService? = null,
-    private val reviews: ReviewRepository? = null,
+    private val mistakeReviews: ReviewRepository? = null,
     worker: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
@@ -125,8 +125,28 @@ class AccountViewModel(
         }.flowOn(worker)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReviewState())
 
+    /** Reviews of every analysed game, kept until the game is analysed again. */
+    private val reviewCache = HashMap<String, Pair<Long, GameReview>>()
+
+    /** The review of every analysed game by id, for the Performance page (accuracy by phase, mistake types). */
+    val reviews: StateFlow<Map<String, GameReview>> = games.map { state -> reviewsOf(state) }
+        .flowOn(worker)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     init {
         viewModelScope.launch { tree.value = runCatching { loadOpenings() }.getOrDefault(OpeningTree.EMPTY) }
+    }
+
+    private suspend fun reviewsOf(state: GamesState): Map<String, GameReview> {
+        val out = HashMap<String, GameReview>()
+        for ((id, summary) in state.analysed) {
+            val game = state.game(id) ?: continue
+            val cached = reviewCache[id]?.takeIf { it.first == summary.analysedAt }?.second
+            out[id] = cached ?: GameReviewer.review(game.startFen ?: Position.STARTING_FEN, game.moves, analysis.evals(id), game.bookPlies)
+                .also { reviewCache[id] = summary.analysedAt to it }
+        }
+        reviewCache.keys.retainAll(out.keys)
+        return out
     }
 
     fun openReview(gameId: String) {
@@ -170,9 +190,9 @@ class AccountViewModel(
      * review, due now, with the engine's move as the answer.
      */
     fun practise(game: GameSummary, move: ReviewedMove, onSaved: () -> Unit = {}) {
-        val reviews = reviews ?: return
+        val store = mistakeReviews ?: return
         viewModelScope.launch {
-            reviews.upsert(
+            store.upsert(
                 ReviewItem(
                     id = "game_${game.id}_${move.ply}",
                     fen = move.fenBefore,

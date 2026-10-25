@@ -66,6 +66,7 @@ import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.account.GameOutcome
+import com.chesstutor.app.domain.account.GameReview
 import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.domain.account.label
 import com.chesstutor.app.domain.puzzle.PuzzleStats
@@ -98,8 +99,8 @@ data class AccountActions(
 
 /**
  * Account tab (plan section 6.4): the player's header, then Overview (ratings, linked
- * account, recent games) and Games (every saved game with filters). Performance and
- * Training follow in steps 5C and 5D.
+ * account, recent games), Games (every saved game with filters) and Performance (results,
+ * accuracy and rating trend). Training follows in step 5D.
  */
 @Composable
 fun AccountScreen(
@@ -110,6 +111,8 @@ fun AccountScreen(
     actions: AccountActions,
     modifier: Modifier = Modifier,
     initialTab: AccountTab = AccountTab.OVERVIEW,
+    /** Reviews of the analysed games, for the Performance page. */
+    reviews: Map<String, GameReview> = emptyMap(),
 ) {
     var tabName by rememberSaveable { mutableStateOf(initialTab.name) }
     val tab = AccountTab.valueOf(tabName)
@@ -144,7 +147,17 @@ fun AccountScreen(
             when (tab) {
                 AccountTab.OVERVIEW -> overview(state, games, stats, dueReviewCount, actions, onSeeAllGames = { tabName = AccountTab.GAMES.name })
                 AccountTab.GAMES -> gamesList(games, filterState, onFilter = { filterState = it }, onOpenGame = actions.onOpenGame)
-                AccountTab.PERFORMANCE -> comingSoon("Performance", "Results by opening, colour and time control, accuracy and your rating trend.", Icons.Rounded.Insights)
+                AccountTab.PERFORMANCE -> item(key = "performance") {
+                    PerformancePage(
+                        games = games,
+                        reviews = reviews,
+                        onShowGames = { filter ->
+                            filterState = filter
+                            tabName = AccountTab.GAMES.name
+                        },
+                        modifier = Modifier.padding(horizontal = CtSpacing.gutter),
+                    )
+                }
                 AccountTab.TRAINING -> comingSoon("Training", "Puzzle rating history, XP, streaks, lessons and the patterns you solve cleanly.", Icons.Rounded.School)
             }
         }

@@ -2,6 +2,7 @@ package com.chesstutor.app.domain.account
 
 import com.chesstutor.app.core.LegalMoveGenerator
 import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.PieceType
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.SanFormatter
 import com.chesstutor.app.engine.WinProbability
@@ -31,6 +32,39 @@ data class PlyEval(
     companion object {
         /** A large score for a delivered mate, so it reads as won (or lost) everywhere. */
         const val MATED_SCORE = 10_000
+    }
+}
+
+/** Which part of the game a move belongs to (plan 6.4, accuracy by phase). */
+enum class GamePhase(val label: String) {
+    OPENING("Opening"),
+    MIDDLEGAME("Middlegame"),
+    ENDGAME("Endgame");
+
+    companion object {
+        /** Pieces other than kings and pawns, in pawns (queen 9, rook 5, bishop and knight 3). */
+        fun materialOf(position: Position): Int = position.squares.sumOf { piece ->
+            when (piece?.type) {
+                PieceType.QUEEN -> 9
+                PieceType.ROOK -> 5
+                PieceType.BISHOP, PieceType.KNIGHT -> 3
+                else -> 0
+            }
+        }
+
+        /**
+         * The endgame starts once both sides together have at most [ENDGAME_MATERIAL] in pieces
+         * (for example a rook and a minor piece each); before that, the first [OPENING_PLIES]
+         * plies are the opening.
+         */
+        fun of(ply: Int, position: Position): GamePhase = when {
+            materialOf(position) <= ENDGAME_MATERIAL -> ENDGAME
+            ply <= OPENING_PLIES -> OPENING
+            else -> MIDDLEGAME
+        }
+
+        const val ENDGAME_MATERIAL = 26
+        const val OPENING_PLIES = 20
     }
 }
 
@@ -76,6 +110,7 @@ data class ReviewedMove(
     val accuracy: Double,
     /** The position the move was played from. */
     val fenBefore: String,
+    val phase: GamePhase = GamePhase.MIDDLEGAME,
 ) {
     val loss: Double get() = (winBefore - winAfter).coerceAtLeast(0.0)
     val moveNumber: Int get() = (ply + 1) / 2
@@ -180,6 +215,7 @@ object GameReviewer {
                 bestSan = best?.let { SanFormatter.format(position, it) },
                 accuracy = if (book) 100.0 else moveAccuracy(loss),
                 fenBefore = position.toFen(),
+                phase = GamePhase.of(i + 1, position),
             )
         }
         val graph = positions.indices.asSequence()
