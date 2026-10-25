@@ -53,6 +53,14 @@ class NavigationModelTest {
     }
 
     @Test
+    fun relatedPuzzlesRouteCarriesTheThemes() {
+        val route = AppRoutes.puzzleRelated(listOf("pin", "skewer"))
+        assertEquals("puzzles/related/pin%2Cskewer", route)
+        assertEquals(listOf("pin", "skewer"), AppRoutes.parseThemes(java.net.URLDecoder.decode(route.substringAfterLast('/'), "UTF-8")))
+        assertEquals(emptyList<String>(), AppRoutes.parseThemes(null))
+    }
+
+    @Test
     fun onboardingShowsOnlyOnceTheSavedProfileIsKnown() {
         // Before the profile is read, the default "NOT_STARTED" must not flash onboarding.
         assertEquals(StartScreen.LOADING, StartScreen.of(profileLoaded = false, assessmentState = "NOT_STARTED"))

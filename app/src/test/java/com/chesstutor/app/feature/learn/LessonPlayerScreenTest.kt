@@ -19,6 +19,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,10 +51,10 @@ class LessonPlayerScreenTest {
         compose.waitForIdle()
     }
 
-    private fun show(player: LessonPlayer) {
+    private fun show(player: LessonPlayer, onRelatedPuzzles: (() -> Unit)? = null) {
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {})
+                LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {}, onRelatedPuzzles = onRelatedPuzzles)
             }
         }
     }
@@ -91,8 +92,9 @@ class LessonPlayerScreenTest {
     fun quizShowsChallengeNumbersAndDoneShowsXp() {
         val lesson = course.lessons[1]
         val player = LessonPlayer(course, lesson, InMemoryLessonProgressRepository(), scope, startStep = 3)
+        var related = false
         player.start()
-        show(player)
+        show(player, onRelatedPuzzles = { related = true })
         step()
         compose.onNodeWithText("Challenge 1/2").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_quiz.png")
@@ -110,5 +112,8 @@ class LessonPlayerScreenTest {
         compose.onNodeWithText("Lesson complete!").assertExists()
         compose.onNodeWithText("+20 XP").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_done.png")
+        compose.onNodeWithText("Practise in Opening Battle").assertDoesNotExist()
+        compose.onNodeWithText("Related puzzles").performScrollTo().performClick()
+        assertTrue("Related puzzles opens the puzzles", related)
     }
 }
