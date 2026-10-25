@@ -6,7 +6,6 @@ import com.chesstutor.app.core.PieceType
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.SanFormatter
 import com.chesstutor.app.engine.WinProbability
-import kotlin.math.exp
 
 /**
  * The engine's view of one position of a game (plan 7.4 `analysis_result`). [ply] 0 is the
@@ -28,6 +27,9 @@ data class PlyEval(
     val whiteWin: Double get() = WinProbability.fromScore(centipawns, mate)
 
     fun winFor(color: PieceColor): Double = if (color == PieceColor.WHITE) whiteWin else 100.0 - whiteWin
+
+    /** Winning chances as Lichess counts them for accuracy (scores capped at ten pawns). */
+    fun lichessWinFor(color: PieceColor): Double = LichessAccuracy.winPercent(centipawns, mate).let { if (color == PieceColor.WHITE) it else 100.0 - it }
 
     companion object {
         /** A large score for a delivered mate, so it reads as won (or lost) everywhere. */
@@ -133,6 +135,8 @@ data class GameReview(
     /** White's winning chances after each analysed position (ply 0 first), 0 to 1, for the graph. */
     val graph: List<Float>,
     val totalPlies: Int,
+    /** Each side's game accuracy (Lichess's method, [LichessAccuracy]) over the analysed moves. */
+    val accuracies: Map<PieceColor, Double?> = emptyMap(),
 ) {
     /** True once every position has been analysed. */
     val complete: Boolean get() = moves.size == totalPlies
@@ -143,7 +147,7 @@ data class GameReview(
         val mine = moves.filter { it.mover == side }
         val judged = mine.filter { it.quality != MoveQuality.BOOK }
         return SideReport(
-            accuracy = GameReviewer.accuracyOf(mine.map { it.accuracy }),
+            accuracy = accuracies[side] ?: GameReviewer.accuracyOf(mine.map { it.accuracy }),
             counts = MoveQuality.entries.associateWith { q -> (if (q == MoveQuality.BOOK) mine else judged).count { it.quality == q } },
         )
     }
@@ -213,7 +217,7 @@ object GameReviewer {
                 winAfter = winAfter,
                 bestMove = before.bestMove,
                 bestSan = best?.let { SanFormatter.format(position, it) },
-                accuracy = if (book) 100.0 else moveAccuracy(loss),
+                accuracy = LichessAccuracy.moveAccuracy(before.lichessWinFor(mover), after.lichessWinFor(mover)),
                 fenBefore = position.toFen(),
                 phase = GamePhase.of(i + 1, position),
             )
@@ -223,16 +227,15 @@ object GameReviewer {
             .takeWhile { it != null }
             .map { (it!!.whiteWin / 100.0).toFloat() }
             .toList()
-        return GameReview(reviewed, graph, totalPlies = positions.size - 1)
+        val lichessWins = positions.indices.asSequence().map { byPly[it] }.takeWhile { it != null }
+            .map { LichessAccuracy.winPercent(it!!.centipawns, it.mate) }.toList()
+        val firstMover = positions.firstOrNull()?.sideToMove ?: PieceColor.WHITE
+        return GameReview(reviewed, graph, totalPlies = positions.size - 1, accuracies = LichessAccuracy.gameAccuracy(lichessWins, firstMover))
     }
 
-    /** Lichess's move accuracy from lost winning chances (percentage points). */
-    fun moveAccuracy(loss: Double): Double =
-        (103.1668 * exp(-0.04354 * loss) - 3.1669).coerceIn(0.0, 100.0)
-
     /**
-     * A side's game accuracy: the average of the plain and harmonic means of its move
-     * accuracies, so one blunder weighs more than in a plain average (as Lichess does).
+     * An accuracy over any set of moves (a game phase, many games): the average of the plain
+     * and harmonic means, so one blunder weighs more than in a plain average.
      */
     fun accuracyOf(moveAccuracies: List<Double>): Double? {
         if (moveAccuracies.isEmpty()) return null

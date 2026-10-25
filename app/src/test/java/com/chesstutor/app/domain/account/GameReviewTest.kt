@@ -89,18 +89,14 @@ class GameReviewTest {
     }
 
     @Test
-    fun bookMovesAreMarkedAndCountAsAccurate() {
+    fun bookMovesAreMarked() {
         val review = GameReviewer.review(start, moves, evals, bookPlies = 2)
         assertEquals(listOf(MoveQuality.BOOK, MoveQuality.BOOK), review.moves.take(2).map { it.quality })
         assertEquals(1, review.report(PieceColor.WHITE).count(MoveQuality.BOOK))
-        assertEquals(100.0, review.moves.first().accuracy, 0.001)
     }
 
     @Test
     fun accuracyPunishesBigLosses() {
-        assertEquals(100.0, GameReviewer.moveAccuracy(0.0), 0.01)
-        assertTrue(GameReviewer.moveAccuracy(10.0) in 60.0..70.0)
-        assertEquals(0.0, GameReviewer.moveAccuracy(100.0), 0.01)
         assertNull(GameReviewer.accuracyOf(emptyList()))
         val steady = GameReviewer.accuracyOf(listOf(90.0, 90.0))!!
         val spiky = GameReviewer.accuracyOf(listOf(100.0, 80.0))!!
