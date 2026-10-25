@@ -515,10 +515,12 @@ fun AppNavHost(
                         val account = accountViewModel(navController, entry)
                         val games by account.games.collectAsStateWithLifecycle()
                         val stats by account.stats.collectAsStateWithLifecycle()
+                        val reviews by account.reviews.collectAsStateWithLifecycle()
                         AccountScreen(
                             state = state,
                             games = games,
                             stats = stats,
+                            reviews = reviews,
                             dueReviewCount = dueReviews,
                             actions = AccountActions(
                                 onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
