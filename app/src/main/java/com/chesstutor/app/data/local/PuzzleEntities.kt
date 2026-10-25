@@ -124,9 +124,21 @@ interface PuzzleDao {
     )
     suspend fun latestUncleanAttempts(limit: Int): List<PuzzleAttemptEntity>
 
+    @Query("SELECT puzzleId, solved, clean, ratingAfter, finishedAt FROM puzzle_attempt ORDER BY finishedAt")
+    fun history(): Flow<List<PuzzleHistoryRow>>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertReport(report: ReportIssueEntity): Long
 
     @Query("SELECT COUNT(*) FROM report_issue")
     suspend fun reportCount(): Int
 }
+
+/** One row of the puzzle history (a subset of [PuzzleAttemptEntity]). */
+data class PuzzleHistoryRow(
+    val puzzleId: String,
+    val solved: Boolean,
+    val clean: Boolean,
+    val ratingAfter: Int,
+    val finishedAt: Long,
+)

@@ -1,6 +1,7 @@
 package com.chesstutor.app.domain.puzzle
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import java.time.LocalDate
 
 /** Where a puzzle was played (plan section 6.3.2). Stored by name, so never rename one. */
@@ -89,4 +90,16 @@ interface PuzzleRepository {
 
     /** Puzzles to practise again: the latest attempt was not clean. Most recent first. */
     suspend fun mistakePuzzleIds(limit: Int = 100): List<String>
+
+    /** Every finished puzzle, oldest first, for the Training page (rating history, themes). */
+    fun history(): Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList())
 }
+
+/** One finished puzzle as the Training page sees it. */
+data class PuzzleHistoryEntry(
+    val puzzleId: String,
+    val solved: Boolean,
+    val clean: Boolean,
+    val ratingAfter: Int,
+    val finishedAt: Long,
+)

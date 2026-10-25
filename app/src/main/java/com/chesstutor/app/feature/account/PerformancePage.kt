@@ -205,7 +205,7 @@ private fun RatingSection(report: PerformanceReport) {
 }
 
 @Composable
-private fun RatingChart(points: List<RatingPoint>, color: Color) {
+internal fun RatingChart(points: List<RatingPoint>, color: Color) {
     val low = points.minOf { it.rating }
     val high = points.maxOf { it.rating }
     val span = (high - low).coerceAtLeast(1)

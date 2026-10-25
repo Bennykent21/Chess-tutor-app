@@ -16,6 +16,7 @@ import com.chesstutor.app.domain.puzzle.LevelRun
 import com.chesstutor.app.domain.puzzle.LevelRunResult
 import com.chesstutor.app.domain.puzzle.PlayerLevel
 import com.chesstutor.app.domain.puzzle.PuzzleBookkeeping
+import com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry
 import com.chesstutor.app.domain.puzzle.PuzzleProgress
 import com.chesstutor.app.domain.puzzle.PuzzleRating
 import com.chesstutor.app.domain.puzzle.PuzzleRepository
@@ -130,6 +131,9 @@ class RoomPuzzleRepository(
 
     override suspend fun mistakePuzzleIds(limit: Int): List<String> =
         dao.latestUncleanAttempts(limit).map { it.puzzleId }
+
+    override fun history(): Flow<List<PuzzleHistoryEntry>> =
+        dao.history().map { rows -> rows.map { PuzzleHistoryEntry(it.puzzleId, it.solved, it.clean, it.ratingAfter, it.finishedAt) } }
 
     private fun PuzzleProfileEntity.toProgress(seen: Set<String>) = PuzzleProgress(
         rating = rating,
