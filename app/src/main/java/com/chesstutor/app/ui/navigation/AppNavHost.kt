@@ -41,6 +41,8 @@ import com.chesstutor.app.feature.account.AccountScreen
 import com.chesstutor.app.feature.account.AccountViewModel
 import com.chesstutor.app.feature.account.GameDetailActions
 import com.chesstutor.app.feature.account.GameDetailScreen
+import com.chesstutor.app.feature.account.GameReviewScreen
+import com.chesstutor.app.feature.account.ReviewActions
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.di.AppContainer
@@ -544,13 +546,44 @@ fun AppNavHost(
                         val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
                         GameDetailScreen(
                             game = games.game(gameId),
+                            analysis = games.analysed[gameId],
                             settings = state.appSettings,
                             actions = GameDetailActions(
-                                onReplay = { fen, moves -> navController.navigate(AppRoutes.analysis(fen, moves)) },
+                                onReview = {
+                                    account.openReview(gameId)
+                                    if (games.analysed[gameId] == null) account.analyse(gameId)
+                                    navController.navigate(AppRoutes.review(gameId)) { launchSingleTop = true }
+                                },
                                 onDelete = {
                                     account.deleteGame(gameId)
                                     navController.popBackStack()
                                 },
+                                onBack = { navController.popBackStack() }
+                            )
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.REVIEW_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.GAME_ID_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val account = accountViewModel(navController, entry)
+                        val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
+                        LaunchedEffect(gameId) { account.openReview(gameId) }
+                        val review by account.review.collectAsStateWithLifecycle()
+                        val context = LocalContext.current
+                        val engine = remember(context) { AppContainer.provideEngineService(context) }
+                        GameReviewScreen(
+                            state = review,
+                            settings = state.appSettings,
+                            engine = engine,
+                            actions = ReviewActions(
+                                onAnalyse = { account.analyse(gameId) },
+                                onAnalyseAgain = { account.analyse(gameId, again = true) },
+                                onStop = { account.stopAnalysis(gameId) },
+                                onPractise = { move ->
+                                    review.game?.let { game -> account.practise(game, move, onSaved = viewModel::refreshReviews) }
+                                },
+                                onFeedback = viewModel::playBoardFeedback,
                                 onBack = { navController.popBackStack() }
                             )
                         )
@@ -747,6 +780,9 @@ private fun accountViewModel(navController: NavHostController, entry: NavBackSta
             repository = AppContainer.provideGameRepository(context),
             loadOpenings = { AppContainer.provideOpeningLoader(context).load() },
             puzzleStats = AppContainer.providePuzzleRepository(context).stats(),
+            analysis = AppContainer.provideGameAnalysis(context),
+            engine = AppContainer.provideEngineService(context),
+            reviews = AppContainer.provideReviewRepository(context),
         ),
     )
 }

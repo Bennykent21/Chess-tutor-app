@@ -225,7 +225,7 @@ private fun LazyListScope.overview(
     } else {
         item(key = "totals") { TotalsRow(games, Modifier.padding(horizontal = CtSpacing.gutter)) }
         items(games.games.take(3), key = { "recent-${it.id}" }) { game ->
-            GameRow(game, onClick = { actions.onOpenGame(game.id) }, modifier = Modifier.padding(horizontal = CtSpacing.gutter))
+            GameRow(game, onClick = { actions.onOpenGame(game.id) }, modifier = Modifier.padding(horizontal = CtSpacing.gutter), accuracy = games.analysed[game.id]?.accuracyFor(game.userColor))
         }
     }
     item(key = "app") {
@@ -304,7 +304,7 @@ private fun LazyListScope.gamesList(
         }
     }
     items(shown, key = { it.id }) { game ->
-        GameRow(game, onClick = { onOpenGame(game.id) }, modifier = Modifier.padding(horizontal = CtSpacing.gutter))
+        GameRow(game, onClick = { onOpenGame(game.id) }, modifier = Modifier.padding(horizontal = CtSpacing.gutter), accuracy = games.analysed[game.id]?.accuracyFor(game.userColor))
     }
 }
 

@@ -48,6 +48,8 @@ class NavigationModelTest {
         assertEquals("account/game/a%2Fb", AppRoutes.game("a/b"))
         assertTrue(AppRoutes.showsBottomBar(AppRoutes.GAME_PATTERN))
         assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.GAME_PATTERN))
+        assertEquals("account/review/lichess_x", AppRoutes.review("lichess_x"))
+        assertFalse("the review is a board activity", AppRoutes.showsBottomBar(AppRoutes.REVIEW_PATTERN))
     }
 
     @Test

@@ -21,8 +21,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ReportIssueEntity::class,
         BotProfileEntity::class,
         LessonProgressEntity::class,
+        AnalysisResultEntity::class,
+        GameAnalysisEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -33,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun puzzleDao(): PuzzleDao
     abstract fun botProfileDao(): BotProfileDao
     abstract fun lessonProgressDao(): LessonProgressDao
+    abstract fun analysisDao(): AnalysisDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -170,6 +173,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Phase 5B: cached game analysis and per-game accuracy. */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS analysis_result (" +
+                        "gameId TEXT NOT NULL, ply INTEGER NOT NULL, centipawns INTEGER, mate INTEGER, " +
+                        "bestMove TEXT NOT NULL, line TEXT NOT NULL, depth INTEGER, lite INTEGER NOT NULL, " +
+                        "PRIMARY KEY(gameId, ply))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS game_analysis (" +
+                        "gameId TEXT NOT NULL, plies INTEGER NOT NULL, whiteAccuracy REAL, blackAccuracy REAL, " +
+                        "lite INTEGER NOT NULL, analysedAt INTEGER NOT NULL, PRIMARY KEY(gameId))"
+                )
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -180,6 +200,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_7_8,
             MIGRATION_8_9,
             MIGRATION_9_10,
+            MIGRATION_10_11,
         )
 
         @Volatile
