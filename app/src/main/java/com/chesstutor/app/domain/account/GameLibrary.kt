@@ -75,6 +75,9 @@ data class GameSummary(
     /** "Sicilian Defense", for grouping and the opening filter. */
     val openingFamily: String? get() = opening?.family ?: openingName?.substringBefore(':')?.trim()?.ifBlank { null }
 
+    /** How many of the game's first moves were in the opening database. */
+    val bookPlies: Int get() = leftBookAt ?: if (opening != null) moves.size else 0
+
     /** The full move in which the game left the opening database ("move 7"), or null. */
     val leftBookAtMove: Int? get() = leftBookAt?.let { it / 2 + 1 }
 }

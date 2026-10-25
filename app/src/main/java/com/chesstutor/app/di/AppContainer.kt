@@ -1,5 +1,7 @@
 package com.chesstutor.app.di
 
+import com.chesstutor.app.data.account.RoomGameAnalysisRepository
+import com.chesstutor.app.domain.account.GameAnalysisRepository
 import android.content.Context
 import android.util.Log
 import com.chesstutor.app.data.bot.RoomBotRepository
@@ -111,6 +113,16 @@ object AppContainer {
 
     @Volatile
     private var lessonProgressInstance: LessonProgressRepository? = null
+
+    @Volatile
+    private var gameAnalysisInstance: GameAnalysisRepository? = null
+
+    /** Cached game analysis (Room `analysis_result` and `game_analysis`). */
+    fun provideGameAnalysis(context: Context): GameAnalysisRepository {
+        return gameAnalysisInstance ?: synchronized(this) {
+            gameAnalysisInstance ?: RoomGameAnalysisRepository(AppDatabase.getInstance(context)).also { gameAnalysisInstance = it }
+        }
+    }
 
     /** Progress through the lessons (Room `lesson_progress`). */
     fun provideLessonProgress(context: Context): LessonProgressRepository {

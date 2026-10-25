@@ -15,7 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
-import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,20 +47,22 @@ import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.PgnFormatter
+import com.chesstutor.app.domain.account.AnalysisSummary
 import com.chesstutor.app.domain.account.GameOutcome
 import com.chesstutor.app.domain.account.GameSummary
 
 /** What the game page can do. */
 data class GameDetailActions(
-    /** Opens the analysis board with the game loaded as its main line. */
-    val onReplay: (startFen: String, moves: List<String>) -> Unit = { _, _ -> },
+    /** Opens the game review (analysing the game first if it has not been). */
+    val onReview: () -> Unit = {},
     val onDelete: () -> Unit = {},
     val onBack: () -> Unit = {},
 )
 
 /**
  * One saved game (plan section 6.4): result, players, opening and where each side left the
- * book, the final position and the moves, with replay, copy PGN and delete.
+ * book, accuracy once analysed, the final position and the moves, with review, copy PGN
+ * and delete.
  */
 @Composable
 fun GameDetailScreen(
@@ -68,6 +70,8 @@ fun GameDetailScreen(
     settings: AppSettings,
     actions: GameDetailActions,
     modifier: Modifier = Modifier,
+    /** The finished analysis, if the game has one. */
+    analysis: AnalysisSummary? = null,
 ) {
     CtScreenBackground(modifier) {
         if (game == null) {
@@ -106,10 +110,19 @@ fun GameDetailScreen(
                     showLegalDots = false,
                 )
 
+                analysis?.let { a ->
+                    CtCard(modifier = Modifier.fillMaxWidth()) {
+                        Text("Accuracy", style = CtType.Label)
+                        Text(
+                            "You ${accuracyText(a.accuracyFor(game.userColor))} · ${game.opponent} ${accuracyText(a.accuracyFor(game.userColor.opposite()))}",
+                            style = CtType.Title,
+                        )
+                    }
+                }
                 CtButton(
-                    text = "Replay on the board",
-                    icon = Icons.Rounded.PlayArrow,
-                    onClick = { actions.onReplay(start, game.moves) },
+                    text = if (analysis == null) "Review with Stockfish" else "Open the review",
+                    icon = Icons.Rounded.Insights,
+                    onClick = actions.onReview,
                     enabled = game.moves.isNotEmpty(),
                     modifier = Modifier.fillMaxWidth(),
                 )

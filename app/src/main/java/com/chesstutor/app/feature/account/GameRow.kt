@@ -25,9 +25,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** One game in a list: opponent, result, opening, and where and when it was played. */
+/** One game in a list: opponent, result, opening, where and when it was played, and accuracy once analysed. */
 @Composable
-fun GameRow(game: GameSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun GameRow(game: GameSummary, onClick: () -> Unit, modifier: Modifier = Modifier, accuracy: Double? = null) {
     CtCard(
         onClick = onClick,
         onClickLabel = "Open the game against ${game.opponent}",
@@ -51,6 +51,13 @@ fun GameRow(game: GameSummary, onClick: () -> Unit, modifier: Modifier = Modifie
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(text = detailLine(game), style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            accuracy?.let {
+                Spacer(Modifier.width(CtSpacing.sm))
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(accuracyText(it), style = CtType.Label.copy(color = CtColors.Teal))
+                    Text("accuracy", style = CtType.Caption)
+                }
             }
         }
     }

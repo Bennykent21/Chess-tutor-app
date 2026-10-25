@@ -57,6 +57,9 @@ object AppRoutes {
     const val GAME_ID_ARG = "gameId"
     const val GAME_PATTERN = "account/game/{$GAME_ID_ARG}"
     fun game(id: String): String = "account/game/${encode(id)}"
+    /** A game's review on the board, full screen (no bottom bar). */
+    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}"
+    fun review(id: String): String = "account/review/${encode(id)}"
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"

@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -76,11 +77,12 @@ fun toggleRing(rings: List<SquareRing>, ring: SquareRing): List<SquareRing> =
 
 /**
  * The analysis move list (plan section 4.2): the main line, with variations in brackets in
- * a lighter style. Tap any move to jump there; the current move is gold.
+ * a lighter style. Tap any move to jump there; the current move is gold. A game review passes
+ * [marks] to show each move's quality ("?!", "??") in its colour.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun AnalysisMoveList(view: AnalysisView, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun AnalysisMoveList(view: AnalysisView, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, marks: Map<Int, MoveMark> = emptyMap()) {
     FlowRow(
         modifier = modifier
             .fillMaxWidth()
@@ -100,6 +102,7 @@ fun AnalysisMoveList(view: AnalysisView, onSelect: (Int) -> Unit, modifier: Modi
                 is NotationToken.MoveToken -> {
                     val current = token.nodeId == view.currentId
                     val mainLine = token.depth == 0
+                    val mark = marks[token.nodeId]
                     Row(
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
@@ -107,7 +110,7 @@ fun AnalysisMoveList(view: AnalysisView, onSelect: (Int) -> Unit, modifier: Modi
                             .background(if (current) CtColors.Gold else CtColors.Surface)
                             .ctPressable(role = Role.Button, onClickLabel = "Go to this move") { onSelect(token.nodeId) }
                             .semantics(mergeDescendants = true) {
-                                contentDescription = listOfNotNull(token.numberLabel, token.san, if (mainLine) null else "side line").joinToString(" ")
+                                contentDescription = listOfNotNull(token.numberLabel, token.san, mark?.spoken, if (mainLine) null else "side line").joinToString(" ")
                                 if (current) stateDescription = "Current move"
                             }
                             .padding(horizontal = CtSpacing.xs, vertical = CtSpacing.xxs),
@@ -121,6 +124,7 @@ fun AnalysisMoveList(view: AnalysisView, onSelect: (Int) -> Unit, modifier: Modi
                         }
                         token.numberLabel?.let { Text("$it ", style = CtType.Caption.copy(color = numberColor)) }
                         Text(token.san, style = (if (mainLine) CtType.Label else CtType.BodySmall).copy(color = moveColor))
+                        mark?.takeIf { it.symbol.isNotEmpty() }?.let { Text(it.symbol, style = CtType.Label.copy(color = if (current) CtColors.OnGold else it.color)) }
                     }
                 }
             }
@@ -234,3 +238,6 @@ private fun ToolButton(icon: ImageVector, label: String, enabled: Boolean, onCli
         Icon(icon, contentDescription = null, tint = tint)
     }
 }
+
+/** A move's quality in a review's move list: its symbol ("?!"), colour and spoken name. */
+data class MoveMark(val symbol: String, val color: Color, val spoken: String)

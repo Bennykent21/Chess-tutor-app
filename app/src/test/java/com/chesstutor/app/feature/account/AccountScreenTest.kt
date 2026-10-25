@@ -16,6 +16,7 @@ import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtTheme
+import com.chesstutor.app.domain.account.AnalysisSummary
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.puzzle.PlayerLevel
@@ -133,14 +134,15 @@ class AccountScreenTest {
     @Test
     fun gamePageShowsOpeningBoardAndActions() {
         val game = games.game("bot_1")!!
-        var replay: List<String>? = null
+        var reviewed = false
         var deleted = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 GameDetailScreen(
                     game = game,
                     settings = AppSettings(),
-                    actions = GameDetailActions(onReplay = { _, moves -> replay = moves }, onDelete = { deleted = true }),
+                    actions = GameDetailActions(onReview = { reviewed = true }, onDelete = { deleted = true }),
+                    analysis = AnalysisSummary("bot_1", plies = 6, whiteAccuracy = 92.34, blackAccuracy = 71.0, lite = false, analysedAt = 1),
                 )
             }
         }
@@ -150,8 +152,9 @@ class AccountScreenTest {
         compose.onNodeWithText("1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_game.png")
 
-        compose.onNodeWithText("Replay on the board").performClick()
-        assertEquals(game.moves, replay)
+        compose.onNodeWithText("You 92.3% · Pip 71.0%").assertExists()
+        compose.onNodeWithText("Open the review").performClick()
+        assertTrue(reviewed)
         compose.onNodeWithText("Delete").performClick()
         compose.onNodeWithText("Delete this game?").assertExists()
         compose.onAllNodesWithText("Delete").onLast().performClick()

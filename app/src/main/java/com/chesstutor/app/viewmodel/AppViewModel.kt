@@ -384,6 +384,11 @@ class AppViewModel(
         spacedReviewCoordinator.loadReviews(_state::update)
     }
 
+    /** Reloads the mistakes due for review after another screen added one ("Practise this mistake"). */
+    fun refreshReviews() {
+        viewModelScope.launch { loadReviews() }
+    }
+
     private suspend fun loadLearningState() {
         runCatching {
             val profile = learningRepository.getProfile()
