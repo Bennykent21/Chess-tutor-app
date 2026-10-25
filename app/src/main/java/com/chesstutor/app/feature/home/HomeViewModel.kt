@@ -26,6 +26,7 @@ import com.chesstutor.app.domain.game.SideChoice
 import com.chesstutor.app.domain.opening.BattleChoice
 import com.chesstutor.app.domain.opening.BattleMode
 import com.chesstutor.app.domain.opening.Opening
+import com.chesstutor.app.domain.opening.OpeningBattles
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.engine.EngineService
@@ -266,6 +267,25 @@ class HomeViewModel(
 
     fun updateBattle(change: (BattleDraft) -> BattleDraft) {
         mutableBattle.value = change(mutableBattle.value)
+    }
+
+    /**
+     * Prepares Opening Battle from a lesson (plan Phase 4D): the opening named [lineName] in
+     * the database, the lesson's [side] (or random when it suits both), "Play it" with the
+     * line's exact replies. The line fills in once the database is read.
+     */
+    fun presetBattle(lineName: String, side: PieceColor?) {
+        val sideChoice = when (side) {
+            PieceColor.WHITE -> SideChoice.WHITE
+            PieceColor.BLACK -> SideChoice.BLACK
+            null -> SideChoice.RANDOM
+        }
+        mutableBattle.value = mutableBattle.value.copy(side = sideChoice, line = null, mode = BattleMode.PLAY, exactReplies = true)
+        viewModelScope.launch {
+            val tree = mutableTree.value ?: openings().also { mutableTree.value = it }
+            val line = OpeningBattles.presetLine(tree, lineName) ?: return@launch
+            mutableBattle.value = mutableBattle.value.copy(line = line)
+        }
     }
 
     /** Starts the battle; false while no opening is picked. */

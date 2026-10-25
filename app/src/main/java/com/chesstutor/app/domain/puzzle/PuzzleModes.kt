@@ -60,6 +60,20 @@ object PuzzleModes {
         return nearRating(matching, rating, count, seed, avoid)
     }
 
+    /** [count] puzzles with any of [themes] near [rating]: a lesson's "Related puzzles". */
+    fun related(
+        pack: PuzzlePack,
+        themes: Collection<String>,
+        rating: Int,
+        count: Int,
+        seed: Long,
+        avoid: Set<String> = emptySet(),
+    ): List<Puzzle> {
+        val wanted = themes.toSet()
+        val matching = pack.puzzles.filter { p -> p.primaryTheme in wanted || p.themes.any { it in wanted } }
+        return nearRating(matching, rating, count, seed, avoid)
+    }
+
     /** [count] puzzles in [band], optionally with [pattern]. */
     fun custom(pack: PuzzlePack, band: RatingBand, pattern: String?, count: Int, seed: Long, avoid: Set<String> = emptySet()): List<Puzzle> {
         val matching = pack.puzzles.filter { p ->

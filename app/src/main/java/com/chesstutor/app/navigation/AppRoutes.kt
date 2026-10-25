@@ -58,6 +58,11 @@ object AppRoutes {
     const val PUZZLE_MODES = "puzzles/modes"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
     const val PUZZLE_DAILY = "puzzles/daily"
+    /** Starts puzzles with a lesson's themes (comma-separated Lichess names) and opens the player. */
+    const val THEMES_ARG = "themes"
+    const val PUZZLE_RELATED_PATTERN = "puzzles/related/{$THEMES_ARG}"
+    fun puzzleRelated(themes: List<String>): String = "puzzles/related/${encode(themes.joinToString(","))}"
+    fun parseThemes(value: String?): List<String> = value.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
     /** The lesson player, full screen inside the Learn tab (the lesson is chosen before opening it). */
     const val LESSON = "learn/lesson"
     /** A Learn category page (courses with search and filters); the argument is a `LessonCategory.key`. */

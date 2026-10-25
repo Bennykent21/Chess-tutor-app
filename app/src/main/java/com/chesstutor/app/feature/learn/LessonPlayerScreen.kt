@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.OndemandVideo
 import androidx.compose.material.icons.rounded.Refresh
@@ -75,6 +77,10 @@ fun LessonPlayerScreen(
     onReplay: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens Opening Battle on the course's line; null hides the button. */
+    onPractise: (() -> Unit)? = null,
+    /** Opens puzzles with the course's themes; null hides the button. */
+    onRelatedPuzzles: (() -> Unit)? = null,
 ) {
     BackHandler(onBack = onBack)
     CtScreenBackground(modifier) {
@@ -91,7 +97,7 @@ fun LessonPlayerScreen(
             ) {
                 PhaseRow(player, state)
                 when {
-                    state.phase == LessonPhase.DONE -> DoneCard(state, onNextLesson, onReplay, onBack)
+                    state.phase == LessonPhase.DONE -> DoneCard(state, onNextLesson, onReplay, onBack, onPractise, onRelatedPuzzles)
                     state.step is LessonStep.Watch -> WatchCard(state.step as LessonStep.Watch, onStart = player::next)
                     else -> BoardStep(player, state, settings, onFeedback)
                 }
@@ -219,7 +225,14 @@ private fun WatchCard(step: LessonStep.Watch, onStart: () -> Unit) {
 }
 
 @Composable
-private fun DoneCard(state: LessonPlayerState, onNextLesson: (String) -> Unit, onReplay: () -> Unit, onBack: () -> Unit) {
+private fun DoneCard(
+    state: LessonPlayerState,
+    onNextLesson: (String) -> Unit,
+    onReplay: () -> Unit,
+    onBack: () -> Unit,
+    onPractise: (() -> Unit)?,
+    onRelatedPuzzles: (() -> Unit)?,
+) {
     val result = state.result
     val completion = state.completion
     CtCard(background = CtGradients.Teal, modifier = Modifier.fillMaxWidth()) {
@@ -248,6 +261,12 @@ private fun DoneCard(state: LessonPlayerState, onNextLesson: (String) -> Unit, o
     }
     state.nextLesson?.let { next ->
         CtButton(text = "Next: ${next.title}", icon = Icons.AutoMirrored.Rounded.ArrowForward, onClick = { onNextLesson(next.id) }, modifier = Modifier.fillMaxWidth())
+    }
+    onRelatedPuzzles?.let {
+        CtButton(text = "Related puzzles", icon = Icons.Rounded.Extension, style = CtButtonStyle.Secondary, onClick = it, modifier = Modifier.fillMaxWidth())
+    }
+    onPractise?.let {
+        CtButton(text = "Practise in Opening Battle", icon = Icons.Rounded.Flag, style = CtButtonStyle.Secondary, onClick = it, modifier = Modifier.fillMaxWidth())
     }
     CtButton(
         text = "Play it again",

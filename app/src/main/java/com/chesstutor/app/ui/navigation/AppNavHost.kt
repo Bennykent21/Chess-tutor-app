@@ -33,6 +33,7 @@ import com.chesstutor.app.design.CtBottomBar
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
+import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
@@ -391,21 +392,27 @@ fun AppNavHost(
                         arguments = listOf(navArgument(AppRoutes.COURSE_ID_ARG) { type = NavType.StringType })
                     ) { entry ->
                         val learn = learnViewModel(navController, entry)
+                        val homeModel = homeViewModel(navController, entry)
                         val lessons by learn.learn.collectAsStateWithLifecycle()
                         val courseId = entry.arguments?.getString(AppRoutes.COURSE_ID_ARG).orEmpty()
+                        val course = lessons.library.course(courseId)
                         CourseScreen(
-                            course = lessons.library.course(courseId),
+                            course = course,
                             progress = lessons.progress,
                             onOpenLesson = { id ->
                                 learn.openLesson(id)
                                 navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
                             },
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onPractise = course?.let { navController.practiseInBattle(it, homeModel) },
+                            onRelatedPuzzles = course?.let { navController.relatedPuzzles(it) }
                         )
                     }
                     composable(AppRoutes.LESSON) { entry ->
                         val learn = learnViewModel(navController, entry)
+                        val homeModel = homeViewModel(navController, entry)
                         val player by learn.player.collectAsStateWithLifecycle()
+                        val course = player?.course
                         LessonPlayerScreen(
                             player = player,
                             settings = state.appSettings,
@@ -415,7 +422,9 @@ fun AppNavHost(
                             onBack = {
                                 learn.closePlayer()
                                 navController.popBackStack()
-                            }
+                            },
+                            onPractise = course?.let { navController.practiseInBattle(it, homeModel) },
+                            onRelatedPuzzles = course?.let { navController.relatedPuzzles(it) }
                         )
                     }
                 }
@@ -445,6 +454,20 @@ fun AppNavHost(
                             puzzles.startDaily()
                             navController.navigate(AppRoutes.PUZZLE_PLAYER) {
                                 popUpTo(AppRoutes.PUZZLE_DAILY) { inclusive = true }
+                            }
+                        }
+                    }
+                    // A lesson's "Related puzzles": starts puzzles with its themes, then shows the player.
+                    composable(
+                        route = AppRoutes.PUZZLE_RELATED_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.THEMES_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        val themes = AppRoutes.parseThemes(entry.arguments?.getString(AppRoutes.THEMES_ARG))
+                        LaunchedEffect(Unit) {
+                            puzzles.startRelated(themes)
+                            navController.navigate(AppRoutes.PUZZLE_PLAYER) {
+                                popUpTo(AppRoutes.PUZZLE_RELATED_PATTERN) { inclusive = true }
                             }
                         }
                     }
@@ -645,6 +668,25 @@ private fun homeViewModel(navController: NavHostController, entry: NavBackStackE
             maia = AppContainer.provideMaia(context),
         ),
     )
+}
+
+/** "Practise in Opening Battle" for [course]: presets Home's battle page and opens it. Null without a line. */
+private fun NavHostController.practiseInBattle(course: Course, home: HomeViewModel): (() -> Unit)? {
+    val line = course.battleLine ?: return null
+    return {
+        home.presetBattle(line, course.side)
+        navigateToTab(TopTab.HOME)
+        navigate(AppRoutes.BATTLE) { launchSingleTop = true }
+    }
+}
+
+/** "Related puzzles" for [course]: puzzles with its themes in the Puzzles tab. Null without themes. */
+private fun NavHostController.relatedPuzzles(course: Course): (() -> Unit)? {
+    if (course.puzzleThemes.isEmpty()) return null
+    return {
+        navigateToTab(TopTab.PUZZLES)
+        navigate(AppRoutes.puzzleRelated(course.puzzleThemes)) { launchSingleTop = true }
+    }
 }
 
 /** The Learn tab's view model, shared by the hub, its pages and the lesson player (scoped to its graph). */
