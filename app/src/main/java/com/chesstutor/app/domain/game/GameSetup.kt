@@ -11,8 +11,12 @@ enum class TimeControl(val label: String, val initialMs: Long?, val incrementMs:
     RAPID_10("10 min", 10 * 60_000L),
     RAPID_15_10("15 | 10", 15 * 60_000L, 10_000L);
 
-    /** "rapid" or "blitz", as saved games record it. */
-    val timeClass: String get() = if (this == BLITZ_5) "blitz" else "rapid"
+    /** "untimed", "blitz" or "rapid", as saved games record it (the games list filters on it). */
+    val timeClass: String get() = when (this) {
+        NONE -> "untimed"
+        BLITZ_5 -> "blitz"
+        else -> "rapid"
+    }
 }
 
 /** Which colour the player takes. */

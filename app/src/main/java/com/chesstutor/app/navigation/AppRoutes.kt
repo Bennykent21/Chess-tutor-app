@@ -53,6 +53,10 @@ object AppRoutes {
     const val DEVELOPER_MENU = "account/developer"
     const val DESIGN_GALLERY = "account/design"
     const val BOARD_SETTINGS = "account/board"
+    /** One saved game: result, opening, final position and moves (plan section 6.4). */
+    const val GAME_ID_ARG = "gameId"
+    const val GAME_PATTERN = "account/game/{$GAME_ID_ARG}"
+    fun game(id: String): String = "account/game/${encode(id)}"
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
@@ -120,7 +124,7 @@ object AppRoutes {
     fun parseCategory(value: String?): LearnCategory? =
         value?.let { name -> LearnCategory.entries.firstOrNull { it.name == name } }
 
-    private val accountPages = setOf(ENGINE_HEALTH, DEVELOPER_MENU, DESIGN_GALLERY, BOARD_SETTINGS)
+    private val accountPages = setOf(ENGINE_HEALTH, DEVELOPER_MENU, DESIGN_GALLERY, BOARD_SETTINGS, GAME_PATTERN)
     /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN)
 

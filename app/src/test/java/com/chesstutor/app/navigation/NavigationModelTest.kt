@@ -43,6 +43,14 @@ class NavigationModelTest {
     }
 
     @Test
+    fun gamePagesBelongToTheAccountTab() {
+        assertEquals("account/game/chesscom_123", AppRoutes.game("chesscom_123"))
+        assertEquals("account/game/a%2Fb", AppRoutes.game("a/b"))
+        assertTrue(AppRoutes.showsBottomBar(AppRoutes.GAME_PATTERN))
+        assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.GAME_PATTERN))
+    }
+
+    @Test
     fun legacyRouteCarriesTheLearnCategory() {
         assertEquals("legacy", AppRoutes.legacy())
         val route = AppRoutes.legacy(LearnCategory.ENDGAME)

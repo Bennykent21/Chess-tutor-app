@@ -36,7 +36,11 @@ import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.ReviewScheduler
+import com.chesstutor.app.feature.account.AccountActions
 import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.feature.account.AccountViewModel
+import com.chesstutor.app.feature.account.GameDetailActions
+import com.chesstutor.app.feature.account.GameDetailScreen
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.di.AppContainer
@@ -75,7 +79,6 @@ import com.chesstutor.app.feature.puzzles.PuzzlePlayerScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
-import com.chesstutor.app.navigation.LegacyTab
 import com.chesstutor.app.navigation.StartScreen
 import com.chesstutor.app.navigation.TopTab
 import com.chesstutor.app.navigation.TrainRequest
@@ -506,17 +509,50 @@ fun AppNavHost(
                     }
                 }
                 navigation(startDestination = TopTab.ACCOUNT.startRoute, route = TopTab.ACCOUNT.graphRoute) {
-                    composable(TopTab.ACCOUNT.startRoute) {
+                    composable(TopTab.ACCOUNT.startRoute) { entry ->
+                        val account = accountViewModel(navController, entry)
+                        val games by account.games.collectAsStateWithLifecycle()
+                        val stats by account.stats.collectAsStateWithLifecycle()
                         AccountScreen(
                             state = state,
+                            games = games,
+                            stats = stats,
                             dueReviewCount = dueReviews,
-                            onOpenGames = { openLegacy(LegacyTab.REVIEW) },
-                            onOpenSettings = { viewModel.setSettingsVisible(true) },
-                            onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
-                            onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
-                            onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
-                            onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
-                            onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) }
+                            actions = AccountActions(
+                                onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
+                                onLink = { platform, username, timeControl -> viewModel.linkRatingAccount(platform, username, timeControl) },
+                                onSync = { viewModel.refreshLinkedRating() },
+                                onCancelImport = viewModel::cancelAccountImport,
+                                onUnlink = viewModel::unlinkRatingAccount,
+                                onImportDepth = viewModel::setImportDepth,
+                                onDismissLinkStatus = viewModel::clearLinkingStatus,
+                                onOpenSettings = { viewModel.setSettingsVisible(true) },
+                                onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
+                                onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
+                                onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
+                                onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
+                                onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) }
+                            )
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.GAME_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.GAME_ID_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val account = accountViewModel(navController, entry)
+                        val games by account.games.collectAsStateWithLifecycle()
+                        val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
+                        GameDetailScreen(
+                            game = games.game(gameId),
+                            settings = state.appSettings,
+                            actions = GameDetailActions(
+                                onReplay = { fen, moves -> navController.navigate(AppRoutes.analysis(fen, moves)) },
+                                onDelete = {
+                                    account.deleteGame(gameId)
+                                    navController.popBackStack()
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
                         )
                     }
                     composable(AppRoutes.ENGINE_HEALTH) {
@@ -697,6 +733,21 @@ private fun learnViewModel(navController: NavHostController, entry: NavBackStack
     return viewModel(
         viewModelStoreOwner = owner,
         factory = LearnViewModel.Factory(AppContainer.provideLessonProgress(context)) { AppContainer.provideLessonLoader(context).load() },
+    )
+}
+
+/** The Account tab's view model, shared by the tab and its game pages (scoped to its graph). */
+@Composable
+private fun accountViewModel(navController: NavHostController, entry: NavBackStackEntry): AccountViewModel {
+    val owner = remember(entry) { navController.getBackStackEntry(TopTab.ACCOUNT.graphRoute) }
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = AccountViewModel.Factory(
+            repository = AppContainer.provideGameRepository(context),
+            loadOpenings = { AppContainer.provideOpeningLoader(context).load() },
+            puzzleStats = AppContainer.providePuzzleRepository(context).stats(),
+        ),
     )
 }
 
