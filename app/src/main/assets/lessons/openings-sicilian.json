@@ -1,0 +1,102 @@
+{
+  "id": "openings-sicilian",
+  "category": "openings",
+  "title": "Sicilian Defence",
+  "intro": "1.e4 c5: Black fights for the centre from the side and plays for a win. The most popular answer to 1.e4.",
+  "level": "intermediate",
+  "order": 60,
+  "side": "black",
+  "battleLine": "Sicilian Defense",
+  "lessons": [
+    {
+      "id": "openings-sicilian-open",
+      "title": "The Open Sicilian and the Najdorf",
+      "summary": "Trade a side pawn for a centre pawn, then a6.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White opens with 1.e4. The Sicilian answers 1...c5: the pawn controls d4 from the side and keeps the game unbalanced.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "move": "e2e4"
+        },
+        {
+          "type": "play",
+          "text": "Play the Sicilian.",
+          "expect": ["c7c5"],
+          "hint": "Push the c-pawn two squares.",
+          "ifWrong": "The Sicilian is 1...c5.",
+          "ifRight": "The Sicilian Defence.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops with 2.Nf3, getting ready for d4.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Play d6: it guards e5 and prepares ...Nf6.",
+          "expect": ["d7d6"],
+          "hint": "A one-square pawn move in the centre.",
+          "ifWrong": "This lesson follows the main line with 2...d6.",
+          "ifRight": "Solid and flexible.",
+          "feedback": {
+            "b8c6": "2...Nc6 is a popular Sicilian move too. This lesson follows 2...d6.",
+            "e7e6": "2...e6 is a popular Sicilian move too. This lesson follows 2...d6."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White opens the centre with 3.d4.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Take on d4. You swap your side pawn for White's centre pawn.",
+          "expect": ["c5d4"],
+          "hint": "Capture with the c-pawn.",
+          "ifWrong": "Capture the d4 pawn.",
+          "ifRight": "Now you have two centre pawns against White's one.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White takes back with the knight: 4.Nxd4.",
+          "move": "f3d4"
+        },
+        {
+          "type": "play",
+          "text": "Develop with an attack on e4.",
+          "expect": ["g8f6"],
+          "hint": "Your king's knight can hit e4.",
+          "ifWrong": "Bring out the knight so it attacks e4.",
+          "ifRight": "e4 is under attack.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White defends with 5.Nc3. Now you choose your Sicilian.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Play the Najdorf: the quiet a6 keeps White's pieces off b5 and prepares ...e5 or ...b5.",
+          "expect": ["a7a6"],
+          "hint": "A one-square move with the a-pawn.",
+          "ifWrong": "The Najdorf is 5...a6.",
+          "ifRight": "The Najdorf, a favourite of world champions.",
+          "feedback": {
+            "g7g6": "That is the Dragon: also excellent, with the bishop going to g7. This lesson shows the Najdorf."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Your plan: use the half-open c-file (a rook on c8 later), challenge the centre with ...e5 or ...e6, and expand with ...b5.",
+          "arrows": ["c8c3:idea"]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "id": "tactics-smothered-mate",
+  "category": "tactics",
+  "title": "Mating patterns",
+  "intro": "Patterns that finish games: the smothered mate with its famous queen sacrifice, and the queen and bishop battery.",
+  "level": "intermediate",
+  "order": 40,
+  "puzzleThemes": ["smotheredMate"],
+  "lessons": [
+    {
+      "id": "tactics-smothered",
+      "title": "Smothered by its own pieces",
+      "summary": "The knight mates a king that cannot move.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The black king is surrounded by its own rook and pawns. It has no square to go to, so one knight check is enough.",
+          "fen": "6rk/6pp/8/4N3/8/8/8/6K1 w - - 0 1",
+          "highlights": ["g8:bad", "g7:bad", "h7:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "Nf7 is checkmate. Nothing can take the knight, and a knight check cannot be blocked.",
+          "fen": "6rk/6pp/8/4N3/8/8/8/6K1 w - - 0 1",
+          "move": "e5f7"
+        },
+        {
+          "type": "quiz",
+          "text": "Checkmate in one.",
+          "fen": "6rk/6pp/8/6N1/8/8/8/K7 w - - 0 1",
+          "goal": "mate",
+          "hint": "The king is smothered. Which knight jump gives check?",
+          "ifWrong": "Not mate. Find the knight check."
+        },
+        {
+          "type": "explain",
+          "text": "Often the corner is not closed yet. Then a queen sacrifice forces Black's own rook into the box: Qg8+! Rxg8, and the knight mates.",
+          "fen": "r6k/6pp/7N/8/8/1Q6/8/6K1 w - - 0 1",
+          "arrows": ["b3g8:good", "h6f7:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Play the famous combination: sacrifice the queen, then mate with the knight.",
+          "fen": "r6k/6pp/7N/8/8/1Q6/8/6K1 w - - 0 1",
+          "line": ["b3g8", "a8g8", "h6f7"],
+          "hint": "The queen checks on g8, where the king cannot take it because of your knight.",
+          "ifWrong": "Start with the queen sacrifice on g8.",
+          "ifRight": "Smothered mate! Black's own rook sealed the king in."
+        }
+      ]
+    },
+    {
+      "id": "tactics-battery-mate",
+      "title": "The queen and bishop battery",
+      "summary": "Two pieces on one diagonal, aimed at the king.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Your queen and bishop stand on the same long diagonal. Together they form a battery aimed at g7, and Black's g-pawn is gone.",
+          "fen": "r1bq1rk1/ppp2p1p/2n5/8/8/2Q5/PB3PPP/R3K2R w KQ - 0 10",
+          "arrows": ["b2g7:idea", "c3g7:good"]
+        },
+        {
+          "type": "quiz",
+          "text": "Fire the battery: checkmate in one.",
+          "fen": "r1bq1rk1/ppp2p1p/2n5/8/8/2Q5/PB3PPP/R3K2R w KQ - 0 10",
+          "goal": "mate",
+          "hint": "The queen can land on g7 or h8, protected by the bishop behind her.",
+          "ifWrong": "Not mate. Use the long diagonal: the bishop backs up your queen."
+        }
+      ]
+    }
+  ]
+}

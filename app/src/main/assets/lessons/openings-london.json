@@ -1,0 +1,90 @@
+{
+  "id": "openings-london",
+  "category": "openings",
+  "title": "London System",
+  "intro": "d4, Nf3 and Bf4, then e3, c3 and Nbd2: one calm, solid set-up for White against almost anything.",
+  "level": "beginner",
+  "order": 50,
+  "side": "white",
+  "battleLine": "Queen's Pawn Game: London System",
+  "lessons": [
+    {
+      "id": "openings-london-setup",
+      "title": "The London set-up",
+      "summary": "Bishop out first, then a rock-solid pawn triangle.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The London System puts the dark-squared bishop on f4 early, before e3 locks it in. Then White builds a solid triangle of pawns on c3, d4 and e3.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "highlights": ["f4:good", "c3", "d4", "e3"]
+        },
+        {
+          "type": "play",
+          "text": "Play the London: d4, Nf3, then the bishop to f4.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "line": ["d2d4", "d7d5", "g1f3", "g8f6", "c1f4"],
+          "hint": "Queen's pawn, king's knight, then the bishop goes out before e3.",
+          "ifWrong": "The London goes d4, Nf3, Bf4.",
+          "ifRight": "The bishop is out before the pawns close it in.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black hits the centre with 3...c5.",
+          "move": "c7c5"
+        },
+        {
+          "type": "play",
+          "text": "Support d4 and open a path for your other bishop.",
+          "expect": ["e2e3"],
+          "hint": "A one-square pawn move in front of the king.",
+          "ifWrong": "The London plays e3 here.",
+          "ifRight": "d4 is supported and the f1 bishop can come out.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black adds pressure on d4 with 4...Nc6.",
+          "move": "b8c6"
+        },
+        {
+          "type": "play",
+          "text": "Develop the queen's knight to d2, where it does not block the c-pawn.",
+          "expect": ["b1d2"],
+          "hint": "On c3 the knight would stop your c-pawn moving.",
+          "ifWrong": "In the London the knight goes to d2, keeping c3 free for a pawn.",
+          "ifRight": "Now c3 can follow.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black plays 5...e6.",
+          "move": "e7e6"
+        },
+        {
+          "type": "play",
+          "text": "Complete the pawn triangle.",
+          "expect": ["c2c3"],
+          "hint": "Push the c-pawn one square.",
+          "ifWrong": "The triangle needs a pawn on c3.",
+          "ifRight": "c3, d4, e3: the London fortress. Next come Bd3 and castling.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Black offers to trade bishops with ...Bd6. London players usually keep their bishop. Where does it go?",
+          "fen": "r1bqk2r/pp3ppp/2nbpn2/2pp4/3P1B2/2P1PN2/PP1N1PPP/R2QKB1R w KQkq - 1 7",
+          "expect": ["f4g3"],
+          "hint": "Step back along the diagonal, still eyeing Black's queenside.",
+          "ifWrong": "Keep the bishop by stepping back to g3.",
+          "ifRight": "The bishop stays, and if Black takes on g3, your h-pawn takes back.",
+          "feedback": {
+            "f4d6": "Trading is fine too. Most London players keep the bishop with Bg3."
+          },
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

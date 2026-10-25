@@ -1,0 +1,123 @@
+{
+  "id": "openings-italian",
+  "category": "openings",
+  "title": "Italian Game",
+  "intro": "1.e4 e5 2.Nf3 Nc6 3.Bc4: fast development and a bishop aimed at f7. A classic first opening for White.",
+  "level": "beginner",
+  "order": 20,
+  "side": "white",
+  "battleLine": "Italian Game",
+  "puzzleThemes": ["fork"],
+  "lessons": [
+    {
+      "id": "openings-italian-giuoco",
+      "title": "First moves and the Giuoco Piano",
+      "summary": "Develop quickly, then build a big centre with c3 and d4.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The Italian Game starts 1.e4 e5 2.Nf3 Nc6 3.Bc4. White develops fast and points the bishop at f7, the weakest square near Black's king.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        },
+        {
+          "type": "play",
+          "text": "Play the first moves of the Italian: e4, then Nf3, then Bc4.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "line": ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4"],
+          "hint": "King's pawn two squares, then the king's knight, then the bishop.",
+          "ifWrong": "That is playable, but the Italian goes e4, Nf3 and Bc4.",
+          "ifRight": "That is the Italian Game.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "The bishop on c4 eyes f7. Black's main answers are 3...Bc5, the Giuoco Piano ('quiet game'), and 3...Nf6, the Two Knights.",
+          "arrows": ["c4f7"],
+          "highlights": ["f7:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "Black copies you with 3...Bc5.",
+          "move": "f8c5"
+        },
+        {
+          "type": "play",
+          "text": "You want to play d4 next. Prepare it with c3, so you can take back on d4 with a pawn.",
+          "expect": ["c2c3"],
+          "hint": "A pawn move that supports d4.",
+          "ifWrong": "Here the plan is c3, getting ready for d4.",
+          "ifRight": "Now d4 is coming.",
+          "feedback": {
+            "d2d3": "The quiet d3 is a fine modern choice too. This lesson shows the classic plan with c3 and d4."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops and attacks your e4 pawn with 4...Nf6.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Strike in the centre with d4.",
+          "expect": ["d2d4"],
+          "hint": "The pawn on c3 supports it.",
+          "ifWrong": "Push the d-pawn two squares.",
+          "ifRight": "Pawns on e4 and d4: a big centre. Next you castle and bring out the rest.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-italian-two-knights",
+      "title": "The Two Knights and the attack on f7",
+      "summary": "Ng5 hits f7 twice: know the attack and Black's defence.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "In the Two Knights, Black plays 3...Nf6 and attacks e4 instead of copying with ...Bc5.",
+          "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "highlights": ["e4:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Go for f7: put a second piece on it with the knight.",
+          "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "expect": ["f3g5"],
+          "hint": "The knight can jump to a square that attacks f7.",
+          "ifWrong": "This lesson looks at the sharp Ng5, attacking f7 twice.",
+          "ifRight": "Knight and bishop both hit f7.",
+          "feedback": {
+            "d2d3": "The calm d3 is a good modern choice. Here, try the sharp Ng5.",
+            "e1g1": "Castling is fine and solid. Here, try the sharp Ng5."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black's best defence is 4...d5, blocking the bishop. After 5.exd5 Black must not take back with the knight.",
+          "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p1N1/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 5 4",
+          "move": "d7d5"
+        },
+        {
+          "type": "explain",
+          "text": "Here Black took back with 5...Nxd5. Now f7 is weak, and White can attack it with a piece or a pawn.",
+          "fen": "r1bqkb1r/ppp2ppp/2n5/3np1N1/2B5/8/PPPP1PPP/RNBQK2R w KQkq - 0 6",
+          "arrows": ["g5f7:idea", "c4f7:idea"]
+        },
+        {
+          "type": "quiz",
+          "text": "Black took back with 5...Nxd5. Find a strong attacking move.",
+          "fen": "r1bqkb1r/ppp2ppp/2n5/3np1N1/2B5/8/PPPP1PPP/RNBQK2R w KQkq - 0 6",
+          "expect": ["d2d4", "g5f7"],
+          "hint": "Open the centre with a pawn, or sacrifice the knight on f7 (the Fried Liver Attack).",
+          "ifWrong": "Keep the pressure on f7 and the centre.",
+          "ifRight": "That keeps Black's king under fire.",
+          "feedback": {
+            "d1f3": "It hits f7 and d5, but it leaves your knight on g5 unprotected: ...Qxg5 wins it."
+          }
+        }
+      ]
+    }
+  ]
+}

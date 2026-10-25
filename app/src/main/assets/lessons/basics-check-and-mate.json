@@ -48,15 +48,19 @@
         },
         {
           "type": "quiz",
-          "text": "Your king is in check from the rook. Block the check with your bishop.",
-          "fen": "k3r3/8/8/8/8/8/8/2B1K3 w - - 0 1",
-          "expect": ["c1e3"],
-          "hint": "Put the bishop between the rook and your king.",
+          "text": "Your king is in check from the rook. Block the check with your bishop, on a square where it is safe.",
+          "fen": "k3r3/8/8/2B5/8/8/3P4/4K3 w - - 0 1",
+          "expect": ["c5e3"],
+          "hint": "Put the bishop between the rook and your king, next to your pawn.",
           "ifWrong": "That gets out of check, but this time block it with the bishop.",
-          "ifRight": "Blocked! The bishop stands in the rook's way.",
+          "ifRight": "Blocked! The bishop stands in the rook's way, and your pawn protects it.",
           "feedback": {
-            "e1d2": "Stepping aside escapes the check too. Here, practise blocking with the bishop."
-          }
+            "c5e7": "That blocks the check, but the rook simply takes your bishop. Block where your pawn protects it.",
+            "e1d1": "Stepping aside escapes the check too. Here, practise blocking with the bishop.",
+            "e1f1": "Stepping aside escapes the check too. Here, practise blocking with the bishop.",
+            "e1f2": "Stepping aside escapes the check too. Here, practise blocking with the bishop."
+          },
+          "rule": true
         }
       ]
     },

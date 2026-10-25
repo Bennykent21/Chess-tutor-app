@@ -1,8 +1,6 @@
 package com.chesstutor.app.feature.learn
 
 import com.chesstutor.app.core.PieceColor
-import com.chesstutor.app.domain.LearnCategory
-import com.chesstutor.app.domain.LearnTopic
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.Lesson
 import com.chesstutor.app.domain.learn.LessonCategory
@@ -17,11 +15,6 @@ data class LearnHubTile(
     val totalLessons: Int,
     val completedLessons: Int,
     val startedLessons: Int,
-    /**
-     * The old curriculum list this opens while the category has no new lessons yet
-     * (until step 4C moves that content over); null when there is none.
-     */
-    val legacyCategory: LearnCategory? = null,
 ) {
     val key: String get() = category.key
     val title: String get() = category.title
@@ -54,41 +47,12 @@ object LearnHubModel {
         LessonCategory.BLUNDERS to "Spot the traps before they spring",
     )
 
-    private val legacyOf = mapOf(
-        LessonCategory.OPENINGS to LearnCategory.OPENING,
-        LessonCategory.TACTICS to LearnCategory.TACTICS,
-        LessonCategory.MIDDLEGAME to LearnCategory.MIDDLEGAME,
-        LessonCategory.ENDGAMES to LearnCategory.ENDGAME,
-        LessonCategory.BLUNDERS to LearnCategory.BLUNDER_PATTERNS,
-    )
-
-    /**
-     * The six hub tiles. A category with new lessons counts them from [progress]; one without
-     * falls back to the old curriculum ([legacyTopics], mastered = completed, practised = started).
-     */
-    fun tiles(
-        library: LessonLibrary,
-        progress: Map<String, LessonProgress>,
-        legacyTopics: List<LearnTopic> = emptyList(),
-        legacyMastered: Set<String> = emptySet(),
-        legacyPracticed: Set<String> = emptySet(),
-    ): List<LearnHubTile> = LessonCategory.entries.map { category ->
-        val count = countOf(library.coursesIn(category).flatMap { it.lessons }, progress)
-        val legacy = legacyOf[category]
-        if (count.total > 0 || legacy == null) {
+    /** The six hub tiles, with lesson counts from [progress]. */
+    fun tiles(library: LessonLibrary, progress: Map<String, LessonProgress>): List<LearnHubTile> =
+        LessonCategory.entries.map { category ->
+            val count = countOf(library.coursesIn(category).flatMap { it.lessons }, progress)
             LearnHubTile(category, subtitles.getValue(category), count.total, count.completed, count.started)
-        } else {
-            val topics = legacyTopics.filter { it.category == legacy }
-            LearnHubTile(
-                category = category,
-                subtitle = subtitles.getValue(category),
-                totalLessons = topics.size,
-                completedLessons = topics.count { it.id in legacyMastered },
-                startedLessons = topics.count { it.id in legacyPracticed && it.id !in legacyMastered },
-                legacyCategory = legacy,
-            )
         }
-    }
 
     /** Overall progress across every available lesson, 0..1. */
     fun overallProgress(tiles: List<LearnHubTile>): Float {

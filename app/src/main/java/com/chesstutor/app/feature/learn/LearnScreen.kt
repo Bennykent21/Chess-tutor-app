@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.School
@@ -33,25 +32,18 @@ import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtGradients
 import com.chesstutor.app.design.CtIconBubble
-import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
-import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctEnter
-import com.chesstutor.app.domain.LearnCategory
-import com.chesstutor.app.domain.LearnTopic
 import com.chesstutor.app.domain.learn.LessonCategory
 
 /** Everything the hub can open. */
 data class LearnHubActions(
     val onOpenCategory: (LessonCategory) -> Unit,
-    /** The old lesson list, for a category whose lessons have not moved over yet. */
-    val onOpenLegacy: (LearnCategory) -> Unit,
     val onOpenLesson: (lessonId: String) -> Unit,
-    val onOpenDrills: () -> Unit,
 )
 
 /**
@@ -61,15 +53,10 @@ data class LearnHubActions(
 @Composable
 fun LearnScreen(
     learn: LearnState,
-    legacyTopics: List<LearnTopic>,
-    legacyMastered: Set<String>,
-    legacyPracticed: Set<String>,
     actions: LearnHubActions,
     modifier: Modifier = Modifier,
 ) {
-    val tiles = remember(learn, legacyMastered, legacyPracticed) {
-        LearnHubModel.tiles(learn.library, learn.progress, legacyTopics, legacyMastered, legacyPracticed)
-    }
+    val tiles = remember(learn) { LearnHubModel.tiles(learn.library, learn.progress) }
     val next = remember(learn) { LearnHubModel.continueLesson(learn.library, learn.progress) }
     val done = tiles.sumOf { it.completedLessons }
     val total = tiles.sumOf { it.totalLessons }
@@ -118,26 +105,13 @@ fun LearnScreen(
                         rowTiles.forEach { tile ->
                             HubTile(
                                 tile = tile,
-                                onClick = {
-                                    val legacy = tile.legacyCategory
-                                    if (legacy != null) actions.onOpenLegacy(legacy) else actions.onOpenCategory(tile.category)
-                                },
+                                onClick = { actions.onOpenCategory(tile.category) },
                                 modifier = Modifier.weight(1f),
                             )
                         }
                         if (rowTiles.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
-
-                CtSectionHeader(title = "Practice", modifier = Modifier.ctEnter(5))
-                CtListRow(
-                    title = "Tactics drills",
-                    subtitle = "The current drill player, until puzzles replace it",
-                    icon = Icons.Rounded.Extension,
-                    iconTint = CtColors.Gold,
-                    onClick = actions.onOpenDrills,
-                    modifier = Modifier.ctEnter(6),
-                )
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }
@@ -178,9 +152,8 @@ private fun HubTile(tile: LearnHubTile, onClick: () -> Unit, modifier: Modifier)
         } else {
             CtProgressBar(progress = tile.progress, color = accent, height = 8.dp)
             Spacer(Modifier.height(CtSpacing.xs))
-            val label = if (tile.legacyCategory != null) "classic lessons" else "done"
             Text(
-                text = "${tile.completedLessons}/${tile.totalLessons} $label",
+                text = "${tile.completedLessons}/${tile.totalLessons} done",
                 style = CtType.Caption,
                 modifier = Modifier.fillMaxWidth(),
             )

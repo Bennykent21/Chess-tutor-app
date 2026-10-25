@@ -31,7 +31,6 @@ import com.chesstutor.app.design.CtBottomBar
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
-import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
@@ -349,17 +348,12 @@ fun AppNavHost(
                         val lessons by learn.learn.collectAsStateWithLifecycle()
                         LearnScreen(
                             learn = lessons,
-                            legacyTopics = LearnCurriculumRepository.topics,
-                            legacyMastered = state.masteredModules,
-                            legacyPracticed = state.practicedModules,
                             actions = LearnHubActions(
                                 onOpenCategory = { category -> navController.navigate(AppRoutes.learnCategory(category.key)) { launchSingleTop = true } },
-                                onOpenLegacy = { category -> openLegacy(LegacyTab.CURRICULUM, category) },
                                 onOpenLesson = { id ->
                                     learn.openLesson(id)
                                     navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
-                                },
-                                onOpenDrills = { openLegacy(LegacyTab.SESSION) }
+                                }
                             )
                         )
                     }
@@ -574,9 +568,6 @@ fun AppNavHost(
                     LegacyHost(
                         state = state,
                         viewModel = viewModel,
-                        initialCategory = AppRoutes.parseCategory(
-                            entry.arguments?.getString(AppRoutes.LEGACY_CATEGORY_ARG)
-                        ),
                         onExit = { navController.popBackStack() }
                     )
                 }

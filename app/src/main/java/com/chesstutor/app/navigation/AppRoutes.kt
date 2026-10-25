@@ -17,9 +17,12 @@ enum class TopTab(val graphRoute: String, val startRoute: String, val label: Str
  * They live behind the new shell until each one is replaced (strangler approach).
  */
 object LegacyTab {
-    /** CoachScreen: the lesson and drill player. Removed in Phase 4. */
+    /**
+     * CoachScreen: the old lesson and drill player. The new lessons replaced it in Phase 4, but it
+     * still plays the spaced "review due" sessions until Phase 5 moves them into Puzzles.
+     */
     const val SESSION = 0
-    /** CurriculumScreen: the old Learn list. Removed in Phase 4. */
+    /** CurriculumScreen: the old Learn list, retired in Phase 4C (the index stays reserved). */
     const val CURRICULUM = 1
     /** ArenaScreen: games against bots. Removed in Phase 3 (Home and its games replace it); the index stays reserved. */
     const val ARENA = 2
@@ -33,7 +36,7 @@ object LegacyTab {
     const val PUZZLES = 4
 
     /** The classic screens still offered (Account > Classic screens). */
-    val ALL = listOf(SESSION, CURRICULUM, REVIEW)
+    val ALL = listOf(SESSION, REVIEW)
 
     fun title(index: Int): String = when (index) {
         SESSION -> "Lesson and drill player"

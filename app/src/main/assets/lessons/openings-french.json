@@ -1,0 +1,80 @@
+{
+  "id": "openings-french",
+  "category": "openings",
+  "title": "French Defence",
+  "intro": "1.e4 e6 and 2...d5: a solid pawn chain, then counterattacks against White's centre.",
+  "level": "intermediate",
+  "order": 70,
+  "side": "black",
+  "battleLine": "French Defense",
+  "lessons": [
+    {
+      "id": "openings-french-advance",
+      "title": "The French and the Advance Variation",
+      "summary": "Hit the base of the pawn chain.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Against 1.e4, the French Defence plays 1...e6 to prepare ...d5, challenging White's centre with pawn support.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "move": "e2e4"
+        },
+        {
+          "type": "play",
+          "text": "Play the French.",
+          "expect": ["e7e6"],
+          "hint": "Push the king's pawn just one square.",
+          "ifWrong": "The French starts 1...e6.",
+          "ifRight": "The French Defence.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White takes the centre with 2.d4.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Challenge the centre.",
+          "expect": ["d7d5"],
+          "hint": "The d-pawn two squares, supported by e6.",
+          "ifWrong": "Strike at e4 with the d-pawn.",
+          "ifRight": "Now e4 is attacked.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "In the Advance Variation White pushes past with 3.e5 and grabs space. White's pawns now form a chain: d4 supports e5.",
+          "move": "e4e5",
+          "highlights": ["d4:bad", "e5"]
+        },
+        {
+          "type": "play",
+          "text": "Attack the base of the chain: hit d4 with a pawn.",
+          "expect": ["c7c5"],
+          "hint": "Your c-pawn can reach a square that attacks d4.",
+          "ifWrong": "Strike at d4, the base of White's chain.",
+          "ifRight": "That is the key French idea.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White supports d4 with 4.c3.",
+          "move": "c2c3"
+        },
+        {
+          "type": "play",
+          "text": "Add another attacker on d4.",
+          "expect": ["b8c6"],
+          "hint": "Develop a piece that hits d4.",
+          "ifWrong": "Bring the queen's knight to c6, adding pressure on d4.",
+          "ifRight": "d4 is under fire. Next ...Qb6 adds even more.",
+          "feedback": {
+            "d8b6": "Excellent too: the queen hits d4 and b2. The usual order brings the knight out first."
+          },
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

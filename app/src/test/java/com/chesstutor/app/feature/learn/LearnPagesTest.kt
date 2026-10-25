@@ -1,6 +1,8 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -10,8 +12,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.data.learn.LessonAssetLoader
 import com.chesstutor.app.design.CtTheme
-import com.chesstutor.app.domain.LearnCategory
-import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.learn.LessonLevel
@@ -64,19 +64,13 @@ class LearnPagesTest {
     fun hubShowsContinueAndCategoryTiles() {
         var opened: String? = null
         var category: LessonCategory? = null
-        var legacy: LearnCategory? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 LearnScreen(
                     learn = learn,
-                    legacyTopics = LearnCurriculumRepository.topics,
-                    legacyMastered = emptySet(),
-                    legacyPracticed = emptySet(),
                     actions = LearnHubActions(
                         onOpenCategory = { category = it },
-                        onOpenLegacy = { legacy = it },
                         onOpenLesson = { opened = it },
-                        onOpenDrills = {},
                     ),
                 )
             }
@@ -88,7 +82,8 @@ class LearnPagesTest {
         compose.onNodeWithText("Openings").performClick()
         assertEquals(LessonCategory.OPENINGS, category)
         compose.onNodeWithText("Endgames").performClick()
-        assertEquals("no new endgame lessons yet: the classic list opens", LearnCategory.ENDGAME, legacy)
+        assertEquals("a category with no lessons does not open", LessonCategory.OPENINGS, category)
+        compose.onAllNodesWithText("Lessons on the way").assertCountEquals(4)
     }
 
     @Test

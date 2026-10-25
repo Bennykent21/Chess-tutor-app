@@ -1,13 +1,12 @@
 package com.chesstutor.app.feature.learn
 
 import com.chesstutor.app.core.PieceColor
-import com.chesstutor.app.domain.LearnCategory
-import com.chesstutor.app.domain.LearnCurriculumRepository
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.Lesson
 import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.learn.LessonLevel
 import com.chesstutor.app.domain.learn.LessonLibrary
+import com.chesstutor.app.domain.learn.LessonParser
 import com.chesstutor.app.domain.learn.LessonProgress
 import com.chesstutor.app.domain.learn.LessonStep
 import org.junit.Assert.assertEquals
@@ -43,33 +42,31 @@ class LearnHubModelTest {
     )
 
     @Test
-    fun tilesCountNewLessonsAndFallBackToClassicOnes() {
+    fun tilesCountLessonsPerCategory() {
         val progress = mapOf(
             "b1" to LessonProgress("b1", completed = true),
             "b2" to LessonProgress("b2", stepIndex = 2),
         )
-        val topics = LearnCurriculumRepository.topics
-        val endgameIds = topics.filter { it.category == LearnCategory.ENDGAME }.map { it.id }
-        val tiles = LearnHubModel.tiles(library, progress, topics, legacyMastered = setOf(endgameIds[0]))
+        val tiles = LearnHubModel.tiles(library, progress)
         assertEquals(listOf("Basics", "Openings", "Tactics", "Middlegame", "Endgames", "Blunders"), tiles.map { it.title })
 
         val basics = tiles.first()
         assertEquals(3, basics.totalLessons)
         assertEquals(1, basics.completedLessons)
         assertEquals(1, basics.startedLessons)
-        assertNull(basics.legacyCategory)
-
-        assertNull("openings have new courses, so the classic list is not used", tiles[1].legacyCategory)
+        assertEquals(1f / 3, basics.progress, 0.0001f)
         assertEquals(4, tiles[1].totalLessons)
+        assertFalse("no lessons in this category", tiles[2].isAvailable)
+        assertEquals(1f / 7, LearnHubModel.overallProgress(tiles), 0.0001f)
+    }
 
-        val endgames = tiles[4]
-        assertEquals(LearnCategory.ENDGAME, endgames.legacyCategory)
-        assertEquals(endgameIds.size, endgames.totalLessons)
-        assertEquals(1, endgames.completedLessons)
-        assertTrue(tiles.all { it.isAvailable })
-
-        val noClassics = LearnHubModel.tiles(library, progress)
-        assertFalse("no content at all", noClassics[2].isAvailable)
+    @Test
+    fun everyCategoryHasBundledLessons() {
+        val files = java.io.File("src/main/assets/lessons").listFiles { f -> f.extension == "json" }.orEmpty()
+        val bundled = LessonLibrary(files.map { LessonParser.parseCourse(it.readText(), it.name) })
+        val tiles = LearnHubModel.tiles(bundled, emptyMap())
+        tiles.forEach { assertTrue("${it.title} has no lessons", it.isAvailable) }
+        assertTrue("about 40 lessons (plan section 11)", tiles.sumOf { it.totalLessons } >= 40)
     }
 
     @Test

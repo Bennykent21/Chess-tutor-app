@@ -1,0 +1,139 @@
+{
+  "id": "basics-special-moves",
+  "category": "basics",
+  "title": "Special moves",
+  "intro": "Three moves that work differently from all the others: castling, en passant and promotion.",
+  "level": "beginner",
+  "order": 50,
+  "puzzleThemes": ["promotion"],
+  "lessons": [
+    {
+      "id": "basics-castling",
+      "title": "Castling",
+      "summary": "Tuck the king away and wake up a rook.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Castling is a king and a rook moving together. The king steps two squares towards the rook, and the rook jumps over to the king's other side.",
+          "fen": "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1",
+          "move": "e1g1"
+        },
+        {
+          "type": "explain",
+          "text": "You can castle on the queen's side too. Castling hides your king behind its pawns and brings a rook towards the middle.",
+          "fen": "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1",
+          "move": "e1c1"
+        },
+        {
+          "type": "explain",
+          "text": "The rules: the king and that rook must not have moved yet, the squares between them must be empty, and the king may not be in check or cross or land on an attacked square.",
+          "fen": "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1",
+          "highlights": ["f1", "g1", "d1", "c1", "b1"]
+        },
+        {
+          "type": "play",
+          "text": "Castle on the king's side: drag your king two squares towards the rook on h1.",
+          "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "expect": ["e1g1"],
+          "hint": "Move the king, not the rook: two squares to the right.",
+          "ifWrong": "This time, castle: move the king two squares towards the h1 rook.",
+          "ifRight": "Castled! Your king is safe and the rook is ready.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "The black bishop stops you castling on one side. Castle on the other side.",
+          "fen": "4k3/8/8/8/2b5/8/8/R3K2R w KQ - 0 1",
+          "expect": ["e1c1"],
+          "hint": "The bishop attacks f1, a square the king would cross on the king's side.",
+          "ifWrong": "Castle the king two squares towards the a1 rook.",
+          "ifRight": "Right: the king may not cross f1 while the bishop attacks it, so queen's side it is.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "basics-en-passant",
+      "title": "En passant",
+      "summary": "Capturing a pawn that rushed past.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Watch the black pawn rush two squares forward and land right beside your pawn.",
+          "fen": "4k3/3p4/8/4P3/8/8/8/4K3 b - - 0 1",
+          "move": "d7d5"
+        },
+        {
+          "type": "explain",
+          "text": "Your pawn may capture it as if it had moved only one square, landing on d6. This is called en passant, French for 'in passing'.",
+          "arrows": ["e5d6"]
+        },
+        {
+          "type": "play",
+          "text": "Capture the pawn en passant.",
+          "expect": ["e5d6"],
+          "hint": "Move your pawn diagonally to d6, behind the black pawn.",
+          "ifWrong": "Capture en passant: your pawn goes to d6.",
+          "ifRight": "En passant! The black pawn is removed even though you landed behind it.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "You may only do it on the very next move. If you play something else first, the chance is gone.",
+          "fen": "4k3/8/8/2pP4/8/8/8/4K3 w - c6 0 1",
+          "arrows": ["d5c6"]
+        },
+        {
+          "type": "quiz",
+          "text": "Black just played c7 to c5. Capture it en passant.",
+          "fen": "4k3/8/8/2pP4/8/8/8/4K3 w - c6 0 1",
+          "expect": ["d5c6"],
+          "hint": "Your pawn lands on c6.",
+          "ifWrong": "Capture en passant: diagonally onto c6.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "basics-promotion",
+      "title": "Promotion",
+      "summary": "A pawn that reaches the end becomes a queen.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A pawn that reaches the far side of the board is promoted: you swap it for a queen, rook, bishop or knight. Almost always you choose a queen.",
+          "fen": "4k3/1P6/8/8/8/8/8/4K3 w - - 0 1",
+          "move": "b7b8q"
+        },
+        {
+          "type": "play",
+          "text": "Push your pawn to the last row and make a queen.",
+          "fen": "8/5P2/8/8/8/2k5/8/4K3 w - - 0 1",
+          "expect": ["f7f8q"],
+          "hint": "Move the pawn forward, then choose the queen.",
+          "ifWrong": "Promote the pawn on f7 to a queen.",
+          "ifRight": "A new queen!",
+          "feedback": {
+            "f7f8r": "A rook works, but a queen is even stronger. Choose the queen.",
+            "f7f8b": "A bishop is much weaker than a queen. Choose the queen.",
+            "f7f8n": "A knight is much weaker than a queen. Choose the queen."
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Promote by capturing! Take the rook and make a queen.",
+          "fen": "1r2k3/P7/8/8/8/8/8/4K3 w - - 0 1",
+          "expect": ["a7b8q"],
+          "hint": "A pawn captures diagonally, and that works on the last row too.",
+          "ifWrong": "Capture the rook with your pawn and choose a queen.",
+          "ifRight": "Capture and promote in one move: check, too!",
+          "feedback": {
+            "a7a8q": "A new queen, but the rook takes it straight away. Capture the rook instead."
+          },
+          "rule": true
+        }
+      ]
+    }
+  ]
+}
