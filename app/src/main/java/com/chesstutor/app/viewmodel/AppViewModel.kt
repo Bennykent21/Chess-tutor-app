@@ -398,6 +398,7 @@ class AppViewModel(
             } else null
             _state.update {
                 it.copy(
+                    profileLoaded = true,
                     estimatedRating = profile.estimatedRating,
                     assessmentState = profile.assessmentState,
                     assessmentPositionIndex = profile.assessmentPositionIndex,
@@ -413,7 +414,8 @@ class AppViewModel(
                 )
             }
         }.onFailure { ex ->
-            _state.update { it.copy(storageWarning = "Learning state storage note: ${ex.message}") }
+            // Never leave the app stuck on the loading background if the profile cannot be read.
+            _state.update { it.copy(profileLoaded = true, storageWarning = "Learning state storage note: ${ex.message}") }
         }
     }
 

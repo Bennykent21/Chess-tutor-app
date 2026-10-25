@@ -60,6 +60,22 @@ sealed interface PlayRequest {
     }
 }
 
+/** What the app shows at the top level: a plain background while loading, onboarding, or the tabs. */
+enum class StartScreen {
+    LOADING,
+    ONBOARDING,
+    APP;
+
+    companion object {
+        /** Onboarding only once the saved profile is known, so returning players never see it flash. */
+        fun of(profileLoaded: Boolean, assessmentState: String): StartScreen = when {
+            !profileLoaded -> LOADING
+            assessmentState != "COMPLETE" -> ONBOARDING
+            else -> APP
+        }
+    }
+}
+
 sealed interface NavCommand {
     data class OpenLearn(val topicId: String? = null) : NavCommand
     data class StartTrain(val request: TrainRequest) : NavCommand

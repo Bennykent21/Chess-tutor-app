@@ -1,6 +1,7 @@
 package com.chesstutor.app.navigation
 
 import com.chesstutor.app.domain.LearnCategory
+import com.chesstutor.app.viewmodel.AppUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -49,6 +50,17 @@ class NavigationModelTest {
         assertEquals(LearnCategory.ENDGAME, AppRoutes.parseCategory(route.substringAfter("=")))
         assertNull(AppRoutes.parseCategory("NOT_A_CATEGORY"))
         assertNull(AppRoutes.parseCategory(null))
+    }
+
+    @Test
+    fun onboardingShowsOnlyOnceTheSavedProfileIsKnown() {
+        // Before the profile is read, the default "NOT_STARTED" must not flash onboarding.
+        assertEquals(StartScreen.LOADING, StartScreen.of(profileLoaded = false, assessmentState = "NOT_STARTED"))
+        assertEquals(StartScreen.LOADING, StartScreen.of(profileLoaded = false, assessmentState = "COMPLETE"))
+        assertEquals(StartScreen.ONBOARDING, StartScreen.of(profileLoaded = true, assessmentState = "NOT_STARTED"))
+        assertEquals(StartScreen.ONBOARDING, StartScreen.of(profileLoaded = true, assessmentState = "IN_PROGRESS"))
+        assertEquals(StartScreen.APP, StartScreen.of(profileLoaded = true, assessmentState = "COMPLETE"))
+        assertFalse("a fresh state has not read the profile yet", AppUiState().profileLoaded)
     }
 
     @Test

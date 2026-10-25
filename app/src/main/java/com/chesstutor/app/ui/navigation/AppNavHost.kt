@@ -6,6 +6,8 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -73,6 +75,7 @@ import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.LegacyTab
+import com.chesstutor.app.navigation.StartScreen
 import com.chesstutor.app.navigation.TopTab
 import com.chesstutor.app.navigation.TrainRequest
 import com.chesstutor.app.ui.components.PgnViewerDialog
@@ -94,9 +97,17 @@ fun AppNavHost(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    if (state.assessmentState != "COMPLETE") {
-        OnboardingScreen(state = state, viewModel = viewModel, modifier = modifier)
-        return
+    when (StartScreen.of(state.profileLoaded, state.assessmentState)) {
+        StartScreen.LOADING -> {
+            // A blank screen for the moment it takes to read the saved profile.
+            Box(modifier.fillMaxSize().background(CtColors.BgDeep))
+            return
+        }
+        StartScreen.ONBOARDING -> {
+            OnboardingScreen(state = state, viewModel = viewModel, modifier = modifier)
+            return
+        }
+        StartScreen.APP -> Unit
     }
 
     val navController = rememberNavController()
