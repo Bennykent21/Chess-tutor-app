@@ -40,7 +40,14 @@ data class BoardMarks(
     val arrows: List<BoardArrow> = emptyList(),
     /** Ringed squares, for example the squares a lesson talks about. */
     val rings: List<SquareRing> = emptyList(),
+    /** Tints the last move instead of the usual gold (a game review colours it by quality). */
+    val lastMoveColor: Long? = null,
+    /** A small round label on a square's corner, such as a move's quality ("??"). */
+    val badge: SquareBadge? = null,
 )
+
+/** A round label drawn on the top-right corner of [square]: [text] on [color] (ARGB). */
+data class SquareBadge(val square: Square, val color: Long, val text: String, val textColor: Long = 0xFFFFFFFFL)
 
 /** What an arrow or ring means, which sets its colour. */
 enum class MarkKind { BEST, HINT, USER, ALTERNATIVE, MISTAKE }
@@ -123,6 +130,24 @@ internal fun BoardCanvas(
         drawPieces(position, painters, whiteAtBottom, cell, motion)
         marks.rings.forEach { drawRing(it, whiteAtBottom, cell) }
         marks.arrows.forEach { drawArrow(it, whiteAtBottom, cell) }
+        marks.badge?.let { drawBadge(it, whiteAtBottom, cell, textMeasurer) }
+    }
+}
+
+/** A move's quality badge, half over the corner of its square like a sticker. */
+private fun DrawScope.drawBadge(badge: SquareBadge, whiteAtBottom: Boolean, cell: Float, textMeasurer: TextMeasurer) {
+    val radius = cell * 0.2f
+    val topLeft = cellTopLeft(badge.square, whiteAtBottom, cell)
+    val center = Offset(
+        (topLeft.x + cell - radius * 0.8f).coerceAtMost(size.width - radius),
+        (topLeft.y + radius * 0.8f).coerceAtLeast(radius),
+    )
+    drawCircle(Color(BoardMarkColors.BADGE_SHADOW), radius = radius * 1.08f, center = center + Offset(0f, radius * 0.1f))
+    drawCircle(Color(badge.color), radius = radius, center = center)
+    if (badge.text.isNotEmpty()) {
+        val style = CtType.Label.copy(fontSize = (radius * 0.95f).toSp(), lineHeight = (radius * 1.1f).toSp(), fontWeight = FontWeight.Black, color = Color(badge.textColor))
+        val layout = textMeasurer.measure(badge.text, style)
+        drawText(layout, topLeft = center - Offset(layout.size.width / 2f, layout.size.height / 2f))
     }
 }
 
@@ -147,7 +172,7 @@ private fun DrawScope.drawSquares(colors: BoardColors, marks: BoardMarks, whiteA
         val topLeft = cellTopLeft(square, whiteAtBottom, cell)
         drawRect(if (square.isLightSquare) light else dark, topLeft, cellSize)
         if (marks.lastMove != null && (square == marks.lastMove.first || square == marks.lastMove.second)) {
-            drawRect(Color(BoardMarkColors.LAST_MOVE), topLeft, cellSize)
+            drawRect(Color(marks.lastMoveColor ?: BoardMarkColors.LAST_MOVE), topLeft, cellSize)
         }
         if (square == marks.selected) {
             drawRect(Color(BoardMarkColors.SELECTED), topLeft, cellSize)

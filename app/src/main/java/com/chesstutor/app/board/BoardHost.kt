@@ -88,6 +88,9 @@ fun BoardHost(
     drawMode: Boolean = false,
     onDrawArrow: (from: Square, to: Square) -> Unit = { _, _ -> },
     onDrawRing: (Square) -> Unit = {},
+    /** Game review: the last move tinted by its quality, and the quality badge on its square. */
+    lastMoveColor: Long? = null,
+    badge: SquareBadge? = null,
 ) {
     val state by session.state.collectAsState()
     var drawPreview by remember { mutableStateOf<Pair<Square, Square>?>(null) }
@@ -186,6 +189,8 @@ fun BoardHost(
         arrows = (if (progress < 1f) emptyList() else arrows) +
             listOfNotNull(drawPreview?.let { (from, to) -> BoardArrow(from, to, MarkKind.USER) }),
         rings = rings,
+        lastMoveColor = lastMoveColor,
+        badge = badge?.takeIf { progress >= 1f },
     )
     val shakeOffset = if (checkSquare != null && shake.value < 1f) {
         val t = shake.value

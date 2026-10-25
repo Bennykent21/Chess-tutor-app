@@ -25,10 +25,10 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The game review screen (step 5B). */
+/** The game review: summary first, then the board walk-through (step 5B, redesigned in review R6). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w400dp-h2200dp-xxhdpi")
+@Config(qualifiers = "w400dp-h1400dp-xxhdpi")
 class GameReviewScreenTest {
 
     @get:Rule
@@ -64,28 +64,55 @@ class GameReviewScreenTest {
     )
 
     @Test
-    fun reviewShowsSummaryKeyMomentsAndPractice() {
+    fun summaryShowsTheVerdictPlayersCountsAndKeyMoments() {
         var practised: ReviewedMove? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(onPractise = { practised = it }))
             }
         }
-        compose.onNodeWithText("Summary").assertExists()
-        compose.onNodeWithText("The starting position. Step forward, or tap the graph to jump.").assertExists()
+        compose.onNodeWithText("The turning point was 3... Nf6. g6 would have kept you in the game.").assertExists()
         compose.onNodeWithText("Key moments").assertExists()
-        compose.onNodeWithText("3... Nf6").assertExists()
+        compose.onNodeWithText("Start review").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_review.png")
 
-        compose.onNodeWithText("Practise this mistake").performClick()
+        compose.onNodeWithText("Practise").performClick()
         assertEquals(6, practised?.ply)
-        compose.onNodeWithText("Added to Mistakes review").assertExists()
+        compose.onNodeWithText("Added").assertExists()
+    }
 
-        // The key moment jumps the board to the blunder.
-        compose.onNodeWithText("3... Nf6").performClick()
-        // Shown on the move verdict under the board and on the key moment.
-        compose.onAllNodesWithText("Best was g6. Winning chances 45% → 0%.").assertCountEquals(2)
+    @Test
+    fun theBoardWalkThroughCommentsOnEachMove() {
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(), startPly = 6)
+            }
+        }
+        compose.onNodeWithText("Nf6 is a blunder").assertExists()
+        compose.onNodeWithText("It allows mate in 1, starting with Qxf7#. Best was g6.").assertExists()
+        // The evaluation shows in the coach bubble and on the eval bar.
+        compose.onAllNodesWithText("M1").assertCountEquals(2)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_review_blunder.png")
+
+        compose.onNodeWithContentDescription("Next move").performClick()
+        compose.onNodeWithText("Qxf7# is best").assertExists()
+        compose.onNodeWithText("Checkmate!").assertExists()
+
+        compose.onNodeWithText("Summary").performClick()
+        compose.onNodeWithText("Start review").assertExists()
+    }
+
+    @Test
+    fun showBestPlaysTheEnginesMoveAsASideLine() {
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(), startPly = 6)
+            }
+        }
+        compose.onNodeWithText("Show best").performClick()
+        compose.onNodeWithText("A side line").assertExists()
+        compose.onNodeWithText("Back to the game").performClick()
+        compose.onNodeWithText("Nf6 is a blunder").assertExists()
     }
 
     @Test
@@ -121,10 +148,10 @@ class GameReviewScreenTest {
     }
 
     @Test
-    fun verdictsExplainEachQuality() {
-        val review = GameReviewer.review(Position.STARTING_FEN, moves, evals)
-        assertEquals("The best move.", verdictText(review.move(1)!!))
-        assertEquals("Best was g6. Winning chances 45% → 0%.", verdictText(review.move(6)!!))
+    fun backToTheGameFindsTheBranchingMove() {
+        // Notation: 1 (main, ply 1), 2 (main, ply 2), 9 (side line), 3 (main, ply 3).
+        assertEquals(2, backToGamePly(mainIds = listOf(0, 1, 2, 3), notationIds = listOf(1, 2, null, 9, null, 3), current = 9))
+        assertEquals(0, backToGamePly(listOf(0, 1), listOf(1), current = 42))
         assertEquals("91.5%", accuracyText(91.46))
         assertEquals("–", accuracyText(null))
     }
