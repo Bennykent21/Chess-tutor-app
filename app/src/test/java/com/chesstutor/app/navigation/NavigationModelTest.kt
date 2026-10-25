@@ -1,6 +1,5 @@
 package com.chesstutor.app.navigation
 
-import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.viewmodel.AppUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,15 +20,14 @@ class NavigationModelTest {
     fun bottomBarShowsOnPagesAndHidesOnFullScreenActivities() {
         TopTab.entries.forEach { assertTrue(AppRoutes.showsBottomBar(it.startRoute)) }
         assertTrue(AppRoutes.showsBottomBar(AppRoutes.ENGINE_HEALTH))
-        assertFalse(AppRoutes.showsBottomBar(AppRoutes.LEGACY_PATTERN))
         assertFalse(AppRoutes.showsBottomBar("some/new/activity"))
     }
 
     @Test
     fun accountPagesHighlightTheAccountTab() {
-        assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.DEVELOPER_MENU))
+        assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.SETTINGS))
         assertEquals(TopTab.LEARN, AppRoutes.tabFor("learn"))
-        assertNull(AppRoutes.tabFor(AppRoutes.LEGACY_PATTERN))
+        assertNull(AppRoutes.tabFor(AppRoutes.MISTAKE_REVIEW))
     }
 
     @Test
@@ -56,16 +54,6 @@ class NavigationModelTest {
     }
 
     @Test
-    fun legacyRouteCarriesTheLearnCategory() {
-        assertEquals("legacy", AppRoutes.legacy())
-        val route = AppRoutes.legacy(LearnCategory.ENDGAME)
-        assertEquals("legacy?category=ENDGAME", route)
-        assertEquals(LearnCategory.ENDGAME, AppRoutes.parseCategory(route.substringAfter("=")))
-        assertNull(AppRoutes.parseCategory("NOT_A_CATEGORY"))
-        assertNull(AppRoutes.parseCategory(null))
-    }
-
-    @Test
     fun relatedPuzzlesRouteCarriesTheThemes() {
         val route = AppRoutes.puzzleRelated(listOf("pin", "skewer"))
         assertEquals("puzzles/related/pin%2Cskewer", route)
@@ -74,18 +62,13 @@ class NavigationModelTest {
     }
 
     @Test
-    fun onboardingShowsOnlyOnceTheSavedProfileIsKnown() {
-        // Before the profile is read, the default "NOT_STARTED" must not flash onboarding.
-        assertEquals(StartScreen.LOADING, StartScreen.of(profileLoaded = false, assessmentState = "NOT_STARTED"))
-        assertEquals(StartScreen.LOADING, StartScreen.of(profileLoaded = false, assessmentState = "COMPLETE"))
-        assertEquals(StartScreen.ONBOARDING, StartScreen.of(profileLoaded = true, assessmentState = "NOT_STARTED"))
-        assertEquals(StartScreen.ONBOARDING, StartScreen.of(profileLoaded = true, assessmentState = "IN_PROGRESS"))
-        assertEquals(StartScreen.APP, StartScreen.of(profileLoaded = true, assessmentState = "COMPLETE"))
+    fun theAppWaitsForTheSavedProfileThenWelcomesNewPlayersOnHome() {
+        assertEquals(StartScreen.LOADING, StartScreen.of(profileLoaded = false))
+        assertEquals(StartScreen.APP, StartScreen.of(profileLoaded = true))
         assertFalse("a fresh state has not read the profile yet", AppUiState().profileLoaded)
-    }
-
-    @Test
-    fun legacyTabIndicesMatchTheOldScreens() {
-        assertEquals("the old puzzle trainer, Arena and Learn list are replaced (Phases 2 to 4)", listOf(0, 3), LegacyTab.ALL)
+        assertTrue(needsWelcome("NOT_STARTED"))
+        assertTrue(needsWelcome("IN_PROGRESS"))
+        assertFalse(needsWelcome("COMPLETE"))
+        assertEquals(listOf(400, 800, 1200), StartingLevel.entries.map { it.rating })
     }
 }

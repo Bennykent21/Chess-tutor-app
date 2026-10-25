@@ -495,6 +495,19 @@ class AppViewModel(
         startPlacementAssessment()
     }
 
+    /**
+     * The welcome card on Home (it replaced onboarding): the player says roughly how strong
+     * they are, which sets the starting rating until a linked account gives a real one.
+     */
+    fun chooseStartingLevel(rating: Int) {
+        val completedAt = System.currentTimeMillis()
+        curriculumCoordinator.persistProfile {
+            it.copy(estimatedRating = rating, assessmentState = "COMPLETE", assessmentCompletedAt = completedAt)
+        }
+        _state.update { it.copy(estimatedRating = rating, assessmentState = "COMPLETE", assessmentCompletedAt = completedAt) }
+        applyBotElo()
+    }
+
     fun skipPlacementAsBeginner() {
         placementAssessmentCoordinator.skipAsBeginner(curriculumCoordinator::persistProfile, _state::update)
         refreshTrainingRecommendation()
