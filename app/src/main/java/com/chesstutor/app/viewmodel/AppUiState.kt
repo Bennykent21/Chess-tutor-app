@@ -38,6 +38,8 @@ data class TacticalIssueSummary(
 
 data class AppUiState(
     val loading: Boolean = false,
+    /** False until the saved learning profile has been read, so start-up does not flash onboarding. */
+    val profileLoaded: Boolean = false,
     val estimatedRating: Int = 600,
     val assessmentState: String = "NOT_STARTED",
     val assessmentPositionIndex: Int = 0,
