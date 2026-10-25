@@ -9,7 +9,7 @@ enum class GameSource {
 enum class ImportDepth(val maxGames: Int, val label: String) {
     LAST_100(100, "Last 100"),
     LAST_500(500, "Last 500"),
-    ALL(1500, "All available")
+    ALL(1500, "Up to 1,500")
 }
 
 data class ImportProgress(

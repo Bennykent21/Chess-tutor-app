@@ -116,22 +116,47 @@ class GameReviewScreenTest {
     }
 
     @Test
-    fun aRunningAnalysisShowsProgressAndStops() {
-        var stopped = false
+    fun aRunningAnalysisFillsTheGraphWithoutAProgressCard() {
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 GameReviewScreen(
                     state = state(evals.take(3), job = AnalysisJob(done = 3, total = 8, waiting = false)),
                     settings = AppSettings(),
                     engine = null,
-                    actions = ReviewActions(onStop = { stopped = true }),
+                    actions = ReviewActions(),
                 )
             }
         }
-        compose.onNodeWithText("Analysing position 3 of 8").assertExists()
+        compose.onNodeWithText("Analysing position 3 of 8").assertDoesNotExist()
+        compose.onNodeWithText("I'm going through your game move by move. The graph fills in as I go.").assertExists()
         compose.onNodeWithContentDescription("Evaluation graph. Tap to jump to a move.").assertExists()
-        compose.onNodeWithText("Stop").performClick()
-        assertEquals(true, stopped)
+    }
+
+    @Test
+    fun playStopsAtTheNextKeyMoment() {
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(), startPly = 1)
+            }
+        }
+        compose.onNodeWithContentDescription("Play to the next key moment").performClick()
+        compose.mainClock.advanceTimeBy(10_000)
+        compose.waitForIdle()
+        // e5, Bc4, Nc6 and Qh5 pass; 3...Nf6 (a blunder) stops it.
+        compose.onNodeWithText("Nf6 is a blunder").assertExists()
+    }
+
+    @Test
+    fun keyMomentsAndShowBestRules() {
+        val review = GameReviewer.review(Position.STARTING_FEN, moves, evals)
+        assertEquals(false, canShowBest(review.move(1)!!))
+        assertEquals("Bc4 loses nothing, so it counts as best", false, canShowBest(review.move(3)!!))
+        assertEquals("a good move that was not the engine's", true, canShowBest(review.move(3)!!.copy(quality = com.chesstutor.app.domain.account.MoveQuality.GOOD)))
+        assertEquals(true, canShowBest(review.move(6)!!))
+        assertEquals(true, isKeyMoment("Qxf7#", null))
+        assertEquals(true, isKeyMoment("O-O", null))
+        assertEquals(true, isKeyMoment("Nf6", com.chesstutor.app.domain.account.MoveQuality.BLUNDER))
+        assertEquals(false, isKeyMoment("Nf3", com.chesstutor.app.domain.account.MoveQuality.GOOD))
     }
 
     @Test

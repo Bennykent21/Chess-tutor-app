@@ -217,7 +217,8 @@ class RatingApiClient(
     /**
      * Fetches public standard chess games from Lichess (streaming NDJSON) or Chess.com
      * (paging backwards through monthly archives) up to [maxGames], reporting progress via [onProgress].
-     * With [sinceMillis] only games from then on are fetched (the automatic sync). [onBatch] gets
+     * With [sinceMillis] only games from then on are fetched (the automatic sync); with
+     * [beforeMillis] only older games (finishing an import that was interrupted). [onBatch] gets
      * the games as they arrive (each Chess.com month, every [BATCH] Lichess games), so they can be
      * saved and shown while the import runs.
      */
@@ -228,6 +229,7 @@ class RatingApiClient(
         onProgress: ((ImportProgress) -> Unit)? = null,
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
+        beforeMillis: Long? = null,
     ): Result<List<GameRecord>> = withContext(Dispatchers.IO) {
         val cleanUsername = username.trim()
         if (cleanUsername.isEmpty()) {
@@ -235,8 +237,8 @@ class RatingApiClient(
         }
         runCatching {
             when (platform) {
-                RatingPlatform.LICHESS -> fetchLichessGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch)
-                RatingPlatform.CHESS_COM -> fetchChessComGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch)
+                RatingPlatform.LICHESS -> fetchLichessGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis)
+                RatingPlatform.CHESS_COM -> fetchChessComGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis)
             }
         }
     }
@@ -247,9 +249,10 @@ class RatingApiClient(
         onProgress: ((ImportProgress) -> Unit)?,
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
+        beforeMillis: Long? = null,
     ): List<GameRecord> {
         val encoded = URLEncoder.encode(username, "UTF-8")
-        val since = sinceMillis?.let { "&since=$it" }.orEmpty()
+        val since = sinceMillis?.let { "&since=$it" }.orEmpty() + beforeMillis?.let { "&until=${it - 1}" }.orEmpty()
         val url = "https://lichess.org/api/games/user/$encoded?max=$maxGames&opening=true&pgnInJson=true$since"
         val req = Request.Builder()
             .url(url)
@@ -432,6 +435,7 @@ class RatingApiClient(
         onProgress: ((ImportProgress) -> Unit)?,
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
+        beforeMillis: Long? = null,
     ): List<GameRecord> {
         val encoded = URLEncoder.encode(username.lowercase(), "UTF-8")
         val archivesUrl = "https://api.chess.com/pub/player/$encoded/games/archives"
@@ -481,6 +485,8 @@ class RatingApiClient(
             val monthUrl = archiveUrls[idx]
             // Newest first, so once a month ended before [sinceMillis] every older one did too.
             if (sinceMillis != null && archiveMonthEnd(monthUrl)?.let { it < sinceMillis } == true) break
+            // Months that start after [beforeMillis] were imported already.
+            if (beforeMillis != null && archiveMonthStart(monthUrl)?.let { it >= beforeMillis } == true) continue
             val periodLabel = extractArchivePeriodLabel(monthUrl)
 
             onProgress?.invoke(
@@ -515,6 +521,7 @@ class RatingApiClient(
             val fresh = mutableListOf<GameRecord>()
             for (g in monthGames) {
                 if (sinceMillis != null && g.dateMillis < sinceMillis) continue
+                if (beforeMillis != null && g.dateMillis >= beforeMillis) continue
                 if (seenIds.add(g.id)) {
                     if (g.incompleteParse) incompleteCount++
                     allRecords += g
@@ -539,6 +546,11 @@ class RatingApiClient(
         // Nothing downloaded and something failed: say why instead of returning "0 games".
         if (allRecords.isEmpty()) lastFailure?.let { throw it }
         return allRecords
+    }
+
+    /** When an archive month (".../2026/10") starts, in epoch millis (UTC). */
+    internal fun archiveMonthStart(url: String): Long? = archiveMonthEnd(url)?.let {
+        java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneOffset.UTC).minusMonths(1).toInstant().toEpochMilli()
     }
 
     /** When an archive month (".../2026/10") ends, in epoch millis (UTC), or null if the URL is unusual. */
