@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Memory
@@ -59,6 +60,8 @@ data class SettingsActions(
     val onOpenBoardLab: () -> Unit = {},
     /** Every saved game as one PGN text, for "Export my games". */
     val exportPgn: suspend () -> String = { "" },
+    /** "Support the developer" link; blank hides the row (always blank in the Play build). */
+    val supportUrl: String = BuildConfig.SUPPORT_URL,
     val onBack: () -> Unit = {},
 )
 
@@ -132,7 +135,7 @@ fun SettingsScreen(
                 }
 
                 CtSectionHeader(title = "Linked account")
-                LinkedAccountCard(state = state, actions = accountActions)
+                ManageAccountCard(state = state, actions = accountActions)
 
                 CtSectionHeader(title = "Your data")
                 CtCard(modifier = Modifier.fillMaxWidth()) {
@@ -170,6 +173,16 @@ fun SettingsScreen(
                     icon = Icons.Rounded.Code,
                     onClick = { runCatching { uriHandler.openUri(SOURCE_URL) } },
                 )
+                // Only in builds that carry a support link: never in the Play version (plan section 9).
+                if (actions.supportUrl.isNotBlank()) {
+                    CtListRow(
+                        title = "Support the developer",
+                        subtitle = "Chess Tutor is free. If it helps you, you can chip in.",
+                        icon = Icons.Rounded.Favorite,
+                        iconTint = CtColors.Coral,
+                        onClick = { runCatching { uriHandler.openUri(actions.supportUrl) } },
+                    )
+                }
                 CtCard(modifier = Modifier.fillMaxWidth()) {
                     Text("Open-source licences", style = CtType.Label)
                     CREDITS.forEach { (name, licence) ->

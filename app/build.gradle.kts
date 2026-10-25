@@ -25,6 +25,12 @@ android {
     // App name shown under the launcher icon. Debug builds override it below.
     manifestPlaceholders["appLabel"] = "@string/app_name"
 
+    // "Support the developer" in Settings. Shown only when a link is set (gradle.properties
+    // ctSupportUrl=..., or -PctSupportUrl=...). Leave it empty for Google Play uploads: Play
+    // has flagged in-app donation links (plan section 9).
+    val supportUrl = (project.findProperty("ctSupportUrl") as String?).orEmpty().replace("\"", "")
+    buildConfigField("String", "SUPPORT_URL", "\"$supportUrl\"")
+
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     ndk {
       // CI passes -PctAbis=arm64-v8a so test APKs carry a single copy of Stockfish, whose
