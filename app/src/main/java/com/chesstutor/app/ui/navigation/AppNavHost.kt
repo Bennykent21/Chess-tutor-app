@@ -32,7 +32,6 @@ import androidx.navigation.navArgument
 import com.chesstutor.app.design.CtBottomBar
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtTheme
-import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.ReviewScheduler
@@ -53,7 +52,6 @@ import com.chesstutor.app.feature.account.BoardLabScreen
 import com.chesstutor.app.feature.account.BoardSettingsActions
 import com.chesstutor.app.feature.account.BoardSettingsScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
-import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
 import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.feature.home.BattleSetupScreen
@@ -88,18 +86,15 @@ import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.StartScreen
+import com.chesstutor.app.navigation.StartingLevel
 import com.chesstutor.app.navigation.TopTab
-import com.chesstutor.app.ui.components.PgnViewerDialog
 import com.chesstutor.app.ui.components.PromotionDialog
-import com.chesstutor.app.ui.onboarding.OnboardingScreen
-import com.chesstutor.app.ui.settings.SettingsSheet
 import com.chesstutor.app.viewmodel.AppViewModel
 import java.time.Instant
 
 /**
  * The app shell (plan section 3): four tabs (Home, Learn, Puzzles, Account), each with its
- * own back stack, built with Navigation Compose. The pre-revamp screens open full screen
- * through [LegacyHost] until each is replaced.
+ * own back stack, built with Navigation Compose.
  */
 @Composable
 fun AppNavHost(
@@ -108,14 +103,10 @@ fun AppNavHost(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    when (StartScreen.of(state.profileLoaded, state.assessmentState)) {
+    when (StartScreen.of(state.profileLoaded)) {
         StartScreen.LOADING -> {
             // A blank screen for the moment it takes to read the saved profile.
             Box(modifier.fillMaxSize().background(CtColors.BgDeep))
-            return
-        }
-        StartScreen.ONBOARDING -> {
-            OnboardingScreen(state = state, viewModel = viewModel, modifier = modifier)
             return
         }
         StartScreen.APP -> Unit
@@ -139,11 +130,6 @@ fun AppNavHost(
             onImportDepth = viewModel::setImportDepth,
             onDismissLinkStatus = viewModel::clearLinkingStatus,
         )
-    }
-
-    fun openLegacy(index: Int, category: LearnCategory? = null) {
-        viewModel.selectTab(index)
-        navController.navigate(AppRoutes.legacy(category)) { launchSingleTop = true }
     }
 
     CtTheme(reduceMotion = reduceMotion) {
@@ -200,7 +186,15 @@ fun AppNavHost(
                                     navController.navigateToTab(TopTab.PUZZLES)
                                     navController.navigate(AppRoutes.PUZZLE_DAILY) { launchSingleTop = true }
                                 },
-                                onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) }
+                                onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
+                                onStartingLevel = { level ->
+                                    viewModel.chooseStartingLevel(level.rating)
+                                    when (level) {
+                                        StartingLevel.NEW -> navController.navigateToTab(TopTab.LEARN)
+                                        StartingLevel.PLAYER -> navController.navigateToTab(TopTab.ACCOUNT)
+                                        StartingLevel.RULES -> Unit
+                                    }
+                                }
                             )
                         )
                     }
@@ -579,7 +573,6 @@ fun AppNavHost(
                                 onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
                                 onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
                                 onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
-                                onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) },
                                 exportPgn = {
                                     AppContainer.provideGameRepository(context).getRecentGames(Int.MAX_VALUE)
                                         .joinToString("\n\n") { PgnFormatter.reconstructPgnFromGameRecord(it).trim() }
@@ -648,12 +641,6 @@ fun AppNavHost(
                             onBack = { navController.popBackStack() }
                         )
                     }
-                    composable(AppRoutes.DEVELOPER_MENU) {
-                        DeveloperMenuScreen(
-                            onOpenLegacy = { index -> openLegacy(index) },
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
                     composable(AppRoutes.DESIGN_GALLERY) {
                         DesignGalleryScreen(onBack = { navController.popBackStack() })
                     }
@@ -709,48 +696,11 @@ fun AppNavHost(
                         onBack = { navController.popBackStack() }
                     )
                 }
-                composable(
-                    route = AppRoutes.LEGACY_PATTERN,
-                    arguments = listOf(
-                        navArgument(AppRoutes.LEGACY_CATEGORY_ARG) {
-                            type = NavType.StringType
-                            nullable = true
-                            defaultValue = null
-                        }
-                    )
-                ) { entry ->
-                    LegacyHost(
-                        state = state,
-                        viewModel = viewModel,
-                        onExit = { navController.popBackStack() }
-                    )
-                }
             }
 
             // Overlays shared by every screen. Their Back handlers are registered last, so
             // Back closes them first.
-            if (state.selectedGameForPgn != null) {
-                BackHandler { viewModel.selectGameForPgn(null) }
-                PgnViewerDialog(
-                    game = state.selectedGameForPgn!!,
-                    onDismiss = { viewModel.selectGameForPgn(null) },
-                    onDelete = {
-                        viewModel.deleteSavedGame(state.selectedGameForPgn!!.id)
-                        viewModel.selectGameForPgn(null)
-                    }
-                )
-            } else if (state.isGameHistorySheetOpen) {
-                BackHandler { viewModel.setGameHistorySheetVisible(false) }
-            } else if (state.isDrillSheetVisible) {
-                BackHandler { viewModel.setDrillSheetVisible(false) }
-            } else if (state.isSettingsVisible) {
-                BackHandler { viewModel.setSettingsVisible(false) }
-                SettingsSheet(
-                    state = state,
-                    viewModel = viewModel,
-                    onDismiss = { viewModel.setSettingsVisible(false) }
-                )
-            } else if (state.pendingPromotion != null) {
+            if (state.pendingPromotion != null) {
                 BackHandler { viewModel.cancelPromotion() }
                 PromotionDialog(
                     request = state.pendingPromotion!!,

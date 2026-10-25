@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.GridView
@@ -58,7 +57,6 @@ data class SettingsActions(
     val onOpenEngineHealth: () -> Unit = {},
     val onOpenDesignGallery: () -> Unit = {},
     val onOpenBoardLab: () -> Unit = {},
-    val onOpenDeveloperMenu: () -> Unit = {},
     /** Every saved game as one PGN text, for "Export my games". */
     val exportPgn: suspend () -> String = { "" },
     val onBack: () -> Unit = {},
@@ -186,7 +184,6 @@ fun SettingsScreen(
                 CtSectionHeader(title = "During development")
                 CtListRow(title = "Design system", subtitle = "Colours, type and components", icon = Icons.Rounded.Palette, iconTint = CtColors.Violet, onClick = actions.onOpenDesignGallery)
                 CtListRow(title = "Board lab", subtitle = "Try the new board: moves, sounds and motion", icon = Icons.Rounded.Science, iconTint = CtColors.Gold, onClick = actions.onOpenBoardLab)
-                CtListRow(title = "Classic screens", subtitle = "Every screen from before the revamp", icon = Icons.Rounded.Build, iconTint = CtColors.Text2, onClick = actions.onOpenDeveloperMenu)
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }
