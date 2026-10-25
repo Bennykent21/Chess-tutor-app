@@ -1,0 +1,83 @@
+{
+  "id": "endgames-rook",
+  "category": "endgames",
+  "title": "Rook endgames",
+  "intro": "The most common endgames of all. Learn how to win with the Lucena position and how to draw with the Philidor.",
+  "level": "advanced",
+  "order": 20,
+  "puzzleThemes": ["rookEndgame"],
+  "lessons": [
+    {
+      "id": "endgames-lucena",
+      "title": "Lucena: building a bridge",
+      "summary": "Get your king out from in front of the pawn.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White's pawn is one step from promoting, but the king stands on d8 in front of it. When the king steps out, Black's rook checks it again and again. The Lucena method stops the checks with a 'bridge'.",
+          "fen": "3K4/3P1k2/8/8/8/8/r7/4R3 w - - 0 1",
+          "highlights": ["d8"]
+        },
+        {
+          "type": "explain",
+          "text": "First a check pushes the black king one more file away. Then the rook goes to the 4th rank, ready to block checks later.",
+          "fen": "3K4/3P1k2/8/8/8/8/r7/4R3 w - - 0 1",
+          "arrows": ["e1f1", "f1f4:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Play the Lucena: check, build the bridge on the 4th rank, walk your king out, and block the last check with your rook.",
+          "fen": "3K4/3P1k2/8/8/8/8/r7/4R3 w - - 0 1",
+          "line": ["e1f1", "f7g6", "f1f4", "a2a1", "d8e7", "a1e1", "e7d6", "e1d1", "d6e6", "d1e1", "e6d5", "e1d1", "f4d4"],
+          "hint": "Rf1+ first, then Rf4. Then the king zig-zags towards your rook, and the rook blocks on d4.",
+          "ifWrong": "Follow the plan: check, bridge on the 4th rank, king out, block with the rook.",
+          "ifRight": "The bridge is built: the checks are over and the pawn will promote.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "endgames-philidor",
+      "title": "Philidor: the drawing defence",
+      "summary": "Hold the 6th rank, then check from behind.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black is a pawn down but can draw. Two rules: keep the king in front of the pawn, and keep the rook on the 6th rank so the white king cannot get closer.",
+          "fen": "4k3/R7/1r6/4PK2/8/8/8/8 b - - 0 1",
+          "highlights": ["a6:idea", "b6:idea", "c6:idea", "d6:idea", "e6:idea", "f6:idea", "g6:idea", "h6:idea"]
+        },
+        {
+          "type": "quiz",
+          "text": "Wait without giving up the 6th rank. Slide your rook along it, out of reach.",
+          "fen": "4k3/R7/1r6/4PK2/8/8/8/8 b - - 0 1",
+          "expect": ["b6c6", "b6h6"],
+          "hint": "Stay on the 6th rank, but avoid squares where a piece can take the rook.",
+          "ifWrong": "Keep the rook on the 6th rank: that stops the white king advancing.",
+          "ifRight": "The white king cannot come forward to the 6th rank.",
+          "feedback": {
+            "b6b8": "Leaving the 6th rank lets the white king advance to f6, and then White wins.",
+            "b6b5": "Leaving the 6th rank lets the white king advance to f6, and then White wins.",
+            "b6b1": "That still holds here, but the safe method is to keep the rook on the 6th rank until the pawn moves.",
+            "b6b2": "That still holds here, but the safe method is to keep the rook on the 6th rank until the pawn moves.",
+            "b6b3": "That may still hold, but the safe method is to keep the rook on the 6th rank until the pawn moves.",
+            "b6b4": "That may still hold, but the safe method is to keep the rook on the 6th rank until the pawn moves.",
+            "e8f8": "A king move holds too, but practise the key idea: keep the rook on the 6th rank.",
+            "e8d8": "A king move holds too, but practise the key idea: keep the rook on the 6th rank."
+          }
+        },
+        {
+          "type": "explain",
+          "text": "Once the pawn goes to e6, the white king has no shelter on the 6th rank any more. Now the rook drops to the far end and gives check from behind, again and again.",
+          "fen": "4k3/R7/1r2P3/5K2/8/8/8/8 b - - 0 1",
+          "move": "b6b1"
+        },
+        {
+          "type": "explain",
+          "text": "Every time the king comes close, the rook checks from behind. White cannot escape the checks: the game is a draw.",
+          "arrows": ["b1f1:good"]
+        }
+      ]
+    }
+  ]
+}

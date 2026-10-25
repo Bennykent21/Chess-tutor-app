@@ -1,0 +1,72 @@
+{
+  "id": "tactics-pins-skewers",
+  "category": "tactics",
+  "title": "Pins and skewers",
+  "intro": "Line up two enemy pieces with a bishop, rook or queen. One of them is stuck, or one of them falls.",
+  "level": "beginner",
+  "order": 20,
+  "puzzleThemes": ["pin", "skewer"],
+  "lessons": [
+    {
+      "id": "tactics-pins",
+      "title": "The pin",
+      "summary": "A piece that cannot move because of what stands behind it.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "In a pin, a piece cannot move without exposing a more valuable piece behind it. Here your knight on c3 is pinned: if it moves, the bishop attacks your king, so it is not allowed to move at all.",
+          "fen": "4k3/8/8/8/1b6/2N5/8/R3K3 w - - 0 1",
+          "arrows": ["b4e1:bad"],
+          "highlights": ["c3:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "A pinned piece is a sitting target. Here White's bishop pins the knight on c6 to Black's king.",
+          "fen": "4k3/8/2n5/1B6/3P4/8/8/4K3 w - - 0 1",
+          "arrows": ["b5e8:idea"],
+          "highlights": ["c6:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Attack the pinned knight and win it.",
+          "fen": "4k3/8/2n5/1B6/3P4/8/8/4K3 w - - 0 1",
+          "expect": ["d4d5"],
+          "hint": "A pawn can attack c6.",
+          "ifWrong": "Attack the knight with something cheap: it cannot run away.",
+          "ifRight": "The knight cannot move, so it is lost.",
+          "feedback": {
+            "b5c6": "That trades your bishop for the knight. Attack it with the pawn instead and win it for free."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "tactics-skewers",
+      "title": "The skewer",
+      "summary": "Attack the big piece; take the one behind.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A skewer is a pin turned around: the more valuable piece stands in front. When it moves away, you capture the piece behind it. Watch the bishop check the king.",
+          "fen": "4q3/8/2k5/8/8/8/8/3B2K1 w - - 0 1",
+          "move": "d1a4"
+        },
+        {
+          "type": "explain",
+          "text": "The king must step out of check, and then the bishop takes the queen on e8.",
+          "arrows": ["a4e8:good"]
+        },
+        {
+          "type": "quiz",
+          "text": "Skewer the king and the rook.",
+          "fen": "8/2k4r/8/8/8/8/8/R5K1 w - - 0 1",
+          "expect": ["a1a7"],
+          "hint": "Check the king along the 7th row.",
+          "ifWrong": "Check the king on the row it shares with the rook.",
+          "ifRight": "The king moves, and the rook on h7 falls."
+        }
+      ]
+    }
+  ]
+}

@@ -3,7 +3,10 @@ package com.chesstutor.app.di
 import android.content.Context
 import android.util.Log
 import com.chesstutor.app.data.bot.RoomBotRepository
+import com.chesstutor.app.data.learn.LessonAssetLoader
+import com.chesstutor.app.data.learn.RoomLessonProgressRepository
 import com.chesstutor.app.data.local.AppDatabase
+import com.chesstutor.app.domain.learn.LessonProgressRepository
 import com.chesstutor.app.data.maia.MaiaAssetLoader
 import com.chesstutor.app.domain.bot.BotRepository
 import com.chesstutor.app.data.opening.OpeningAssetLoader
@@ -93,6 +96,26 @@ object AppContainer {
     fun provideBotRepository(context: Context): BotRepository {
         return botRepositoryInstance ?: synchronized(this) {
             botRepositoryInstance ?: RoomBotRepository(AppDatabase.getInstance(context).botProfileDao()).also { botRepositoryInstance = it }
+        }
+    }
+
+    @Volatile
+    private var lessonLoaderInstance: LessonAssetLoader? = null
+
+    /** The bundled lessons (assets/lessons), read on first use and kept for the process. */
+    fun provideLessonLoader(context: Context): LessonAssetLoader {
+        return lessonLoaderInstance ?: synchronized(this) {
+            lessonLoaderInstance ?: LessonAssetLoader(context.applicationContext.assets).also { lessonLoaderInstance = it }
+        }
+    }
+
+    @Volatile
+    private var lessonProgressInstance: LessonProgressRepository? = null
+
+    /** Progress through the lessons (Room `lesson_progress`). */
+    fun provideLessonProgress(context: Context): LessonProgressRepository {
+        return lessonProgressInstance ?: synchronized(this) {
+            lessonProgressInstance ?: RoomLessonProgressRepository(AppDatabase.getInstance(context)).also { lessonProgressInstance = it }
         }
     }
 

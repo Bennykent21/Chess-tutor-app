@@ -11,16 +11,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,35 +30,34 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtComingSoon
+import com.chesstutor.app.design.CtGradients
 import com.chesstutor.app.design.CtIconBubble
-import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
-import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctEnter
-import com.chesstutor.app.domain.LearnCategory
-import com.chesstutor.app.domain.LearnCurriculumRepository
-import com.chesstutor.app.viewmodel.AppUiState
+import com.chesstutor.app.domain.learn.LessonCategory
+
+/** Everything the hub can open. */
+data class LearnHubActions(
+    val onOpenCategory: (LessonCategory) -> Unit,
+    val onOpenLesson: (lessonId: String) -> Unit,
+)
 
 /**
- * Learn hub (plan section 6.2): big buttons, no accordions. Until the new lesson pages
- * arrive in Phase 4, each button opens the existing lesson list on that category.
+ * Learn hub (plan section 6.2): a "Continue" card, then big category buttons with progress,
+ * no lists or accordions. Each button opens its category page.
  */
 @Composable
 fun LearnScreen(
-    state: AppUiState,
-    onOpenCategory: (LearnCategory) -> Unit,
-    onOpenDrills: () -> Unit,
+    learn: LearnState,
+    actions: LearnHubActions,
     modifier: Modifier = Modifier,
 ) {
-    val tiles = remember(state.masteredModules, state.practicedModules) {
-        LearnHubModel.tiles(LearnCurriculumRepository.topics, state.masteredModules, state.practicedModules)
-    }
-    val overall = LearnHubModel.overallProgress(tiles)
+    val tiles = remember(learn) { LearnHubModel.tiles(learn.library, learn.progress) }
+    val next = remember(learn) { LearnHubModel.continueLesson(learn.library, learn.progress) }
     val done = tiles.sumOf { it.completedLessons }
     val total = tiles.sumOf { it.totalLessons }
 
@@ -74,52 +75,62 @@ fun LearnScreen(
                 Column(modifier = Modifier.ctEnter(0)) {
                     Text(text = "$done of $total lessons complete", style = CtType.Label)
                     Spacer(Modifier.height(CtSpacing.sm))
-                    CtProgressBar(progress = overall, color = CtColors.Teal)
+                    CtProgressBar(progress = LearnHubModel.overallProgress(tiles), color = CtColors.Teal)
+                }
+
+                next?.let { (course, lesson) ->
+                    val started = LearnHubModel.status(lesson, learn.progress) == LessonStatus.STARTED
+                    CtCard(
+                        background = CtGradients.Teal,
+                        onClick = { actions.onOpenLesson(lesson.id) },
+                        onClickLabel = "Open ${lesson.title}",
+                        modifier = Modifier.fillMaxWidth().ctEnter(1),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+                            Column(Modifier.weight(1f)) {
+                                Text(if (started) "Continue" else "Up next", style = CtType.Label.copy(color = CtColors.Gold))
+                                Text(lesson.title, style = CtType.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                Text(course.title, style = CtType.BodySmall.copy(color = CtColors.Text))
+                            }
+                            Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = CtColors.Gold)
+                        }
+                    }
                 }
 
                 tiles.chunked(2).forEachIndexed { rowIndex, rowTiles ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-                        modifier = Modifier.ctEnter(rowIndex + 1),
+                        modifier = Modifier.ctEnter(rowIndex + 2),
                     ) {
                         rowTiles.forEach { tile ->
                             HubTile(
                                 tile = tile,
-                                onClick = tile.category?.let { category -> { onOpenCategory(category) } },
+                                onClick = { actions.onOpenCategory(tile.category) },
                                 modifier = Modifier.weight(1f),
                             )
                         }
                         if (rowTiles.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
-
-                CtSectionHeader(title = "Practice", modifier = Modifier.ctEnter(5))
-                CtListRow(
-                    title = "Tactics drills",
-                    subtitle = "The current drill player, until puzzles replace it",
-                    icon = Icons.Rounded.Extension,
-                    iconTint = CtColors.Gold,
-                    onClick = onOpenDrills,
-                    modifier = Modifier.ctEnter(6),
-                )
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }
     }
 }
 
-private fun tileStyle(key: String): Pair<ImageVector, Color> = when (key) {
-    "basics" -> Icons.Rounded.School to CtColors.Lime
-    "openings" -> Icons.Rounded.Flag to CtColors.Gold
-    "tactics" -> Icons.Rounded.Bolt to CtColors.Coral
-    "middlegame" -> Icons.Rounded.Psychology to CtColors.Violet
-    "endgames" -> Icons.Rounded.AutoStories to CtColors.Teal
-    else -> Icons.Rounded.Shield to CtColors.Coral
+/** Icon and accent colour of a category, shared by the hub and the category page. */
+internal fun categoryStyle(category: LessonCategory): Pair<ImageVector, Color> = when (category) {
+    LessonCategory.BASICS -> Icons.Rounded.School to CtColors.Lime
+    LessonCategory.OPENINGS -> Icons.Rounded.Flag to CtColors.Gold
+    LessonCategory.TACTICS -> Icons.Rounded.Bolt to CtColors.Coral
+    LessonCategory.MIDDLEGAME -> Icons.Rounded.Psychology to CtColors.Violet
+    LessonCategory.ENDGAMES -> Icons.Rounded.AutoStories to CtColors.Teal
+    LessonCategory.BLUNDERS -> Icons.Rounded.Shield to CtColors.Coral
 }
 
 @Composable
-private fun HubTile(tile: LearnHubTile, onClick: (() -> Unit)?, modifier: Modifier) {
-    val (icon, accent) = tileStyle(tile.key)
+private fun HubTile(tile: LearnHubTile, onClick: () -> Unit, modifier: Modifier) {
+    val (icon, accent) = categoryStyle(tile.category)
     CtCard(
         modifier = modifier,
         onClick = if (tile.isAvailable) onClick else null,
@@ -136,9 +147,8 @@ private fun HubTile(tile: LearnHubTile, onClick: (() -> Unit)?, modifier: Modifi
             modifier = Modifier.height(32.dp),
         )
         Spacer(Modifier.height(CtSpacing.sm))
-        val phase = tile.comingInPhase
-        if (phase != null) {
-            CtComingSoon(phase)
+        if (!tile.isAvailable) {
+            Text(text = "Lessons on the way", style = CtType.Caption, modifier = Modifier.fillMaxWidth())
         } else {
             CtProgressBar(progress = tile.progress, color = accent, height = 8.dp)
             Spacer(Modifier.height(CtSpacing.xs))

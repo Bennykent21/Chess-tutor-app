@@ -1,0 +1,89 @@
+{
+  "id": "basics-capturing",
+  "category": "basics",
+  "title": "Capturing and protecting",
+  "intro": "Win pieces your opponent leaves unprotected, and keep your own pieces safe.",
+  "level": "beginner",
+  "order": 30,
+  "puzzleThemes": ["hangingPiece"],
+  "lessons": [
+    {
+      "id": "basics-hanging-pieces",
+      "title": "Free pieces",
+      "summary": "Spot pieces nobody protects.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A piece that nobody protects is called hanging. If you can capture it, you win it for free.",
+          "fen": "4k3/8/8/3n4/8/8/8/3RK3 w - - 0 1",
+          "arrows": ["d1d5"],
+          "highlights": ["d5:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Capture the hanging knight.",
+          "fen": "4k3/8/8/3n4/8/8/8/3RK3 w - - 0 1",
+          "expect": ["d1d5"],
+          "hint": "The knight is on the same file as your rook.",
+          "ifRight": "Free knight!",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Now the pawn on c6 protects the knight. If your rook takes it, the pawn takes your rook: you give 5 to win 3. Always check what protects a piece before you take it.",
+          "fen": "4k3/8/2p5/3n4/8/8/8/3RK3 w - - 0 1",
+          "arrows": ["d1d5:bad", "c6d5:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "One black piece is hanging. Capture it.",
+          "fen": "4k3/8/2p5/3n3b/8/8/8/3QK3 w - - 0 1",
+          "expect": ["d1h5"],
+          "hint": "Which piece has no defender?",
+          "ifWrong": "Look for a capture where nothing can take back.",
+          "ifRight": "Yes, the bishop was hanging (and it was attacking your queen).",
+          "feedback": {
+            "d1d5": "The pawn on c6 protects the knight. After cxd5 you lose your queen (9) for a knight (3)."
+          }
+        }
+      ]
+    },
+    {
+      "id": "basics-trades",
+      "title": "Good and bad trades",
+      "summary": "Count what you give and what you get.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "When you capture a piece and your opponent captures back, pieces are traded. A trade is good if you get more than you give, using the piece values: pawn 1, knight 3, bishop 3, rook 5, queen 9.",
+          "fen": "4k3/5n2/r7/8/2B5/8/8/4K3 w - - 0 1"
+        },
+        {
+          "type": "quiz",
+          "text": "Your bishop can take the knight on f7 or the rook on a6. Which capture wins the most?",
+          "fen": "4k3/5n2/r7/8/2B5/8/8/4K3 w - - 0 1",
+          "expect": ["c4a6"],
+          "hint": "Is either black piece protected?",
+          "ifWrong": "Pick a capture that wins material.",
+          "ifRight": "Right: the rook was hanging. You win 5 and give nothing.",
+          "feedback": {
+            "c4f7": "That is only a trade: the king takes your bishop back, 3 for 3. The rook on a6 was free!"
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Both black pieces are protected. Which capture is still a good trade?",
+          "fen": "4k3/3p4/2n1q3/8/8/8/8/2R1R1K1 w - - 0 1",
+          "expect": ["e1e6"],
+          "hint": "Compare: what do you give, what do you get?",
+          "ifWrong": "Pick a capture that wins more than it gives back.",
+          "ifRight": "Yes: you give a rook (5) and win the queen (9).",
+          "feedback": {
+            "c1c6": "You win a knight (3) but lose your rook (5) to the pawn. A bad trade."
+          }
+        }
+      ]
+    }
+  ]
+}

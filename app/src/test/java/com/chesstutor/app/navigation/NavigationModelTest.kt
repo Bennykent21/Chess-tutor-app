@@ -1,8 +1,7 @@
 package com.chesstutor.app.navigation
 
 import com.chesstutor.app.domain.LearnCategory
-import com.chesstutor.app.domain.LearnCurriculumRepository
-import com.chesstutor.app.feature.learn.LearnHubModel
+import com.chesstutor.app.viewmodel.AppUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -34,6 +33,16 @@ class NavigationModelTest {
     }
 
     @Test
+    fun learnPagesKeepTheBottomBarButTheLessonPlayerHidesIt() {
+        assertTrue(AppRoutes.showsBottomBar(AppRoutes.LEARN_CATEGORY_PATTERN))
+        assertTrue(AppRoutes.showsBottomBar(AppRoutes.COURSE_PATTERN))
+        assertFalse(AppRoutes.showsBottomBar(AppRoutes.LESSON))
+        assertEquals(TopTab.LEARN, AppRoutes.tabFor(AppRoutes.COURSE_PATTERN))
+        assertEquals("learn/category/tactics", AppRoutes.learnCategory("tactics"))
+        assertEquals("learn/course/italian", AppRoutes.course("italian"))
+    }
+
+    @Test
     fun legacyRouteCarriesTheLearnCategory() {
         assertEquals("legacy", AppRoutes.legacy())
         val route = AppRoutes.legacy(LearnCategory.ENDGAME)
@@ -44,38 +53,26 @@ class NavigationModelTest {
     }
 
     @Test
+    fun relatedPuzzlesRouteCarriesTheThemes() {
+        val route = AppRoutes.puzzleRelated(listOf("pin", "skewer"))
+        assertEquals("puzzles/related/pin%2Cskewer", route)
+        assertEquals(listOf("pin", "skewer"), AppRoutes.parseThemes(java.net.URLDecoder.decode(route.substringAfterLast('/'), "UTF-8")))
+        assertEquals(emptyList<String>(), AppRoutes.parseThemes(null))
+    }
+
+    @Test
+    fun onboardingShowsOnlyOnceTheSavedProfileIsKnown() {
+        // Before the profile is read, the default "NOT_STARTED" must not flash onboarding.
+        assertEquals(StartScreen.LOADING, StartScreen.of(profileLoaded = false, assessmentState = "NOT_STARTED"))
+        assertEquals(StartScreen.LOADING, StartScreen.of(profileLoaded = false, assessmentState = "COMPLETE"))
+        assertEquals(StartScreen.ONBOARDING, StartScreen.of(profileLoaded = true, assessmentState = "NOT_STARTED"))
+        assertEquals(StartScreen.ONBOARDING, StartScreen.of(profileLoaded = true, assessmentState = "IN_PROGRESS"))
+        assertEquals(StartScreen.APP, StartScreen.of(profileLoaded = true, assessmentState = "COMPLETE"))
+        assertFalse("a fresh state has not read the profile yet", AppUiState().profileLoaded)
+    }
+
+    @Test
     fun legacyTabIndicesMatchTheOldScreens() {
-        assertEquals("the old puzzle trainer and Arena are replaced (Phases 2 and 3)", listOf(0, 1, 3), LegacyTab.ALL)
-    }
-}
-
-class LearnHubModelTest {
-
-    private val topics = LearnCurriculumRepository.topics
-
-    @Test
-    fun sixTilesWithBasicsComingInPhase4() {
-        val tiles = LearnHubModel.tiles(topics, emptySet(), emptySet())
-        assertEquals(listOf("Basics", "Openings", "Tactics", "Middlegame", "Endgames", "Blunders"), tiles.map { it.title })
-        val basics = tiles.first()
-        assertFalse(basics.isAvailable)
-        assertEquals(LearnHubModel.BASICS_PHASE, basics.comingInPhase)
-        assertTrue(tiles.drop(1).all { it.isAvailable })
-        // Every existing lesson appears in exactly one tile.
-        assertEquals(topics.size, tiles.sumOf { it.totalLessons })
-    }
-
-    @Test
-    fun countsCompletedAndStartedLessonsPerCategory() {
-        val openings = topics.filter { it.category == LearnCategory.OPENING }
-        val mastered = setOf(openings[0].id)
-        val practiced = setOf(openings[0].id, openings[1].id)
-
-        val tile = LearnHubModel.tiles(topics, mastered, practiced).first { it.key == "openings" }
-
-        assertEquals(1, tile.completedLessons)
-        assertEquals(1, tile.startedLessons) // mastered lessons are not also "started"
-        assertEquals(1f / openings.size, tile.progress, 0.0001f)
-        assertEquals(1f / topics.size, LearnHubModel.overallProgress(LearnHubModel.tiles(topics, mastered, practiced)), 0.0001f)
+        assertEquals("the old puzzle trainer, Arena and Learn list are replaced (Phases 2 to 4)", listOf(0, 3), LegacyTab.ALL)
     }
 }

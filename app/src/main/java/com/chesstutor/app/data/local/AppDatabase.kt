@@ -20,8 +20,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LevelProgressEntity::class,
         ReportIssueEntity::class,
         BotProfileEntity::class,
+        LessonProgressEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -31,6 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun gameRecordDao(): GameRecordDao
     abstract fun puzzleDao(): PuzzleDao
     abstract fun botProfileDao(): BotProfileDao
+    abstract fun lessonProgressDao(): LessonProgressDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -155,6 +157,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Phase 4A: progress through the new lessons. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS lesson_progress (" +
+                        "lessonId TEXT NOT NULL, stepIndex INTEGER NOT NULL, stepCount INTEGER NOT NULL, " +
+                        "completed INTEGER NOT NULL, plays INTEGER NOT NULL, bestCleanChallenges INTEGER NOT NULL, " +
+                        "challengeCount INTEGER NOT NULL, perfect INTEGER NOT NULL, xpEarned INTEGER NOT NULL, " +
+                        "completedAt INTEGER, updatedAt INTEGER NOT NULL, PRIMARY KEY(lessonId))"
+                )
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -164,6 +179,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_6_7,
             MIGRATION_7_8,
             MIGRATION_8_9,
+            MIGRATION_9_10,
         )
 
         @Volatile

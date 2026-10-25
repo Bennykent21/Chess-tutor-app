@@ -1,0 +1,107 @@
+{
+  "id": "openings-principles",
+  "category": "openings",
+  "title": "Opening principles",
+  "intro": "The ideas behind every good opening: take the centre, develop your pieces, keep your king safe. Learn these before any particular opening.",
+  "level": "beginner",
+  "order": 10,
+  "puzzleThemes": ["mateIn1"],
+  "lessons": [
+    {
+      "id": "openings-centre-develop",
+      "title": "Centre, development, castling",
+      "summary": "Three rules that make every opening work.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The four squares in the middle matter most. Pieces in the centre reach more squares, and pawns there take space from your opponent.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "highlights": ["d4:good", "e4:good", "d5:good", "e5:good"]
+        },
+        {
+          "type": "explain",
+          "text": "1.e4 takes a centre square and opens lines for the queen and the bishop on f1.",
+          "move": "e2e4",
+          "arrows": ["d1h5:idea", "f1a6:idea"]
+        },
+        {
+          "type": "explain",
+          "text": "Black does the same with 1...e5.",
+          "move": "e7e5"
+        },
+        {
+          "type": "play",
+          "text": "Develop: bring a knight or a bishop towards the centre.",
+          "expect": ["g1f3", "b1c3", "f1c4", "f1b5"],
+          "hint": "Knights go to f3 or c3; the bishop can go to c4 or b5.",
+          "ifWrong": "Bring a knight or bishop off the back row, towards the centre.",
+          "ifRight": "Good development: a new piece joins the game.",
+          "feedback": {
+            "g1h3": "A knight on the edge reaches fewer squares. Head for the centre instead.",
+            "b1a3": "A knight on the edge reaches fewer squares. Head for the centre instead.",
+            "d1h5": "Bringing the queen out early lets Black chase her while developing. Develop a knight or bishop first.",
+            "d1f3": "Bringing the queen out early lets Black chase her while developing. Develop a knight or bishop first."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Here both sides have followed the rules: centre pawns, knights out, bishops out. The last job is to castle, so the king is safe and a rook comes towards the middle.",
+          "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"
+        },
+        {
+          "type": "quiz",
+          "text": "Finish your development: get your king to safety.",
+          "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "expect": ["e1g1"],
+          "hint": "The squares between your king and the h1 rook are empty.",
+          "ifWrong": "That is not castling. Move the king two squares towards the h1 rook.",
+          "ifRight": "Castled. Centre, development, king safety: done.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-early-mistakes",
+      "title": "Punish early mistakes",
+      "summary": "An early queen and a weak f7 square.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black brings the queen out early. She takes a pawn, but now she stands in the middle where your pieces can attack her.",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "move": "e4d5"
+        },
+        {
+          "type": "explain",
+          "text": "After 2...Qxd5 the queen is exposed. Every move that attacks her gains time.",
+          "move": "d8d5",
+          "highlights": ["d5:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Develop a piece and attack the queen at the same time.",
+          "fen": "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3",
+          "expect": ["b1c3"],
+          "hint": "Which knight move hits d5?",
+          "ifWrong": "Find a developing move that attacks the queen.",
+          "ifRight": "The queen must move again, and you are a move ahead in development."
+        },
+        {
+          "type": "explain",
+          "text": "Early on, f7 is protected only by Black's king. Here White's queen and bishop both aim at it, and Black has just attacked the queen with ...Nf6, forgetting about f7.",
+          "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4",
+          "arrows": ["h5f7:bad", "c4f7:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Punish the mistake: checkmate in one.",
+          "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4",
+          "goal": "mate",
+          "hint": "Capture on f7. The bishop protects your queen there.",
+          "ifWrong": "Look at f7: the queen can land there, protected by the bishop."
+        }
+      ]
+    }
+  ]
+}

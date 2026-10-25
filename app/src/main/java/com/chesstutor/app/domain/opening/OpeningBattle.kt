@@ -46,6 +46,17 @@ object OpeningBattles {
         }
     }
 
+    /**
+     * The line a lesson's "Practise in Opening Battle" starts with: the longest line named
+     * exactly [name] (the opening's main line), else the shortest line within it. Null when
+     * the database has no such opening.
+     */
+    fun presetLine(tree: OpeningTree, name: String): Opening? {
+        val within = tree.linesWithin(listOf(name))
+        return within.filter { it.name == name }.maxByOrNull { it.moves.size }
+            ?: within.minByOrNull { it.moves.size }
+    }
+
     /** Families for the picker: the biggest first, or those matching [query] in any line name. */
     fun searchFamilies(tree: OpeningTree, query: String, limit: Int = 60): List<OpeningFamily> {
         val q = query.trim()
