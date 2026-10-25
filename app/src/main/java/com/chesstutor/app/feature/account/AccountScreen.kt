@@ -17,17 +17,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.Memory
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.School
-import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Star
@@ -52,7 +47,6 @@ import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtComingSoon
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtIconBubble
 import com.chesstutor.app.design.CtListRow
@@ -68,6 +62,8 @@ import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.account.GameOutcome
 import com.chesstutor.app.domain.account.GameReview
 import com.chesstutor.app.domain.account.TimeClass
+import com.chesstutor.app.domain.account.TrainingCalculator
+import com.chesstutor.app.domain.account.TrainingReport
 import com.chesstutor.app.domain.account.label
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.viewmodel.AppUiState
@@ -83,6 +79,8 @@ enum class AccountTab(val label: String) {
 /** What the Account tab can do; the nav host wires each one. */
 data class AccountActions(
     val onOpenGame: (gameId: String) -> Unit = {},
+    /** Opens the spaced review of positions from the player's games (Puzzles > Mistakes review). */
+    val onReviewMistakes: () -> Unit = {},
     val onLink: (RatingPlatform, String, RatingTimeControl) -> Unit = { _, _, _ -> },
     val onSync: () -> Unit = {},
     val onCancelImport: () -> Unit = {},
@@ -90,17 +88,12 @@ data class AccountActions(
     val onImportDepth: (ImportDepth) -> Unit = {},
     val onDismissLinkStatus: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
-    val onOpenEngineHealth: () -> Unit = {},
-    val onOpenDesignGallery: () -> Unit = {},
-    val onOpenBoardLab: () -> Unit = {},
-    val onOpenBoardSettings: () -> Unit = {},
-    val onOpenDeveloperMenu: () -> Unit = {},
 )
 
 /**
  * Account tab (plan section 6.4): the player's header, then Overview (ratings, linked
  * account, recent games), Games (every saved game with filters) and Performance (results,
- * accuracy and rating trend). Training follows in step 5D.
+ * accuracy and rating trend) and Training (puzzles, themes, lessons, mistakes due).
  */
 @Composable
 fun AccountScreen(
@@ -113,6 +106,7 @@ fun AccountScreen(
     initialTab: AccountTab = AccountTab.OVERVIEW,
     /** Reviews of the analysed games, for the Performance page. */
     reviews: Map<String, GameReview> = emptyMap(),
+    training: TrainingReport = TrainingCalculator.report(emptyList(), { null }, 0, 0),
 ) {
     var tabName by rememberSaveable { mutableStateOf(initialTab.name) }
     val tab = AccountTab.valueOf(tabName)
@@ -158,7 +152,15 @@ fun AccountScreen(
                         modifier = Modifier.padding(horizontal = CtSpacing.gutter),
                     )
                 }
-                AccountTab.TRAINING -> comingSoon("Training", "Puzzle rating history, XP, streaks, lessons and the patterns you solve cleanly.", Icons.Rounded.School)
+                AccountTab.TRAINING -> item(key = "training") {
+                    TrainingPage(
+                        stats = stats,
+                        training = training,
+                        dueReviewCount = dueReviewCount,
+                        onReviewMistakes = actions.onReviewMistakes,
+                        modifier = Modifier.padding(horizontal = CtSpacing.gutter),
+                    )
+                }
             }
         }
     }
@@ -241,29 +243,15 @@ private fun LazyListScope.overview(
             GameRow(game, onClick = { actions.onOpenGame(game.id) }, modifier = Modifier.padding(horizontal = CtSpacing.gutter), accuracy = games.analysed[game.id]?.accuracyFor(game.userColor))
         }
     }
-    item(key = "app") {
-        Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            CtSectionHeader(title = "App")
-            CtListRow(
-                title = "Board and pieces",
-                subtitle = "Piece sets, board colours, sound and motion",
-                icon = Icons.Rounded.GridView,
-                iconTint = CtColors.Gold,
-                onClick = actions.onOpenBoardSettings,
-            )
-            CtListRow(
-                title = "Engine health",
-                subtitle = if (state.engineStatus.isDegraded) "Stockfish is not running: using a weaker engine" else "Check that Stockfish is running on this phone",
-                icon = Icons.Rounded.Memory,
-                iconTint = if (state.engineStatus.isDegraded) CtColors.Coral else CtColors.Lime,
-                onClick = actions.onOpenEngineHealth,
-                trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
-            )
-            CtSectionHeader(title = "During development")
-            CtListRow(title = "Design system", subtitle = "Colours, type and components", icon = Icons.Rounded.Palette, iconTint = CtColors.Violet, onClick = actions.onOpenDesignGallery)
-            CtListRow(title = "Board lab", subtitle = "Try the new board: moves, sounds and motion", icon = Icons.Rounded.Science, iconTint = CtColors.Gold, onClick = actions.onOpenBoardLab)
-            CtListRow(title = "Classic screens", subtitle = "Every screen from before the revamp", icon = Icons.Rounded.Build, iconTint = CtColors.Text2, onClick = actions.onOpenDeveloperMenu)
-        }
+    item(key = "settings") {
+        CtListRow(
+            title = "Settings",
+            subtitle = "Coach, board and sound, linked account, engine, export and about",
+            icon = Icons.Rounded.Settings,
+            onClick = actions.onOpenSettings,
+            modifier = Modifier.padding(horizontal = CtSpacing.gutter),
+            trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
+        )
     }
 }
 
@@ -367,23 +355,6 @@ private fun ChipRow(content: @Composable () -> Unit) {
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
     ) { content() }
-}
-
-private fun LazyListScope.comingSoon(title: String, body: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    item(key = "soon-$title") {
-        CtCard(modifier = Modifier.fillMaxWidth().padding(horizontal = CtSpacing.gutter)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CtIconBubble(icon = icon, tint = CtColors.Violet, size = 40.dp)
-                Spacer(Modifier.width(CtSpacing.md))
-                Column(Modifier.weight(1f)) {
-                    Text(title, style = CtType.TitleSmall)
-                    Text(body, style = CtType.Caption)
-                }
-            }
-            Spacer(Modifier.height(CtSpacing.sm))
-            CtComingSoon(5)
-        }
-    }
 }
 
 /** Saves the games filter across navigation and process death as plain strings. */

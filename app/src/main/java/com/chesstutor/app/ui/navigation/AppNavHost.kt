@@ -43,8 +43,11 @@ import com.chesstutor.app.feature.account.GameDetailActions
 import com.chesstutor.app.feature.account.GameDetailScreen
 import com.chesstutor.app.feature.account.GameReviewScreen
 import com.chesstutor.app.feature.account.ReviewActions
+import com.chesstutor.app.feature.account.SettingsActions
+import com.chesstutor.app.feature.account.SettingsScreen
+import com.chesstutor.app.domain.PgnFormatter
+import com.chesstutor.app.feature.account.TrainingSources
 import com.chesstutor.app.core.Position
-import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.account.BoardLabScreen
 import com.chesstutor.app.feature.account.BoardSettingsActions
@@ -75,6 +78,9 @@ import com.chesstutor.app.feature.learn.LearnScreen
 import com.chesstutor.app.feature.learn.LearnViewModel
 import com.chesstutor.app.feature.learn.LessonPlayerScreen
 import com.chesstutor.app.feature.analysis.AnalysisScreen
+import com.chesstutor.app.feature.puzzles.MistakeReviewActions
+import com.chesstutor.app.feature.puzzles.MistakeReviewScreen
+import com.chesstutor.app.feature.puzzles.MistakeReviewViewModel
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
 import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
 import com.chesstutor.app.feature.puzzles.PuzzlePlayerScreen
@@ -83,7 +89,6 @@ import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.StartScreen
 import com.chesstutor.app.navigation.TopTab
-import com.chesstutor.app.navigation.TrainRequest
 import com.chesstutor.app.ui.components.PgnViewerDialog
 import com.chesstutor.app.ui.components.PromotionDialog
 import com.chesstutor.app.ui.onboarding.OnboardingScreen
@@ -123,6 +128,17 @@ fun AppNavHost(
     val dueReviews = remember(state.reviews) {
         val now = Instant.now()
         state.reviews.count { ReviewScheduler.isDue(it, now) }
+    }
+    // Linking Chess.com or Lichess, shared by the Account tab and the Settings page.
+    val linkActions = remember(viewModel) {
+        AccountActions(
+            onLink = { platform, username, timeControl -> viewModel.linkRatingAccount(platform, username, timeControl) },
+            onSync = { viewModel.refreshLinkedRating() },
+            onCancelImport = viewModel::cancelAccountImport,
+            onUnlink = viewModel::unlinkRatingAccount,
+            onImportDepth = viewModel::setImportDepth,
+            onDismissLinkStatus = viewModel::clearLinkingStatus,
+        )
     }
 
     fun openLegacy(index: Int, category: LearnCategory? = null) {
@@ -446,10 +462,7 @@ fun AppNavHost(
                                 navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
                             },
                             onOpenModes = { navController.navigate(AppRoutes.PUZZLE_MODES) { launchSingleTop = true } },
-                            onReviewMistakes = {
-                                viewModel.startTrain(TrainRequest.ReviewDue)
-                                navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
-                            }
+                            onReviewMistakes = { navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true } }
                         )
                     }
                     // Home's daily challenge card: starts today's puzzle, then shows the player.
@@ -494,6 +507,26 @@ fun AppNavHost(
                             onBack = { navController.popBackStack() }
                         )
                     }
+                    composable(AppRoutes.MISTAKE_REVIEW) {
+                        val context = LocalContext.current.applicationContext
+                        // Scoped to this screen: each visit starts from the positions due now.
+                        val review: MistakeReviewViewModel = viewModel(
+                            factory = MistakeReviewViewModel.Factory(AppContainer.provideReviewRepository(context), onChanged = viewModel::refreshReviews)
+                        )
+                        val ui by review.ui.collectAsStateWithLifecycle()
+                        MistakeReviewScreen(
+                            ui = ui,
+                            session = review,
+                            settings = state.appSettings,
+                            actions = MistakeReviewActions(
+                                onHint = review::hint,
+                                onShowAnswer = review::showAnswer,
+                                onNext = review::next,
+                                onFeedback = viewModel::playBoardFeedback,
+                                onBack = { navController.popBackStack() }
+                            )
+                        )
+                    }
                     composable(AppRoutes.PUZZLE_PLAYER) { entry ->
                         val puzzles = puzzlesViewModel(navController, entry)
                         val player by puzzles.player.collectAsStateWithLifecycle()
@@ -516,26 +549,42 @@ fun AppNavHost(
                         val games by account.games.collectAsStateWithLifecycle()
                         val stats by account.stats.collectAsStateWithLifecycle()
                         val reviews by account.reviews.collectAsStateWithLifecycle()
+                        val training by account.training.collectAsStateWithLifecycle()
                         AccountScreen(
                             state = state,
                             games = games,
                             stats = stats,
                             reviews = reviews,
+                            training = training,
                             dueReviewCount = dueReviews,
-                            actions = AccountActions(
+                            actions = linkActions.copy(
                                 onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
-                                onLink = { platform, username, timeControl -> viewModel.linkRatingAccount(platform, username, timeControl) },
-                                onSync = { viewModel.refreshLinkedRating() },
-                                onCancelImport = viewModel::cancelAccountImport,
-                                onUnlink = viewModel::unlinkRatingAccount,
-                                onImportDepth = viewModel::setImportDepth,
-                                onDismissLinkStatus = viewModel::clearLinkingStatus,
-                                onOpenSettings = { viewModel.setSettingsVisible(true) },
+                                onReviewMistakes = {
+                                    navController.navigateToTab(TopTab.PUZZLES)
+                                    navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true }
+                                },
+                                onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) { launchSingleTop = true } }
+                            )
+                        )
+                    }
+                    composable(AppRoutes.SETTINGS) {
+                        val context = LocalContext.current.applicationContext
+                        SettingsScreen(
+                            state = state,
+                            accountActions = linkActions,
+                            actions = SettingsActions(
+                                onMascot = viewModel::setMascot,
+                                onChatLevel = viewModel::setChatLevel,
+                                onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
                                 onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
                                 onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
                                 onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
-                                onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
-                                onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) }
+                                onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) },
+                                exportPgn = {
+                                    AppContainer.provideGameRepository(context).getRecentGames(Int.MAX_VALUE)
+                                        .joinToString("\n\n") { PgnFormatter.reconstructPgnFromGameRecord(it).trim() }
+                                },
+                                onBack = { navController.popBackStack() }
                             )
                         )
                     }
@@ -785,6 +834,12 @@ private fun accountViewModel(navController: NavHostController, entry: NavBackSta
             analysis = AppContainer.provideGameAnalysis(context),
             engine = AppContainer.provideEngineService(context),
             reviews = AppContainer.provideReviewRepository(context),
+            trainingSources = TrainingSources(
+                puzzleHistory = AppContainer.providePuzzleRepository(context).history(),
+                loadPack = { AppContainer.loadPuzzlePack(context) },
+                lessonProgress = AppContainer.provideLessonProgress(context).observe(),
+                loadLessonCount = { AppContainer.provideLessonLoader(context).load().courses.sumOf { it.lessons.size } },
+            ),
         ),
     )
 }
@@ -796,6 +851,6 @@ private fun puzzlesViewModel(navController: NavHostController, entry: NavBackSta
     val context = LocalContext.current.applicationContext
     return viewModel(
         viewModelStoreOwner = owner,
-        factory = PuzzlesViewModel.Factory(AppContainer.providePuzzleRepository(context)) { PuzzleAssetLoader(context).load() },
+        factory = PuzzlesViewModel.Factory(AppContainer.providePuzzleRepository(context)) { AppContainer.loadPuzzlePack(context) },
     )
 }

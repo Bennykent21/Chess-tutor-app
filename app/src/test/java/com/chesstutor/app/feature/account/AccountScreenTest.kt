@@ -131,6 +131,58 @@ class AccountScreenTest {
     }
 
     @Test
+    fun trainingPageShowsPuzzlesThemesLessonsAndDueMistakes() {
+        val history = (1..6).map { i ->
+            com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry("p$i", solved = true, clean = i % 2 == 0, ratingAfter = 1000 + i * 15, finishedAt = i.toLong())
+        }
+        val training = com.chesstutor.app.domain.account.TrainingCalculator.report(
+            history,
+            { id -> if (id.removePrefix("p").toInt() % 2 == 0) setOf("fork") else setOf("pin") },
+            lessonsDone = 12,
+            lessonsTotal = 48,
+        )
+        var reviewed = false
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                AccountScreen(
+                    state = AppUiState(), games = games, stats = stats, dueReviewCount = 2,
+                    actions = AccountActions(onReviewMistakes = { reviewed = true }),
+                    initialTab = AccountTab.TRAINING, training = training,
+                )
+            }
+        }
+        compose.onNodeWithText("Your strengths").assertExists()
+        compose.onNodeWithText("Worth practising").assertExists()
+        compose.onNodeWithText("12 of 48 lessons done").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_training.png")
+        compose.onNodeWithText("Review now").performClick()
+        assertTrue(reviewed)
+    }
+
+    @Test
+    fun settingsPageHoldsCoachBoardAccountEngineAndAbout() {
+        var boardOpened = false
+        var chat: com.chesstutor.app.domain.bot.ChatLevel? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                SettingsScreen(
+                    state = AppUiState(),
+                    accountActions = AccountActions(),
+                    actions = SettingsActions(onOpenBoardSettings = { boardOpened = true }, onChatLevel = { chat = it }),
+                )
+            }
+        }
+        compose.onNodeWithText("Link your account").assertExists()
+        compose.onNodeWithText("Export as PGN").assertExists()
+        compose.onNodeWithText("Stockfish 19 chess engine").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_settings.png")
+        compose.onNodeWithText("Board, pieces and sound").performClick()
+        assertTrue(boardOpened)
+        compose.onNodeWithText("Lots").performClick()
+        assertEquals(com.chesstutor.app.domain.bot.ChatLevel.LOTS, chat)
+    }
+
+    @Test
     fun linkedAccountOffersSyncAndUnlink() {
         val state = AppUiState(
             linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = 1848, blitzRating = 1720, bulletRating = null, selectedTimeControl = RatingTimeControl.RAPID),

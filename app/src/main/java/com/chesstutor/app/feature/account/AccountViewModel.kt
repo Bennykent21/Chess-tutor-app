@@ -20,6 +20,12 @@ import com.chesstutor.app.domain.account.PlyEval
 import com.chesstutor.app.domain.account.ReviewedMove
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.puzzle.PuzzleStats
+import com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry
+import com.chesstutor.app.domain.puzzle.PuzzlePack
+import com.chesstutor.app.domain.learn.LessonProgress
+import com.chesstutor.app.domain.account.TrainingCalculator
+import com.chesstutor.app.domain.account.TrainingReport
+import kotlinx.coroutines.flow.flow
 import com.chesstutor.app.engine.EngineService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -45,6 +51,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Instant
+
+/** Where the Training page's numbers come from. */
+class TrainingSources(
+    val puzzleHistory: Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList()),
+    val loadPack: suspend () -> PuzzlePack = { PuzzlePack.EMPTY },
+    val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
+    val loadLessonCount: suspend () -> Int = { 0 },
+)
 
 /** The player's saved games, newest first, with openings named (plan section 6.4). */
 data class GamesState(
@@ -85,6 +99,7 @@ class AccountViewModel(
     private val analysis: GameAnalysisRepository = InMemoryGameAnalysisRepository(),
     private val engine: EngineService? = null,
     private val mistakeReviews: ReviewRepository? = null,
+    trainingSources: TrainingSources = TrainingSources(),
     worker: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
@@ -124,6 +139,16 @@ class AccountViewModel(
             )
         }.flowOn(worker)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReviewState())
+
+    /** The Training page: puzzle rating history, theme strengths and lessons done (plan 6.4). */
+    val training: StateFlow<TrainingReport> = combine(
+        trainingSources.puzzleHistory,
+        trainingSources.lessonProgress,
+        flow { emit(runCatching { trainingSources.loadPack() }.getOrDefault(PuzzlePack.EMPTY)) },
+        flow { emit(runCatching { trainingSources.loadLessonCount() }.getOrDefault(0)) },
+    ) { history, lessons, pack, lessonTotal ->
+        TrainingCalculator.report(history, { id -> pack.get(id)?.themes }, lessons.values.count { it.completed }, lessonTotal)
+    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrainingCalculator.report(emptyList(), { null }, 0, 0))
 
     /** Reviews of every analysed game, kept until the game is analysed again. */
     private val reviewCache = HashMap<String, Pair<Long, GameReview>>()
@@ -232,9 +257,10 @@ class AccountViewModel(
         private val analysis: GameAnalysisRepository,
         private val engine: EngineService,
         private val reviews: ReviewRepository,
+        private val trainingSources: TrainingSources,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews) as T
+            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources) as T
     }
 }

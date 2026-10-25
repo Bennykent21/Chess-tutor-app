@@ -53,6 +53,8 @@ object AppRoutes {
     const val DEVELOPER_MENU = "account/developer"
     const val DESIGN_GALLERY = "account/design"
     const val BOARD_SETTINGS = "account/board"
+    /** The Settings page (plan 6.4), replacing the old settings sheet. */
+    const val SETTINGS = "account/settings"
     /** One saved game: result, opening, final position and moves (plan section 6.4). */
     const val GAME_ID_ARG = "gameId"
     const val GAME_PATTERN = "account/game/{$GAME_ID_ARG}"
@@ -65,6 +67,8 @@ object AppRoutes {
     const val PUZZLE_MODES = "puzzles/modes"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
     const val PUZZLE_DAILY = "puzzles/daily"
+    /** Mistakes review: due positions from the player's own games, full screen on the board. */
+    const val MISTAKE_REVIEW = "puzzles/review"
     /** Starts puzzles with a lesson's themes (comma-separated Lichess names) and opens the player. */
     const val THEMES_ARG = "themes"
     const val PUZZLE_RELATED_PATTERN = "puzzles/related/{$THEMES_ARG}"
@@ -127,7 +131,7 @@ object AppRoutes {
     fun parseCategory(value: String?): LearnCategory? =
         value?.let { name -> LearnCategory.entries.firstOrNull { it.name == name } }
 
-    private val accountPages = setOf(ENGINE_HEALTH, DEVELOPER_MENU, DESIGN_GALLERY, BOARD_SETTINGS, GAME_PATTERN)
+    private val accountPages = setOf(ENGINE_HEALTH, DEVELOPER_MENU, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, GAME_PATTERN)
     /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN)
 
