@@ -1,0 +1,73 @@
+{
+  "id": "blunders-king-safety",
+  "category": "blunders",
+  "title": "King safety",
+  "intro": "Back-rank mates and careless king moves lose more games than any opening. Learn to spot the danger in time.",
+  "level": "beginner",
+  "order": 20,
+  "puzzleThemes": ["backRankMate"],
+  "lessons": [
+    {
+      "id": "blunders-back-rank",
+      "title": "The back-rank mate",
+      "summary": "A king walled in by its own pawns.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The black king is shut in by its own pawns on f7, g7 and h7. If a rook or queen reaches the back row with check, it is mate.",
+          "fen": "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+          "highlights": ["f7:bad", "g7:bad", "h7:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Punish the weak back rank: checkmate in one.",
+          "fen": "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+          "goal": "mate",
+          "hint": "The e-file is open to the back row.",
+          "ifWrong": "Not mate. Reach the back row with check."
+        },
+        {
+          "type": "explain",
+          "text": "Your own king has the same problem! Black's rook threatens Rd1 mate. The cure is 'luft': a pawn move that gives your king an escape square, or a piece that guards your back row.",
+          "fen": "3r2k1/5ppp/8/8/8/8/1R3PPP/6K1 w - - 0 1",
+          "arrows": ["d8d1:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Black threatens Rd1 mate. Stop it.",
+          "fen": "3r2k1/5ppp/8/8/8/8/1R3PPP/6K1 w - - 0 1",
+          "expect": ["h2h3", "g2g3", "h2h4", "g2g4", "f2f3", "f2f4", "b2b1", "g1f1"],
+          "hint": "Give your king an escape square, or guard the first row with your rook.",
+          "ifWrong": "After that, Rd1 is still mate. Make luft or guard the back row.",
+          "ifRight": "No more back-rank mate."
+        }
+      ]
+    },
+    {
+      "id": "blunders-block-checks",
+      "title": "Block checks the smart way",
+      "summary": "Answer a check with a developing move, and keep the right to castle.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's bishop checks your king. You can move the king, take the checking piece, or block. Moving the king here costs you the right to castle.",
+          "fen": "rnbqk1nr/pppp1ppp/8/4p3/1b2P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 1 3",
+          "arrows": ["b4e1:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Block the check with a move that also develops or helps your position.",
+          "fen": "rnbqk1nr/pppp1ppp/8/4p3/1b2P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 1 3",
+          "expect": ["c1d2", "b1c3", "b1d2", "c2c3"],
+          "hint": "Put a bishop, knight or pawn between the bishop and your king.",
+          "ifWrong": "Block the check, and keep your king where it can still castle.",
+          "ifRight": "Check blocked, a piece developed, and you can still castle.",
+          "feedback": {
+            "e1e2": "That escapes the check, but your king loses the right to castle and blocks your bishop.",
+            "d1d2": "Blocking with the queen works, but she can be chased around. Use a bishop, knight or pawn."
+          }
+        }
+      ]
+    }
+  ]
+}

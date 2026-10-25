@@ -1,0 +1,72 @@
+{
+  "id": "blunders-dont-miss-it",
+  "category": "blunders",
+  "title": "Don't miss it",
+  "intro": "The most expensive mistakes are the chances you do not see: a mate in one, a free queen, a defender with too many jobs.",
+  "level": "beginner",
+  "order": 10,
+  "puzzleThemes": ["mateIn1", "hangingPiece"],
+  "lessons": [
+    {
+      "id": "blunders-checks-captures",
+      "title": "Checks and captures first",
+      "summary": "Look at every check and capture before anything else.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Before you decide on a move, look at every check and every capture, for both sides. Many games are lost by players who did not look. Here Black has just taken on e4. Does White have a check?",
+          "fen": "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4",
+          "arrows": ["f3f7:idea", "c4f7:idea"]
+        },
+        {
+          "type": "quiz",
+          "text": "Do not miss it: checkmate in one.",
+          "fen": "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4",
+          "goal": "mate",
+          "hint": "The queen and the bishop both aim at f7.",
+          "ifWrong": "There is a mate on the board. Check every queen move first."
+        },
+        {
+          "type": "explain",
+          "text": "Captures next. Black's queen has wandered to d4, protected only by a pawn. A knight for a queen is a trade you should always take.",
+          "fen": "r1b1kbnr/pppp1ppp/2n5/4p3/3qP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5",
+          "highlights": ["d4:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Win the queen.",
+          "fen": "r1b1kbnr/pppp1ppp/2n5/4p3/3qP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5",
+          "expect": ["f3d4"],
+          "hint": "Which of your pieces attacks d4, and is worth less than a queen?",
+          "ifWrong": "Black's queen can be captured. Find the capture.",
+          "ifRight": "If the pawn takes back, you have still won 9 for 3.",
+          "feedback": {
+            "d1d4": "Queen takes queen and the pawn takes back: just a trade. Take with the knight and win 9 for 3."
+          }
+        }
+      ]
+    },
+    {
+      "id": "blunders-overloaded",
+      "title": "The overloaded defender",
+      "summary": "A piece with two jobs cannot do both.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's queen has two jobs: she protects the knight on d5, and she guards e8 so that your rook cannot give mate on the back row.",
+          "fen": "6k1/3q1ppp/8/3n4/8/5Q2/5PPP/4R1K1 w - - 0 1",
+          "arrows": ["d7d5:idea", "d7e8:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Overload the queen: take the knight. If she takes back, she can no longer guard e8.",
+          "fen": "6k1/3q1ppp/8/3n4/8/5Q2/5PPP/4R1K1 w - - 0 1",
+          "line": ["f3d5", "d7d5", "e1e8"],
+          "hint": "Your queen can capture on d5.",
+          "ifWrong": "Start by taking the knight with your queen.",
+          "ifRight": "Checkmate! The queen could not do both jobs."
+        }
+      ]
+    }
+  ]
+}

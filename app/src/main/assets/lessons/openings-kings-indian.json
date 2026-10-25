@@ -1,0 +1,87 @@
+{
+  "id": "openings-kings-indian",
+  "category": "openings",
+  "title": "King's Indian Defence",
+  "intro": "Against 1.d4: let White build a big centre, castle quickly, then attack it. A fighting choice for Black.",
+  "level": "advanced",
+  "order": 90,
+  "side": "black",
+  "battleLine": "King's Indian Defense",
+  "lessons": [
+    {
+      "id": "openings-kings-indian-setup",
+      "title": "The King's Indian set-up",
+      "summary": "Fianchetto, castle, then strike at the centre.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White opens with 1.d4. In the King's Indian, Black does not fight for the centre at once. First the king gets safe; then Black strikes back.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight.",
+          "expect": ["g8f6"],
+          "hint": "The knight goes to its best square, f6.",
+          "ifWrong": "Start with 1...Nf6.",
+          "ifRight": "Flexible and active.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White plays 2.c4, taking more space.",
+          "move": "c2c4"
+        },
+        {
+          "type": "play",
+          "text": "Prepare a fianchetto: make room for your bishop on g7.",
+          "expect": ["g7g6"],
+          "hint": "The g-pawn, one square.",
+          "ifWrong": "The King's Indian plays ...g6, then ...Bg7.",
+          "ifRight": "The bishop's home is ready.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops with 3.Nc3.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Put the bishop on its long diagonal.",
+          "expect": ["f8g7"],
+          "hint": "The bishop goes to g7.",
+          "ifWrong": "Fianchetto the bishop to g7.",
+          "ifRight": "From g7 the bishop aims through the centre.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White builds a big centre with 4.e4.",
+          "move": "e2e4",
+          "arrows": ["g7b2:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Play d6: it stops e5 and prepares your own ...e5 later.",
+          "expect": ["d7d6"],
+          "hint": "The d-pawn, one square.",
+          "ifWrong": "The King's Indian plays ...d6 here.",
+          "ifRight": "Black is ready to castle.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "White played 5.Nf3. Get your king to safety before you fight.",
+          "fen": "rnbqk2r/ppp1ppbp/3p1np1/8/2PPP3/2N2N2/PP3PPP/R1BQKB1R b KQkq - 1 5",
+          "expect": ["e8g8"],
+          "hint": "The squares between your king and the h8 rook are empty.",
+          "ifWrong": "Castle first; the counterattack with ...e5 comes next.",
+          "ifRight": "Castled. Now Black hits the centre with ...e5 or ...c5.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

@@ -32,6 +32,9 @@ class LessonFormatException(message: String) : IllegalArgumentException(message)
  * must give its own "fen", because any of several moves may have been played.
  * In a "line", the player plays the 1st, 3rd, 5th... entries ("a|b" accepts either) and the
  * opponent replies with the others.
+ * A play or quiz step may add `"rule": true` when it asks for a particular move to practise a
+ * rule ("move the king to d1", "castle"). The app ignores it; tools/check_lessons.py then does
+ * not compare the move with Stockfish's choice.
  */
 object LessonParser {
     private val adapter = Moshi.Builder().build().adapter(Any::class.java)

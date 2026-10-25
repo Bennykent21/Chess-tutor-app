@@ -1,0 +1,92 @@
+{
+  "id": "openings-queens-gambit",
+  "category": "openings",
+  "title": "Queen's Gambit",
+  "intro": "1.d4 d5 2.c4: White offers a pawn to pull Black's d-pawn out of the centre. A solid, strategic choice for White.",
+  "level": "intermediate",
+  "order": 40,
+  "side": "white",
+  "battleLine": "Queen's Gambit",
+  "lessons": [
+    {
+      "id": "openings-queens-gambit-main",
+      "title": "The Queen's Gambit Declined",
+      "summary": "Pressure d5, pin the knight, and avoid the Elephant Trap.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The Queen's Gambit starts 1.d4 d5 2.c4. The c-pawn attacks d5 and tempts Black to give up the centre.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        },
+        {
+          "type": "play",
+          "text": "Play the Queen's Gambit.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "line": ["d2d4", "d7d5", "c2c4"],
+          "hint": "Queen's pawn two squares, then the c-pawn two squares.",
+          "ifWrong": "The Queen's Gambit goes d4, then c4.",
+          "ifRight": "The gambit is offered.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "If Black takes on c4 (the Queen's Gambit Accepted), White takes the centre with e4 and usually wins the pawn back. More often Black declines with 2...e6, holding d5.",
+          "move": "e7e6"
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight and add pressure on d5.",
+          "expect": ["b1c3"],
+          "hint": "Which knight attacks d5?",
+          "ifWrong": "The main line brings the knight to c3, hitting d5.",
+          "ifRight": "Two pieces now attack d5.",
+          "feedback": {
+            "g1f3": "A good move too. The main line plays Nc3 first, adding pressure on d5."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black defends with 3...Nf6.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Pin the knight with your bishop: it defends d5, and now it cannot move without losing the queen.",
+          "expect": ["c1g5"],
+          "hint": "Your dark-squared bishop can reach g5.",
+          "ifWrong": "The classic move is Bg5, pinning the knight to the queen.",
+          "ifRight": "The pin adds more pressure on d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Careful! After 4...Nbd7 5.cxd5 exd5, the pawn on d5 looks free. It is a trap.",
+          "fen": "r1bqkb1r/pppn1ppp/5n2/3p2B1/3P4/2N5/PP2PPPP/R2QKBNR w KQkq - 0 6",
+          "highlights": ["d5:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "Do not fall for the Elephant Trap. Play a safe, solid move instead of taking d5.",
+          "fen": "r1bqkb1r/pppn1ppp/5n2/3p2B1/3P4/2N5/PP2PPPP/R2QKBNR w KQkq - 0 6",
+          "expect": ["e2e3", "g1f3", "d1c2", "a1c1", "a2a3", "g5h4", "d1a4", "d1d2", "d1c1"],
+          "hint": "Support your centre, develop the king's knight, or bring a rook to the c-file.",
+          "ifWrong": "Keep it simple: develop and protect your centre.",
+          "ifRight": "Safe and solid.",
+          "feedback": {
+            "c3d5": "That is the Elephant Trap: 6...Nxd5! 7.Bxd8 Bb4+ 8.Qd2 Bxd2+ 9.Kxd2 Kxd8 and Black has won a piece."
+          }
+        },
+        {
+          "type": "quiz",
+          "text": "Here Black accepted the gambit with 2...dxc4. Take the centre or get ready to win the pawn back.",
+          "fen": "rnbqkbnr/ppp1pppp/8/8/2pP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
+          "expect": ["e2e4", "g1f3", "e2e3", "b1c3"],
+          "hint": "A central pawn move, or develop the king's knight.",
+          "ifWrong": "Use the time to build your centre or develop.",
+          "ifRight": "Good: the pawn on c4 will not run away."
+        }
+      ]
+    }
+  ]
+}

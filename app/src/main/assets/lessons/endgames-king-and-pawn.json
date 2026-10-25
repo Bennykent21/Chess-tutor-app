@@ -1,0 +1,93 @@
+{
+  "id": "endgames-king-and-pawn",
+  "category": "endgames",
+  "title": "King and pawn endgames",
+  "intro": "With few pieces left, the king becomes a fighter. Learn the square rule, the opposition and the pawn breakthrough.",
+  "level": "beginner",
+  "order": 10,
+  "puzzleThemes": ["pawnEndgame"],
+  "lessons": [
+    {
+      "id": "endgames-active-king",
+      "title": "An active king and the square rule",
+      "summary": "March the king forward, and catch runaway pawns.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "In the middlegame the king hides. In the endgame, with the queens gone, it must come to the centre and fight.",
+          "fen": "8/5pk1/4p1p1/8/8/4P1P1/5PK1/8 w - - 0 35",
+          "move": "g2f3"
+        },
+        {
+          "type": "explain",
+          "text": "Can a king catch a passed pawn? Draw a square from the pawn to its promotion square. If the king can step inside that square, it catches the pawn.",
+          "fen": "7k/8/8/p7/5K2/8/8/8 w - - 0 1",
+          "highlights": ["a5:bad", "e5", "e1", "a1"]
+        },
+        {
+          "type": "quiz",
+          "text": "The black pawn runs to a1. Step into its square so your king can catch it.",
+          "fen": "7k/8/8/p7/5K2/8/8/8 w - - 0 1",
+          "expect": ["f4e5", "f4e4", "f4e3"],
+          "hint": "The square runs from a5 across to e5 and down to e1.",
+          "ifWrong": "Too slow: now the pawn promotes. Step onto the e-file, inside the square.",
+          "ifRight": "Inside the square: the king will catch the pawn in time."
+        }
+      ]
+    },
+    {
+      "id": "endgames-opposition",
+      "title": "The opposition",
+      "summary": "Kings face to face: the one that must move gives way.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "When two kings face each other with one square between them, the side that has to move must give way. Having the other side to move is called having the opposition.",
+          "fen": "4k3/8/4K3/4P3/8/8/8/8 b - - 0 1",
+          "highlights": ["e7"]
+        },
+        {
+          "type": "explain",
+          "text": "Black is to move and must step aside. White's king then shepherds the pawn home.",
+          "fen": "4k3/8/4K3/4P3/8/8/8/8 b - - 0 1",
+          "move": "e8d8"
+        },
+        {
+          "type": "explain",
+          "text": "Next White plays Kf7, and the pawn walks e6, e7, e8. Lead with the king in front of the pawn, and take the opposition.",
+          "arrows": ["e6f7", "e5e8:good"]
+        },
+        {
+          "type": "quiz",
+          "text": "Step ahead of your pawn and take the opposition.",
+          "fen": "8/8/3k4/8/4K3/3P4/8/8 w - - 0 1",
+          "expect": ["e4d4"],
+          "hint": "Face the black king with one square between the kings.",
+          "ifWrong": "Put your king directly opposite Black's king, one square apart.",
+          "ifRight": "Opposition! Black must give way, and your king advances."
+        }
+      ]
+    },
+    {
+      "id": "endgames-breakthrough",
+      "title": "The pawn breakthrough",
+      "summary": "Three against three: a sacrifice makes a queen.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Three pawns face three pawns and the kings are far away. It looks equal, but White to move wins by sacrificing pawns to clear a path for one of them.",
+          "fen": "7k/ppp5/8/PPP5/8/8/8/7K w - - 0 1"
+        },
+        {
+          "type": "play",
+          "text": "Break through: start with the middle pawn, then keep sacrificing until one pawn runs free.",
+          "fen": "7k/ppp5/8/PPP5/8/8/8/7K w - - 0 1",
+          "line": ["b5b6", "c7b6", "a5a6", "b7a6", "c5c6"],
+          "hint": "Push the b-pawn first, even though it can be taken.",
+          "ifWrong": "The breakthrough starts with the middle pawn: b6!",
+          "ifRight": "Nothing can stop the c-pawn now: it becomes a queen."
+        }
+      ]
+    }
+  ]
+}

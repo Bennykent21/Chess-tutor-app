@@ -1,0 +1,38 @@
+{
+  "id": "middlegame-pawn-breaks",
+  "category": "middlegame",
+  "title": "Pawn chains and pawn breaks",
+  "intro": "Pawns that lock the centre decide the plans. Learn to attack a pawn chain with a pawn break.",
+  "level": "intermediate",
+  "order": 20,
+  "lessons": [
+    {
+      "id": "middlegame-chain-breaks",
+      "title": "Attack the pawn chain",
+      "summary": "Strike at the head or the base with a pawn.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White's pawns on d4 and e5 form a chain: d4 (the base) protects e5 (the head). Black's pieces cannot attack them easily, so Black uses pawns.",
+          "fen": "r1bq1rk1/pp1nbppp/2n1p3/3pP3/3P4/2PB1N2/PP3PPP/R1BQ1RK1 b - - 1 9",
+          "highlights": ["d4:bad", "e5:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "A pawn break attacks the chain with a pawn. Usually ...c5 hits the base on d4, but here Black's c-pawn is already gone. So the break is ...f6: it hits the head on e5 and opens the f-file for Black's rook.",
+          "arrows": ["f7f6:idea", "f8f1:idea"]
+        },
+        {
+          "type": "quiz",
+          "text": "Break the chain: attack the e5 pawn with a pawn and open a file for your rook.",
+          "fen": "r1bq1rk1/pp1nbppp/2n1p3/3pP3/3P4/2PB1N2/PP3PPP/R1BQ1RK1 b - - 1 9",
+          "expect": ["f7f6"],
+          "hint": "Your f-pawn can reach a square that attacks e5.",
+          "ifWrong": "Use a pawn to attack e5.",
+          "ifRight": "If White takes on f6, your rook on f8 gets an open file.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

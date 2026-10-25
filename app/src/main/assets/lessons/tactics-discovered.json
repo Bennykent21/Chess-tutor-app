@@ -1,0 +1,49 @@
+{
+  "id": "tactics-discovered",
+  "category": "tactics",
+  "title": "Discovered attacks",
+  "intro": "Move one piece out of the way and the piece behind it attacks. Two threats in one move.",
+  "level": "intermediate",
+  "order": 30,
+  "puzzleThemes": ["discoveredAttack"],
+  "lessons": [
+    {
+      "id": "tactics-discovered-attack",
+      "title": "Unmask the attacker",
+      "summary": "The moving piece makes one threat, the piece behind makes another.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Your bishop on d3 stands between your queen and Black's queen. If the bishop moves, your queen attacks d6 at once.",
+          "fen": "r1b2rk1/pp3ppp/2pq4/8/8/3B4/PPP2PPP/R2Q1RK1 w - - 0 10",
+          "arrows": ["d1d6:idea"],
+          "highlights": ["d3"]
+        },
+        {
+          "type": "play",
+          "text": "Move the bishop with check, so Black has no time to save the queen.",
+          "fen": "r1b2rk1/pp3ppp/2pq4/8/8/3B4/PPP2PPP/R2Q1RK1 w - - 0 10",
+          "expect": ["d3h7"],
+          "hint": "The bishop can give check by taking a pawn.",
+          "ifWrong": "The bishop must move with a threat so strong that Black cannot rescue the queen.",
+          "ifRight": "Check! Black must deal with the king, and you take the queen next."
+        },
+        {
+          "type": "explain",
+          "text": "When the piece behind gives check, it is a discovered check. Then the moving piece can grab almost anything.",
+          "fen": "4k3/1q6/8/8/4B3/8/8/4R1K1 w - - 0 1",
+          "arrows": ["e1e8:idea"]
+        },
+        {
+          "type": "quiz",
+          "text": "Use a discovered check to win the queen.",
+          "fen": "4k3/1q6/8/8/4B3/8/8/4R1K1 w - - 0 1",
+          "expect": ["e4b7", "e4c6"],
+          "hint": "When the bishop leaves the e-file, the rook gives check.",
+          "ifWrong": "Move the bishop off the e-file and capture something big.",
+          "ifRight": "Discovered check: Black must answer the check, and the queen is lost."
+        }
+      ]
+    }
+  ]
+}

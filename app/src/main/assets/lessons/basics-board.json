@@ -1,0 +1,130 @@
+{
+  "id": "basics-board",
+  "category": "basics",
+  "title": "The board and the pieces",
+  "intro": "Start here if you are new to chess. Meet the board, learn how squares are named, and find out what each piece is worth.",
+  "level": "beginner",
+  "order": 10,
+  "lessons": [
+    {
+      "id": "basics-board-squares",
+      "title": "The chessboard",
+      "summary": "Ranks, files and the name of every square.",
+      "steps": [
+        {
+          "type": "watch",
+          "title": "Welcome to chess",
+          "text": "A short video will welcome you here. For now, your coach shows you around the board."
+        },
+        {
+          "type": "explain",
+          "text": "This is how every game starts. White's pieces are at the bottom and Black's at the top. White always moves first.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        },
+        {
+          "type": "explain",
+          "text": "The rows going across are called ranks. They are numbered 1 to 8, starting from White's side. Here is the 4th rank.",
+          "fen": "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+          "highlights": ["a4:idea", "b4:idea", "c4:idea", "d4:idea", "e4:idea", "f4:idea", "g4:idea", "h4:idea"]
+        },
+        {
+          "type": "explain",
+          "text": "The columns going up are called files. They are lettered a to h, from White's left. Here is the e-file.",
+          "highlights": ["e2:idea", "e3:idea", "e4:idea", "e5:idea", "e6:idea", "e7:idea"]
+        },
+        {
+          "type": "explain",
+          "text": "Every square is named by its file letter, then its rank number. This square is e4, and the white king stands on e1.",
+          "highlights": ["e4:good", "e1"]
+        },
+        {
+          "type": "play",
+          "text": "Move your king one square up, to e2.",
+          "fen": "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+          "expect": ["e1e2"],
+          "highlights": ["e2"],
+          "hint": "Find the e-file, then count up to rank 2.",
+          "ifWrong": "That is not e2. The square straight above the king is e2.",
+          "ifRight": "Yes, that is e2.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Move your king to d1.",
+          "fen": "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+          "expect": ["e1d1"],
+          "hint": "The d-file is just left of the e-file.",
+          "ifWrong": "Not quite. d1 is on the bottom rank, one file to the left.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Move your king to f2.",
+          "fen": "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+          "expect": ["e1f2"],
+          "hint": "The f-file is right of the e-file; rank 2 is one up.",
+          "ifWrong": "Not quite. f2 is one square up and one to the right.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "basics-board-pieces",
+      "title": "The pieces and their values",
+      "summary": "Six kinds of piece, and what each one is worth.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The king is the most important piece. If your king is trapped (checkmate), you lose the game.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "highlights": ["e1:good", "e8"]
+        },
+        {
+          "type": "explain",
+          "text": "The queen is the strongest piece. Each side starts with one, next to the king.",
+          "highlights": ["d1:good", "d8"]
+        },
+        {
+          "type": "explain",
+          "text": "Rooks stand in the corners, knights next to them, and bishops next to the king and queen.",
+          "highlights": ["a1", "h1", "b1:idea", "g1:idea", "c1:good", "f1:good"]
+        },
+        {
+          "type": "explain",
+          "text": "In front stand eight pawns. They are the smallest pieces, but they can grow into a queen, as you will see later.",
+          "highlights": ["a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2"]
+        },
+        {
+          "type": "explain",
+          "text": "Pieces have rough values in pawns: pawn 1, knight 3, bishop 3, rook 5, queen 9. The king cannot be traded, so it has no value. Use these numbers to decide what to capture."
+        },
+        {
+          "type": "quiz",
+          "text": "Your rook can capture a knight or a queen. Take the more valuable piece.",
+          "fen": "4k3/3n4/8/8/q2R4/8/8/4K3 w - - 0 1",
+          "expect": ["d4a4"],
+          "hint": "The queen is worth 9, the knight only 3.",
+          "ifWrong": "Look again: which black piece is worth the most?",
+          "ifRight": "Right! A queen is worth 9 pawns.",
+          "feedback": {
+            "d4d7": "That wins a knight (3), but the queen (9) was there for the taking."
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Your bishop can capture a pawn or a rook. Which is worth more?",
+          "fen": "7k/5r2/8/1p6/2B5/8/8/4K3 w - - 0 1",
+          "expect": ["c4f7"],
+          "hint": "A rook is worth 5 pawns.",
+          "ifWrong": "Look again: which black piece is worth the most?",
+          "ifRight": "Yes! A whole rook.",
+          "feedback": {
+            "c4b5": "That wins a pawn (1). The rook (5) is worth much more."
+          },
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

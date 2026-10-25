@@ -53,6 +53,6 @@ class NavigationModelTest {
 
     @Test
     fun legacyTabIndicesMatchTheOldScreens() {
-        assertEquals("the old puzzle trainer and Arena are replaced (Phases 2 and 3)", listOf(0, 1, 3), LegacyTab.ALL)
+        assertEquals("the old puzzle trainer, Arena and Learn list are replaced (Phases 2 to 4)", listOf(0, 3), LegacyTab.ALL)
     }
 }

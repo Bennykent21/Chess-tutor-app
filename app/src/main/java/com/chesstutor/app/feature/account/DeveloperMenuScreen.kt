@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,14 +66,12 @@ fun DeveloperMenuScreen(
 }
 
 private fun replacedIn(index: Int): String = when (index) {
-    LegacyTab.SESSION, LegacyTab.CURRICULUM -> "Replaced in Phase 4 (Learn)"
-    LegacyTab.REVIEW -> "Replaced in Phase 5 (Account)"
+    LegacyTab.SESSION, LegacyTab.REVIEW -> "Replaced in Phase 5 (Account)"
     else -> ""
 }
 
 private fun iconFor(index: Int): ImageVector = when (index) {
     LegacyTab.SESSION -> Icons.Rounded.AutoStories
-    LegacyTab.CURRICULUM -> Icons.Rounded.School
     LegacyTab.REVIEW -> Icons.Rounded.History
     else -> Icons.Rounded.Extension
 }

@@ -1,0 +1,77 @@
+{
+  "id": "tactics-forks",
+  "category": "tactics",
+  "title": "Forks",
+  "intro": "One piece attacks two at once. Your opponent can only save one of them.",
+  "level": "beginner",
+  "order": 10,
+  "puzzleThemes": ["fork"],
+  "lessons": [
+    {
+      "id": "tactics-knight-forks",
+      "title": "Knight forks",
+      "summary": "The knight's jump makes it the best forker.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A fork is a move that attacks two pieces at once. Watch the knight jump to c7.",
+          "fen": "r3k3/8/8/1N6/8/8/8/4K3 w - - 0 1",
+          "move": "b5c7"
+        },
+        {
+          "type": "explain",
+          "text": "The knight attacks the king and the rook. The king must move out of check, and then the rook is lost. Forks with check are the strongest.",
+          "arrows": ["c7e8:bad", "c7a8:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Find the knight fork of king and queen.",
+          "fen": "6k1/3q1p1p/8/8/4N3/8/5PPP/6K1 w - - 0 1",
+          "expect": ["e4f6"],
+          "hint": "Look for a square a knight's jump away from both g8 and d7.",
+          "ifWrong": "Find the square that attacks both the king and the queen.",
+          "ifRight": "Check and attack on the queen: she is lost."
+        },
+        {
+          "type": "quiz",
+          "text": "One knight jump wins the game. Find it.",
+          "fen": "2r1q1k1/5p1p/8/3N4/8/1Q5P/5PP1/6K1 w - - 0 1",
+          "expect": ["d5f6"],
+          "hint": "Which square is a knight's jump from both g8 and e8? No black pawn guards it.",
+          "ifWrong": "Look for a knight check that also attacks the queen.",
+          "ifRight": "Check and fork: the king moves, and the queen falls."
+        }
+      ]
+    },
+    {
+      "id": "tactics-double-attack",
+      "title": "Every piece can fork",
+      "summary": "Queens, pawns and the rest attack two targets too.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Any piece can attack two things at once. The queen is great at it, attacking in eight directions. Even a little pawn can fork two big pieces.",
+          "fen": "6k1/6p1/7p/8/8/8/r4PPP/3Q2K1 w - - 0 1"
+        },
+        {
+          "type": "quiz",
+          "text": "Give check with the queen and attack the rook at the same time.",
+          "fen": "6k1/6p1/7p/8/8/8/r4PPP/3Q2K1 w - - 0 1",
+          "expect": ["d1b3", "d1d5"],
+          "hint": "Find a square on a diagonal to g8 that also lines up with a2.",
+          "ifWrong": "Look for a check that also hits the rook.",
+          "ifRight": "Check, and the rook is next."
+        },
+        {
+          "type": "quiz",
+          "text": "Fork two pieces with a pawn.",
+          "fen": "k7/8/3n1n2/8/3PP3/8/8/4K3 w - - 0 1",
+          "expect": ["e4e5"],
+          "hint": "A pawn attacks the two squares diagonally in front of it.",
+          "ifWrong": "Push a pawn so it attacks both black pieces.",
+          "ifRight": "A pawn fork. One of the pieces is lost, and the d4 pawn protects e5."
+        }
+      ]
+    }
+  ]
+}
