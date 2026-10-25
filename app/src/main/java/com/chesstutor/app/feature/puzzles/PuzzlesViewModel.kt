@@ -119,6 +119,14 @@ class PuzzlesViewModel(
         PuzzleRunSpec(PuzzleMode.THEME, title, plannedCount = puzzles.size, nextPuzzle = { i, _ -> puzzles.getOrNull(i) })
     }
 
+    /** A lesson's "Related puzzles": puzzles with any of [themes], near the player's rating. */
+    fun startRelated(themes: List<String>) = startRun { pack ->
+        val seen = repository.loadProgress(PuzzleLevels.FIRST_RATING).seenIds
+        val puzzles = PuzzleModes.related(pack, themes, home.value.stats.rating, THEMED_COUNT, System.currentTimeMillis(), seen)
+        val title = themes.joinToString(" and ") { PuzzleThemes.displayName(it) }
+        PuzzleRunSpec(PuzzleMode.THEME, title, plannedCount = puzzles.size, nextPuzzle = { i, _ -> puzzles.getOrNull(i) })
+    }
+
     fun startCustom(band: RatingBand, pattern: String?, count: Int, timed: Boolean) = startRun { pack ->
         val seen = repository.loadProgress(PuzzleLevels.FIRST_RATING).seenIds
         val puzzles = PuzzleModes.custom(pack, band, pattern, count, System.currentTimeMillis(), seen)

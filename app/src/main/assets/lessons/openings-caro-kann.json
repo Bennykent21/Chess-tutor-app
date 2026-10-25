@@ -1,0 +1,86 @@
+{
+  "id": "openings-caro-kann",
+  "category": "openings",
+  "title": "Caro-Kann Defence",
+  "intro": "1.e4 c6 and 2...d5: as solid as the French, but the light-squared bishop gets out before ...e6.",
+  "level": "beginner",
+  "order": 80,
+  "side": "black",
+  "battleLine": "Caro-Kann Defense",
+  "lessons": [
+    {
+      "id": "openings-caro-kann-classical",
+      "title": "The Classical Caro-Kann",
+      "summary": "Bishop out to f5, then a rock-solid position.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Against 1.e4, the Caro-Kann plays 1...c6 to prepare ...d5. Unlike the French, the bishop on c8 is not shut in.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "move": "e2e4"
+        },
+        {
+          "type": "play",
+          "text": "Play the Caro-Kann.",
+          "expect": ["c7c6"],
+          "hint": "The c-pawn, one square.",
+          "ifWrong": "The Caro-Kann starts 1...c6.",
+          "ifRight": "The Caro-Kann Defence.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White takes the centre with 2.d4.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Challenge the centre.",
+          "expect": ["d7d5"],
+          "hint": "The d-pawn two squares, supported by c6.",
+          "ifWrong": "Strike at e4 with the d-pawn.",
+          "ifRight": "e4 is attacked.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White defends with 3.Nc3.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Take on e4.",
+          "expect": ["d5e4"],
+          "hint": "Capture with the d-pawn.",
+          "ifWrong": "Capture the e4 pawn.",
+          "ifRight": "White will take back with the knight.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White takes back: 4.Nxe4.",
+          "move": "c3e4"
+        },
+        {
+          "type": "play",
+          "text": "Develop the bishop outside your pawn chain, attacking the knight.",
+          "expect": ["c8f5"],
+          "hint": "Your light-squared bishop can hit e4.",
+          "ifWrong": "The Classical line brings the bishop to f5.",
+          "ifRight": "An active bishop. Next comes ...e6 behind it.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "White attacks your bishop with 5.Ng3. Keep it on the same diagonal.",
+          "fen": "rn1qkbnr/pp2pppp/2p5/5b2/3P4/6N1/PPP2PPP/R1BQKBNR b KQkq - 2 5",
+          "expect": ["f5g6"],
+          "hint": "Step back one square along the diagonal.",
+          "ifWrong": "Keep the bishop on the b1-h7 diagonal: retreat to g6.",
+          "ifRight": "The bishop stays active, and it is safe on g6.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

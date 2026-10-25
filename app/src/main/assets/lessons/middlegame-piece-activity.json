@@ -1,0 +1,73 @@
+{
+  "id": "middlegame-piece-activity",
+  "category": "middlegame",
+  "title": "Outposts and open files",
+  "intro": "Where do your pieces belong after the opening? Knights on outposts, rooks on open files and the 7th rank.",
+  "level": "intermediate",
+  "order": 10,
+  "lessons": [
+    {
+      "id": "middlegame-outposts",
+      "title": "Outposts for knights",
+      "summary": "A square no enemy pawn can ever attack.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "An outpost is a square in your opponent's half that their pawns can never attack. A knight there cannot be chased away.",
+          "fen": "r2q1rk1/pp2bppp/3p1n2/4p3/4P3/2N5/PPP1BPPP/R2Q1RK1 w - - 0 12",
+          "highlights": ["d5:good"]
+        },
+        {
+          "type": "explain",
+          "text": "Black's pawns on d6 and e5 can only move forward, and there is no black pawn left on the c- or e-file behind them. So nothing can ever push your knight off d5.",
+          "highlights": ["d5:good", "c6:bad", "e6:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "From d5 the knight eyes c7, e7, f6 and b6, deep in Black's camp.",
+          "fen": "r2q1rk1/pp2bppp/3p1n2/4p3/4P3/2N5/PPP1BPPP/R2Q1RK1 w - - 0 12",
+          "move": "c3d5"
+        },
+        {
+          "type": "quiz",
+          "text": "Black has no f-pawn, and the d-pawn has passed e5. Put your knight on its outpost.",
+          "fen": "6k1/1p1b2pp/p3p3/3p4/3P4/5N2/PP3PPP/6K1 w - - 0 25",
+          "expect": ["f3e5"],
+          "hint": "Which square in Black's half can no black pawn attack? Your d4 pawn supports it.",
+          "ifWrong": "Find a square in Black's half that your d4 pawn protects and no black pawn can attack.",
+          "ifRight": "A knight on e5, supported by d4, attacking d7 and more.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "middlegame-open-files",
+      "title": "Open files and the 7th rank",
+      "summary": "Rooks want open lines, and the 7th row is their favourite target.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "An open file has no pawns on it. A rook on an open file can travel all the way to the 7th rank, where the enemy pawns stand.",
+          "fen": "3r2k1/pp3ppp/2p5/8/8/2P1R2P/PP3PP1/6K1 w - - 0 22",
+          "arrows": ["e3e7"],
+          "highlights": ["b7:bad", "f7:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "Before your rook leaves, check your own back row. Your pawn on h3 gives the king an escape square (called luft), so a rook check on your first row is not mate.",
+          "highlights": ["h2:good"]
+        },
+        {
+          "type": "quiz",
+          "text": "Take the open file to the 7th rank.",
+          "fen": "3r2k1/pp3ppp/2p5/8/8/2P1R2P/PP3PP1/6K1 w - - 0 22",
+          "expect": ["e3e7"],
+          "hint": "The e-file is open all the way.",
+          "ifWrong": "Use the open e-file to reach the 7th rank.",
+          "ifRight": "The rook attacks b7 and f7 at once.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import com.chesstutor.app.domain.MoveChoice
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.SideChoice
+import com.chesstutor.app.domain.opening.BattleMode
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.engine.EngineEvaluation
@@ -170,5 +171,29 @@ class HomeViewModelTest {
         test.runCurrent()
         assertTrue(vm.home.value.myBots.isEmpty())
         assertNull("a deleted bot's game is no longer offered", vm.home.value.resume)
+    }
+
+    @Test
+    fun aLessonPresetsOpeningBattleWithItsMainLineAndSide() {
+        val tree = OpeningTree.parse(
+            sequenceOf(
+                "B20\tSicilian Defense\te2e4 c7c5",
+                "B50\tSicilian Defense\te2e4 c7c5 g1f3 d7d6",
+                "B90\tSicilian Defense: Najdorf Variation\te2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6",
+            ),
+        )
+        val vm = HomeViewModel(
+            FakeEngine(), { tree }, games, bots, flowOf(PuzzleStats()), store,
+            random = Random(1), clock = { test.testScheduler.currentTime },
+        )
+        vm.presetBattle("Sicilian Defense", PieceColor.BLACK)
+        assertEquals(SideChoice.BLACK, vm.battle.value.side)
+        test.runCurrent()
+        val line = vm.battle.value.line!!
+        assertEquals("the longest line with exactly that name", listOf("e2e4", "c7c5", "g1f3", "d7d6"), line.moves)
+        assertEquals(BattleMode.PLAY, vm.battle.value.mode)
+
+        vm.presetBattle("Sicilian Defense", null)
+        assertEquals("a course for both sides lets the side be random", SideChoice.RANDOM, vm.battle.value.side)
     }
 }

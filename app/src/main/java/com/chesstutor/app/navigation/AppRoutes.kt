@@ -17,9 +17,12 @@ enum class TopTab(val graphRoute: String, val startRoute: String, val label: Str
  * They live behind the new shell until each one is replaced (strangler approach).
  */
 object LegacyTab {
-    /** CoachScreen: the lesson and drill player. Removed in Phase 4. */
+    /**
+     * CoachScreen: the old lesson and drill player. The new lessons replaced it in Phase 4, but it
+     * still plays the spaced "review due" sessions until Phase 5 moves them into Puzzles.
+     */
     const val SESSION = 0
-    /** CurriculumScreen: the old Learn list. Removed in Phase 4. */
+    /** CurriculumScreen: the old Learn list, retired in Phase 4C (the index stays reserved). */
     const val CURRICULUM = 1
     /** ArenaScreen: games against bots. Removed in Phase 3 (Home and its games replace it); the index stays reserved. */
     const val ARENA = 2
@@ -33,7 +36,7 @@ object LegacyTab {
     const val PUZZLES = 4
 
     /** The classic screens still offered (Account > Classic screens). */
-    val ALL = listOf(SESSION, CURRICULUM, REVIEW)
+    val ALL = listOf(SESSION, REVIEW)
 
     fun title(index: Int): String = when (index) {
         SESSION -> "Lesson and drill player"
@@ -55,6 +58,21 @@ object AppRoutes {
     const val PUZZLE_MODES = "puzzles/modes"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
     const val PUZZLE_DAILY = "puzzles/daily"
+    /** Starts puzzles with a lesson's themes (comma-separated Lichess names) and opens the player. */
+    const val THEMES_ARG = "themes"
+    const val PUZZLE_RELATED_PATTERN = "puzzles/related/{$THEMES_ARG}"
+    fun puzzleRelated(themes: List<String>): String = "puzzles/related/${encode(themes.joinToString(","))}"
+    fun parseThemes(value: String?): List<String> = value.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    /** The lesson player, full screen inside the Learn tab (the lesson is chosen before opening it). */
+    const val LESSON = "learn/lesson"
+    /** A Learn category page (courses with search and filters); the argument is a `LessonCategory.key`. */
+    const val CATEGORY_ARG = "category"
+    const val LEARN_CATEGORY_PATTERN = "learn/category/{$CATEGORY_ARG}"
+    fun learnCategory(key: String): String = "learn/category/$key"
+    /** A course page: intro, numbered lessons and practice links. */
+    const val COURSE_ID_ARG = "courseId"
+    const val COURSE_PATTERN = "learn/course/{$COURSE_ID_ARG}"
+    fun course(id: String): String = "learn/course/$id"
     /** A bot's page (pick colour, clock and rules), then the game itself, full screen in Home. */
     const val BOT_ID_ARG = "botId"
     const val BOT_PATTERN = "home/bot/{$BOT_ID_ARG}"
@@ -103,6 +121,8 @@ object AppRoutes {
         value?.let { name -> LearnCategory.entries.firstOrNull { it.name == name } }
 
     private val accountPages = setOf(ENGINE_HEALTH, DEVELOPER_MENU, DESIGN_GALLERY, BOARD_SETTINGS)
+    /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN)
 
     /**
      * The bottom bar shows on tab pages and hides on full-screen activities (any legacy
@@ -112,13 +132,14 @@ object AppRoutes {
     fun showsBottomBar(route: String?): Boolean {
         if (route == null) return true
         if (TopTab.entries.any { it.startRoute == route }) return true
-        return route in accountPages
+        return route in accountPages || route in learnPages
     }
 
     /** The tab a destination belongs to, used to highlight the bottom bar. */
     fun tabFor(route: String?): TopTab? = when {
         route == null -> null
         route in accountPages -> TopTab.ACCOUNT
+        route in learnPages -> TopTab.LEARN
         else -> TopTab.entries.firstOrNull { it.startRoute == route }
     }
 }

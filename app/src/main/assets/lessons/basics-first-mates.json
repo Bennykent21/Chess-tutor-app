@@ -1,0 +1,95 @@
+{
+  "id": "basics-first-mates",
+  "category": "basics",
+  "title": "Your first checkmates",
+  "intro": "Win with a queen, or with two rooks: the finishing patterns every player needs.",
+  "level": "beginner",
+  "order": 60,
+  "puzzleThemes": ["mateIn1"],
+  "lessons": [
+    {
+      "id": "basics-queen-mate",
+      "title": "Mate with king and queen",
+      "summary": "Push the king to the edge, then finish it, without stalemate.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A queen cannot checkmate alone. Push the enemy king to the edge of the board, then bring your own king close to cover its escape squares.",
+          "fen": "4k3/8/4K3/8/8/8/8/7Q w - - 0 1",
+          "highlights": ["d7", "e7", "f7"]
+        },
+        {
+          "type": "explain",
+          "text": "Your king guards the squares in front of the black king. Now the queen checks along the edge, and there is no way out.",
+          "fen": "4k3/8/4K3/8/8/8/8/7Q w - - 0 1",
+          "move": "h1h8"
+        },
+        {
+          "type": "play",
+          "text": "Your turn: checkmate with the queen.",
+          "fen": "6k1/8/6K1/8/8/8/8/Q7 w - - 0 1",
+          "goal": "mate",
+          "hint": "Your king already covers f7, g7 and h7. Check along the top row, or right next to the king where your king protects the queen.",
+          "ifWrong": "Not mate. Give a check the king cannot escape."
+        },
+        {
+          "type": "quiz",
+          "text": "Mate in one move.",
+          "fen": "k7/8/1K6/8/8/8/7Q/8 w - - 0 1",
+          "goal": "mate",
+          "hint": "Your king covers a7 and b7. Check along the top row.",
+          "ifWrong": "Not mate. Find the check that leaves no escape."
+        },
+        {
+          "type": "quiz",
+          "text": "Careful now. Find the checkmate, and do not let it become stalemate.",
+          "fen": "k7/8/1K6/8/8/8/8/2Q5 w - - 0 1",
+          "goal": "mate",
+          "hint": "Give check. A move that takes every square away without check is stalemate.",
+          "ifWrong": "Not mate. The king must be in check with no escape.",
+          "feedback": {
+            "c1c7": "Stalemate! Black has no legal move but is not in check, so the game is a draw. Always give check when you take the last squares."
+          }
+        }
+      ]
+    },
+    {
+      "id": "basics-ladder-mate",
+      "title": "The rook ladder",
+      "summary": "Two rooks walk the king to the edge.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Two rooks mate easily. One rook guards a row so the king cannot come back; the other gives check on the next row. Then they swap jobs, like climbing a ladder.",
+          "fen": "8/4k3/1R6/8/8/8/R7/4K3 w - - 0 1",
+          "highlights": ["a6:idea", "b6:idea", "c6:idea", "d6:idea", "e6:idea", "f6:idea", "g6:idea", "h6:idea"]
+        },
+        {
+          "type": "play",
+          "text": "The rook on b6 guards the 6th row. Check with the other rook to push the king up, then checkmate.",
+          "fen": "8/4k3/1R6/8/8/8/R7/4K3 w - - 0 1",
+          "line": ["a2a7", "e7e8", "b6b8"],
+          "hint": "First a check on the 7th row, then a check on the 8th.",
+          "ifWrong": "Keep the ladder going: check on the next row up, while the other rook guards.",
+          "ifRight": "Checkmate! The two rooks took turns."
+        },
+        {
+          "type": "quiz",
+          "text": "Mate in one with the rooks.",
+          "fen": "6k1/R7/8/8/8/8/8/1R4K1 w - - 0 1",
+          "goal": "mate",
+          "hint": "One rook already guards the 7th row.",
+          "ifWrong": "Not mate. Check on the top row while the other rook guards."
+        },
+        {
+          "type": "quiz",
+          "text": "The ladder works sideways too. Mate in one.",
+          "fen": "k7/8/8/8/8/8/1R6/2R3K1 w - - 0 1",
+          "goal": "mate",
+          "hint": "The rook on b2 guards the b-file.",
+          "ifWrong": "Not mate. Check on the a-file while the other rook guards b."
+        }
+      ]
+    }
+  ]
+}

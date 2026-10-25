@@ -1,0 +1,79 @@
+{
+  "id": "openings-ruy-lopez",
+  "category": "openings",
+  "title": "Ruy Lopez",
+  "intro": "1.e4 e5 2.Nf3 Nc6 3.Bb5, the Spanish Opening: slow, lasting pressure on Black's centre. Played at every level.",
+  "level": "intermediate",
+  "order": 30,
+  "side": "white",
+  "battleLine": "Ruy Lopez",
+  "lessons": [
+    {
+      "id": "openings-ruy-lopez-main",
+      "title": "The Spanish main line",
+      "summary": "Pressure the defender of e5, keep the bishop, castle.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The Ruy Lopez starts 1.e4 e5 2.Nf3 Nc6 3.Bb5. The bishop attacks the knight that defends e5.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        },
+        {
+          "type": "play",
+          "text": "Play the first three moves of the Ruy Lopez.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "line": ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5"],
+          "hint": "e4 and Nf3 as usual, then the bishop goes one square further than in the Italian.",
+          "ifWrong": "That is playable, but the Ruy Lopez goes e4, Nf3 and Bb5.",
+          "ifRight": "That is the Ruy Lopez.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "If the knight on c6 disappeared, e5 would be left undefended. That threat hangs over Black for the whole game.",
+          "arrows": ["b5c6", "c6e5:idea"]
+        },
+        {
+          "type": "explain",
+          "text": "Black's most popular answer is 3...a6 (the Morphy Defence): it asks the bishop what it wants.",
+          "move": "a7a6"
+        },
+        {
+          "type": "play",
+          "text": "Keep your bishop: step back to a4, staying on the same diagonal.",
+          "expect": ["b5a4"],
+          "hint": "Retreat along the diagonal towards the a-file.",
+          "ifWrong": "The main line keeps the bishop with a retreat to a4.",
+          "ifRight": "The bishop still pins down the knight.",
+          "feedback": {
+            "b5c6": "Taking the knight is the Exchange Variation, a fine choice. The main line keeps the bishop."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops with 4...Nf6 and attacks e4.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Castle. Your e4 pawn is safe enough for now: if Black takes it, your rook will use the open e-file.",
+          "expect": ["e1g1"],
+          "hint": "Move the king two squares towards the h1 rook.",
+          "ifWrong": "Castle now; it is the main line.",
+          "ifRight": "Castled, with the rook ready for the e-file.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Black grabbed the pawn with 5...Nxe4 (the Open Variation). Find a strong reply.",
+          "fen": "r1bqkb1r/1ppp1ppp/p1n5/4p3/B3n3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 6",
+          "expect": ["d2d4", "f1e1"],
+          "hint": "Open the centre while Black's king is still in the middle.",
+          "ifWrong": "Use your lead in development: open lines towards Black's king.",
+          "ifRight": "Good: you open lines while Black's king is still in the centre."
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,8 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -31,6 +33,8 @@ import com.chesstutor.app.design.CtBottomBar
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.LearnCategory
+import com.chesstutor.app.domain.learn.Course
+import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountScreen
 import com.chesstutor.app.core.Position
@@ -58,7 +62,12 @@ import com.chesstutor.app.feature.home.HomeScreen
 import com.chesstutor.app.feature.home.HomeViewModel
 import com.chesstutor.app.feature.play.PlayScreen
 import com.chesstutor.app.feature.play.SharedPrefsActiveGameStore
+import com.chesstutor.app.feature.learn.CourseScreen
+import com.chesstutor.app.feature.learn.LearnCategoryScreen
+import com.chesstutor.app.feature.learn.LearnHubActions
 import com.chesstutor.app.feature.learn.LearnScreen
+import com.chesstutor.app.feature.learn.LearnViewModel
+import com.chesstutor.app.feature.learn.LessonPlayerScreen
 import com.chesstutor.app.feature.analysis.AnalysisScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
 import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
@@ -67,6 +76,7 @@ import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.LegacyTab
+import com.chesstutor.app.navigation.StartScreen
 import com.chesstutor.app.navigation.TopTab
 import com.chesstutor.app.navigation.TrainRequest
 import com.chesstutor.app.ui.components.PgnViewerDialog
@@ -88,9 +98,17 @@ fun AppNavHost(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    if (state.assessmentState != "COMPLETE") {
-        OnboardingScreen(state = state, viewModel = viewModel, modifier = modifier)
-        return
+    when (StartScreen.of(state.profileLoaded, state.assessmentState)) {
+        StartScreen.LOADING -> {
+            // A blank screen for the moment it takes to read the saved profile.
+            Box(modifier.fillMaxSize().background(CtColors.BgDeep))
+            return
+        }
+        StartScreen.ONBOARDING -> {
+            OnboardingScreen(state = state, viewModel = viewModel, modifier = modifier)
+            return
+        }
+        StartScreen.APP -> Unit
     }
 
     val navController = rememberNavController()
@@ -337,11 +355,76 @@ fun AppNavHost(
                     }
                 }
                 navigation(startDestination = TopTab.LEARN.startRoute, route = TopTab.LEARN.graphRoute) {
-                    composable(TopTab.LEARN.startRoute) {
+                    composable(TopTab.LEARN.startRoute) { entry ->
+                        val learn = learnViewModel(navController, entry)
+                        val lessons by learn.learn.collectAsStateWithLifecycle()
                         LearnScreen(
-                            state = state,
-                            onOpenCategory = { category -> openLegacy(LegacyTab.CURRICULUM, category) },
-                            onOpenDrills = { openLegacy(LegacyTab.SESSION) }
+                            learn = lessons,
+                            actions = LearnHubActions(
+                                onOpenCategory = { category -> navController.navigate(AppRoutes.learnCategory(category.key)) { launchSingleTop = true } },
+                                onOpenLesson = { id ->
+                                    learn.openLesson(id)
+                                    navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
+                                }
+                            )
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.LEARN_CATEGORY_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.CATEGORY_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val learn = learnViewModel(navController, entry)
+                        val lessons by learn.learn.collectAsStateWithLifecycle()
+                        val category = LessonCategory.fromKey(entry.arguments?.getString(AppRoutes.CATEGORY_ARG).orEmpty())
+                        if (category == null) {
+                            LaunchedEffect(Unit) { navController.popBackStack() }
+                            return@composable
+                        }
+                        LearnCategoryScreen(
+                            category = category,
+                            learn = lessons,
+                            onOpenCourse = { id -> navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.COURSE_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.COURSE_ID_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val learn = learnViewModel(navController, entry)
+                        val homeModel = homeViewModel(navController, entry)
+                        val lessons by learn.learn.collectAsStateWithLifecycle()
+                        val courseId = entry.arguments?.getString(AppRoutes.COURSE_ID_ARG).orEmpty()
+                        val course = lessons.library.course(courseId)
+                        CourseScreen(
+                            course = course,
+                            progress = lessons.progress,
+                            onOpenLesson = { id ->
+                                learn.openLesson(id)
+                                navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
+                            },
+                            onBack = { navController.popBackStack() },
+                            onPractise = course?.let { navController.practiseInBattle(it, homeModel) },
+                            onRelatedPuzzles = course?.let { navController.relatedPuzzles(it) }
+                        )
+                    }
+                    composable(AppRoutes.LESSON) { entry ->
+                        val learn = learnViewModel(navController, entry)
+                        val homeModel = homeViewModel(navController, entry)
+                        val player by learn.player.collectAsStateWithLifecycle()
+                        val course = player?.course
+                        LessonPlayerScreen(
+                            player = player,
+                            settings = state.appSettings,
+                            onFeedback = viewModel::playBoardFeedback,
+                            onNextLesson = { id -> learn.openLesson(id) },
+                            onReplay = { player?.lesson?.id?.let { learn.openLesson(it, fromStart = true) } },
+                            onBack = {
+                                learn.closePlayer()
+                                navController.popBackStack()
+                            },
+                            onPractise = course?.let { navController.practiseInBattle(it, homeModel) },
+                            onRelatedPuzzles = course?.let { navController.relatedPuzzles(it) }
                         )
                     }
                 }
@@ -371,6 +454,20 @@ fun AppNavHost(
                             puzzles.startDaily()
                             navController.navigate(AppRoutes.PUZZLE_PLAYER) {
                                 popUpTo(AppRoutes.PUZZLE_DAILY) { inclusive = true }
+                            }
+                        }
+                    }
+                    // A lesson's "Related puzzles": starts puzzles with its themes, then shows the player.
+                    composable(
+                        route = AppRoutes.PUZZLE_RELATED_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.THEMES_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val puzzles = puzzlesViewModel(navController, entry)
+                        val themes = AppRoutes.parseThemes(entry.arguments?.getString(AppRoutes.THEMES_ARG))
+                        LaunchedEffect(Unit) {
+                            puzzles.startRelated(themes)
+                            navController.navigate(AppRoutes.PUZZLE_PLAYER) {
+                                popUpTo(AppRoutes.PUZZLE_RELATED_PATTERN) { inclusive = true }
                             }
                         }
                     }
@@ -505,9 +602,6 @@ fun AppNavHost(
                     LegacyHost(
                         state = state,
                         viewModel = viewModel,
-                        initialCategory = AppRoutes.parseCategory(
-                            entry.arguments?.getString(AppRoutes.LEGACY_CATEGORY_ARG)
-                        ),
                         onExit = { navController.popBackStack() }
                     )
                 }
@@ -573,6 +667,36 @@ private fun homeViewModel(navController: NavHostController, entry: NavBackStackE
             store = SharedPrefsActiveGameStore(context),
             maia = AppContainer.provideMaia(context),
         ),
+    )
+}
+
+/** "Practise in Opening Battle" for [course]: presets Home's battle page and opens it. Null without a line. */
+private fun NavHostController.practiseInBattle(course: Course, home: HomeViewModel): (() -> Unit)? {
+    val line = course.battleLine ?: return null
+    return {
+        home.presetBattle(line, course.side)
+        navigateToTab(TopTab.HOME)
+        navigate(AppRoutes.BATTLE) { launchSingleTop = true }
+    }
+}
+
+/** "Related puzzles" for [course]: puzzles with its themes in the Puzzles tab. Null without themes. */
+private fun NavHostController.relatedPuzzles(course: Course): (() -> Unit)? {
+    if (course.puzzleThemes.isEmpty()) return null
+    return {
+        navigateToTab(TopTab.PUZZLES)
+        navigate(AppRoutes.puzzleRelated(course.puzzleThemes)) { launchSingleTop = true }
+    }
+}
+
+/** The Learn tab's view model, shared by the hub, its pages and the lesson player (scoped to its graph). */
+@Composable
+private fun learnViewModel(navController: NavHostController, entry: NavBackStackEntry): LearnViewModel {
+    val owner = remember(entry) { navController.getBackStackEntry(TopTab.LEARN.graphRoute) }
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = LearnViewModel.Factory(AppContainer.provideLessonProgress(context)) { AppContainer.provideLessonLoader(context).load() },
     )
 }
 

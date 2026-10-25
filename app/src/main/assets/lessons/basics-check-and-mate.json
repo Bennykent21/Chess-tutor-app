@@ -1,0 +1,119 @@
+{
+  "id": "basics-check-and-mate",
+  "category": "basics",
+  "title": "Check and checkmate",
+  "intro": "The whole game is about the king. Learn what check is, how to get out of it, and how checkmate wins the game.",
+  "level": "beginner",
+  "order": 40,
+  "puzzleThemes": ["mateIn1"],
+  "lessons": [
+    {
+      "id": "basics-check",
+      "title": "What is check?",
+      "summary": "Attack the king, and get your own king out of danger.",
+      "steps": [
+        {
+          "type": "watch",
+          "title": "Check and checkmate",
+          "text": "A short video will introduce this lesson here. For now, the coach walks you through it on the board."
+        },
+        {
+          "type": "explain",
+          "text": "When a piece attacks the king, the king is in check. Watch the rook slide up to attack the black king.",
+          "fen": "4k3/8/8/8/8/8/8/R3K3 w - - 0 1",
+          "move": "a1a8",
+          "highlights": ["e8:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "A king in check must escape at once. Here the black king can simply step forward, out of the rook's line.",
+          "arrows": ["e8e7", "e8d7:idea", "e8f7:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Your turn: give check with the rook.",
+          "fen": "4k3/8/8/8/8/8/8/R3K3 w - - 0 1",
+          "goal": "check",
+          "hint": "Rooks move in straight lines. Which line leads to the black king?",
+          "ifWrong": "That move does not attack the king. Look along the ranks and files.",
+          "ifRight": "Check! The rook attacks the king along the back row."
+        },
+        {
+          "type": "quiz",
+          "text": "Give check with the queen. There is more than one way!",
+          "fen": "4k3/8/8/8/8/8/8/3QK3 w - - 0 1",
+          "goal": "check",
+          "hint": "The queen moves like a rook and a bishop together.",
+          "ifWrong": "The king is not attacked after that move. Try a straight line or a diagonal towards it."
+        },
+        {
+          "type": "quiz",
+          "text": "Your king is in check from the rook. Block the check with your bishop, on a square where it is safe.",
+          "fen": "k3r3/8/8/2B5/8/8/3P4/4K3 w - - 0 1",
+          "expect": ["c5e3"],
+          "hint": "Put the bishop between the rook and your king, next to your pawn.",
+          "ifWrong": "That gets out of check, but this time block it with the bishop.",
+          "ifRight": "Blocked! The bishop stands in the rook's way, and your pawn protects it.",
+          "feedback": {
+            "c5e7": "That blocks the check, but the rook simply takes your bishop. Block where your pawn protects it.",
+            "e1d1": "Stepping aside escapes the check too. Here, practise blocking with the bishop.",
+            "e1f1": "Stepping aside escapes the check too. Here, practise blocking with the bishop.",
+            "e1f2": "Stepping aside escapes the check too. Here, practise blocking with the bishop."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "basics-checkmate",
+      "title": "Checkmate wins the game",
+      "summary": "Check with no way out ends the game.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Checkmate is a check the king cannot escape. The black king is shut in by its own pawns, so a check on the back row would be deadly.",
+          "fen": "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+          "highlights": ["g8:bad", "f7", "g7", "h7"],
+          "arrows": ["a1a8"]
+        },
+        {
+          "type": "explain",
+          "text": "The rook gives check. The king cannot move, nothing can block, and nothing can take the rook. That is checkmate, and White wins.",
+          "fen": "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+          "move": "a1a8"
+        },
+        {
+          "type": "play",
+          "text": "Your turn: find the checkmate.",
+          "fen": "6k1/5ppp/8/8/8/8/8/3R2K1 w - - 0 1",
+          "expect": ["d1d8"],
+          "hint": "The black king is stuck on the back row, just like before.",
+          "ifWrong": "Not mate yet. Which square on the back row can the rook reach?",
+          "ifRight": "Checkmate! The back row was the king's weak spot."
+        },
+        {
+          "type": "quiz",
+          "text": "Checkmate in one move with the queen.",
+          "fen": "7k/8/6K1/8/8/8/8/1Q6 w - - 0 1",
+          "goal": "mate",
+          "hint": "Your king already guards the squares in front of the black king.",
+          "ifWrong": "The king can still escape or it is not check. Look at the top row."
+        },
+        {
+          "type": "quiz",
+          "text": "Checkmate in one move.",
+          "fen": "6k1/5ppp/8/8/8/8/5PPP/2R3K1 w - - 0 1",
+          "goal": "mate",
+          "hint": "Same pattern as before: the back row.",
+          "ifWrong": "Not mate. Find a check the king cannot escape."
+        },
+        {
+          "type": "explain",
+          "text": "Well done! Check means the king is attacked. Checkmate means it is attacked and has no escape, and that wins the game.",
+          "fen": "6k1/5ppp/8/8/8/8/5PPP/2R3K1 w - - 0 1",
+          "move": "c1c8"
+        }
+      ]
+    }
+  ]
+}

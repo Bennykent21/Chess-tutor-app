@@ -16,16 +16,15 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
-import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.navigation.LegacyTab
 import com.chesstutor.app.navigation.NavCommand
 import com.chesstutor.app.ui.coach.CoachScreen
-import com.chesstutor.app.ui.curriculum.CurriculumScreen
 import com.chesstutor.app.ui.review.ReviewScreen
 import com.chesstutor.app.ui.theme.ChessTutorColors
 import com.chesstutor.app.viewmodel.AppUiState
@@ -41,7 +40,6 @@ import com.chesstutor.app.viewmodel.AppViewModel
 fun LegacyHost(
     state: AppUiState,
     viewModel: AppViewModel,
-    initialCategory: LearnCategory?,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -68,11 +66,9 @@ fun LegacyHost(
             Crossfade(targetState = state.tab, label = "legacy_crossfade") { currentTab ->
                 when (currentTab) {
                     LegacyTab.SESSION -> CoachScreen(state = state, viewModel = viewModel)
-                    LegacyTab.CURRICULUM -> CurriculumScreen(
-                        state = state,
-                        viewModel = viewModel,
-                        initialOpenCategory = initialCategory
-                    )
+                    // The old Learn list was retired in Phase 4C: anything that still asks for it
+                    // (the classic player's "back to lesson") returns to the new app instead.
+                    LegacyTab.CURRICULUM -> LaunchedEffect(Unit) { onExit() }
                     // LegacyTab.ARENA: the old Arena was removed in Phase 3 (Home and its games replace it).
                     LegacyTab.REVIEW -> ReviewScreen(state = state, viewModel = viewModel)
                     // LegacyTab.PUZZLES: the old trainer was removed in Phase 2 (the Puzzles tab replaces it).

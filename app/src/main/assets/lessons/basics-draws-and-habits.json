@@ -1,0 +1,70 @@
+{
+  "id": "basics-draws-and-habits",
+  "category": "basics",
+  "title": "Draws and good habits",
+  "intro": "How a game can end in a draw, and the habits that help you win your first games.",
+  "level": "beginner",
+  "order": 70,
+  "lessons": [
+    {
+      "id": "basics-stalemate",
+      "title": "Stalemate and other draws",
+      "summary": "When nobody wins, and how not to throw a win away.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "It is Black's turn. The black king is not in check, but every square it could go to is attacked, and Black has no other piece to move. This is stalemate, and the game is a draw.",
+          "fen": "k7/2Q5/1K6/8/8/8/8/8 b - - 0 1",
+          "highlights": ["a8:bad", "a7", "b7", "b8"]
+        },
+        {
+          "type": "explain",
+          "text": "A game is also drawn when neither side has enough pieces left to checkmate (like king against king), when the same position appears three times, or when the players agree to a draw.",
+          "fen": "8/8/3k4/8/8/4K3/8/8 w - - 0 1"
+        },
+        {
+          "type": "quiz",
+          "text": "You are a queen up. Checkmate, and do not stalemate!",
+          "fen": "7k/8/6K1/8/8/8/8/5Q2 w - - 0 1",
+          "goal": "mate",
+          "hint": "Check the king along the top row. Your king guards g7 and h7.",
+          "ifWrong": "Not mate. Give a check the king cannot escape.",
+          "feedback": {
+            "f1f7": "Stalemate! The black king has no move and is not in check, so it is a draw. Give check instead."
+          }
+        }
+      ]
+    },
+    {
+      "id": "basics-good-habits",
+      "title": "Good habits for your first games",
+      "summary": "Three questions to ask before every move.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Before every move, ask three questions. What does my opponent's last move threaten? Is any of my pieces left unprotected? Can I give a check, make a capture or create a threat?",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        },
+        {
+          "type": "explain",
+          "text": "Here White has brought the queen and bishop out together. Both attack f7, a square only Black's king protects. White threatens Qxf7, which would be checkmate.",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3",
+          "arrows": ["h5f7:bad", "c4f7:bad"],
+          "highlights": ["f7:bad"]
+        },
+        {
+          "type": "quiz",
+          "text": "You play Black. Stop the checkmate threat on f7.",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3",
+          "expect": ["g7g6", "d8e7", "d8f6"],
+          "hint": "Block the queen's path, or guard f7 with your own queen.",
+          "ifWrong": "That does not stop Qxf7 mate. Defend f7 or block the queen.",
+          "ifRight": "Safe! Always look at what your opponent threatens before you move.",
+          "feedback": {
+            "g8f6": "That attacks the queen, but Qxf7 is checkmate first. Stop the threat before anything else."
+          }
+        }
+      ]
+    }
+  ]
+}

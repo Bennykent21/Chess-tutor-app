@@ -1,0 +1,269 @@
+{
+  "id": "basics-moves",
+  "category": "basics",
+  "title": "How the pieces move",
+  "intro": "One lesson per piece: where it can go, how it captures, and a little challenge to try it out.",
+  "level": "beginner",
+  "order": 20,
+  "lessons": [
+    {
+      "id": "basics-moves-rook",
+      "title": "The rook",
+      "summary": "Straight lines, as far as it likes.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The rook moves in straight lines: up, down, left or right, as many squares as it likes.",
+          "fen": "4k3/8/8/8/3R4/8/8/4K3 w - - 0 1",
+          "arrows": ["d4d8", "d4d1", "d4a4", "d4h4"]
+        },
+        {
+          "type": "play",
+          "text": "Move the rook to the ringed square.",
+          "fen": "4k3/8/8/8/3R4/8/8/4K3 w - - 0 1",
+          "highlights": ["h4"],
+          "expect": ["d4h4"],
+          "hint": "Slide the rook along its row to the right.",
+          "ifWrong": "The ringed square is at the end of the rook's row.",
+          "ifRight": "Good: the rook slid all the way along the rank.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Pieces capture by moving onto an enemy piece's square. The captured piece leaves the board. Pieces cannot jump over others: your own pawn on d6 blocks the rook's way up.",
+          "fen": "4k3/8/3P4/8/3R2n1/8/8/4K3 w - - 0 1",
+          "arrows": ["d4d5", "d4g4"],
+          "highlights": ["d6:bad", "g4:good"]
+        },
+        {
+          "type": "play",
+          "text": "Capture the black knight with your rook.",
+          "fen": "4k3/8/3P4/8/3R2n1/8/8/4K3 w - - 0 1",
+          "expect": ["d4g4"],
+          "hint": "The knight is on the same row as your rook.",
+          "ifWrong": "That does not capture the knight. It is on the rook's row.",
+          "ifRight": "Captured!",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Your rook can take a knight or a bishop. Take the piece nobody protects.",
+          "fen": "4k3/1p6/b7/8/8/8/8/R3n1K1 w - - 0 1",
+          "expect": ["a1e1"],
+          "hint": "Look at the pawn on b7. What does it guard?",
+          "ifWrong": "Look for a capture where you do not lose the rook back.",
+          "ifRight": "Right: the knight was unprotected, so it is a free piece.",
+          "feedback": {
+            "a1a6": "The pawn on b7 protects that bishop. After bxa6 you lose your rook (5) for a bishop (3)."
+          }
+        }
+      ]
+    },
+    {
+      "id": "basics-moves-bishop",
+      "title": "The bishop",
+      "summary": "Diagonals, always on one colour.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The bishop moves diagonally, as far as it likes. It always stays on squares of the same colour.",
+          "fen": "4k3/8/8/8/3B4/8/8/4K3 w - - 0 1",
+          "arrows": ["d4h8", "d4a7", "d4a1", "d4g1"]
+        },
+        {
+          "type": "play",
+          "text": "Capture the black rook with your bishop.",
+          "fen": "4k3/8/1r6/8/3B4/8/8/4K3 w - - 0 1",
+          "expect": ["d4b6"],
+          "hint": "Follow the diagonal up and to the left.",
+          "ifWrong": "Bishops move only diagonally. Which diagonal leads to the rook?",
+          "ifRight": "Got it!",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Bishops only move diagonally. Which black piece can your bishop capture? Take it.",
+          "fen": "7k/8/n7/8/1r6/3B4/8/K7 w - - 0 1",
+          "expect": ["d3a6"],
+          "hint": "The rook is not on a diagonal from your bishop.",
+          "ifWrong": "That does not capture anything. Follow the diagonals from the bishop.",
+          "ifRight": "Yes, the knight was on the bishop's diagonal.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Give check with the bishop.",
+          "fen": "4k3/8/8/8/8/8/8/4KB2 w - - 0 1",
+          "goal": "check",
+          "hint": "Which diagonal leads to the black king?",
+          "ifWrong": "The king is not attacked. Find a diagonal that points at e8."
+        }
+      ]
+    },
+    {
+      "id": "basics-moves-queen",
+      "title": "The queen",
+      "summary": "Rook and bishop in one.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The queen moves like a rook and a bishop together: straight or diagonal, as far as it likes. That makes her the strongest piece.",
+          "fen": "4k3/8/8/8/3Q4/8/8/4K3 w - - 0 1",
+          "arrows": ["d4d7", "d4h8", "d4h4", "d4a7", "d4a4", "d4a1", "d4d1", "d4g1"]
+        },
+        {
+          "type": "play",
+          "text": "Capture the knight with your queen.",
+          "fen": "4k3/8/8/8/3Q4/8/8/n3K3 w - - 0 1",
+          "expect": ["d4a1"],
+          "hint": "The knight is on a diagonal.",
+          "ifWrong": "Follow the queen's diagonals to find the knight.",
+          "ifRight": "Captured!",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Capture a rook without losing your queen.",
+          "fen": "4k3/8/7r/2p5/1r6/8/3Q4/4K3 w - - 0 1",
+          "expect": ["d2h6"],
+          "hint": "One of the rooks is protected by a pawn.",
+          "ifWrong": "Look for a rook your queen can take safely.",
+          "ifRight": "Well done: that rook had no protection.",
+          "feedback": {
+            "d2b4": "The pawn on c5 protects that rook. After cxb4 your queen (9) is gone for a rook (5).",
+            "d2e3": "Clever: a check that also attacks the rook! It wins the rook next move. Here, just take the free rook now."
+          }
+        }
+      ]
+    },
+    {
+      "id": "basics-moves-king",
+      "title": "The king",
+      "summary": "One step at a time, never into danger.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The king moves one square in any direction.",
+          "fen": "k7/8/8/8/3K4/8/8/8 w - - 0 1",
+          "arrows": ["d4c5", "d4d5", "d4e5", "d4c4", "d4e4", "d4c3", "d4d3", "d4e3"]
+        },
+        {
+          "type": "explain",
+          "text": "The king may never move into check: it cannot step onto a square an enemy piece attacks. Here the black rook guards the whole e-file.",
+          "fen": "k7/8/8/8/3K4/8/8/4r3 w - - 0 1",
+          "highlights": ["e5:bad", "e4:bad", "e3:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Capture the pawn with your king.",
+          "fen": "k7/8/8/3p4/3K4/8/8/8 w - - 0 1",
+          "expect": ["d4d5"],
+          "hint": "The pawn is right next to your king.",
+          "ifWrong": "The pawn is one step away. Take it!",
+          "ifRight": "The king can capture too, one step at a time.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Your king can capture one of the pawns. The other is protected, so the king may not take it. Capture the free pawn.",
+          "fen": "k7/8/8/5p2/2pKp3/8/8/8 w - - 0 1",
+          "expect": ["d4c4"],
+          "hint": "The pawn on f5 guards one of them.",
+          "ifWrong": "Capture one of the pawns next to your king.",
+          "ifRight": "Right. The pawn on e4 was protected by f5, so taking it would walk into check."
+        }
+      ]
+    },
+    {
+      "id": "basics-moves-knight",
+      "title": "The knight",
+      "summary": "The L-shaped jump.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The knight moves in an L: two squares in one direction, then one square to the side. From the middle it can reach eight squares.",
+          "fen": "4k3/8/8/8/3N4/8/8/4K3 w - - 0 1",
+          "arrows": ["d4c6", "d4e6", "d4f5", "d4f3", "d4e2", "d4c2", "d4b3", "d4b5"]
+        },
+        {
+          "type": "explain",
+          "text": "The knight is the only piece that can jump over others. From the start it hops straight over its pawns.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Capture the bishop with your knight.",
+          "fen": "4k3/8/8/4b3/8/3N4/8/4K3 w - - 0 1",
+          "expect": ["d3e5"],
+          "hint": "Two squares up, one to the right.",
+          "ifWrong": "Remember the L: two squares one way, then one to the side.",
+          "ifRight": "Nicely jumped!",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Your knight can reach the black queen in one jump. Take it.",
+          "fen": "4k3/8/8/2q5/8/1N6/8/4K3 w - - 0 1",
+          "expect": ["b3c5"],
+          "hint": "Two squares up and one to the right.",
+          "ifWrong": "Count the L: two squares one way, one to the side.",
+          "ifRight": "The queen is yours!",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "A knight can attack two pieces at once. Jump to a square that attacks both the king and the rook.",
+          "fen": "r3k3/8/8/1N6/8/8/8/4K3 w - - 0 1",
+          "expect": ["b5c7"],
+          "hint": "Look for a square an L-jump away from both e8 and a8.",
+          "ifWrong": "That attacks only one of them (or none). Find the square that hits both.",
+          "ifRight": "A fork! The king must move, and then you take the rook.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "basics-moves-pawn",
+      "title": "The pawn",
+      "summary": "Forward to move, diagonal to capture.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Pawns move straight forward, one square at a time. On its very first move, a pawn may go two squares.",
+          "fen": "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
+          "move": "e2e4",
+          "arrows": ["e2e3:idea"]
+        },
+        {
+          "type": "explain",
+          "text": "Pawns capture differently: one square diagonally forward. A pawn can never capture straight ahead, and never moves backwards.",
+          "fen": "4k3/8/8/3p1n2/4P3/8/8/4K3 w - - 0 1",
+          "arrows": ["e4d5", "e4f5"]
+        },
+        {
+          "type": "play",
+          "text": "Capture with your pawn. Take the more valuable piece.",
+          "fen": "4k3/8/8/3p1n2/4P3/8/8/4K3 w - - 0 1",
+          "expect": ["e4f5"],
+          "hint": "A knight is worth 3 pawns.",
+          "ifWrong": "Capture diagonally forward.",
+          "ifRight": "Yes: a pawn for a knight is a great deal.",
+          "feedback": {
+            "e4d5": "That wins a pawn (1). The knight (3) is worth more."
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Move your pawn two squares forward.",
+          "fen": "4k3/8/8/8/8/8/3P4/4K3 w - - 0 1",
+          "expect": ["d2d4"],
+          "hint": "From its starting square, a pawn may jump two squares.",
+          "ifWrong": "Move the pawn, two squares straight ahead.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}
