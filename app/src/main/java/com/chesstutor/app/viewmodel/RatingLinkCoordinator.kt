@@ -65,6 +65,7 @@ class RatingLinkCoordinator(
             val result = ratingRepository.linkAccount(platform, clean, timeControl)
             result.onSuccess { profile ->
                 var lastProgress: ImportProgress? = null
+                var saveError: Throwable? = null
                 val fetchResult = ratingApiClient.fetchRecentGames(
                     platform = platform,
                     username = clean,
@@ -72,12 +73,13 @@ class RatingLinkCoordinator(
                     onProgress = { progress ->
                         lastProgress = progress
                         updateState { it.copy(importProgress = progress) }
-                    }
+                    },
+                    // Saved as they arrive, so the games list fills in while the import runs.
+                    onBatch = { batch -> saveGamesOrError(batch)?.let { saveError = it } },
                 )
                 // A cancelled import must stop here (cancelImport already updated the UI).
                 fetchResult.exceptionOrNull()?.let { if (it is CancellationException) throw it }
                 val importedGames = fetchResult.getOrDefault(emptyList())
-                val saveError = saveGamesOrError(importedGames)
                 val issue = importIssue(fetchResult.exceptionOrNull(), saveError)
                 val failedPeriods = lastProgress?.failedPeriods ?: 0
 
@@ -140,6 +142,7 @@ class RatingLinkCoordinator(
             val result = ratingRepository.refreshProfile()
             result.onSuccess { profile ->
                 var lastProgress: ImportProgress? = null
+                var saveError: Throwable? = null
                 val fetchResult = ratingApiClient.fetchRecentGames(
                     platform = profile.platform,
                     username = profile.username,
@@ -147,11 +150,11 @@ class RatingLinkCoordinator(
                     onProgress = { progress ->
                         lastProgress = progress
                         updateState { it.copy(importProgress = progress) }
-                    }
+                    },
+                    onBatch = { batch -> saveGamesOrError(batch)?.let { saveError = it } },
                 )
                 fetchResult.exceptionOrNull()?.let { if (it is CancellationException) throw it }
                 val importedGames = fetchResult.getOrDefault(emptyList())
-                val saveError = saveGamesOrError(importedGames)
                 val issue = importIssue(fetchResult.exceptionOrNull(), saveError)
                 val failedPeriods = lastProgress?.failedPeriods ?: 0
 
@@ -190,6 +193,37 @@ class RatingLinkCoordinator(
         scope.launch {
             ratingRepository.updateTimeControl(timeControl)
             onApplyBotElo()
+        }
+    }
+
+    /**
+     * The automatic sync: fresh ratings and any games played since [sinceMillis] (the newest
+     * imported one), saved as they arrive. Quiet: no progress card, and it never interrupts an
+     * import the player started.
+     */
+    fun autoSync(
+        sinceMillis: Long?,
+        onApplyBotElo: () -> Unit,
+        updateState: ((AppUiState) -> AppUiState) -> Unit,
+    ) {
+        if (activeImportJob?.isActive == true) return
+        activeImportJob = scope.launch {
+            updateState { it.copy(isAutoSyncing = true) }
+            try {
+                val profile = ratingRepository.refreshProfile().getOrNull() ?: return@launch
+                val result = ratingApiClient.fetchRecentGames(
+                    platform = profile.platform,
+                    username = profile.username,
+                    maxGames = ImportDepth.LAST_100.maxGames,
+                    sinceMillis = sinceMillis,
+                    onBatch = { batch -> saveGamesOrError(batch) },
+                )
+                result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                if (result.isSuccess) updateState { it.copy(lastSyncedEpochMs = System.currentTimeMillis()) }
+                onApplyBotElo()
+            } finally {
+                updateState { it.copy(isAutoSyncing = false) }
+            }
         }
     }
 

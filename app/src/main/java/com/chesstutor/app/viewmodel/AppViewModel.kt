@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.chesstutor.app.data.model.GameRecord
+import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.LearningProfile
 import com.chesstutor.app.data.model.RatingPlatform
@@ -90,6 +91,8 @@ class AppViewModel(
     )
 
     companion object {
+        /** The automatic sync runs at most this often (when the app opens or Account is shown). */
+        const val AUTO_SYNC_INTERVAL_MS = 30 * 60_000L
         const val FEN_MATE_IN_ONE = "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4"
         const val FEN_BACK_RANK_MATE = "6k1/5ppp/8/8/8/8/4QPPP/6K1 w - - 0 1"
         const val FEN_HANGING_PIECE = "r1bqk2r/pppp1ppp/2n5/4p3/1b2P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 6"
@@ -278,6 +281,7 @@ class AppViewModel(
 
     private fun observeLinkedProfile() {
         viewModelScope.launch {
+            var first = true
             ratingRepository.getLinkedProfileFlow().collect { profile ->
                 _state.update { current ->
                     current.copy(
@@ -286,8 +290,27 @@ class AppViewModel(
                     )
                 }
                 applyBotElo()
+                // Sync once when the app opens with an account linked.
+                if (first && profile != null) autoSyncLinkedAccount()
+                first = false
             }
         }
+    }
+
+    private var lastAutoSyncAt = 0L
+
+    /**
+     * Brings in games played since the newest imported one, at most every
+     * [AUTO_SYNC_INTERVAL_MS], so the player never has to press "Sync" (review of Phase 5).
+     */
+    fun autoSyncLinkedAccount(now: Long = System.currentTimeMillis()) {
+        val current = _state.value
+        val profile = current.linkedProfile ?: return
+        if (current.isLinkingLoading || now - lastAutoSyncAt < AUTO_SYNC_INTERVAL_MS) return
+        lastAutoSyncAt = now
+        val source = if (profile.platform == RatingPlatform.LICHESS) GameSource.LICHESS else GameSource.CHESS_COM
+        val newest = current.recentGames.filter { it.source == source }.maxOfOrNull { it.dateMillis }
+        ratingLinkCoordinator.autoSync(newest?.plus(1), ::applyBotElo, _state::update)
     }
 
     private fun applyBotElo() {

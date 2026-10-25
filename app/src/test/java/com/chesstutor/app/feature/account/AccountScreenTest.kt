@@ -3,7 +3,11 @@ package com.chesstutor.app.feature.account
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -168,11 +172,12 @@ class AccountScreenTest {
                 SettingsScreen(
                     state = AppUiState(),
                     accountActions = AccountActions(),
-                    actions = SettingsActions(onOpenBoardSettings = { boardOpened = true }, onChatLevel = { chat = it }),
+                    actions = SettingsActions(onOpenBoardSettings = { boardOpened = true }, onChatLevel = { chat = it }, supportUrl = ""),
                 )
             }
         }
-        compose.onNodeWithText("Link your account").assertExists()
+        compose.onNodeWithText("No account linked. Link Chess.com or Lichess on the Account page to bring in your games.").assertExists()
+        compose.onNodeWithText("Support the developer").assertDoesNotExist()
         compose.onNodeWithText("Export as PGN").assertExists()
         compose.onNodeWithText("Stockfish 19 chess engine").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_settings.png")
@@ -183,21 +188,35 @@ class AccountScreenTest {
     }
 
     @Test
-    fun linkedAccountOffersSyncAndUnlink() {
+    fun aLinkedAccountIsManagedInSettingsNotOnTheAccountPage() {
         val state = AppUiState(
             linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = 1848, blitzRating = 1720, bulletRating = null, selectedTimeControl = RatingTimeControl.RAPID),
         )
-        var synced = false
+        var page by mutableStateOf("account")
+        var rating: RatingTimeControl? = null
+        var imported = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = state, games = games, stats = stats, dueReviewCount = 0, actions = AccountActions(onSync = { synced = true }))
+                val actions = AccountActions(onRatingTimeControl = { rating = it }, onImportMore = { imported = true })
+                if (page == "account") {
+                    AccountScreen(state = state, games = games, stats = stats, dueReviewCount = 0, actions = actions)
+                } else {
+                    SettingsScreen(state = state, accountActions = actions, actions = SettingsActions(supportUrl = "https://example.org/support"))
+                }
             }
         }
+        compose.onNodeWithText("1848 rapid on Lichess · 5-day streak · Level ${stats.playerLevel.level}").assertExists()
+        compose.onNodeWithText("Link your account").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Settings").assertExists()
+
+        page = "settings"
         compose.onNodeWithText("@kenny on Lichess").assertExists()
         compose.onNodeWithText("Rapid 1848 · Blitz 1720 · Bullet –").assertExists()
-        compose.onNodeWithText("1848 rapid on Lichess · 5-day streak · Level ${stats.playerLevel.level}").assertExists()
-        compose.onNodeWithText("Sync games").performClick()
-        assertTrue(synced)
+        compose.onNodeWithText("Blitz").performClick()
+        assertEquals(RatingTimeControl.BLITZ, rating)
+        compose.onNodeWithText("Import last 100 games").performClick()
+        assertTrue(imported)
+        compose.onNodeWithText("Support the developer").assertExists()
     }
 
     @Test

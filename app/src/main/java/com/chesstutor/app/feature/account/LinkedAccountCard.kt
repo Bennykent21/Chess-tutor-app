@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.LinkOff
@@ -38,32 +39,54 @@ import com.chesstutor.app.design.CtTextField
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.viewmodel.AppUiState
 
+/** The Account page shows the link card only until an account is linked (or while its first import runs). */
+internal fun showsLinkCard(state: AppUiState): Boolean = state.linkedProfile == null || state.isLinkingLoading
+
 /**
- * Chess.com or Lichess: link an account and bring its games in, or sync and unlink a linked
- * one. Replaces the linking part of the classic Review screen.
+ * Chess.com or Lichess on the Account page: the link form, then the first import's live
+ * progress. Once linked, the account is managed in Settings and syncs by itself.
  */
 @Composable
-fun LinkedAccountCard(state: AppUiState, actions: AccountActions, modifier: Modifier = Modifier) {
-    val linked = state.linkedProfile
+fun LinkAccountCard(state: AppUiState, actions: AccountActions, modifier: Modifier = Modifier) {
     CtCard(modifier = modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            when {
-                state.isLinkingLoading -> ImportRunning(state.importProgress, onCancel = actions.onCancelImport)
-                linked != null -> Linked(linked, state.lastSyncedEpochMs, state.selectedImportDepth, actions)
-                else -> LinkForm(state.selectedImportDepth, actions)
-            }
-            val status = state.linkingError ?: state.linkingSuccessMessage
-            if (status != null && !state.isLinkingLoading) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = status,
-                        style = CtType.BodySmall.copy(color = if (state.linkingError != null) CtColors.Coral else CtColors.Lime),
-                        modifier = Modifier.weight(1f),
-                    )
-                    CtChip(text = "OK", color = CtColors.Text2, onClick = actions.onDismissLinkStatus)
-                }
-            }
+            if (state.isLinkingLoading) ImportRunning(state.importProgress, onCancel = actions.onCancelImport)
+            else LinkForm(state.selectedImportDepth, actions)
+            LinkStatus(state, actions)
         }
+    }
+}
+
+/**
+ * Settings > Linked account: who is linked and their ratings, which rating the app uses,
+ * bringing in more of the history, and unlinking. New games arrive by themselves.
+ */
+@Composable
+fun ManageAccountCard(state: AppUiState, actions: AccountActions, modifier: Modifier = Modifier) {
+    val profile = state.linkedProfile
+    CtCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            if (profile == null) {
+                Text("No account linked. Link Chess.com or Lichess on the Account page to bring in your games.", style = CtType.BodySmall)
+                return@Column
+            }
+            Linked(profile, state, actions)
+            LinkStatus(state, actions)
+        }
+    }
+}
+
+@Composable
+private fun LinkStatus(state: AppUiState, actions: AccountActions) {
+    val status = state.linkingError ?: state.linkingSuccessMessage
+    if (status == null || state.isLinkingLoading) return
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = status,
+            style = CtType.BodySmall.copy(color = if (state.linkingError != null) CtColors.Coral else CtColors.Lime),
+            modifier = Modifier.weight(1f),
+        )
+        CtChip(text = "OK", color = CtColors.Text2, onClick = actions.onDismissLinkStatus)
     }
 }
 
@@ -79,7 +102,7 @@ private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
         Spacer(Modifier.width(CtSpacing.md))
         Column(Modifier.weight(1f)) {
             Text("Link your account", style = CtType.TitleSmall)
-            Text("Bring in your games and rating from Chess.com or Lichess.", style = CtType.Caption)
+            Text("Bring in your games and rating from Chess.com or Lichess. New games then arrive by themselves.", style = CtType.Caption)
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
@@ -88,12 +111,7 @@ private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
         }
     }
     CtTextField(value = username, onValueChange = { username = it.trim() }, label = "Username", placeholder = "Your ${platform.displayName} name")
-    Text("Rating to use", style = CtType.Label)
-    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        RatingTimeControl.entries.forEach { t ->
-            CtChip(text = t.displayName, color = CtColors.Gold, selected = t.name == timeName, onClick = { timeName = t.name })
-        }
-    }
+    RatingChips(RatingTimeControl.valueOf(timeName)) { timeName = it.name }
     DepthChips(depth, actions.onImportDepth)
     CtButton(
         text = "Link and import",
@@ -102,6 +120,18 @@ private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
         onClick = { actions.onLink(platform, username, RatingTimeControl.valueOf(timeName)) },
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/** Which of the account's ratings the app uses (games of every time control are imported). */
+@Composable
+private fun RatingChips(selected: RatingTimeControl, onSelect: (RatingTimeControl) -> Unit) {
+    Text("Rating to use", style = CtType.Label)
+    Text("Games of every time control are imported; this picks the rating your bots and level follow.", style = CtType.Caption)
+    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        RatingTimeControl.entries.forEach { t ->
+            CtChip(text = t.displayName, color = CtColors.Gold, selected = t == selected, onClick = { onSelect(t) })
+        }
+    }
 }
 
 @Composable
@@ -115,7 +145,7 @@ private fun DepthChips(depth: ImportDepth, onDepth: (ImportDepth) -> Unit) {
 }
 
 @Composable
-private fun Linked(profile: LinkedChessProfile, lastSynced: Long?, depth: ImportDepth, actions: AccountActions) {
+private fun Linked(profile: LinkedChessProfile, state: AppUiState, actions: AccountActions) {
     var confirmUnlink by rememberSaveable { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
         CtIconBubble(icon = Icons.Rounded.CloudSync, tint = CtColors.Teal, size = 40.dp)
@@ -123,14 +153,23 @@ private fun Linked(profile: LinkedChessProfile, lastSynced: Long?, depth: Import
         Column(Modifier.weight(1f)) {
             Text("@${profile.username} on ${profile.platform.displayName}", style = CtType.TitleSmall)
             Text(ratingsLine(profile), style = CtType.Caption)
-            lastSynced?.let { Text("Last synced ${formatDate(it)}", style = CtType.Caption) }
+            Text(syncLine(state), style = CtType.Caption)
         }
     }
-    DepthChips(depth, actions.onImportDepth)
-    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        CtButton(text = "Sync games", icon = Icons.Rounded.CloudSync, onClick = actions.onSync, modifier = Modifier.weight(1f))
-        CtButton(text = "Unlink", icon = Icons.Rounded.LinkOff, style = CtButtonStyle.Secondary, onClick = { confirmUnlink = true }, modifier = Modifier.weight(1f))
+    RatingChips(profile.selectedTimeControl, actions.onRatingTimeControl)
+    if (state.isLinkingLoading) {
+        ImportRunning(state.importProgress, onCancel = actions.onCancelImport)
+    } else {
+        DepthChips(state.selectedImportDepth, actions.onImportDepth)
+        CtButton(
+            text = "Import ${state.selectedImportDepth.label.lowercase()} games",
+            icon = Icons.Rounded.CloudDownload,
+            style = CtButtonStyle.Secondary,
+            onClick = actions.onImportMore,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
+    CtButton(text = "Unlink", icon = Icons.Rounded.LinkOff, style = CtButtonStyle.Ghost, onClick = { confirmUnlink = true }, modifier = Modifier.fillMaxWidth())
     if (confirmUnlink) {
         CtConfirmDialog(
             title = "Unlink @${profile.username}?",
@@ -143,6 +182,13 @@ private fun Linked(profile: LinkedChessProfile, lastSynced: Long?, depth: Import
             onDismiss = { confirmUnlink = false },
         )
     }
+}
+
+/** "New games sync by themselves · last synced 25 Oct 2026". */
+internal fun syncLine(state: AppUiState): String = when {
+    state.isAutoSyncing -> "Checking for new games…"
+    state.lastSyncedEpochMs != null -> "New games sync by themselves · last synced ${formatDate(state.lastSyncedEpochMs)}"
+    else -> "New games sync by themselves"
 }
 
 /** "Rapid 1848 · Blitz 1720 · Bullet –". */
@@ -164,7 +210,7 @@ private fun ImportRunning(progress: ImportProgress?, onCancel: () -> Unit) {
         style = CtType.Caption,
     )
     CtProgressBar(progress = if (p.targetCount > 0) p.importedCount.toFloat() / p.targetCount else 0f, height = 8.dp)
-    Text("${p.importedCount} of up to ${p.targetCount} games", style = CtType.Caption)
+    Text("${p.importedCount} of up to ${p.targetCount} games · they appear in Games as they arrive", style = CtType.Caption)
     Spacer(Modifier.height(CtSpacing.xs))
     CtButton(text = "Stop importing", style = CtButtonStyle.Secondary, onClick = onCancel, modifier = Modifier.fillMaxWidth())
 }

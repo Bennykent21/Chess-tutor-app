@@ -132,6 +132,8 @@ data class AppUiState(
     val linkingSuccessMessage: String? = null,
     val selectedImportDepth: ImportDepth = ImportDepth.LAST_100,
     val importProgress: ImportProgress? = null,
+    /** The quiet automatic sync of a linked account is running. */
+    val isAutoSyncing: Boolean = false,
     val lastSyncedEpochMs: Long? = null,
     val isAutoOpponentEnabled: Boolean = true,
     val opponentThinking: Boolean = false,

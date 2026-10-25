@@ -1,7 +1,10 @@
 package com.chesstutor.app.feature.account
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,8 +30,10 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +41,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.core.PieceColor
@@ -49,8 +57,9 @@ import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtIconBubble
-import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtScreenBackground
+import com.chesstutor.app.design.CtShapes
+import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtStatTile
@@ -82,7 +91,11 @@ data class AccountActions(
     /** Opens the spaced review of positions from the player's games (Puzzles > Mistakes review). */
     val onReviewMistakes: () -> Unit = {},
     val onLink: (RatingPlatform, String, RatingTimeControl) -> Unit = { _, _, _ -> },
-    val onSync: () -> Unit = {},
+    /** Settings > Linked account: which rating the app follows, and importing more of the history. */
+    val onRatingTimeControl: (RatingTimeControl) -> Unit = {},
+    val onImportMore: () -> Unit = {},
+    /** The Account tab came on screen: a chance for the automatic sync (throttled). */
+    val onShown: () -> Unit = {},
     val onCancelImport: () -> Unit = {},
     val onUnlink: () -> Unit = {},
     val onImportDepth: (ImportDepth) -> Unit = {},
@@ -112,6 +125,7 @@ fun AccountScreen(
     val tab = AccountTab.valueOf(tabName)
     // The games filter lives here so it survives opening a game and coming back.
     var filterState by rememberSaveable(stateSaver = GameFilterSaver) { mutableStateOf(GameFilter()) }
+    LaunchedEffect(Unit) { actions.onShown() }
 
     CtScreenBackground(modifier) {
         LazyColumn(
@@ -123,7 +137,7 @@ fun AccountScreen(
                 CtTopBar(
                     title = "Account",
                     trailing = {
-                        CtChip(text = "Settings", color = CtColors.Teal, icon = Icons.Rounded.Settings, onClick = actions.onOpenSettings)
+                        SettingsButton(onClick = actions.onOpenSettings)
                     },
                 )
             }
@@ -220,12 +234,8 @@ private fun LazyListScope.overview(
             }
         }
     }
-    item(key = "linked") {
-        LinkedAccountCard(
-            state = state,
-            actions = actions,
-            modifier = Modifier.padding(horizontal = CtSpacing.gutter),
-        )
+    if (showsLinkCard(state)) {
+        item(key = "linked") { LinkAccountCard(state = state, actions = actions, modifier = Modifier.padding(horizontal = CtSpacing.gutter)) }
     }
     item(key = "games-header") {
         CtSectionHeader(
@@ -242,16 +252,6 @@ private fun LazyListScope.overview(
         items(games.games.take(3), key = { "recent-${it.id}" }) { game ->
             GameRow(game, onClick = { actions.onOpenGame(game.id) }, modifier = Modifier.padding(horizontal = CtSpacing.gutter), accuracy = games.analysed[game.id]?.accuracyFor(game.userColor))
         }
-    }
-    item(key = "settings") {
-        CtListRow(
-            title = "Settings",
-            subtitle = "Coach, board and sound, linked account, engine, export and about",
-            icon = Icons.Rounded.Settings,
-            onClick = actions.onOpenSettings,
-            modifier = Modifier.padding(horizontal = CtSpacing.gutter),
-            trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
-        )
     }
 }
 
@@ -373,3 +373,19 @@ private val GameFilterSaver = androidx.compose.runtime.saveable.listSaver<GameFi
         )
     },
 )
+
+/** The Settings entry: a gear at the top right of Account, as players expect. */
+@Composable
+private fun SettingsButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(CtSpacing.touchTarget)
+            .clip(CtShapes.Pill)
+            .background(CtColors.Surface)
+            .ctPressable(onClickLabel = "Open settings", onClick = onClick)
+            .semantics { contentDescription = "Settings" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Rounded.Settings, contentDescription = null, tint = CtColors.Text)
+    }
+}

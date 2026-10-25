@@ -124,7 +124,8 @@ fun AppNavHost(
     val linkActions = remember(viewModel) {
         AccountActions(
             onLink = { platform, username, timeControl -> viewModel.linkRatingAccount(platform, username, timeControl) },
-            onSync = { viewModel.refreshLinkedRating() },
+            onRatingTimeControl = viewModel::setRatingTimeControl,
+            onImportMore = { viewModel.refreshLinkedRating() },
             onCancelImport = viewModel::cancelAccountImport,
             onUnlink = viewModel::unlinkRatingAccount,
             onImportDepth = viewModel::setImportDepth,
@@ -557,7 +558,8 @@ fun AppNavHost(
                                     navController.navigateToTab(TopTab.PUZZLES)
                                     navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true }
                                 },
-                                onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) { launchSingleTop = true } }
+                                onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) { launchSingleTop = true } },
+                                onShown = { viewModel.autoSyncLinkedAccount() }
                             )
                         )
                     }
