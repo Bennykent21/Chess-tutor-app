@@ -211,6 +211,7 @@ private fun ImportRunning(progress: ImportProgress?, onCancel: () -> Unit) {
     )
     CtProgressBar(progress = if (p.targetCount > 0) p.importedCount.toFloat() / p.targetCount else 0f, height = 8.dp)
     Text("${p.importedCount} of up to ${p.targetCount} games · they appear in Games as they arrive", style = CtType.Caption)
+    Text("A big import takes a few minutes. If the app closes part-way, it carries on next time you open it.", style = CtType.Caption)
     Spacer(Modifier.height(CtSpacing.xs))
     CtButton(text = "Stop importing", style = CtButtonStyle.Secondary, onClick = onCancel, modifier = Modifier.fillMaxWidth())
 }

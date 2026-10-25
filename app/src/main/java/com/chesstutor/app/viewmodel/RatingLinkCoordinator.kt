@@ -39,7 +39,9 @@ class RatingLinkCoordinator(
         timeControl: RatingTimeControl,
         onApplyBotElo: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit,
-        importDepth: ImportDepth = ImportDepth.LAST_100
+        importDepth: ImportDepth = ImportDepth.LAST_100,
+        /** Told whether the whole import arrived (false when months failed or the download broke). */
+        onFinished: (complete: Boolean) -> Unit = {},
     ) {
         val clean = username.trim()
         if (clean.isBlank()) {
@@ -81,6 +83,7 @@ class RatingLinkCoordinator(
                 fetchResult.exceptionOrNull()?.let { if (it is CancellationException) throw it }
                 val importedGames = fetchResult.getOrDefault(emptyList())
                 val issue = importIssue(fetchResult.exceptionOrNull(), saveError)
+                onFinished(fetchResult.isSuccess && (lastProgress?.failedPeriods ?: 0) == 0)
                 val failedPeriods = lastProgress?.failedPeriods ?: 0
 
                 val incompleteCount = importedGames.count { it.incompleteParse }
@@ -121,7 +124,9 @@ class RatingLinkCoordinator(
         currentProfileUsername: String?,
         onApplyBotElo: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit,
-        importDepth: ImportDepth = ImportDepth.LAST_100
+        importDepth: ImportDepth = ImportDepth.LAST_100,
+        /** Told whether the whole import arrived (false when months failed or the download broke). */
+        onFinished: (complete: Boolean) -> Unit = {},
     ) {
         if (currentProfileUsername == null) return
         activeImportJob?.cancel()
@@ -156,6 +161,7 @@ class RatingLinkCoordinator(
                 fetchResult.exceptionOrNull()?.let { if (it is CancellationException) throw it }
                 val importedGames = fetchResult.getOrDefault(emptyList())
                 val issue = importIssue(fetchResult.exceptionOrNull(), saveError)
+                onFinished(fetchResult.isSuccess && (lastProgress?.failedPeriods ?: 0) == 0)
                 val failedPeriods = lastProgress?.failedPeriods ?: 0
 
                 val incompleteCount = importedGames.count { it.incompleteParse }
@@ -199,12 +205,14 @@ class RatingLinkCoordinator(
     /**
      * The automatic sync: fresh ratings and any games played since [sinceMillis] (the newest
      * imported one), saved as they arrive. Quiet: no progress card, and it never interrupts an
-     * import the player started.
+     * import the player started. With [backfill] it then carries on an import that was cut
+     * short (the app was closed part-way), with the usual progress card.
      */
     fun autoSync(
         sinceMillis: Long?,
         onApplyBotElo: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit,
+        backfill: Backfill? = null,
     ) {
         if (activeImportJob?.isActive == true) return
         activeImportJob = scope.launch {
@@ -221,9 +229,45 @@ class RatingLinkCoordinator(
                 result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
                 if (result.isSuccess) updateState { it.copy(lastSyncedEpochMs = System.currentTimeMillis()) }
                 onApplyBotElo()
+                if (backfill != null) runBackfill(profile.platform, profile.username, backfill, updateState)
             } finally {
                 updateState { it.copy(isAutoSyncing = false) }
             }
+        }
+    }
+
+    /** Finishing an interrupted import: up to [maxGames] games older than [beforeMillis]. */
+    data class Backfill(val beforeMillis: Long, val maxGames: Int, val onDone: (complete: Boolean) -> Unit)
+
+    private suspend fun runBackfill(
+        platform: RatingPlatform,
+        username: String,
+        backfill: Backfill,
+        updateState: ((AppUiState) -> AppUiState) -> Unit,
+    ) {
+        updateState {
+            it.copy(
+                isLinkingLoading = true,
+                importProgress = ImportProgress(targetCount = backfill.maxGames, currentPeriod = platform.displayName, phase = "Carrying on your import..."),
+            )
+        }
+        var lastProgress: ImportProgress? = null
+        try {
+            val result = ratingApiClient.fetchRecentGames(
+                platform = platform,
+                username = username,
+                maxGames = backfill.maxGames,
+                onProgress = { progress ->
+                    lastProgress = progress
+                    updateState { it.copy(importProgress = progress) }
+                },
+                onBatch = { batch -> saveGamesOrError(batch) },
+                beforeMillis = backfill.beforeMillis,
+            )
+            result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+            backfill.onDone(result.isSuccess && (lastProgress?.failedPeriods ?: 0) == 0)
+        } finally {
+            updateState { it.copy(isLinkingLoading = false, importProgress = null) }
         }
     }
 

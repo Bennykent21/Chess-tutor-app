@@ -50,6 +50,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -308,9 +309,22 @@ class AppViewModel(
         val profile = current.linkedProfile ?: return
         if (current.isLinkingLoading || now - lastAutoSyncAt < AUTO_SYNC_INTERVAL_MS) return
         lastAutoSyncAt = now
-        val source = if (profile.platform == RatingPlatform.LICHESS) GameSource.LICHESS else GameSource.CHESS_COM
-        val newest = current.recentGames.filter { it.source == source }.maxOfOrNull { it.dateMillis }
-        ratingLinkCoordinator.autoSync(newest?.plus(1), ::applyBotElo, _state::update)
+        viewModelScope.launch {
+            // Read the saved games and settings themselves: at start-up the screen state may not have them yet.
+            val source = if (profile.platform == RatingPlatform.LICHESS) GameSource.LICHESS else GameSource.CHESS_COM
+            val mine = gameRepository.observeGames().first().filter { it.source == source }
+            val newest = mine.maxOfOrNull { it.dateMillis }
+            // An import the app was closed during carries on from the oldest game it reached.
+            val target = settingsStore.settings.first().importTarget
+            val oldest = mine.minOfOrNull { it.dateMillis }
+            val backfill = if (target != null && oldest != null && mine.size < target.maxGames) {
+                RatingLinkCoordinator.Backfill(oldest, target.maxGames - mine.size) { complete -> if (complete) setImportTarget(null) }
+            } else {
+                if (target != null && mine.size >= target.maxGames) setImportTarget(null)
+                null
+            }
+            ratingLinkCoordinator.autoSync(newest?.plus(1), ::applyBotElo, _state::update, backfill)
+        }
     }
 
     private fun applyBotElo() {
@@ -1163,7 +1177,11 @@ class AppViewModel(
 
     fun cancelAccountImport() {
         ratingLinkCoordinator.cancelImport(_state::update)
+        setImportTarget(null)
     }
+
+    /** Remembers how many games the player asked for, so an import cut short carries on later. */
+    private fun setImportTarget(target: ImportDepth?) = updateSettings { it.copy(importTarget = target) }
 
     fun linkRatingAccount(
         platform: RatingPlatform,
@@ -1171,11 +1189,17 @@ class AppViewModel(
         timeControl: RatingTimeControl = RatingTimeControl.RAPID,
         importDepth: ImportDepth = _state.value.selectedImportDepth
     ) {
-        ratingLinkCoordinator.linkAccount(platform, username, timeControl, ::applyBotElo, _state::update, importDepth)
+        setImportTarget(importDepth)
+        ratingLinkCoordinator.linkAccount(platform, username, timeControl, ::applyBotElo, _state::update, importDepth) { complete ->
+            if (complete) setImportTarget(null)
+        }
     }
 
     fun refreshLinkedRating(importDepth: ImportDepth = _state.value.selectedImportDepth) {
-        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, ::applyBotElo, _state::update, importDepth)
+        setImportTarget(importDepth)
+        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, ::applyBotElo, _state::update, importDepth) { complete ->
+            if (complete) setImportTarget(null)
+        }
     }
 
     fun setReviewMistakeSolverOpen(open: Boolean) {
