@@ -66,6 +66,8 @@ object BoardMarkColors {
     const val ARROW_ALTERNATIVE = 0x99A487FFL
     /** A wrong move in a puzzle, flashed on its target square. */
     const val MISTAKE = 0xE6FF6F6FL
+    /** Under a review's quality badge, so it stands out on any square. */
+    const val BADGE_SHADOW = 0x66000000L
 }
 
 /** Who you are on every board: colours and pieces, from user settings (plan section 4.1). */

@@ -1,22 +1,39 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Insights
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,12 +47,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.chesstutor.app.board.AnalysisMoveList
 import com.chesstutor.app.board.AnalysisSession
-import com.chesstutor.app.board.AnalysisToolbar
 import com.chesstutor.app.board.BoardArrow
 import com.chesstutor.app.board.BoardEvalBar
 import com.chesstutor.app.board.BoardFeedback
@@ -43,7 +63,9 @@ import com.chesstutor.app.board.BoardHost
 import com.chesstutor.app.board.BoardWithEvalBar
 import com.chesstutor.app.board.EngineLinesPanel
 import com.chesstutor.app.board.MarkKind
-import com.chesstutor.app.board.MoveMark
+import com.chesstutor.app.board.NotationToken
+import com.chesstutor.app.board.SquareBadge
+import com.chesstutor.app.board.moveListOf
 import com.chesstutor.app.board.toggleArrow
 import com.chesstutor.app.core.Move
 import com.chesstutor.app.core.PieceColor
@@ -53,22 +75,27 @@ import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
+import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtIconBubble
+import com.chesstutor.app.design.CtMascotArt
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
+import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
+import com.chesstutor.app.design.ctPressable
+import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.account.GameReview
 import com.chesstutor.app.domain.account.GameSummary
 import com.chesstutor.app.domain.account.MoveQuality
+import com.chesstutor.app.domain.account.ReviewCommentary
 import com.chesstutor.app.domain.account.ReviewedMove
 import com.chesstutor.app.engine.EngineLine
 import com.chesstutor.app.engine.EngineService
 import java.util.Locale
-import kotlin.math.roundToInt
 
 /** What the review screen can do. */
 data class ReviewActions(
@@ -82,10 +109,11 @@ data class ReviewActions(
 )
 
 /**
- * Game review (plan 6.4) on the board in review mode (`BoardConfig.REVIEW`): eval bar,
- * best-move arrows, the move list with each move's quality, the evaluation graph, engine
- * lines, accuracy and move counts for both sides, and the player's key moments with
- * "Practise this mistake". Any move can be tried on the board as a side line.
+ * Game review (plan 6.4), in two steps like the big sites: a summary (the coach's verdict,
+ * the evaluation graph, both players' accuracy and move-quality counts, key moments), then
+ * "Start review" walks through the game on the board in review mode (`BoardConfig.REVIEW`):
+ * the coach comments on each move, the move is tinted by its quality, a horizontal move list
+ * follows the game, and "Best" plays the engine's move as a side line.
  */
 @Composable
 fun GameReviewScreen(
@@ -94,6 +122,8 @@ fun GameReviewScreen(
     engine: EngineService?,
     actions: ReviewActions,
     modifier: Modifier = Modifier,
+    /** Opens straight on the board at this ply (tests and deep links); null shows the summary. */
+    startPly: Int? = null,
 ) {
     val game = state.game
     CtScreenBackground(modifier) {
@@ -101,12 +131,169 @@ fun GameReviewScreen(
             Column(Modifier.fillMaxSize()) { CtTopBar(title = "Game review", subtitle = "This game is no longer saved", onBack = actions.onBack) }
             return@CtScreenBackground
         }
-        ReviewContent(game, state, settings, engine, actions)
+        var boardPly by rememberSaveable { mutableStateOf(startPly ?: -1) }
+        if (boardPly < 0) {
+            ReviewSummary(game, state, settings.mascot, actions, onStart = { ply -> boardPly = ply })
+        } else {
+            ReviewBoard(game, state, settings, engine, actions, startPly = boardPly, onSummary = { boardPly = -1 })
+        }
+    }
+}
+
+// ------------------------------------------------------------------ summary
+
+@Composable
+private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot: Mascot, actions: ReviewActions, onStart: (Int) -> Unit) {
+    val review = state.review
+    var selected by rememberSaveable { mutableStateOf<Int?>(null) }
+    val practised = remember(game.id) { mutableStateListOf<Int>() }
+    val white = if (game.userColor == PieceColor.WHITE) "You" else game.opponent
+    val black = if (game.userColor == PieceColor.BLACK) "You" else game.opponent
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 96.dp)) {
+        CtTopBar(title = "Game review", subtitle = "vs ${game.opponent} · ${resultTitle(game)}", onBack = actions.onBack)
+        Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+            AnalysisStatus(state, review, actions)
+            if (review != null && review.moves.isNotEmpty()) {
+                CoachSays(mascot) {
+                    Text(ReviewCommentary.summary(review, game.userColor, game.outcome), style = CtType.Body.copy(color = CtColors.Text))
+                }
+                EvalGraph(
+                    points = review.graph,
+                    totalPositions = review.totalPlies + 1,
+                    currentPly = selected,
+                    qualities = review.moves.associate { it.ply to it.quality },
+                    onSelect = { ply -> selected = ply },
+                )
+                GraphReadout(review, state, selected, onOpen = onStart)
+                PlayersAndCounts(review, white, black)
+                val moments = review.keyMoments(game.userColor)
+                if (moments.isNotEmpty()) {
+                    CtSectionHeader(title = "Key moments")
+                    moments.forEach { moment ->
+                        KeyMoment(
+                            move = moment,
+                            added = moment.ply in practised,
+                            onShow = { onStart(moment.ply) },
+                            onPractise = {
+                                practised += moment.ply
+                                actions.onPractise(moment)
+                            },
+                        )
+                    }
+                }
+            }
+            CtCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CtIconBubble(icon = Icons.AutoMirrored.Rounded.MenuBook, tint = CtColors.Teal, size = 36.dp)
+                    Spacer(Modifier.width(CtSpacing.md))
+                    Column(Modifier.weight(1f)) {
+                        Text(game.openingName ?: "Opening not named", style = CtType.Label)
+                        Text(bookLine(game), style = CtType.Caption)
+                    }
+                }
+            }
+        }
+    }
+    CtButton(
+        text = "Start review",
+        icon = Icons.Rounded.PlayArrow,
+        onClick = { onStart(1.coerceAtMost(review?.totalPlies ?: 0)) },
+        enabled = game.moves.isNotEmpty(),
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .navigationBarsPadding()
+            .padding(CtSpacing.gutter)
+            .fillMaxWidth(),
+    )
+}
+
+/** What the graph shows at the tapped point: the move, its quality and the evaluation. */
+@Composable
+private fun GraphReadout(review: GameReview, state: ReviewState, selected: Int?, onOpen: (Int) -> Unit) {
+    val ply = selected ?: return
+    val move = review.move(ply)
+    Row(
+        modifier = Modifier.fillMaxWidth().clip(CtShapes.CardSmall).background(CtColors.Surface).padding(CtSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+    ) {
+        if (move != null) QualityIcon(move.quality, size = 28)
+        Column(Modifier.weight(1f)) {
+            Text(move?.let { "${it.numberLabel} ${it.san} · ${it.quality.label}" } ?: "Start of the game", style = CtType.Label)
+            Text("Evaluation ${ReviewCommentary.evalLabel(state.evals[ply]).ifEmpty { "–" }} · White's chances ${percent(review.graph.getOrNull(ply)?.times(100.0))}", style = CtType.Caption)
+        }
+        CtChip(text = "Show", color = CtColors.Teal, onClick = { onOpen(ply) })
     }
 }
 
 @Composable
-private fun ReviewContent(game: GameSummary, state: ReviewState, settings: AppSettings, engine: EngineService?, actions: ReviewActions) {
+private fun PlayersAndCounts(review: GameReview, white: String, black: String) {
+    val w = review.report(PieceColor.WHITE)
+    val b = review.report(PieceColor.BLACK)
+    CtCard(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Players", style = CtType.Label, modifier = Modifier.weight(1f))
+            PlayerName(white, Modifier.width(96.dp))
+            Spacer(Modifier.width(CtSpacing.sm))
+            PlayerName(black, Modifier.width(96.dp))
+        }
+        Spacer(Modifier.height(CtSpacing.sm))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Accuracy", style = CtType.Label, modifier = Modifier.weight(1f))
+            AccuracyBox(w.accuracy, light = true, modifier = Modifier.width(96.dp))
+            Spacer(Modifier.width(CtSpacing.sm))
+            AccuracyBox(b.accuracy, light = false, modifier = Modifier.width(96.dp))
+        }
+        Spacer(Modifier.height(CtSpacing.md))
+        MoveQuality.entries.reversed().forEach { q ->
+            Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.xxs), verticalAlignment = Alignment.CenterVertically) {
+                Text(q.label, style = CtType.BodySmall.copy(color = CtColors.Text), modifier = Modifier.weight(1f))
+                CountText(w.count(q), qualityColor(q), Modifier.width(44.dp))
+                QualityIcon(q, size = 26)
+                CountText(b.count(q), qualityColor(q), Modifier.width(44.dp))
+                Spacer(Modifier.width(CtSpacing.sm))
+            }
+        }
+        if (!review.complete) Text("Counting so far: the analysis is not finished.", style = CtType.Caption)
+    }
+}
+
+@Composable
+private fun PlayerName(name: String, modifier: Modifier) {
+    Text(name, style = CtType.Label, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = modifier)
+}
+
+@Composable
+private fun AccuracyBox(accuracy: Double?, light: Boolean, modifier: Modifier) {
+    Box(
+        modifier = modifier.clip(CtShapes.Chip).background(if (light) CtColors.Text else CtColors.BgDeep).padding(vertical = CtSpacing.sm),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            accuracy?.let { String.format(Locale.UK, "%.1f", it) } ?: "–",
+            style = CtType.Number.copy(color = if (light) CtColors.BgDeep else CtColors.Text),
+        )
+    }
+}
+
+@Composable
+private fun CountText(count: Int, color: Color, modifier: Modifier) {
+    Text("$count", style = CtType.Label.copy(color = if (count == 0) CtColors.Text3 else color), textAlign = TextAlign.Center, modifier = modifier)
+}
+
+// ------------------------------------------------------------------ board
+
+@Composable
+private fun ReviewBoard(
+    game: GameSummary,
+    state: ReviewState,
+    settings: AppSettings,
+    engine: EngineService?,
+    actions: ReviewActions,
+    startPly: Int,
+    onSummary: () -> Unit,
+) {
     val startFen = game.startFen ?: Position.STARTING_FEN
     // The game is the main line; the node id of each of its positions is kept to match plies.
     val (session, mainIds) = remember(game.id) {
@@ -119,18 +306,23 @@ private fun ReviewContent(game: GameSummary, state: ReviewState, settings: AppSe
             s.onMove(move)
             ids += s.currentId
         }
-        s.toStart()
+        s.goTo(ids[startPly.coerceIn(0, ids.lastIndex)])
         s to ids.toList()
+    }
+    val entries = remember(game.id) {
+        val start = Position.tryFromFen(startFen).getOrElse { Position.initial() }
+        moveListOf(start, game.moves.mapNotNull { runCatching { Move.fromUci(it) }.getOrNull() })
     }
     val board by session.state.collectAsState()
     val view by session.view.collectAsState()
     var whiteAtBottom by rememberSaveable { mutableStateOf(game.userColor == PieceColor.WHITE) }
-    val ply = mainIds.indexOf(view.currentId).takeIf { it >= 0 }
-    val review = state.review
-    val cached = ply?.let { state.evals[it] }
-    val practised = remember(game.id) { mutableStateListOf<Int>() }
+    var showLines by rememberSaveable { mutableStateOf(false) }
     var drawing by remember { mutableStateOf(false) }
     val drawn = remember(game.id) { mutableStateMapOf<Int, List<BoardArrow>>() }
+    val ply = mainIds.indexOf(view.currentId).takeIf { it >= 0 }
+    val review = state.review
+    val move = ply?.takeIf { it > 0 }?.let { review?.move(it) }
+    val cached = ply?.let { state.evals[it] }
 
     // Live engine lines for side lines and positions not analysed yet (not while the analysis runs: it needs the engine).
     var live by remember { mutableStateOf<List<EngineLine>>(emptyList()) }
@@ -150,20 +342,40 @@ private fun ReviewContent(game: GameSummary, state: ReviewState, settings: AppSe
     }
     val evalCp = cached?.centipawns ?: lines.firstOrNull()?.centipawns
     val evalMate = cached?.mate ?: lines.firstOrNull()?.mateInMoves
-    val bestArrow = lines.firstOrNull()?.firstMove?.let { runCatching { Move.fromUci(it) }.getOrNull() }?.let { BoardArrow(it.from, it.to, MarkKind.BEST) }
-    val marks = remember(review, mainIds) { review?.moves?.associate { mainIds[it.ply] to markOf(it.quality) }.orEmpty() }
+    val tint = move?.let { qualityColor(it.quality) }
+    val badge = move?.let { m ->
+        runCatching { Move.fromUci(m.uci) }.getOrNull()?.let { SquareBadge(it.to, qualityColor(m.quality).toArgb().toLong() and 0xFFFFFFFFL, badgeText(m.quality), qualityTextColor(m.quality).toArgb().toLong() and 0xFFFFFFFFL) }
+    }
 
     fun goToPly(target: Int) {
         mainIds.getOrNull(target)?.let(session::goTo)
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        CtTopBar(title = "Game review", subtitle = "vs ${game.opponent} · ${resultTitle(game)}", onBack = actions.onBack)
-        Column(
-            modifier = Modifier.padding(horizontal = CtSpacing.gutter),
-            verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-        ) {
-            AnalysisStatus(state, review, actions)
+        CtTopBar(
+            title = "Game review",
+            onBack = actions.onBack,
+            trailing = { CtChip(text = "Summary", color = CtColors.Gold, onClick = onSummary) },
+        )
+        Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            CoachSays(settings.mascot) {
+                MoveCoachText(game, state, ply, move, review)
+                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    if (move != null && move.quality.isError && move.bestMove.isNotEmpty()) {
+                        CtChip(text = "Show best", color = CtColors.Lime, onClick = {
+                            goToPly(move.ply - 1)
+                            runCatching { Move.fromUci(move.bestMove) }.getOrNull()
+                                ?.takeIf { best -> session.state.value.legalMoves.any { it.uci == best.uci } }
+                                ?.let { actions.onFeedback(session.onMove(it)) }
+                        })
+                    }
+                    if (ply == null) {
+                        CtChip(text = "Back to the game", color = CtColors.Teal, onClick = {
+                            goToPly(backToGamePly(mainIds, view.tokens.map { (it as? NotationToken.MoveToken)?.nodeId }, view.currentId))
+                        })
+                    }
+                }
+            }
             BoardWithEvalBar(
                 evalBar = { barModifier -> BoardEvalBar(evalCp, evalMate, whiteAtBottom, barModifier) },
             ) { boardModifier ->
@@ -175,80 +387,141 @@ private fun ReviewContent(game: GameSummary, state: ReviewState, settings: AppSe
                     showCoordinates = settings.showCoordinates,
                     showLegalDots = settings.showLegalDots,
                     autoQueen = settings.autoQueen,
-                    arrows = listOfNotNull(bestArrow) + drawn[view.currentId].orEmpty(),
+                    arrows = drawn[view.currentId].orEmpty(),
                     onFeedback = actions.onFeedback,
                     drawMode = drawing,
-                    onDrawArrow = { from, to ->
-                        drawn[view.currentId] = toggleArrow(drawn[view.currentId].orEmpty(), BoardArrow(from, to, MarkKind.USER))
-                    },
+                    onDrawArrow = { from, to -> drawn[view.currentId] = toggleArrow(drawn[view.currentId].orEmpty(), BoardArrow(from, to, MarkKind.USER)) },
+                    lastMoveColor = tint?.copy(alpha = 0.55f)?.toArgb()?.toLong()?.and(0xFFFFFFFFL),
+                    badge = badge,
                 )
             }
-            MoveVerdict(ply, review, mainIds.size - 1)
-            AnalysisToolbar(
-                view = view,
-                drawing = drawing,
-                onStart = session::toStart,
-                onBack = session::back,
-                onForward = session::forward,
-                onEnd = session::toEnd,
-                onToggleDrawing = { drawing = !drawing },
-            )
-            if (review != null && review.graph.isNotEmpty()) {
-                EvalGraph(
-                    points = review.graph,
-                    totalPositions = mainIds.size,
-                    currentPly = ply,
-                    qualities = review.moves.associate { it.ply to it.quality },
-                    onSelect = ::goToPly,
-                )
+            MoveStrip(entries, review, current = ply, onSelect = ::goToPly)
+            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                CtButton(text = "", icon = Icons.AutoMirrored.Rounded.ArrowBack, style = CtButtonStyle.Secondary, enabled = view.canGoBack, onClick = session::back, modifier = Modifier.weight(1f).semantics { contentDescription = "Back one move" })
+                CtButton(text = "", icon = Icons.AutoMirrored.Rounded.ArrowForward, enabled = view.canGoForward, onClick = session::forward, modifier = Modifier.weight(2f).semantics { contentDescription = "Next move" })
             }
-            AnalysisMoveList(view = view, onSelect = session::goTo, marks = marks)
-            if (lines.isNotEmpty() || board.legalMoves.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                CtChip(text = "Flip", color = CtColors.Text2, icon = Icons.Rounded.SwapVert, onClick = { whiteAtBottom = !whiteAtBottom })
+                CtChip(text = "Engine lines", color = CtColors.Teal, selected = showLines, onClick = { showLines = !showLines })
+                CtChip(text = "Draw", color = CtColors.Lime, selected = drawing, onClick = { drawing = !drawing })
+            }
+            if (showLines) {
                 EngineLinesPanel(
                     position = board.position,
                     lines = lines,
                     engineName = if (cached != null) "Stockfish (saved)" else "Stockfish",
                     onPlayLine = { line ->
                         line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
-                            ?.takeIf { move -> board.legalMoves.any { it.uci == move.uci } }
+                            ?.takeIf { m -> board.legalMoves.any { it.uci == m.uci } }
                             ?.let { actions.onFeedback(session.onMove(it)) }
                     },
                 )
-            }
-            CtButton(text = "Flip board", icon = Icons.Rounded.SwapVert, style = CtButtonStyle.Secondary, onClick = { whiteAtBottom = !whiteAtBottom })
-
-            if (review != null && review.moves.isNotEmpty()) {
-                CtSectionHeader(title = "Summary")
-                SummaryCard(review, game.userColor)
-                val moments = review.keyMoments(game.userColor)
-                CtSectionHeader(title = "Key moments")
-                if (moments.isEmpty()) {
-                    Text(
-                        if (review.complete) "No mistakes or blunders from you in this game. Well played!" else "Your mistakes show here as the analysis finds them.",
-                        style = CtType.BodySmall,
-                    )
-                }
-                moments.forEach { moment ->
-                    KeyMoment(
-                        move = moment,
-                        added = moment.ply in practised,
-                        onShow = { goToPly(moment.ply) },
-                        onPractise = {
-                            practised += moment.ply
-                            actions.onPractise(moment)
-                        },
-                    )
-                }
-            }
-            CtSectionHeader(title = "Opening")
-            CtCard(modifier = Modifier.fillMaxWidth()) {
-                Text(game.openingName ?: "Not named", style = CtType.TitleSmall)
-                Text(bookLine(game), style = CtType.BodySmall)
             }
             Spacer(Modifier.height(CtSpacing.lg))
         }
     }
 }
+
+/** The game ply to return to from a side line: the last main-line node before it in the notation. */
+internal fun backToGamePly(mainIds: List<Int>, notationIds: List<Int?>, current: Int?): Int {
+    val upTo = notationIds.indexOf(current).takeIf { it >= 0 } ?: return 0
+    return notationIds.take(upTo + 1).filterNotNull().mapNotNull { id -> mainIds.indexOf(id).takeIf { it >= 0 } }.maxOrNull() ?: 0
+}
+
+@Composable
+private fun MoveCoachText(game: GameSummary, state: ReviewState, ply: Int?, move: ReviewedMove?, review: GameReview?) {
+    when {
+        ply == null -> {
+            Text("A side line", style = CtType.TitleSmall)
+            Text("Try any moves: the engine follows along. Go back to the game when you're done.", style = CtType.BodySmall.copy(color = CtColors.Text2))
+        }
+        ply == 0 -> {
+            Text("The starting position", style = CtType.TitleSmall)
+            Text("Step forward to hear about each move.", style = CtType.BodySmall.copy(color = CtColors.Text2))
+        }
+        move == null -> {
+            Text("Not analysed yet", style = CtType.TitleSmall)
+            Text("Run the analysis from the summary to see what each move was worth.", style = CtType.BodySmall.copy(color = CtColors.Text2))
+        }
+        else -> {
+            val positionAfter = remember(game.id, ply) {
+                GamePositions.after(game, ply)
+            }
+            val comment = ReviewCommentary.comment(move, state.evals[ply], positionAfter, game.openingName)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                QualityIcon(move.quality, size = 28)
+                Text(comment.headline, style = CtType.TitleSmall, modifier = Modifier.weight(1f))
+                Text(
+                    ReviewCommentary.evalLabel(state.evals[ply]),
+                    style = CtType.Label,
+                    modifier = Modifier.clip(CtShapes.Chip).background(CtColors.SurfaceHigh).padding(horizontal = CtSpacing.sm, vertical = CtSpacing.xxs),
+                )
+            }
+            Text(comment.detail, style = CtType.BodySmall.copy(color = CtColors.Text))
+        }
+    }
+}
+
+/** Positions of a saved game, replayed when a comment needs one. */
+internal object GamePositions {
+    fun after(game: GameSummary, ply: Int): Position? =
+        com.chesstutor.app.domain.account.GameReviewer.positions(game.startFen ?: Position.STARTING_FEN, game.moves).getOrNull(ply)
+}
+
+/** The game's moves in one scrolling row that keeps the current move in view (like the big sites). */
+@Composable
+private fun MoveStrip(entries: List<com.chesstutor.app.board.MoveListEntry>, review: GameReview?, current: Int?, onSelect: (Int) -> Unit) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(current) {
+        current?.takeIf { it > 0 }?.let { listState.animateScrollToItem((it - 2).coerceAtLeast(0)) }
+    }
+    LazyRow(
+        state = listState,
+        modifier = Modifier.fillMaxWidth().clip(CtShapes.CardSmall).background(CtColors.Surface),
+        contentPadding = PaddingValues(horizontal = CtSpacing.sm, vertical = CtSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xxs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        itemsIndexed(entries) { index, entry ->
+            val ply = index + 1
+            val quality = review?.move(ply)?.quality
+            val selected = ply == current
+            Row(
+                modifier = Modifier
+                    .clip(CtShapes.Chip)
+                    .background(if (selected) CtColors.Gold else CtColors.Surface)
+                    .ctPressable(onClickLabel = "Go to ${entry.san}") { onSelect(ply) }
+                    .padding(horizontal = CtSpacing.xs, vertical = CtSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                entry.numberLabel?.let { Text("$it ", style = CtType.Caption.copy(color = if (selected) CtColors.OnGold else CtColors.Text3)) }
+                Text(entry.san, style = CtType.Label.copy(color = if (selected) CtColors.OnGold else CtColors.Text))
+                quality?.symbol?.takeIf { it.isNotEmpty() }?.let {
+                    Text(it, style = CtType.Label.copy(color = if (selected) CtColors.OnGold else qualityColor(quality)))
+                }
+            }
+        }
+    }
+}
+
+/** The coach (mascot) with a speech bubble holding [content]. */
+@Composable
+private fun CoachSays(mascot: Mascot, content: @Composable () -> Unit) {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        CtMascotArt(mascot = mascot, height = 56.dp, modifier = Modifier.width(52.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clip(CtShapes.CardSmall)
+                .background(CtColors.SurfaceRaised)
+                .border(1.dp, CtColors.Line, CtShapes.CardSmall)
+                .padding(horizontal = CtSpacing.md, vertical = CtSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
+        ) { content() }
+    }
+}
+
+// ------------------------------------------------------------------ shared pieces
 
 @Composable
 private fun AnalysisStatus(state: ReviewState, review: GameReview?, actions: ReviewActions) {
@@ -291,113 +564,73 @@ private fun AnalysisStatus(state: ReviewState, review: GameReview?, actions: Rev
     }
 }
 
-/** What the move that led here was worth, or a hint at the start and in side lines. */
+/** A move quality's round icon, in its colour (book, star, thumbs up, "?!", "?", "??"). */
 @Composable
-private fun MoveVerdict(ply: Int?, review: GameReview?, lastPly: Int) {
-    val move = ply?.takeIf { it > 0 }?.let { review?.move(it) }
-    CtCard(modifier = Modifier.fillMaxWidth(), contentPadding = androidx.compose.foundation.layout.PaddingValues(CtSpacing.md)) {
-        when {
-            ply == null -> Text("A side line: the engine follows your moves. Tap a move of the game to go back.", style = CtType.BodySmall)
-            ply == 0 -> Text("The starting position. Step forward, or tap the graph to jump.", style = CtType.BodySmall)
-            move == null -> Text(if (ply <= lastPly) "This move is not analysed yet." else "The end of the game.", style = CtType.BodySmall)
-            else -> Row(verticalAlignment = Alignment.CenterVertically) {
-                QualityBadge(move.quality)
-                Spacer(Modifier.width(CtSpacing.md))
-                Column(Modifier.weight(1f)) {
-                    Text("${move.numberLabel} ${move.san}", style = CtType.TitleSmall)
-                    Text(verdictText(move), style = CtType.BodySmall)
-                }
-            }
+internal fun QualityIcon(quality: MoveQuality, size: Int = 24, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(size.dp)
+            .clip(CtShapes.Pill)
+            .background(qualityColor(quality))
+            .semantics { contentDescription = quality.label },
+        contentAlignment = Alignment.Center,
+    ) {
+        val tint = qualityTextColor(quality)
+        when (quality) {
+            MoveQuality.BOOK -> Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
+            MoveQuality.BEST -> Icon(Icons.Rounded.Star, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.65f).dp))
+            MoveQuality.GOOD -> Icon(Icons.Rounded.ThumbUp, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.55f).dp))
+            else -> Text(quality.symbol, style = CtType.Label.copy(color = tint))
         }
     }
 }
 
-internal fun verdictText(move: ReviewedMove): String {
-    val best = move.bestSan
-    val chances = "Winning chances ${percent(move.winBefore)} → ${percent(move.winAfter)}."
-    return when (move.quality) {
-        MoveQuality.BOOK -> "A known opening move."
-        MoveQuality.BEST -> "The best move."
-        MoveQuality.GOOD -> if (best != null) "A good move. $best was a little better." else "A good move."
-        else -> listOfNotNull(best?.let { "Best was $it." }, chances).joinToString(" ")
-    }
+private fun badgeText(quality: MoveQuality): String = when (quality) {
+    MoveQuality.BOOK -> "≡"
+    MoveQuality.BEST -> "★"
+    MoveQuality.GOOD -> "✓"
+    else -> quality.symbol
 }
 
-private fun percent(value: Double): String = "${value.roundToInt()}%"
-
-@Composable
-internal fun QualityBadge(quality: MoveQuality, modifier: Modifier = Modifier) {
-    val (bg, fg) = qualityColors(quality)
-    CtBadge(text = quality.label, color = bg, contentColor = fg, modifier = modifier)
+internal fun qualityColor(quality: MoveQuality): Color = when (quality) {
+    MoveQuality.BOOK -> CtColors.Violet
+    MoveQuality.BEST -> CtColors.Lime
+    MoveQuality.GOOD -> CtColors.Teal
+    MoveQuality.INACCURACY -> CtColors.Gold
+    MoveQuality.MISTAKE -> CtColors.GoldDeep
+    MoveQuality.BLUNDER -> CtColors.Coral
 }
 
-private fun qualityColors(quality: MoveQuality): Pair<Color, Color> = when (quality) {
-    MoveQuality.BOOK -> CtColors.SurfaceHigh to CtColors.Text
-    MoveQuality.BEST -> CtColors.Lime to CtColors.OnLime
-    MoveQuality.GOOD -> CtColors.Teal to CtColors.OnTeal
-    MoveQuality.INACCURACY -> CtColors.Gold to CtColors.OnGold
-    MoveQuality.MISTAKE, MoveQuality.BLUNDER -> CtColors.Coral to CtColors.OnCoral
+private fun qualityTextColor(quality: MoveQuality): Color = when (quality) {
+    MoveQuality.BEST -> CtColors.OnLime
+    MoveQuality.GOOD -> CtColors.OnTeal
+    MoveQuality.INACCURACY, MoveQuality.MISTAKE -> CtColors.OnGold
+    MoveQuality.BLUNDER -> CtColors.OnCoral
+    MoveQuality.BOOK -> CtColors.Text
 }
 
-private fun markOf(quality: MoveQuality): MoveMark = MoveMark(
-    symbol = quality.symbol,
-    color = when (quality) {
-        MoveQuality.BEST -> CtColors.Lime
-        MoveQuality.INACCURACY -> CtColors.Gold
-        MoveQuality.MISTAKE, MoveQuality.BLUNDER -> CtColors.Coral
-        else -> CtColors.Text2
-    },
-    spoken = quality.label,
-)
-
-@Composable
-private fun SummaryCard(review: GameReview, player: PieceColor) {
-    val mine = review.report(player)
-    val theirs = review.report(player.opposite())
-    CtCard(modifier = Modifier.fillMaxWidth()) {
-        SummaryRow("", "You", "Opponent", header = true)
-        SummaryRow("Accuracy", accuracyText(mine.accuracy), accuracyText(theirs.accuracy), header = true)
-        MoveQuality.entries.forEach { q ->
-            SummaryRow(q.label, "${mine.count(q)}", "${theirs.count(q)}")
-        }
-        if (!review.complete) {
-            Text("Counting so far: the analysis is not finished.", style = CtType.Caption)
-        }
-    }
-}
-
-@Composable
-private fun SummaryRow(label: String, mine: String, theirs: String, header: Boolean = false) {
-    val style = if (header) CtType.Label else CtType.BodySmall
-    Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.xxs)) {
-        Text(label, style = style, modifier = Modifier.weight(1.4f))
-        Text(mine, style = style, modifier = Modifier.weight(1f))
-        Text(theirs, style = style, modifier = Modifier.weight(1f))
-    }
-}
+private fun percent(value: Double?): String = value?.let { "${Math.round(it)}%" } ?: "–"
 
 internal fun accuracyText(accuracy: Double?): String =
     accuracy?.let { String.format(Locale.UK, "%.1f%%", it) } ?: "–"
 
 @Composable
 private fun KeyMoment(move: ReviewedMove, added: Boolean, onShow: () -> Unit, onPractise: () -> Unit) {
-    CtCard(onClick = onShow, onClickLabel = "Show this move", modifier = Modifier.fillMaxWidth()) {
+    CtCard(onClick = onShow, onClickLabel = "Show this move", contentPadding = PaddingValues(CtSpacing.md), modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            QualityBadge(move.quality)
+            QualityIcon(move.quality, size = 28)
             Spacer(Modifier.width(CtSpacing.md))
             Column(Modifier.weight(1f)) {
-                Text("${move.numberLabel} ${move.san}", style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(verdictText(move), style = CtType.BodySmall)
+                Text("${move.numberLabel} ${move.san}", style = CtType.Label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(move.bestSan?.let { "Best was $it" } ?: move.quality.label, style = CtType.Caption)
             }
+            CtChip(
+                text = if (added) "Added" else "Practise",
+                color = CtColors.Teal,
+                icon = Icons.Rounded.School,
+                selected = added,
+                onClick = { if (!added) onPractise() },
+            )
         }
-        Spacer(Modifier.height(CtSpacing.sm))
-        CtButton(
-            text = if (added) "Added to Mistakes review" else "Practise this mistake",
-            icon = Icons.Rounded.School,
-            style = CtButtonStyle.Secondary,
-            enabled = !added,
-            onClick = onPractise,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }

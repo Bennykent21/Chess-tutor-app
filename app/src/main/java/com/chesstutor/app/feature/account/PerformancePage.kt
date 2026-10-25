@@ -1,6 +1,9 @@
 package com.chesstutor.app.feature.account
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -204,15 +207,32 @@ private fun RatingSection(report: PerformanceReport) {
     }
 }
 
+/**
+ * A rating over time. Tap or drag along it to read the rating and date at any point (review
+ * of Phase 5: "I should be able to click and read my performance").
+ */
 @Composable
 internal fun RatingChart(points: List<RatingPoint>, color: Color) {
     val low = points.minOf { it.rating }
     val high = points.maxOf { it.rating }
     val span = (high - low).coerceAtLeast(1)
+    var selected by remember(points) { mutableStateOf<Int?>(null) }
+    fun indexAt(x: Float, width: Int): Int = if (points.size == 1) 0 else ((x / width) * (points.size - 1)).roundToInt().coerceIn(0, points.lastIndex)
+    val readout = selected?.let { points.getOrNull(it) }
+    Text(
+        text = readout?.let { "${it.rating} on ${formatDate(it.dateMillis)}" } ?: "Tap the line to read any point",
+        style = if (readout != null) CtType.Label.copy(color = color) else CtType.Caption,
+    )
     Canvas(
         Modifier
             .fillMaxWidth()
             .height(96.dp)
+            .pointerInput(points) {
+                detectTapGestures { offset -> selected = indexAt(offset.x, size.width) }
+            }
+            .pointerInput(points) {
+                detectHorizontalDragGestures { change, _ -> selected = indexAt(change.position.x.coerceIn(0f, size.width.toFloat()), size.width) }
+            }
             .semantics { contentDescription = "Rating from ${points.first().rating} to ${points.last().rating}" },
     ) {
         val w = size.width
@@ -224,6 +244,11 @@ internal fun RatingChart(points: List<RatingPoint>, color: Color) {
         }
         drawPath(path, color, style = Stroke(width = 2.dp.toPx()))
         drawCircle(color, radius = 4.dp.toPx(), center = Offset(x(points.lastIndex), y(points.last().rating)))
+        selected?.let { i ->
+            drawLine(CtColors.Text3, Offset(x(i), 0f), Offset(x(i), h), strokeWidth = 1.dp.toPx())
+            drawCircle(CtColors.Text, radius = 5.dp.toPx(), center = Offset(x(i), y(points[i].rating)))
+            drawCircle(color, radius = 3.dp.toPx(), center = Offset(x(i), y(points[i].rating)))
+        }
     }
 }
 
