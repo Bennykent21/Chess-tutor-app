@@ -27,6 +27,10 @@ import com.chesstutor.app.data.settings.SettingsStore
 import com.chesstutor.app.domain.account.GameAnalysisRepository
 import com.chesstutor.app.domain.puzzle.PuzzlePack
 import com.chesstutor.app.domain.puzzle.PuzzleRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.chesstutor.app.engine.EngineService
@@ -39,6 +43,9 @@ import com.chesstutor.app.engine.StockfishProcessEngineClient
 import java.io.File
 
 object AppContainer {
+    /** Work that lives as long as the app process (following settings). */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     @Volatile
     private var repositoryInstance: ReviewRepository? = null
 
@@ -211,6 +218,9 @@ object AppContainer {
         return engineClientInstance ?: synchronized(this) {
             val deterministicFallback = LocalFallbackEngineClient()
             val cloudFallback = OnlineStockfishEngineClient(fallback = deterministicFallback)
+            // Settings > Engine can turn the online engine off; follow it for the life of the process.
+            val settings = provideSettingsStore(context).settings
+            appScope.launch { settings.collect { cloudFallback.enabled = it.onlineEngine } }
             val nativeLibFile = File(context.applicationContext.applicationInfo.nativeLibraryDir, "libstockfish.so")
             val primaryClient = StockfishProcessEngineClient(
                 binaryPath = nativeLibFile.absolutePath,
