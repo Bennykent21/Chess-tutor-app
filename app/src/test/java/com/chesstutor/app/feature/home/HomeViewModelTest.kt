@@ -6,7 +6,17 @@ import com.chesstutor.app.core.Position
 import com.chesstutor.app.data.bot.InMemoryBotRepository
 import com.chesstutor.app.data.repository.InMemoryGameRepository
 import com.chesstutor.app.domain.MoveChoice
+import com.chesstutor.app.domain.account.ThemeScore
+import com.chesstutor.app.domain.account.TrainingReport
 import com.chesstutor.app.domain.bot.BotRoster
+import com.chesstutor.app.domain.game.NextStep
+import com.chesstutor.app.domain.learn.Course
+import com.chesstutor.app.domain.learn.Lesson
+import com.chesstutor.app.domain.learn.LessonCategory
+import com.chesstutor.app.domain.learn.LessonLevel
+import com.chesstutor.app.domain.learn.LessonLibrary
+import com.chesstutor.app.domain.learn.LessonProgress
+import com.chesstutor.app.domain.learn.LessonStep
 import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.SideChoice
 import com.chesstutor.app.domain.opening.BattleMode
@@ -195,5 +205,36 @@ class HomeViewModelTest {
 
         vm.presetBattle("Sicilian Defense", null)
         assertEquals("a course for both sides lets the side be random", SideChoice.RANDOM, vm.battle.value.side)
+    }
+
+    @Test
+    fun theContinueCardShowsTheNextLessonAndRecommendedFollowsTraining() {
+        val start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        fun lesson(id: String) = Lesson(id, "Lesson $id", "", listOf(LessonStep.Explain("x", start)))
+        val library = LessonLibrary(listOf(Course("italian", LessonCategory.OPENINGS, "Italian Game", "", LessonLevel.BEGINNER, 0, listOf(lesson("o1"), lesson("o2")))))
+        val forks = ThemeScore("fork", attempts = 6, clean = 1)
+        val report = TrainingReport(emptyList(), 6, 1, emptyList(), listOf(forks), 1, 2)
+        val vm = HomeViewModel(
+            FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(PuzzleStats()), store,
+            random = Random(1), clock = { test.testScheduler.currentTime },
+            learning = HomeLearning(
+                training = flowOf(report),
+                loadLessons = { library },
+                lessonProgress = flowOf(mapOf("o1" to LessonProgress("o1", completed = true))),
+            ),
+        )
+        test.backgroundScope.launch(dispatcher) { vm.home.collect {} }
+        test.runCurrent()
+
+        val next = vm.home.value.nextLesson!!
+        assertEquals("o2", next.lessonId)
+        assertEquals("Italian Game", next.courseTitle)
+        assertEquals(2, next.number)
+        assertEquals(2, next.total)
+        assertEquals(NextStep.Theme(forks), vm.home.value.nextStep)
+
+        vm.setDueMistakes(4)
+        test.runCurrent()
+        assertEquals(NextStep.Mistakes(4), vm.home.value.nextStep)
     }
 }

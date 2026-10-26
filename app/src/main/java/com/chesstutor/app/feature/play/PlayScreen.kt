@@ -37,6 +37,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Text
@@ -97,6 +98,8 @@ fun PlayScreen(
     onAnalyse: (startFen: String, moves: List<String>) -> Unit,
     onBack: () -> Unit,
     onChatLevel: (ChatLevel) -> Unit = {},
+    /** Opens the saved game's Stockfish review (Account). */
+    onReview: (gameId: String) -> Unit = {},
 ) {
     val state by game.state.collectAsState()
     val board by game.session.state.collectAsState()
@@ -225,6 +228,7 @@ fun PlayScreen(
                         settings = settings,
                         onRematch = onRematch,
                         onAnalyse = { onAnalyse(setup.startFen, board.moves.map { it.uci }) },
+                        onReview = state.savedGameId?.let { id -> { onReview(id) } },
                         onBack = onBack,
                     )
                 } else if (watch != null) {
@@ -407,6 +411,8 @@ private fun ResultCard(
     onRematch: () -> Unit,
     onAnalyse: () -> Unit,
     onBack: () -> Unit,
+    /** Null until the game is saved (and for watched games, which are not saved). */
+    onReview: (() -> Unit)? = null,
 ) {
     val result = state.result ?: return
     val bot = state.setup.bot
@@ -422,7 +428,7 @@ private fun ResultCard(
         result.winner == null -> "A fair fight. Want to go again?"
         state.playerWon && state.hintsUsed == 0 && state.takebacksUsed == 0 -> "Clean win, no help at all. Brilliant!"
         state.playerWon -> "Well played! Try it with fewer hints next time."
-        else -> "Every loss teaches something. Explore it to see where it turned."
+        else -> "Every loss teaches something. Review it to see where it turned."
     }
     CtCard(
         background = if (state.playerWon) CtGradients.Teal else CtGradients.Card,
@@ -437,9 +443,13 @@ private fun ResultCard(
         CtCoachBubble(mascot = settings.mascot, text = coach, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(CtSpacing.md))
         CtButton(text = "Rematch", icon = Icons.Rounded.Refresh, onClick = onRematch, modifier = Modifier.fillMaxWidth())
+        if (onReview != null) {
+            Spacer(Modifier.height(CtSpacing.sm))
+            CtButton(text = "Review this game", icon = Icons.Rounded.Insights, style = CtButtonStyle.Secondary, onClick = onReview, modifier = Modifier.fillMaxWidth())
+        }
         Spacer(Modifier.height(CtSpacing.sm))
         Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            // "Explore" opens the analysis board; full game review comes in Phase 5.
+            // "Explore" opens the analysis board; "Review this game" the Stockfish review.
             CtButton(text = "Explore", icon = Icons.Rounded.Search, style = CtButtonStyle.Secondary, onClick = onAnalyse, modifier = Modifier.weight(1f))
             CtButton(text = "Other bots", style = CtButtonStyle.Secondary, onClick = onBack, modifier = Modifier.weight(1f))
         }

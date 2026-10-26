@@ -71,6 +71,8 @@ data class BotGameState(
     val canTakeBack: Boolean = false,
     val sound: GameSoundEvent? = null,
     val saved: Boolean = false,
+    /** The saved game's id in the games list, once saved (for "Review this game"). */
+    val savedGameId: String? = null,
     /** Opening Battle: the line or family being played, mistakes in a drill and the last drill note. */
     val battleTitle: String? = null,
     val drillMistakes: Int = 0,
@@ -410,8 +412,9 @@ class BotGame(
         // Drills are practice and watched games are not the player's: neither goes in the games list.
         if (isDrill || setup.watch != null) return
         scope.launch {
-            runCatching { games.saveGame(record(result)) }
-            mutableState.update { it.copy(saved = true) }
+            val record = record(result)
+            val ok = runCatching { games.saveGame(record) }.isSuccess
+            mutableState.update { it.copy(saved = true, savedGameId = record.id.takeIf { ok }) }
         }
     }
 

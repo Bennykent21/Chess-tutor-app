@@ -20,9 +20,11 @@ object AppRoutes {
     const val GAME_ID_ARG = "gameId"
     const val GAME_PATTERN = "account/game/{$GAME_ID_ARG}"
     fun game(id: String): String = "account/game/${encode(id)}"
-    /** A game's review on the board, full screen (no bottom bar). */
-    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}"
-    fun review(id: String): String = "account/review/${encode(id)}"
+    /** A game's review on the board, full screen (no bottom bar); [analyse] starts Stockfish on arrival. */
+    const val ANALYSE_ARG = "analyse"
+    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}?$ANALYSE_ARG={$ANALYSE_ARG}"
+    fun review(id: String, analyse: Boolean = false): String =
+        "account/review/${encode(id)}" + if (analyse) "?$ANALYSE_ARG=true" else ""
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
@@ -37,6 +39,10 @@ object AppRoutes {
     fun parseThemes(value: String?): List<String> = value.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
     /** The lesson player, full screen inside the Learn tab (the lesson is chosen before opening it). */
     const val LESSON = "learn/lesson"
+    /** Opens one lesson from another tab (Home's Continue card), then shows the player. */
+    const val LESSON_ID_ARG = "lessonId"
+    const val LESSON_OPEN_PATTERN = "learn/open/{$LESSON_ID_ARG}"
+    fun openLesson(id: String): String = "learn/open/${encode(id)}"
     /** A Learn category page (courses with search and filters); the argument is a `LessonCategory.key`. */
     const val CATEGORY_ARG = "category"
     const val LEARN_CATEGORY_PATTERN = "learn/category/{$CATEGORY_ARG}"
