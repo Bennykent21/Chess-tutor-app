@@ -65,6 +65,16 @@ class RatingImportResilienceTest {
     }
 
     @Test
+    fun theAutomaticSyncSkipsArchiveMonthsThatEndedBeforeTheNewestGame() {
+        val client = RatingApiClient()
+        val october = client.archiveMonthEnd("https://api.chess.com/pub/player/kenny/games/2026/10")!!
+        assertEquals(java.time.Instant.parse("2026-11-01T00:00:00Z").toEpochMilli(), october)
+        assertEquals("December rolls into the next year", java.time.Instant.parse("2027-01-01T00:00:00Z").toEpochMilli(), client.archiveMonthEnd("https://x/games/2026/12/"))
+        assertEquals(null, client.archiveMonthEnd("https://x/games/latest"))
+        assertEquals("a resumed import skips months that start after its oldest game", java.time.Instant.parse("2026-10-01T00:00:00Z").toEpochMilli(), client.archiveMonthStart("https://x/games/2026/10"))
+    }
+
+    @Test
     fun fetchStatsRejectsBlankUsernamesGracefully() = runBlocking {
         val client = RatingApiClient()
         val chessComResult = client.fetchChessComStats("   ")

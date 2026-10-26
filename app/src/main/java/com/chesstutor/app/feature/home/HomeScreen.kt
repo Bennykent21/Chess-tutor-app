@@ -21,6 +21,8 @@ import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Tune
@@ -48,7 +50,11 @@ import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctEnter
+import com.chesstutor.app.design.CtListRow
+import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.RosterBot
+import com.chesstutor.app.navigation.StartingLevel
+import com.chesstutor.app.navigation.needsWelcome
 import com.chesstutor.app.viewmodel.AppUiState
 
 /** What Home can open. */
@@ -63,6 +69,8 @@ data class HomeActions(
     val onContinueLearning: () -> Unit,
     val onDailyPuzzle: () -> Unit,
     val onOpenEngineHealth: () -> Unit,
+    /** The welcome card's answer (D30: it replaced onboarding). */
+    val onStartingLevel: (StartingLevel) -> Unit = {},
 )
 
 /** Home: the play hub (plan section 6.1). No board on screen. */
@@ -99,6 +107,9 @@ fun HomeScreen(
                 CtChip(text = "${state.effectiveUserRating}", color = CtColors.Gold, icon = Icons.Rounded.EmojiEvents)
             }
 
+            if (needsWelcome(state.assessmentState)) {
+                WelcomeCard(state.appSettings.mascot, actions.onStartingLevel, gutter.fillMaxWidth().ctEnter(1))
+            }
             ContinueCard(state, home, actions, gutter.fillMaxWidth().ctEnter(1))
 
             Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(2)) {
@@ -257,6 +268,39 @@ private fun ContinueCard(state: AppUiState, home: HomeUiState, actions: HomeActi
             }
             if (resume != null) BotAvatar(resume.bot.profile.face, resume.bot.rating, size = 40.dp)
             else CtIconBubble(icon = Icons.Rounded.Lightbulb, tint = CtColors.Teal, size = 40.dp)
+        }
+    }
+}
+
+/**
+ * The first-run welcome (D30, instead of onboarding): one question, three answers. New
+ * players go to Learn's basics; online players go to Account to link their account.
+ */
+@Composable
+private fun WelcomeCard(mascot: Mascot, onChoose: (StartingLevel) -> Unit, modifier: Modifier) {
+    CtCard(background = CtGradients.Violet, modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CtMascotArt(mascot = mascot, height = 52.dp, modifier = Modifier.width(48.dp))
+            Spacer(Modifier.width(CtSpacing.md))
+            Column(Modifier.weight(1f)) {
+                Text("Welcome!", style = CtType.Title)
+                Text("Where should we start?", style = CtType.BodySmall)
+            }
+        }
+        Spacer(Modifier.height(CtSpacing.sm))
+        Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            StartingLevel.entries.forEach { level ->
+                CtListRow(
+                    title = level.label,
+                    subtitle = level.detail,
+                    icon = when (level) {
+                        StartingLevel.NEW -> Icons.Rounded.School
+                        StartingLevel.RULES -> Icons.Rounded.SportsEsports
+                        StartingLevel.PLAYER -> Icons.Rounded.Link
+                    },
+                    onClick = { onChoose(level) },
+                )
+            }
         }
     }
 }

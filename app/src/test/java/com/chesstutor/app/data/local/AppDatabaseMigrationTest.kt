@@ -20,9 +20,11 @@ class AppDatabaseMigrationTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun allMigrationsArrayContainsAllVersionsFrom1To10() {
+    fun allMigrationsArrayContainsAllVersionsFrom1To11() {
         val migrations = AppDatabase.ALL_MIGRATIONS
-        assertEquals(9, migrations.size)
+        assertEquals(10, migrations.size)
+        assertEquals(10, migrations[9].startVersion)
+        assertEquals(11, migrations[9].endVersion)
         assertEquals(9, migrations[8].startVersion)
         assertEquals(10, migrations[8].endVersion)
         assertEquals(8, migrations[7].startVersion)
@@ -179,7 +181,7 @@ class AppDatabaseMigrationTest {
             .allowMainThreadQueries()
             .build()
         val db = room.openHelper.writableDatabase
-        assertEquals(10, db.version)
+        assertEquals(11, db.version)
         db.query("SELECT id FROM review_items").use { assertTrue(it.moveToFirst()); assertEquals("kept", it.getString(0)) }
         listOf("puzzle_attempt", "xp_event", "puzzle_profile", "puzzle_level_progress", "report_issue").forEach { table ->
             db.query("SELECT COUNT(*) FROM $table").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
@@ -223,7 +225,7 @@ class AppDatabaseMigrationTest {
             .allowMainThreadQueries()
             .build()
         val db = room.openHelper.writableDatabase
-        assertEquals(10, db.version)
+        assertEquals(11, db.version)
         db.query("SELECT id FROM review_items").use { assertTrue(it.moveToFirst()); assertEquals("kept", it.getString(0)) }
         db.query("SELECT amount FROM xp_event").use { assertTrue(it.moveToFirst()); assertEquals(10, it.getInt(0)) }
         db.query("SELECT COUNT(*) FROM bot_profile").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
@@ -268,10 +270,57 @@ class AppDatabaseMigrationTest {
             .allowMainThreadQueries()
             .build()
         val db = room.openHelper.writableDatabase
-        assertEquals(10, db.version)
+        assertEquals(11, db.version)
         db.query("SELECT amount FROM xp_event").use { assertTrue(it.moveToFirst()); assertEquals(10, it.getInt(0)) }
         db.query("SELECT name FROM bot_profile").use { assertTrue(it.moveToFirst()); assertEquals("Rowan", it.getString(0)) }
         db.query("SELECT COUNT(*) FROM lesson_progress").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    /**
+     * Builds a real version-10 database with a saved game and lesson progress, then lets Room
+     * open it at version 11: MIGRATION_10_11 must create analysis_result and game_analysis
+     * exactly as the entities describe.
+     */
+    @Test
+    fun migration10To11AddsGameAnalysisAndKeepsData() {
+        val name = "migration-10-11-test.db"
+        context.deleteDatabase(name)
+        val config = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(object : SupportSQLiteOpenHelper.Callback(10) {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS review_items (" +
+                            "id TEXT NOT NULL, fen TEXT NOT NULL, dueAt INTEGER NOT NULL, " +
+                            "stage INTEGER NOT NULL DEFAULT -1, attempts INTEGER NOT NULL DEFAULT 0, " +
+                            "mistakeUci TEXT NOT NULL DEFAULT '', bestMoveUci TEXT NOT NULL DEFAULT '', " +
+                            "explanation TEXT NOT NULL DEFAULT '', PRIMARY KEY(id))"
+                    )
+                    AppDatabase.ALL_MIGRATIONS.filter { it.endVersion <= 10 }.forEach { it.migrate(db) }
+                    db.execSQL(
+                        "INSERT INTO game_records (id, dateMillis, botName, botRating, result, pgn, moveCount, userColor, finalFen, uciMoves) " +
+                            "VALUES ('bot_1', 5, 'Pip', 800, '1-0', '', 2, 'white', '', 'e2e4 e7e5')"
+                    )
+                    db.execSQL("INSERT INTO lesson_progress VALUES ('basics-check', 2, 6, 0, 1, 0, 3, 0, 0, NULL, 9)")
+                }
+
+                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(config).also { it.writableDatabase.close() }
+
+        val room = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        val db = room.openHelper.writableDatabase
+        assertEquals(11, db.version)
+        db.query("SELECT botName FROM game_records").use { assertTrue(it.moveToFirst()); assertEquals("Pip", it.getString(0)) }
+        db.query("SELECT stepIndex FROM lesson_progress").use { assertTrue(it.moveToFirst()); assertEquals(2, it.getInt(0)) }
+        db.query("SELECT COUNT(*) FROM analysis_result").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
+        db.query("SELECT COUNT(*) FROM game_analysis").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
         room.close()
         context.deleteDatabase(name)
     }
@@ -289,6 +338,7 @@ class AppDatabaseMigrationTest {
         assertNotNull(db.puzzleDao())
         assertNotNull(db.botProfileDao())
         assertNotNull(db.lessonProgressDao())
+        assertNotNull(db.analysisDao())
 
         db.close()
     }
