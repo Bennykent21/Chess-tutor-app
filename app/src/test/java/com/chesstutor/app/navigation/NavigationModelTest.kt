@@ -38,6 +38,7 @@ class NavigationModelTest {
         assertEquals(TopTab.LEARN, AppRoutes.tabFor(AppRoutes.COURSE_PATTERN))
         assertEquals("learn/category/tactics", AppRoutes.learnCategory("tactics"))
         assertEquals("learn/course/italian", AppRoutes.course("italian"))
+        assertEquals("learn/open/italian-1", AppRoutes.openLesson("italian-1"))
     }
 
     @Test
@@ -47,6 +48,7 @@ class NavigationModelTest {
         assertTrue(AppRoutes.showsBottomBar(AppRoutes.GAME_PATTERN))
         assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.GAME_PATTERN))
         assertEquals("account/review/lichess_x", AppRoutes.review("lichess_x"))
+        assertEquals("account/review/bot_x?analyse=true", AppRoutes.review("bot_x", analyse = true))
         assertFalse("the review is a board activity", AppRoutes.showsBottomBar(AppRoutes.REVIEW_PATTERN))
         assertTrue(AppRoutes.showsBottomBar(AppRoutes.SETTINGS))
         assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.SETTINGS))

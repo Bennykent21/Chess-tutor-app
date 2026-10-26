@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Instant
 
 /** Where the Training page's numbers come from. */
@@ -58,7 +59,21 @@ class TrainingSources(
     val loadPack: suspend () -> PuzzlePack = { PuzzlePack.EMPTY },
     val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
     val loadLessonCount: suspend () -> Int = { 0 },
-)
+) {
+    /** The Training report, recomputed when puzzles or lessons change (Training page and Home). */
+    fun reports(): Flow<TrainingReport> = combine(
+        puzzleHistory,
+        lessonProgress,
+        flow { emit(runCatching { loadPack() }.getOrDefault(PuzzlePack.EMPTY)) },
+        flow { emit(runCatching { loadLessonCount() }.getOrDefault(0)) },
+    ) { history, lessons, pack, lessonTotal ->
+        TrainingCalculator.report(history, { id -> pack.get(id)?.themes }, lessons.values.count { it.completed }, lessonTotal)
+    }
+
+    companion object {
+        val EMPTY_REPORT: TrainingReport = TrainingCalculator.report(emptyList(), { null }, 0, 0)
+    }
+}
 
 /** The player's saved games, newest first, with openings named (plan section 6.4). */
 data class GamesState(
@@ -141,14 +156,8 @@ class AccountViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReviewState())
 
     /** The Training page: puzzle rating history, theme strengths and lessons done (plan 6.4). */
-    val training: StateFlow<TrainingReport> = combine(
-        trainingSources.puzzleHistory,
-        trainingSources.lessonProgress,
-        flow { emit(runCatching { trainingSources.loadPack() }.getOrDefault(PuzzlePack.EMPTY)) },
-        flow { emit(runCatching { trainingSources.loadLessonCount() }.getOrDefault(0)) },
-    ) { history, lessons, pack, lessonTotal ->
-        TrainingCalculator.report(history, { id -> pack.get(id)?.themes }, lessons.values.count { it.completed }, lessonTotal)
-    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrainingCalculator.report(emptyList(), { null }, 0, 0))
+    val training: StateFlow<TrainingReport> = trainingSources.reports()
+        .flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrainingSources.EMPTY_REPORT)
 
     /** Reviews of every analysed game, kept until the game is analysed again. */
     private val reviewCache = HashMap<String, Pair<Long, GameReview>>()
@@ -186,7 +195,9 @@ class AccountViewModel(
         running[gameId] = viewModelScope.launch {
             try {
                 engineLock.withLock {
-                    val game = games.first { !it.loading }.game(gameId) ?: return@withLock
+                    // A game saved a moment ago (a bot game's "Review this game") may not be listed yet.
+                    val game = withTimeoutOrNull(GAME_WAIT_MS) { games.first { !it.loading && it.game(gameId) != null } }
+                        ?.game(gameId) ?: return@withLock
                     if (again) analysis.delete(gameId)
                     GameAnalyzer(engine, analysis, clock = clock).analyse(game) { done, total ->
                         mutableJobs.update { it + (gameId to AnalysisJob(done, total, waiting = false)) }
@@ -248,6 +259,11 @@ class AccountViewModel(
         cache.clear()
         fresh.associateByTo(cache) { it.id }
         fresh.sortedByDescending { it.dateMillis }
+    }
+
+    companion object {
+        /** How long an analysis waits for a just-saved game to appear in the list. */
+        const val GAME_WAIT_MS = 10_000L
     }
 
     class Factory(

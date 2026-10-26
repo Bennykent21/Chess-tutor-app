@@ -16,6 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.LocalFireDepartment
@@ -53,6 +55,7 @@ import com.chesstutor.app.design.ctEnter
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.RosterBot
+import com.chesstutor.app.domain.game.NextStep
 import com.chesstutor.app.navigation.StartingLevel
 import com.chesstutor.app.navigation.needsWelcome
 import com.chesstutor.app.viewmodel.AppUiState
@@ -71,6 +74,12 @@ data class HomeActions(
     val onOpenEngineHealth: () -> Unit,
     /** The welcome card's answer (D30: it replaced onboarding). */
     val onStartingLevel: (StartingLevel) -> Unit = {},
+    /** Opens one lesson in Learn's player (the Continue card). */
+    val onOpenLesson: (String) -> Unit = {},
+    /** Puzzles > Mistakes review (the Recommended card). */
+    val onReviewMistakes: () -> Unit = {},
+    /** Puzzles with one theme (the Recommended card). */
+    val onPractiseTheme: (String) -> Unit = {},
 )
 
 /** Home: the play hub (plan section 6.1). No board on screen. */
@@ -124,18 +133,7 @@ fun HomeScreen(
                     Text("Daily challenge", style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(if (home.dailySolved) "Solved today. Well done!" else "Today's puzzle is waiting", style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 2)
                 }
-                home.recommendation?.let { rec ->
-                    CtCard(
-                        onClick = { actions.onOpenBot(rec.bot.id) },
-                        onClickLabel = "Open ${rec.bot.name}",
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        BotAvatar(rec.bot.profile.face, rec.bot.rating, size = 36.dp)
-                        Spacer(Modifier.height(CtSpacing.sm))
-                        Text("Recommended", style = CtType.TitleSmall, maxLines = 1)
-                        Text(rec.reason, style = CtType.Caption, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                    }
-                }
+                home.nextStep?.let { step -> RecommendedCard(step, actions, Modifier.weight(1f)) }
             }
 
             if (state.engineStatus.isDegraded) {
@@ -224,6 +222,31 @@ fun HomeScreen(
     }
 }
 
+/** The "Recommended" card: mistakes to fix, a weak theme to practise, or a bot to play. */
+@Composable
+private fun RecommendedCard(step: NextStep, actions: HomeActions, modifier: Modifier) {
+    val onClick: () -> Unit = when (step) {
+        is NextStep.Mistakes -> actions.onReviewMistakes
+        is NextStep.Theme -> { -> actions.onPractiseTheme(step.score.theme) }
+        is NextStep.Bot -> { -> actions.onOpenBot(step.recommendation.bot.id) }
+    }
+    val label = when (step) {
+        is NextStep.Mistakes -> "Review your mistakes"
+        is NextStep.Theme -> "Practise ${step.score.name} puzzles"
+        is NextStep.Bot -> "Open ${step.recommendation.bot.name}"
+    }
+    CtCard(onClick = onClick, onClickLabel = label, modifier = modifier) {
+        when (step) {
+            is NextStep.Bot -> BotAvatar(step.recommendation.bot.profile.face, step.recommendation.bot.rating, size = 36.dp)
+            is NextStep.Mistakes -> CtIconBubble(icon = Icons.Rounded.Replay, tint = CtColors.Coral, size = 36.dp)
+            is NextStep.Theme -> CtIconBubble(icon = Icons.Rounded.Extension, tint = CtColors.Teal, size = 36.dp)
+        }
+        Spacer(Modifier.height(CtSpacing.sm))
+        Text("Recommended", style = CtType.TitleSmall, maxLines = 1)
+        Text(step.reason, style = CtType.Caption, maxLines = 3, overflow = TextOverflow.Ellipsis)
+    }
+}
+
 /** The coach's line: a nudge to resume, then the recommendation. */
 internal fun coachLine(home: HomeUiState): String = when {
     home.resume != null -> "Your game against ${home.resume.bot.name} is waiting. Shall we finish it?"
@@ -242,7 +265,11 @@ private fun ContinueCard(state: AppUiState, home: HomeUiState, actions: HomeActi
     val mascot = state.appSettings.mascot
     CtCard(
         background = CtGradients.Teal,
-        onClick = if (resume != null) actions.onResume else actions.onContinueLearning,
+        onClick = when {
+            resume != null -> actions.onResume
+            home.nextLesson != null -> { -> actions.onOpenLesson(home.nextLesson.lessonId) }
+            else -> actions.onContinueLearning
+        },
         onClickLabel = if (resume != null) "Resume your game" else "Continue learning",
         contentPadding = PaddingValues(horizontal = CtSpacing.md, vertical = CtSpacing.md),
         modifier = modifier,
@@ -257,17 +284,23 @@ private fun ContinueCard(state: AppUiState, home: HomeUiState, actions: HomeActi
                     val side = if (resume.playerColor == PieceColor.WHITE) "White" else "Black"
                     Text(text = "Move ${resume.moveCount / 2 + 1} · you play $side", style = CtType.Caption.copy(color = CtColors.Text2))
                 } else {
+                    val lesson = home.nextLesson
                     Text(
-                        text = coachLine(home),
+                        text = lesson?.let { (if (it.started) "Pick up where you left off: " else "Next up: ") + it.lessonTitle } ?: coachLine(home),
                         style = CtType.Body.copy(color = CtColors.Text),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(text = "Continue learning", style = CtType.Caption.copy(color = CtColors.Text2))
+                    Text(
+                        text = lesson?.let { "${it.courseTitle} · lesson ${it.number} of ${it.total}" } ?: "Continue learning",
+                        style = CtType.Caption.copy(color = CtColors.Text2),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             if (resume != null) BotAvatar(resume.bot.profile.face, resume.bot.rating, size = 40.dp)
-            else CtIconBubble(icon = Icons.Rounded.Lightbulb, tint = CtColors.Teal, size = 40.dp)
+            else CtIconBubble(icon = if (home.nextLesson != null) Icons.Rounded.School else Icons.Rounded.Lightbulb, tint = CtColors.Teal, size = 40.dp)
         }
     }
 }
