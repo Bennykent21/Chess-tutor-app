@@ -1,6 +1,8 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.runtime.getValue
@@ -11,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chesstutor.app.data.model.GameRecord
@@ -164,27 +167,69 @@ class AccountScreenTest {
     }
 
     @Test
-    fun settingsPageHoldsCoachBoardAccountEngineAndAbout() {
+    fun settingsPageHoldsCoachBoardAccountEngineDataAndAbout() {
         var boardOpened = false
         var chat: com.chesstutor.app.domain.bot.ChatLevel? = null
+        var depth: com.chesstutor.app.data.settings.ReviewDepth? = null
+        var online: Boolean? = null
+        var licences = false
+        var crashCleared = false
+        var erased = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 SettingsScreen(
                     state = AppUiState(),
                     accountActions = AccountActions(),
-                    actions = SettingsActions(onOpenBoardSettings = { boardOpened = true }, onChatLevel = { chat = it }, supportUrl = ""),
+                    actions = SettingsActions(
+                        onOpenBoardSettings = { boardOpened = true },
+                        onChatLevel = { chat = it },
+                        onReviewDepth = { depth = it },
+                        onOnlineEngine = { online = it },
+                        onOpenLicences = { licences = true },
+                        crashLog = { if (crashCleared) "" else "=== Crash 2026-10-26 10:00:00 UTC ===\nboom\n" },
+                        clearCrashLog = { crashCleared = true },
+                        eraseEverything = { erased = true },
+                        supportUrl = "",
+                    ),
                 )
             }
         }
         compose.onNodeWithText("No account linked. Link Chess.com or Lichess on the Account page to bring in your games.").assertExists()
         compose.onNodeWithText("Support the developer").assertDoesNotExist()
         compose.onNodeWithText("Export as PGN").assertExists()
-        compose.onNodeWithText("Stockfish 19 chess engine").assertExists()
+        compose.onNodeWithText("Board lab").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_settings.png")
         compose.onNodeWithText("Board, pieces and sound").performClick()
         assertTrue(boardOpened)
         compose.onNodeWithText("Lots").performClick()
         assertEquals(com.chesstutor.app.domain.bot.ChatLevel.LOTS, chat)
+        compose.onNodeWithText("Deep").performScrollTo().performClick()
+        assertEquals(com.chesstutor.app.data.settings.ReviewDepth.DEEP, depth)
+        compose.onNodeWithText("Online engine as a backup").performScrollTo().performClick()
+        assertEquals(false, online)
+        compose.onNodeWithText("The app crashed 1 time recently.", substring = true).performScrollTo().assertExists()
+        compose.onNodeWithText("When you report that another move works in a puzzle, it is kept here to share.").assertExists()
+        compose.onNodeWithText("Clear").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertTrue(crashCleared)
+        compose.onNodeWithText("No crashes recorded on this phone.").assertExists()
+        compose.onNodeWithText("Open-source licences").performScrollTo().performClick()
+        assertTrue(licences)
+        compose.onNodeWithText("Erase all my data").performScrollTo().performClick()
+        compose.onNodeWithText("Erase everything?").assertExists()
+        compose.onNodeWithText("Erase").performClick()
+        compose.waitForIdle()
+        assertTrue(erased)
+    }
+
+    @Test
+    fun theLicencesPageCreditsEveryPartAndOpensLicenceTexts() {
+        compose.setContent { CtTheme(reduceMotion = true) { LicencesScreen(onBack = {}) } }
+        compose.onNodeWithText("Stockfish 19 chess engine and its network").assertExists()
+        compose.onNodeWithText("Kenney (kenney.nl)").performScrollTo().assertExists()
+        compose.onNode(hasText("GNU General Public License v3.0") and hasClickAction()).performScrollTo().performClick()
+        // The text is read from the app's assets off the main thread.
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("TERMS AND CONDITIONS", substring = true).fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test

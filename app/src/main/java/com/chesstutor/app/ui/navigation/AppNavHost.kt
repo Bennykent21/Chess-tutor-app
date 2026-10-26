@@ -65,6 +65,12 @@ import com.chesstutor.app.feature.home.WatchSetupScreen
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.feature.home.BotSetupScreen
 import com.chesstutor.app.feature.home.ExploreSetupScreen
+import com.chesstutor.app.feature.account.LicencesScreen
+import com.chesstutor.app.data.diagnostics.CrashLog
+import com.chesstutor.app.data.diagnostics.DataReset
+import com.chesstutor.app.data.local.AppDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.chesstutor.app.feature.home.HomeActions
 import com.chesstutor.app.feature.home.HomeLearning
 import com.chesstutor.app.feature.home.HomeScreen
@@ -621,11 +627,24 @@ fun AppNavHost(
                                 onChatLevel = viewModel::setChatLevel,
                                 onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
                                 onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
-                                onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
-                                onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
+                                onOpenLicences = { navController.navigate(AppRoutes.LICENCES) },
+                                onReviewDepth = viewModel::setReviewDepth,
+                                onOnlineEngine = viewModel::setOnlineEngine,
                                 exportPgn = {
                                     AppContainer.provideGameRepository(context).getRecentGames(Int.MAX_VALUE)
                                         .joinToString("\n\n") { PgnFormatter.reconstructPgnFromGameRecord(it).trim() }
+                                },
+                                crashLog = { withContext(Dispatchers.IO) { CrashLog.of(context).read() } },
+                                clearCrashLog = { withContext(Dispatchers.IO) { CrashLog.of(context).clear() } },
+                                puzzleReports = {
+                                    AppContainer.providePuzzleRepository(context).savedReports().joinToString("\n") { r ->
+                                        "${r.puzzleId}\t${r.moveUci}\t${r.fen}\t${r.note}"
+                                    }
+                                },
+                                clearPuzzleReports = { AppContainer.providePuzzleRepository(context).clearReports() },
+                                eraseEverything = {
+                                    DataReset.eraseEverything(context, AppDatabase.getInstance(context), AppContainer.provideSettingsStore(context))
+                                    DataReset.restart(context)
                                 },
                                 onBack = { navController.popBackStack() }
                             )
@@ -701,6 +720,9 @@ fun AppNavHost(
                             onRunCheck = viewModel::runEngineSelfTest,
                             onBack = { navController.popBackStack() }
                         )
+                    }
+                    composable(AppRoutes.LICENCES) {
+                        LicencesScreen(onBack = { navController.popBackStack() })
                     }
                     composable(AppRoutes.DESIGN_GALLERY) {
                         DesignGalleryScreen(onBack = { navController.popBackStack() })

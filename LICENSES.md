@@ -12,7 +12,6 @@ known before release (plan.md, section 9). Add a row whenever an asset is added.
 | Inter (Regular) | `app/src/main/res/font/inter.ttf` | Inter 4.001 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
 | JetBrains Mono | `app/src/main/res/font/jetbrains_mono.ttf` | JetBrains Mono 2.211 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
 | Puzzle pack v2 (13,485 puzzles, with accepted alternative moves) | `app/src/main/assets/puzzles.tsv.gz` | Lichess open puzzle database (download of 2 Oct 2026), selected and checked by `tools/build_puzzle_pack.py`; the alternatives were found with Stockfish 19 on the developer's PC at build time (the engine is not part of this file) | CC0 1.0 (public domain dedication) |
-| Opening names and lines | `app/src/main/java/com/chesstutor/app/domain/OpeningBook.kt` | Based on `lichess-org/chess-openings` | CC0 1.0 |
 | Opening database (3,865 named lines with ECO codes) | `app/src/main/assets/openings.tsv.gz` | `lichess-org/chess-openings` (a.tsv to e.tsv, download of 22 Oct 2026), moves converted from SAN to UCI by `tools/build_openings.py` with python-chess (GPL-3.0, used only at build time, not part of this file) | CC0 1.0 (public domain dedication) |
 | Maia networks 1100 to 1900 (human-like move prediction, policy part only) | `app/src/main/assets/maia/maia-1100.bin` to `maia-1900.bin` | CSSLab/maia-chess (`maia_weights/maia-XXXX.pb.gz`, download of 23 Oct 2026), converted by `tools/maia_net.py` (batch norm folded in, 16-bit values); checked against lc0 v0.32.1 | GPL-3.0 (maia-chess repository) |
 | Maia policy move table | `app/src/main/assets/maia/maia_moves.tsv` | Built by `tools/maia_net.py` from lc0's 1858-move policy list (`lczero-training/tf/policy_index.py`) and convolution policy map (`lc0/src/neural/tables/policy_map.h`) | GPL-3.0 (LeelaChessZero) |
@@ -42,7 +41,15 @@ Sound effects (`app/src/main/res/raw/sfx_*.ogg`), played by `audio/ChessSoundMan
 | `sfx_wrong.ogg` | `error_008.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
 | `sfx_tap.ogg` | `click_002.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
 
-The files are unchanged copies. CC0 needs no credit; Kenney asks for an optional one, so the
-in-app licences page (Phase 6) should name kenney.nl.
+The files are unchanged copies. CC0 needs no credit; Kenney asks for an optional one, which the
+in-app licences page gives (kenney.nl).
+
+**In the app:** Settings > About > Open-source licences lists every part above with its author
+and licence (`feature/account/LicencesScreen.kt`, `CREDITS`), and shows the full licence texts
+bundled in `app/src/main/assets/licenses/`: `GPL-3.0.txt` (the official text from gnu.org, also
+the repository's `LICENSE`), `Apache-2.0.txt`, `MIT-fantasy-pieces.txt` and `OFL-1.1.txt`
+(copies of `licenses/`). Libraries compiled into the app: AndroidX and Jetpack Compose (Apache
+2.0), Kotlin and kotlinx.coroutines (Apache 2.0), OkHttp and Moshi (Apache 2.0),
+desugar_jdk_libs (GPL v2 with the Classpath Exception).
 
 This is a record, not legal advice.

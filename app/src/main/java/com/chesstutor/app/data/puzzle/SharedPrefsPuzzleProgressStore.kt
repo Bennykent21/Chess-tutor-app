@@ -31,6 +31,9 @@ class SharedPrefsPuzzleProgressStore(context: Context) : PuzzleProgressStore {
      */
     fun readLegacy(): PuzzleProgress? = if (prefs.contains(KEY_RATING)) load(PuzzleRating.MIN) else null
 
+    /** Forgets the old progress, so "Erase everything" cannot bring it back into Room. */
+    fun clearLegacy() = prefs.edit { clear() }
+
     override fun save(progress: PuzzleProgress) {
         prefs.edit {
             putInt(KEY_RATING, progress.rating)
