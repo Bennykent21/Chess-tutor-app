@@ -115,6 +115,8 @@ class AccountViewModel(
     private val engine: EngineService? = null,
     private val mistakeReviews: ReviewRepository? = null,
     trainingSources: TrainingSources = TrainingSources(),
+    /** Stockfish's depth for game reviews (Settings > Engine), read when each analysis starts. */
+    private val reviewDepth: suspend () -> Int = { GameAnalyzer.DEFAULT_DEPTH },
     worker: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
@@ -199,7 +201,7 @@ class AccountViewModel(
                     val game = withTimeoutOrNull(GAME_WAIT_MS) { games.first { !it.loading && it.game(gameId) != null } }
                         ?.game(gameId) ?: return@withLock
                     if (again) analysis.delete(gameId)
-                    GameAnalyzer(engine, analysis, clock = clock).analyse(game) { done, total ->
+                    GameAnalyzer(engine, analysis, depth = reviewDepth(), clock = clock).analyse(game) { done, total ->
                         mutableJobs.update { it + (gameId to AnalysisJob(done, total, waiting = false)) }
                     }
                 }
@@ -274,9 +276,10 @@ class AccountViewModel(
         private val engine: EngineService,
         private val reviews: ReviewRepository,
         private val trainingSources: TrainingSources,
+        private val reviewDepth: suspend () -> Int = { GameAnalyzer.DEFAULT_DEPTH },
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources) as T
+            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources, reviewDepth = reviewDepth) as T
     }
 }

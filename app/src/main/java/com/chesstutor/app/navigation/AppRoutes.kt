@@ -73,14 +73,24 @@ object AppRoutes {
 
     const val ANALYSIS_FEN_ARG = "fen"
     const val ANALYSIS_LINE_ARG = "line"
-    const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}&$ANALYSIS_LINE_ARG={$ANALYSIS_LINE_ARG}"
+    /** "white" or "black" when the engine plays that side; empty when nobody does. */
+    const val ANALYSIS_ENGINE_ARG = "engine"
+    /** The engine's strength; 0 for full strength. */
+    const val ANALYSIS_ELO_ARG = "elo"
+    const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}&$ANALYSIS_LINE_ARG={$ANALYSIS_LINE_ARG}" +
+        "&$ANALYSIS_ENGINE_ARG={$ANALYSIS_ENGINE_ARG}&$ANALYSIS_ELO_ARG={$ANALYSIS_ELO_ARG}"
 
     /**
-     * Route to the analysis board on [fen], with [line] (UCI moves) loaded as the main line,
-     * for example a puzzle's solution. Spaces and slashes are encoded for the URL.
+     * Route to Explore (the analysis board) on [fen], with [line] (UCI moves) loaded as the
+     * main line, for example a puzzle's solution, and optionally the engine playing
+     * [engineSide] at [engineElo] (null: full strength). Spaces and slashes are encoded.
      */
-    fun analysis(fen: String, line: List<String> = emptyList()): String =
-        "analysis?$ANALYSIS_FEN_ARG=${encode(fen)}&$ANALYSIS_LINE_ARG=${encode(line.joinToString(" "))}"
+    fun analysis(fen: String, line: List<String> = emptyList(), engineSide: String? = null, engineElo: Int? = null): String =
+        "analysis?$ANALYSIS_FEN_ARG=${encode(fen)}&$ANALYSIS_LINE_ARG=${encode(line.joinToString(" "))}" +
+            (engineSide?.let { "&$ANALYSIS_ENGINE_ARG=$it&$ANALYSIS_ELO_ARG=${engineElo ?: 0}" } ?: "")
+
+    /** Explore's start page on Home: choose the position and who the engine plays. */
+    const val EXPLORE = "home/explore"
 
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
     /** Full screen (no bottom bar), like every activity that hosts a board. */

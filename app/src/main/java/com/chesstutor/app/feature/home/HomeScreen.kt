@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Tune
@@ -74,6 +75,8 @@ data class HomeActions(
     val onOpenEngineHealth: () -> Unit,
     /** The welcome card's answer (D30: it replaced onboarding). */
     val onStartingLevel: (StartingLevel) -> Unit = {},
+    /** Explore (D32): any position, every move judged. */
+    val onExplore: () -> Unit = {},
     /** Opens one lesson in Learn's player (the Continue card). */
     val onOpenLesson: (String) -> Unit = {},
     /** Puzzles > Mistakes review (the Recommended card). */
@@ -194,6 +197,15 @@ fun HomeScreen(
                     buttonText = "Set up",
                 )
             }
+
+            CtListRow(
+                title = "Explore",
+                subtitle = "Play any position; the engine judges every move",
+                icon = Icons.Rounded.Search,
+                iconTint = CtColors.Teal,
+                onClick = actions.onExplore,
+                modifier = gutter.ctEnter(5),
+            )
 
             CtSectionHeader(title = "Meet the bots", actionLabel = "Watch two", onAction = actions.onWatch, modifier = gutter.ctEnter(6))
             LazyRow(

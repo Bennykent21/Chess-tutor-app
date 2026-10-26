@@ -132,6 +132,12 @@ interface PuzzleDao {
 
     @Query("SELECT COUNT(*) FROM report_issue")
     suspend fun reportCount(): Int
+
+    @Query("SELECT * FROM report_issue ORDER BY createdAt, id")
+    suspend fun reports(): List<ReportIssueEntity>
+
+    @Query("DELETE FROM report_issue")
+    suspend fun clearReports()
 }
 
 /** One row of the puzzle history (a subset of [PuzzleAttemptEntity]). */

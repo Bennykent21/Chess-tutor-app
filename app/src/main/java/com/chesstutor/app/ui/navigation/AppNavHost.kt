@@ -64,6 +64,7 @@ import com.chesstutor.app.feature.home.PositionSetupScreen
 import com.chesstutor.app.feature.home.WatchSetupScreen
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.feature.home.BotSetupScreen
+import com.chesstutor.app.feature.home.ExploreSetupScreen
 import com.chesstutor.app.feature.home.HomeActions
 import com.chesstutor.app.feature.home.HomeLearning
 import com.chesstutor.app.feature.home.HomeScreen
@@ -91,6 +92,7 @@ import com.chesstutor.app.navigation.StartingLevel
 import com.chesstutor.app.navigation.TopTab
 import com.chesstutor.app.viewmodel.AppViewModel
 import java.time.Instant
+import kotlinx.coroutines.flow.first
 
 /**
  * The app shell (plan section 3): four tabs (Home, Learn, Puzzles, Account), each with its
@@ -179,6 +181,7 @@ fun AppNavHost(
                                 onOpeningBattle = { navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true } },
                                 onFromPosition = { navController.navigate(AppRoutes.POSITION) { launchSingleTop = true } },
                                 onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
+                                onExplore = { navController.navigate(AppRoutes.EXPLORE) { launchSingleTop = true } },
                                 onNewBot = {
                                     homeModel.newBot()
                                     navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
@@ -328,6 +331,20 @@ fun AppNavHost(
                             onChange = homeModel::updatePosition,
                             onStart = {
                                 if (homeModel.startFromPosition()) navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(AppRoutes.EXPLORE) { entry ->
+                        val homeModel = homeViewModel(navController, entry)
+                        val draft by homeModel.exploreDraft.collectAsStateWithLifecycle()
+                        ExploreSetupScreen(
+                            draft = draft,
+                            theme = state.appSettings.boardTheme,
+                            onChange = homeModel::updateExplore,
+                            onStart = {
+                                val engineSide = draft.side.engineSide?.let { if (it == PieceColor.WHITE) "white" else "black" }
+                                navController.navigate(AppRoutes.analysis(draft.board.toFen(), engineSide = engineSide, engineElo = draft.strength))
                             },
                             onBack = { navController.popBackStack() }
                         )
@@ -726,7 +743,15 @@ fun AppNavHost(
                         navArgument(AppRoutes.ANALYSIS_LINE_ARG) {
                             type = NavType.StringType
                             defaultValue = ""
-                        }
+                        },
+                        navArgument(AppRoutes.ANALYSIS_ENGINE_ARG) {
+                            type = NavType.StringType
+                            defaultValue = ""
+                        },
+                        navArgument(AppRoutes.ANALYSIS_ELO_ARG) {
+                            type = NavType.IntType
+                            defaultValue = 0
+                        },
                     )
                 ) { entry ->
                     val context = LocalContext.current
@@ -737,7 +762,13 @@ fun AppNavHost(
                         settings = state.appSettings,
                         engine = engine,
                         onFeedback = viewModel::playBoardFeedback,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        engineSide = when (entry.arguments?.getString(AppRoutes.ANALYSIS_ENGINE_ARG)) {
+                            "white" -> PieceColor.WHITE
+                            "black" -> PieceColor.BLACK
+                            else -> null
+                        },
+                        engineElo = entry.arguments?.getInt(AppRoutes.ANALYSIS_ELO_ARG)?.takeIf { it > 0 },
                     )
                 }
             }
@@ -823,6 +854,7 @@ private fun accountViewModel(navController: NavHostController, entry: NavBackSta
             engine = AppContainer.provideEngineService(context),
             reviews = AppContainer.provideReviewRepository(context),
             trainingSources = trainingSources(context),
+            reviewDepth = { AppContainer.provideSettingsStore(context).settings.first().reviewDepth.depth },
         ),
     )
 }

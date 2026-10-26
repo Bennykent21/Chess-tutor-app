@@ -274,6 +274,14 @@ class HomeViewModel(
 
     // ------------------------------------------------------------------ From a position (review R4)
 
+    private val mutableExplore = MutableStateFlow(ExploreDraft())
+    /** Explore's start page (D32). */
+    val exploreDraft: StateFlow<ExploreDraft> = mutableExplore.asStateFlow()
+
+    fun updateExplore(change: (ExploreDraft) -> ExploreDraft) {
+        mutableExplore.value = change(mutableExplore.value)
+    }
+
     private val mutablePosition = MutableStateFlow(PositionDraft())
     /** The position being set up. */
     val positionDraft: StateFlow<PositionDraft> = mutablePosition.asStateFlow()
