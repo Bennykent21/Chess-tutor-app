@@ -2,6 +2,7 @@ package com.chesstutor.app.di
 
 import android.content.Context
 import android.util.Log
+import com.chesstutor.app.data.account.RoomGameAnalysisRepository
 import com.chesstutor.app.data.bot.RoomBotRepository
 import com.chesstutor.app.data.learn.LessonAssetLoader
 import com.chesstutor.app.data.learn.RoomLessonProgressRepository
@@ -10,6 +11,7 @@ import com.chesstutor.app.domain.learn.LessonProgressRepository
 import com.chesstutor.app.data.maia.MaiaAssetLoader
 import com.chesstutor.app.domain.bot.BotRepository
 import com.chesstutor.app.data.opening.OpeningAssetLoader
+import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.data.puzzle.RoomPuzzleRepository
 import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
 import com.chesstutor.app.data.repository.GameRepository
@@ -22,7 +24,11 @@ import com.chesstutor.app.data.repository.RoomRatingRepository
 import com.chesstutor.app.data.repository.RoomReviewRepository
 import com.chesstutor.app.data.settings.DataStoreSettingsStore
 import com.chesstutor.app.data.settings.SettingsStore
+import com.chesstutor.app.domain.account.GameAnalysisRepository
+import com.chesstutor.app.domain.puzzle.PuzzlePack
 import com.chesstutor.app.domain.puzzle.PuzzleRepository
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.chesstutor.app.engine.EngineService
 import com.chesstutor.app.engine.ManagerEngineService
 import com.chesstutor.app.engine.ChessEngineManager
@@ -64,6 +70,15 @@ object AppContainer {
                 settingsStoreInstance = it
             }
         }
+    }
+
+    @Volatile
+    private var puzzlePackInstance: PuzzlePack? = null
+    private val puzzlePackLock = Mutex()
+
+    /** The bundled puzzle pack, read once and shared by the Puzzles and Account tabs. */
+    suspend fun loadPuzzlePack(context: Context): PuzzlePack = puzzlePackInstance ?: puzzlePackLock.withLock {
+        puzzlePackInstance ?: PuzzleAssetLoader(context.applicationContext).load().also { if (!it.isEmpty) puzzlePackInstance = it }
     }
 
     @Volatile
@@ -111,6 +126,16 @@ object AppContainer {
 
     @Volatile
     private var lessonProgressInstance: LessonProgressRepository? = null
+
+    @Volatile
+    private var gameAnalysisInstance: GameAnalysisRepository? = null
+
+    /** Cached game analysis (Room `analysis_result` and `game_analysis`). */
+    fun provideGameAnalysis(context: Context): GameAnalysisRepository {
+        return gameAnalysisInstance ?: synchronized(this) {
+            gameAnalysisInstance ?: RoomGameAnalysisRepository(AppDatabase.getInstance(context)).also { gameAnalysisInstance = it }
+        }
+    }
 
     /** Progress through the lessons (Room `lesson_progress`). */
     fun provideLessonProgress(context: Context): LessonProgressRepository {

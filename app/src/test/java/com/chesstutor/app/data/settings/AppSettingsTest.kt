@@ -58,6 +58,14 @@ class AppSettingsTest {
     }
 
     @Test
+    fun anUnfinishedImportTargetIsRemembered() {
+        val encoded = AppSettingsCodec.encode(AppSettings(importTarget = com.chesstutor.app.data.model.ImportDepth.ALL))
+        assertEquals("ALL", encoded[AppSettingsCodec.IMPORT_TARGET])
+        assertEquals(com.chesstutor.app.data.model.ImportDepth.ALL, AppSettingsCodec.decode(encoded).importTarget)
+        assertEquals(null, AppSettingsCodec.decode(AppSettingsCodec.encode(AppSettings())).importTarget)
+    }
+
+    @Test
     fun mascotDefaultsToPip() {
         assertEquals(Mascot.PIP, AppSettings().mascot)
         assertEquals(Mascot.PIP, AppSettingsCodec.decode(emptyMap()).mascot)

@@ -3,6 +3,7 @@ package com.chesstutor.app.data.settings
 import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.PieceSet
+import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.ChatLevel
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +39,8 @@ data class AppSettings(
     val mascotId: String = Mascot.DEFAULT.id,
     /** How much bots chat during games (review R6). */
     val chatLevel: ChatLevel = ChatLevel.SOME,
+    /** How many games the player asked to import, until the import has finished (an import cut short carries on later). */
+    val importTarget: ImportDepth? = null,
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
 
@@ -66,6 +69,7 @@ object AppSettingsCodec {
     const val PIECE_SET = "piece_set_id"
     const val MASCOT = "mascot_id"
     const val BOT_CHAT = "bot_chat"
+    const val IMPORT_TARGET = "import_target"
 
     /** Marks that settings formerly kept elsewhere were copied in (see [SettingsStore]). */
     const val LEGACY_IMPORTED = "legacy_imported_v1"
@@ -88,6 +92,7 @@ object AppSettingsCodec {
             pieceSetId = PieceSet.fromId(values[PIECE_SET] as? String).id,
             mascotId = Mascot.fromId(values[MASCOT] as? String).id,
             chatLevel = (values[BOT_CHAT] as? String)?.let { name -> ChatLevel.entries.firstOrNull { it.name == name } } ?: defaults.chatLevel,
+            importTarget = (values[IMPORT_TARGET] as? String)?.let { name -> ImportDepth.entries.firstOrNull { it.name == name } },
         )
     }
 
@@ -104,6 +109,7 @@ object AppSettingsCodec {
         PIECE_SET to settings.pieceSetId,
         MASCOT to settings.mascotId,
         BOT_CHAT to settings.chatLevel.name,
+        IMPORT_TARGET to (settings.importTarget?.name ?: ""),
     )
 }
 

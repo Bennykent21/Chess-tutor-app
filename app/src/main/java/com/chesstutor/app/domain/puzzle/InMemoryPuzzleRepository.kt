@@ -21,6 +21,7 @@ class InMemoryPuzzleRepository(
     private val solvedTimes = MutableStateFlow<List<Long>>(emptyList())
     private val levels = MutableStateFlow<Map<Int, LevelProgress>>(emptyMap())
     private val latestCleanById = LinkedHashMap<String, Boolean>()
+    private val attempts = MutableStateFlow<List<PuzzleHistoryEntry>>(emptyList())
     val reports = mutableListOf<String>()
 
     override suspend fun loadProgress(seedRating: Int): PuzzleProgress = mutex.withLock { current(seedRating) }
@@ -36,6 +37,9 @@ class InMemoryPuzzleRepository(
         if (record.outcome.solved) solvedTimes.value = solvedTimes.value + record.finishedAt
         latestCleanById.remove(record.puzzle.id)
         latestCleanById[record.puzzle.id] = record.outcome.clean
+        attempts.value = attempts.value + PuzzleHistoryEntry(
+            record.puzzle.id, record.outcome.solved, record.outcome.clean, result.progress.rating, record.finishedAt,
+        )
         result
     }
 
@@ -77,4 +81,6 @@ class InMemoryPuzzleRepository(
     override suspend fun mistakePuzzleIds(limit: Int): List<String> = mutex.withLock {
         latestCleanById.entries.reversed().filter { !it.value }.map { it.key }.take(limit)
     }
+
+    override fun history(): Flow<List<PuzzleHistoryEntry>> = attempts
 }

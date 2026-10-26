@@ -32,19 +32,26 @@ import androidx.navigation.navArgument
 import com.chesstutor.app.design.CtBottomBar
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtTheme
-import com.chesstutor.app.domain.LearnCategory
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.ReviewScheduler
+import com.chesstutor.app.feature.account.AccountActions
 import com.chesstutor.app.feature.account.AccountScreen
+import com.chesstutor.app.feature.account.AccountViewModel
+import com.chesstutor.app.feature.account.GameDetailActions
+import com.chesstutor.app.feature.account.GameDetailScreen
+import com.chesstutor.app.feature.account.GameReviewScreen
+import com.chesstutor.app.feature.account.ReviewActions
+import com.chesstutor.app.feature.account.SettingsActions
+import com.chesstutor.app.feature.account.SettingsScreen
+import com.chesstutor.app.domain.PgnFormatter
+import com.chesstutor.app.feature.account.TrainingSources
 import com.chesstutor.app.core.Position
-import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.account.BoardLabScreen
 import com.chesstutor.app.feature.account.BoardSettingsActions
 import com.chesstutor.app.feature.account.BoardSettingsScreen
 import com.chesstutor.app.feature.account.DesignGalleryScreen
-import com.chesstutor.app.feature.account.DeveloperMenuScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
 import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.feature.home.BattleSetupScreen
@@ -69,27 +76,25 @@ import com.chesstutor.app.feature.learn.LearnScreen
 import com.chesstutor.app.feature.learn.LearnViewModel
 import com.chesstutor.app.feature.learn.LessonPlayerScreen
 import com.chesstutor.app.feature.analysis.AnalysisScreen
+import com.chesstutor.app.feature.puzzles.MistakeReviewActions
+import com.chesstutor.app.feature.puzzles.MistakeReviewScreen
+import com.chesstutor.app.feature.puzzles.MistakeReviewViewModel
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
 import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
 import com.chesstutor.app.feature.puzzles.PuzzlePlayerScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesViewModel
 import com.chesstutor.app.navigation.AppRoutes
-import com.chesstutor.app.navigation.LegacyTab
 import com.chesstutor.app.navigation.StartScreen
+import com.chesstutor.app.navigation.StartingLevel
 import com.chesstutor.app.navigation.TopTab
-import com.chesstutor.app.navigation.TrainRequest
-import com.chesstutor.app.ui.components.PgnViewerDialog
 import com.chesstutor.app.ui.components.PromotionDialog
-import com.chesstutor.app.ui.onboarding.OnboardingScreen
-import com.chesstutor.app.ui.settings.SettingsSheet
 import com.chesstutor.app.viewmodel.AppViewModel
 import java.time.Instant
 
 /**
  * The app shell (plan section 3): four tabs (Home, Learn, Puzzles, Account), each with its
- * own back stack, built with Navigation Compose. The pre-revamp screens open full screen
- * through [LegacyHost] until each is replaced.
+ * own back stack, built with Navigation Compose.
  */
 @Composable
 fun AppNavHost(
@@ -98,14 +103,10 @@ fun AppNavHost(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    when (StartScreen.of(state.profileLoaded, state.assessmentState)) {
+    when (StartScreen.of(state.profileLoaded)) {
         StartScreen.LOADING -> {
             // A blank screen for the moment it takes to read the saved profile.
             Box(modifier.fillMaxSize().background(CtColors.BgDeep))
-            return
-        }
-        StartScreen.ONBOARDING -> {
-            OnboardingScreen(state = state, viewModel = viewModel, modifier = modifier)
             return
         }
         StartScreen.APP -> Unit
@@ -119,10 +120,17 @@ fun AppNavHost(
         val now = Instant.now()
         state.reviews.count { ReviewScheduler.isDue(it, now) }
     }
-
-    fun openLegacy(index: Int, category: LearnCategory? = null) {
-        viewModel.selectTab(index)
-        navController.navigate(AppRoutes.legacy(category)) { launchSingleTop = true }
+    // Linking Chess.com or Lichess, shared by the Account tab and the Settings page.
+    val linkActions = remember(viewModel) {
+        AccountActions(
+            onLink = { platform, username, timeControl -> viewModel.linkRatingAccount(platform, username, timeControl) },
+            onRatingTimeControl = viewModel::setRatingTimeControl,
+            onImportMore = { viewModel.refreshLinkedRating() },
+            onCancelImport = viewModel::cancelAccountImport,
+            onUnlink = viewModel::unlinkRatingAccount,
+            onImportDepth = viewModel::setImportDepth,
+            onDismissLinkStatus = viewModel::clearLinkingStatus,
+        )
     }
 
     CtTheme(reduceMotion = reduceMotion) {
@@ -179,7 +187,15 @@ fun AppNavHost(
                                     navController.navigateToTab(TopTab.PUZZLES)
                                     navController.navigate(AppRoutes.PUZZLE_DAILY) { launchSingleTop = true }
                                 },
-                                onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) }
+                                onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
+                                onStartingLevel = { level ->
+                                    viewModel.chooseStartingLevel(level.rating)
+                                    when (level) {
+                                        StartingLevel.NEW -> navController.navigateToTab(TopTab.LEARN)
+                                        StartingLevel.PLAYER -> navController.navigateToTab(TopTab.ACCOUNT)
+                                        StartingLevel.RULES -> Unit
+                                    }
+                                }
                             )
                         )
                     }
@@ -441,10 +457,7 @@ fun AppNavHost(
                                 navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
                             },
                             onOpenModes = { navController.navigate(AppRoutes.PUZZLE_MODES) { launchSingleTop = true } },
-                            onReviewMistakes = {
-                                viewModel.startTrain(TrainRequest.ReviewDue)
-                                navController.navigate(AppRoutes.legacy()) { launchSingleTop = true }
-                            }
+                            onReviewMistakes = { navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true } }
                         )
                     }
                     // Home's daily challenge card: starts today's puzzle, then shows the player.
@@ -489,6 +502,26 @@ fun AppNavHost(
                             onBack = { navController.popBackStack() }
                         )
                     }
+                    composable(AppRoutes.MISTAKE_REVIEW) {
+                        val context = LocalContext.current.applicationContext
+                        // Scoped to this screen: each visit starts from the positions due now.
+                        val review: MistakeReviewViewModel = viewModel(
+                            factory = MistakeReviewViewModel.Factory(AppContainer.provideReviewRepository(context), onChanged = viewModel::refreshReviews)
+                        )
+                        val ui by review.ui.collectAsStateWithLifecycle()
+                        MistakeReviewScreen(
+                            ui = ui,
+                            session = review,
+                            settings = state.appSettings,
+                            actions = MistakeReviewActions(
+                                onHint = review::hint,
+                                onShowAnswer = review::showAnswer,
+                                onNext = review::next,
+                                onFeedback = viewModel::playBoardFeedback,
+                                onBack = { navController.popBackStack() }
+                            )
+                        )
+                    }
                     composable(AppRoutes.PUZZLE_PLAYER) { entry ->
                         val puzzles = puzzlesViewModel(navController, entry)
                         val player by puzzles.player.collectAsStateWithLifecycle()
@@ -506,17 +539,99 @@ fun AppNavHost(
                     }
                 }
                 navigation(startDestination = TopTab.ACCOUNT.startRoute, route = TopTab.ACCOUNT.graphRoute) {
-                    composable(TopTab.ACCOUNT.startRoute) {
+                    composable(TopTab.ACCOUNT.startRoute) { entry ->
+                        val account = accountViewModel(navController, entry)
+                        val games by account.games.collectAsStateWithLifecycle()
+                        val stats by account.stats.collectAsStateWithLifecycle()
+                        val reviews by account.reviews.collectAsStateWithLifecycle()
+                        val training by account.training.collectAsStateWithLifecycle()
                         AccountScreen(
                             state = state,
+                            games = games,
+                            stats = stats,
+                            reviews = reviews,
+                            training = training,
                             dueReviewCount = dueReviews,
-                            onOpenGames = { openLegacy(LegacyTab.REVIEW) },
-                            onOpenSettings = { viewModel.setSettingsVisible(true) },
-                            onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
-                            onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
-                            onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
-                            onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
-                            onOpenDeveloperMenu = { navController.navigate(AppRoutes.DEVELOPER_MENU) }
+                            actions = linkActions.copy(
+                                onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
+                                onReviewMistakes = {
+                                    navController.navigateToTab(TopTab.PUZZLES)
+                                    navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true }
+                                },
+                                onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) { launchSingleTop = true } },
+                                onShown = { viewModel.autoSyncLinkedAccount() }
+                            )
+                        )
+                    }
+                    composable(AppRoutes.SETTINGS) {
+                        val context = LocalContext.current.applicationContext
+                        SettingsScreen(
+                            state = state,
+                            accountActions = linkActions,
+                            actions = SettingsActions(
+                                onMascot = viewModel::setMascot,
+                                onChatLevel = viewModel::setChatLevel,
+                                onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
+                                onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
+                                onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
+                                onOpenBoardLab = { navController.navigate(AppRoutes.BOARD_LAB) },
+                                exportPgn = {
+                                    AppContainer.provideGameRepository(context).getRecentGames(Int.MAX_VALUE)
+                                        .joinToString("\n\n") { PgnFormatter.reconstructPgnFromGameRecord(it).trim() }
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.GAME_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.GAME_ID_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val account = accountViewModel(navController, entry)
+                        val games by account.games.collectAsStateWithLifecycle()
+                        val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
+                        GameDetailScreen(
+                            game = games.game(gameId),
+                            analysis = games.analysed[gameId],
+                            settings = state.appSettings,
+                            actions = GameDetailActions(
+                                onReview = {
+                                    account.openReview(gameId)
+                                    if (games.analysed[gameId] == null) account.analyse(gameId)
+                                    navController.navigate(AppRoutes.review(gameId)) { launchSingleTop = true }
+                                },
+                                onDelete = {
+                                    account.deleteGame(gameId)
+                                    navController.popBackStack()
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
+                        )
+                    }
+                    composable(
+                        route = AppRoutes.REVIEW_PATTERN,
+                        arguments = listOf(navArgument(AppRoutes.GAME_ID_ARG) { type = NavType.StringType })
+                    ) { entry ->
+                        val account = accountViewModel(navController, entry)
+                        val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
+                        LaunchedEffect(gameId) { account.openReview(gameId) }
+                        val review by account.review.collectAsStateWithLifecycle()
+                        val context = LocalContext.current
+                        val engine = remember(context) { AppContainer.provideEngineService(context) }
+                        GameReviewScreen(
+                            state = review,
+                            settings = state.appSettings,
+                            engine = engine,
+                            actions = ReviewActions(
+                                onAnalyse = { account.analyse(gameId) },
+                                onAnalyseAgain = { account.analyse(gameId, again = true) },
+                                onStop = { account.stopAnalysis(gameId) },
+                                onPractise = { move ->
+                                    review.game?.let { game -> account.practise(game, move, onSaved = viewModel::refreshReviews) }
+                                },
+                                onFeedback = viewModel::playBoardFeedback,
+                                onBack = { navController.popBackStack() }
+                            )
                         )
                     }
                     composable(AppRoutes.ENGINE_HEALTH) {
@@ -525,12 +640,6 @@ fun AppNavHost(
                             report = state.engineSelfTestReport,
                             isRunning = state.isRunningEngineSelfTest,
                             onRunCheck = viewModel::runEngineSelfTest,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-                    composable(AppRoutes.DEVELOPER_MENU) {
-                        DeveloperMenuScreen(
-                            onOpenLegacy = { index -> openLegacy(index) },
                             onBack = { navController.popBackStack() }
                         )
                     }
@@ -589,48 +698,11 @@ fun AppNavHost(
                         onBack = { navController.popBackStack() }
                     )
                 }
-                composable(
-                    route = AppRoutes.LEGACY_PATTERN,
-                    arguments = listOf(
-                        navArgument(AppRoutes.LEGACY_CATEGORY_ARG) {
-                            type = NavType.StringType
-                            nullable = true
-                            defaultValue = null
-                        }
-                    )
-                ) { entry ->
-                    LegacyHost(
-                        state = state,
-                        viewModel = viewModel,
-                        onExit = { navController.popBackStack() }
-                    )
-                }
             }
 
             // Overlays shared by every screen. Their Back handlers are registered last, so
             // Back closes them first.
-            if (state.selectedGameForPgn != null) {
-                BackHandler { viewModel.selectGameForPgn(null) }
-                PgnViewerDialog(
-                    game = state.selectedGameForPgn!!,
-                    onDismiss = { viewModel.selectGameForPgn(null) },
-                    onDelete = {
-                        viewModel.deleteSavedGame(state.selectedGameForPgn!!.id)
-                        viewModel.selectGameForPgn(null)
-                    }
-                )
-            } else if (state.isGameHistorySheetOpen) {
-                BackHandler { viewModel.setGameHistorySheetVisible(false) }
-            } else if (state.isDrillSheetVisible) {
-                BackHandler { viewModel.setDrillSheetVisible(false) }
-            } else if (state.isSettingsVisible) {
-                BackHandler { viewModel.setSettingsVisible(false) }
-                SettingsSheet(
-                    state = state,
-                    viewModel = viewModel,
-                    onDismiss = { viewModel.setSettingsVisible(false) }
-                )
-            } else if (state.pendingPromotion != null) {
+            if (state.pendingPromotion != null) {
                 BackHandler { viewModel.cancelPromotion() }
                 PromotionDialog(
                     request = state.pendingPromotion!!,
@@ -700,6 +772,30 @@ private fun learnViewModel(navController: NavHostController, entry: NavBackStack
     )
 }
 
+/** The Account tab's view model, shared by the tab and its game pages (scoped to its graph). */
+@Composable
+private fun accountViewModel(navController: NavHostController, entry: NavBackStackEntry): AccountViewModel {
+    val owner = remember(entry) { navController.getBackStackEntry(TopTab.ACCOUNT.graphRoute) }
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = owner,
+        factory = AccountViewModel.Factory(
+            repository = AppContainer.provideGameRepository(context),
+            loadOpenings = { AppContainer.provideOpeningLoader(context).load() },
+            puzzleStats = AppContainer.providePuzzleRepository(context).stats(),
+            analysis = AppContainer.provideGameAnalysis(context),
+            engine = AppContainer.provideEngineService(context),
+            reviews = AppContainer.provideReviewRepository(context),
+            trainingSources = TrainingSources(
+                puzzleHistory = AppContainer.providePuzzleRepository(context).history(),
+                loadPack = { AppContainer.loadPuzzlePack(context) },
+                lessonProgress = AppContainer.provideLessonProgress(context).observe(),
+                loadLessonCount = { AppContainer.provideLessonLoader(context).load().courses.sumOf { it.lessons.size } },
+            ),
+        ),
+    )
+}
+
 /** The Puzzles tab's view model, shared by every screen in the tab (scoped to its graph). */
 @Composable
 private fun puzzlesViewModel(navController: NavHostController, entry: NavBackStackEntry): PuzzlesViewModel {
@@ -707,6 +803,6 @@ private fun puzzlesViewModel(navController: NavHostController, entry: NavBackSta
     val context = LocalContext.current.applicationContext
     return viewModel(
         viewModelStoreOwner = owner,
-        factory = PuzzlesViewModel.Factory(AppContainer.providePuzzleRepository(context)) { PuzzleAssetLoader(context).load() },
+        factory = PuzzlesViewModel.Factory(AppContainer.providePuzzleRepository(context)) { AppContainer.loadPuzzlePack(context) },
     )
 }

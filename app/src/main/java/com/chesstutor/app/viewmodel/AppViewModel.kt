@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.chesstutor.app.data.model.GameRecord
+import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.LearningProfile
 import com.chesstutor.app.data.model.RatingPlatform
@@ -49,6 +50,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -90,6 +92,8 @@ class AppViewModel(
     )
 
     companion object {
+        /** The automatic sync runs at most this often (when the app opens or Account is shown). */
+        const val AUTO_SYNC_INTERVAL_MS = 30 * 60_000L
         const val FEN_MATE_IN_ONE = "r1bqkb1r/pppp1ppp/2n5/4p3/2B1n3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 4"
         const val FEN_BACK_RANK_MATE = "6k1/5ppp/8/8/8/8/4QPPP/6K1 w - - 0 1"
         const val FEN_HANGING_PIECE = "r1bqk2r/pppp1ppp/2n5/4p3/1b2P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 6"
@@ -278,6 +282,7 @@ class AppViewModel(
 
     private fun observeLinkedProfile() {
         viewModelScope.launch {
+            var first = true
             ratingRepository.getLinkedProfileFlow().collect { profile ->
                 _state.update { current ->
                     current.copy(
@@ -286,7 +291,39 @@ class AppViewModel(
                     )
                 }
                 applyBotElo()
+                // Sync once when the app opens with an account linked.
+                if (first && profile != null) autoSyncLinkedAccount()
+                first = false
             }
+        }
+    }
+
+    private var lastAutoSyncAt = 0L
+
+    /**
+     * Brings in games played since the newest imported one, at most every
+     * [AUTO_SYNC_INTERVAL_MS], so the player never has to press "Sync" (review of Phase 5).
+     */
+    fun autoSyncLinkedAccount(now: Long = System.currentTimeMillis()) {
+        val current = _state.value
+        val profile = current.linkedProfile ?: return
+        if (current.isLinkingLoading || now - lastAutoSyncAt < AUTO_SYNC_INTERVAL_MS) return
+        lastAutoSyncAt = now
+        viewModelScope.launch {
+            // Read the saved games and settings themselves: at start-up the screen state may not have them yet.
+            val source = if (profile.platform == RatingPlatform.LICHESS) GameSource.LICHESS else GameSource.CHESS_COM
+            val mine = gameRepository.observeGames().first().filter { it.source == source }
+            val newest = mine.maxOfOrNull { it.dateMillis }
+            // An import the app was closed during carries on from the oldest game it reached.
+            val target = settingsStore.settings.first().importTarget
+            val oldest = mine.minOfOrNull { it.dateMillis }
+            val backfill = if (target != null && oldest != null && mine.size < target.maxGames) {
+                RatingLinkCoordinator.Backfill(oldest, target.maxGames - mine.size) { complete -> if (complete) setImportTarget(null) }
+            } else {
+                if (target != null && mine.size >= target.maxGames) setImportTarget(null)
+                null
+            }
+            ratingLinkCoordinator.autoSync(newest?.plus(1), ::applyBotElo, _state::update, backfill)
         }
     }
 
@@ -382,6 +419,11 @@ class AppViewModel(
 
     suspend fun loadReviews() {
         spacedReviewCoordinator.loadReviews(_state::update)
+    }
+
+    /** Reloads the mistakes due for review after another screen added one ("Practise this mistake"). */
+    fun refreshReviews() {
+        viewModelScope.launch { loadReviews() }
     }
 
     private suspend fun loadLearningState() {
@@ -488,6 +530,19 @@ class AppViewModel(
 
     fun resetPlacementAssessment() {
         startPlacementAssessment()
+    }
+
+    /**
+     * The welcome card on Home (it replaced onboarding): the player says roughly how strong
+     * they are, which sets the starting rating until a linked account gives a real one.
+     */
+    fun chooseStartingLevel(rating: Int) {
+        val completedAt = System.currentTimeMillis()
+        curriculumCoordinator.persistProfile {
+            it.copy(estimatedRating = rating, assessmentState = "COMPLETE", assessmentCompletedAt = completedAt)
+        }
+        _state.update { it.copy(estimatedRating = rating, assessmentState = "COMPLETE", assessmentCompletedAt = completedAt) }
+        applyBotElo()
     }
 
     fun skipPlacementAsBeginner() {
@@ -1122,7 +1177,11 @@ class AppViewModel(
 
     fun cancelAccountImport() {
         ratingLinkCoordinator.cancelImport(_state::update)
+        setImportTarget(null)
     }
+
+    /** Remembers how many games the player asked for, so an import cut short carries on later. */
+    private fun setImportTarget(target: ImportDepth?) = updateSettings { it.copy(importTarget = target) }
 
     fun linkRatingAccount(
         platform: RatingPlatform,
@@ -1130,11 +1189,17 @@ class AppViewModel(
         timeControl: RatingTimeControl = RatingTimeControl.RAPID,
         importDepth: ImportDepth = _state.value.selectedImportDepth
     ) {
-        ratingLinkCoordinator.linkAccount(platform, username, timeControl, ::applyBotElo, _state::update, importDepth)
+        setImportTarget(importDepth)
+        ratingLinkCoordinator.linkAccount(platform, username, timeControl, ::applyBotElo, _state::update, importDepth) { complete ->
+            if (complete) setImportTarget(null)
+        }
     }
 
     fun refreshLinkedRating(importDepth: ImportDepth = _state.value.selectedImportDepth) {
-        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, ::applyBotElo, _state::update, importDepth)
+        setImportTarget(importDepth)
+        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, ::applyBotElo, _state::update, importDepth) { complete ->
+            if (complete) setImportTarget(null)
+        }
     }
 
     fun setReviewMistakeSolverOpen(open: Boolean) {
