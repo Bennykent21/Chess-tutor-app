@@ -7,7 +7,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
-/** The engine's view of one position of a saved game (plan 7.4 `analysis_result`, database version 11). */
+/** The engine's view of one position of a saved game (plan 7.4 `analysis_result`, database version 11; second line from 12). */
 @Entity(tableName = "analysis_result", primaryKeys = ["gameId", "ply"])
 data class AnalysisResultEntity(
     val gameId: String,
@@ -19,6 +19,9 @@ data class AnalysisResultEntity(
     val line: String,
     val depth: Int?,
     val lite: Boolean,
+    /** The second-best line's score, for "Great" moves (version 12); null in older analyses. */
+    val secondCentipawns: Int? = null,
+    val secondMate: Int? = null,
 )
 
 /** One finished analysis per game: accuracy for both sides (database version 11). */

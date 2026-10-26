@@ -24,7 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AnalysisResultEntity::class,
         GameAnalysisEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -190,6 +190,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Phase 6B: the second-best line's score per analysed position, for "Great" moves. */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE analysis_result ADD COLUMN secondCentipawns INTEGER")
+                db.execSQL("ALTER TABLE analysis_result ADD COLUMN secondMate INTEGER")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -201,6 +209,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_8_9,
             MIGRATION_9_10,
             MIGRATION_10_11,
+            MIGRATION_11_12,
         )
 
         @Volatile

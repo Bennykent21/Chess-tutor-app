@@ -69,6 +69,8 @@ private fun AnalysisResultEntity.toDomain() = PlyEval(
     line = line.split(' ').filter { it.isNotBlank() },
     depth = depth,
     lite = lite,
+    secondCentipawns = secondCentipawns,
+    secondMate = secondMate,
 )
 
 private fun PlyEval.toEntity(gameId: String) = AnalysisResultEntity(
@@ -80,6 +82,8 @@ private fun PlyEval.toEntity(gameId: String) = AnalysisResultEntity(
     line = line.joinToString(" "),
     depth = depth,
     lite = lite,
+    secondCentipawns = secondCentipawns,
+    secondMate = secondMate,
 )
 
 private fun GameAnalysisEntity.toDomain() = AnalysisSummary(gameId, plies, whiteAccuracy, blackAccuracy, lite, analysedAt)

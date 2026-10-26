@@ -41,6 +41,9 @@ object CtColors {
     val OnLime = Color(Palette.ON_LIME)
     val Violet = Color(Palette.VIOLET)
     val VioletDeep = Color(Palette.VIOLET_DEEP)
+    val OnViolet = Color(Palette.ON_VIOLET)
+    val Sky = Color(Palette.SKY)
+    val OnSky = Color(Palette.ON_SKY)
     val Coral = Color(Palette.CORAL)
     val OnCoral = Color(Palette.ON_CORAL)
 }

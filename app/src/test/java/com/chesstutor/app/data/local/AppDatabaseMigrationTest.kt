@@ -17,12 +17,21 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class AppDatabaseMigrationTest {
 
+    private companion object {
+        const val LATEST = 12
+    }
+
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun allMigrationsArrayContainsAllVersionsFrom1To11() {
+    fun allMigrationsArrayContainsAllVersionsFrom1To12() {
         val migrations = AppDatabase.ALL_MIGRATIONS
-        assertEquals(10, migrations.size)
+        assertEquals(11, migrations.size)
+        migrations.forEachIndexed { i, m ->
+            assertEquals(i + 1, m.startVersion)
+            assertEquals(i + 2, m.endVersion)
+        }
+        assertEquals(LATEST, migrations.last().endVersion)
         assertEquals(10, migrations[9].startVersion)
         assertEquals(11, migrations[9].endVersion)
         assertEquals(9, migrations[8].startVersion)
@@ -181,7 +190,7 @@ class AppDatabaseMigrationTest {
             .allowMainThreadQueries()
             .build()
         val db = room.openHelper.writableDatabase
-        assertEquals(11, db.version)
+        assertEquals(LATEST, db.version)
         db.query("SELECT id FROM review_items").use { assertTrue(it.moveToFirst()); assertEquals("kept", it.getString(0)) }
         listOf("puzzle_attempt", "xp_event", "puzzle_profile", "puzzle_level_progress", "report_issue").forEach { table ->
             db.query("SELECT COUNT(*) FROM $table").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
@@ -225,7 +234,7 @@ class AppDatabaseMigrationTest {
             .allowMainThreadQueries()
             .build()
         val db = room.openHelper.writableDatabase
-        assertEquals(11, db.version)
+        assertEquals(LATEST, db.version)
         db.query("SELECT id FROM review_items").use { assertTrue(it.moveToFirst()); assertEquals("kept", it.getString(0)) }
         db.query("SELECT amount FROM xp_event").use { assertTrue(it.moveToFirst()); assertEquals(10, it.getInt(0)) }
         db.query("SELECT COUNT(*) FROM bot_profile").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
@@ -270,7 +279,7 @@ class AppDatabaseMigrationTest {
             .allowMainThreadQueries()
             .build()
         val db = room.openHelper.writableDatabase
-        assertEquals(11, db.version)
+        assertEquals(LATEST, db.version)
         db.query("SELECT amount FROM xp_event").use { assertTrue(it.moveToFirst()); assertEquals(10, it.getInt(0)) }
         db.query("SELECT name FROM bot_profile").use { assertTrue(it.moveToFirst()); assertEquals("Rowan", it.getString(0)) }
         db.query("SELECT COUNT(*) FROM lesson_progress").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
@@ -316,11 +325,55 @@ class AppDatabaseMigrationTest {
             .allowMainThreadQueries()
             .build()
         val db = room.openHelper.writableDatabase
-        assertEquals(11, db.version)
+        assertEquals(LATEST, db.version)
         db.query("SELECT botName FROM game_records").use { assertTrue(it.moveToFirst()); assertEquals("Pip", it.getString(0)) }
         db.query("SELECT stepIndex FROM lesson_progress").use { assertTrue(it.moveToFirst()); assertEquals(2, it.getInt(0)) }
         db.query("SELECT COUNT(*) FROM analysis_result").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
         db.query("SELECT COUNT(*) FROM game_analysis").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    /**
+     * A real version-11 database with one analysed position: MIGRATION_11_12 adds the
+     * second-line columns (empty for old rows) and keeps the analysis.
+     */
+    @Test
+    fun migration11To12AddsSecondLineAndKeepsAnalysis() {
+        val name = "migration-11-12-test.db"
+        context.deleteDatabase(name)
+        val config = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(object : SupportSQLiteOpenHelper.Callback(11) {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS review_items (" +
+                            "id TEXT NOT NULL, fen TEXT NOT NULL, dueAt INTEGER NOT NULL, " +
+                            "stage INTEGER NOT NULL DEFAULT -1, attempts INTEGER NOT NULL DEFAULT 0, " +
+                            "mistakeUci TEXT NOT NULL DEFAULT '', bestMoveUci TEXT NOT NULL DEFAULT '', " +
+                            "explanation TEXT NOT NULL DEFAULT '', PRIMARY KEY(id))"
+                    )
+                    AppDatabase.ALL_MIGRATIONS.filter { it.endVersion <= 11 }.forEach { it.migrate(db) }
+                    db.execSQL("INSERT INTO analysis_result VALUES ('bot_1', 0, 20, NULL, 'e2e4', 'e2e4 e7e5', 14, 0)")
+                }
+
+                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(config).also { it.writableDatabase.close() }
+
+        val room = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        val db = room.openHelper.writableDatabase
+        assertEquals(LATEST, db.version)
+        db.query("SELECT bestMove, secondCentipawns, secondMate FROM analysis_result").use {
+            assertTrue(it.moveToFirst())
+            assertEquals("e2e4", it.getString(0))
+            assertTrue(it.isNull(1))
+            assertTrue(it.isNull(2))
+        }
         room.close()
         context.deleteDatabase(name)
     }
