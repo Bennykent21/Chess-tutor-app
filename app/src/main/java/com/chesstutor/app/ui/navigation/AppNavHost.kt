@@ -599,12 +599,14 @@ fun AppNavHost(
                         val stats by account.stats.collectAsStateWithLifecycle()
                         val reviews by account.reviews.collectAsStateWithLifecycle()
                         val training by account.training.collectAsStateWithLifecycle()
+                        val overview by account.overview.collectAsStateWithLifecycle()
                         AccountScreen(
                             state = state,
                             games = games,
                             stats = stats,
                             reviews = reviews,
                             training = training,
+                            overview = overview,
                             dueReviewCount = dueReviews,
                             actions = linkActions.copy(
                                 onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
@@ -886,7 +888,7 @@ private fun trainingSources(context: android.content.Context) = TrainingSources(
     puzzleHistory = AppContainer.providePuzzleRepository(context).history(),
     loadPack = { AppContainer.loadPuzzlePack(context) },
     lessonProgress = AppContainer.provideLessonProgress(context).observe(),
-    loadLessonCount = { AppContainer.provideLessonLoader(context).load().courses.sumOf { it.lessons.size } },
+    loadLessons = { AppContainer.provideLessonLoader(context).load() },
 )
 
 /** The Puzzles tab's view model, shared by every screen in the tab (scoped to its graph). */
