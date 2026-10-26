@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
@@ -98,7 +99,7 @@ private fun BadgeTile(badge: Badge) {
             }
         }
         if (!badge.earned && badge.goal > 1) {
-            Spacer(Modifier.width(CtSpacing.xs))
+            Spacer(Modifier.height(CtSpacing.sm))
             CtProgressBar(progress = badge.progress.toFloat() / badge.goal, color = badgeColor(badge.kind), modifier = Modifier.fillMaxWidth())
         }
     }
@@ -112,7 +113,7 @@ fun RecentActivityCard(items: List<ActivityItem>, modifier: Modifier = Modifier,
         CtSectionHeader(title = "Recent activity")
         CtCard(modifier = Modifier.fillMaxWidth()) {
             items.forEachIndexed { i, item ->
-                if (i > 0) Spacer(Modifier.width(CtSpacing.xs))
+                if (i > 0) Spacer(Modifier.height(CtSpacing.sm))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     CtIconBubble(icon = badgeIcon(item.kind), tint = badgeColor(item.kind), size = 28.dp)
                     Spacer(Modifier.width(CtSpacing.sm))

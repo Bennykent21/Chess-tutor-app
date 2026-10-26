@@ -47,7 +47,9 @@ class LiveCoordinatorImportCheck {
         val coordinator = com.chesstutor.app.viewmodel.RatingLinkCoordinator(
             com.chesstutor.app.data.repository.InMemoryRatingRepository(profile), scope, games,
         )
-        coordinator.refreshProfile(user, { f -> state.value = f(state.value) }, ImportDepth.ALL)
+        val update: ((com.chesstutor.app.viewmodel.AppUiState) -> com.chesstutor.app.viewmodel.AppUiState) -> Unit = { f -> state.value = f(state.value) }
+        coordinator.observeImports(update) {}
+        coordinator.refreshProfile(user, update, ImportDepth.ALL)
         kotlinx.coroutines.delay(500)
         while (state.value.isLinkingLoading) kotlinx.coroutines.delay(500)
         println("coordinator: saved=${games.getRecentGames(5000).size} message=${state.value.linkingSuccessMessage} error=${state.value.linkingError}")
