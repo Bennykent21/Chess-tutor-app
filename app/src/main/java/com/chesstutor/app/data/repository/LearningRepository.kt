@@ -2,156 +2,28 @@ package com.chesstutor.app.data.repository
 
 import com.chesstutor.app.data.local.LearningDao
 import com.chesstutor.app.data.local.LearningProfileEntity
-import com.chesstutor.app.data.local.ModuleProgressEntity
 import com.chesstutor.app.data.model.LearningProfile
-import com.chesstutor.app.data.model.ModuleProgress
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
-private const val MASTERY_ACCURACY = 0.8f
-private const val MASTERY_MIN_ATTEMPTS = 3
-
+/**
+ * The player's profile: the starting rating from Home's welcome card (D30). The classic
+ * curriculum's per-module progress (table `module_progress`) is no longer read.
+ */
 interface LearningRepository {
     suspend fun getProfile(): LearningProfile
     suspend fun saveProfile(profile: LearningProfile)
-    suspend fun getModuleProgress(): List<ModuleProgress>
-    fun observeModuleProgress(): Flow<List<ModuleProgress>>
-    suspend fun markPracticed(moduleId: String)
-    suspend fun markMastered(moduleId: String)
-    suspend fun recordModuleAttempt(moduleId: String, correct: Boolean)
-    suspend fun resetModuleProgress()
 }
 
 class RoomLearningRepository(private val dao: LearningDao) : LearningRepository {
-    private val moduleProgressMutex = Mutex()
-
     override suspend fun getProfile(): LearningProfile =
         dao.getProfile()?.toDomain() ?: LearningProfile()
 
     override suspend fun saveProfile(profile: LearningProfile) =
         dao.upsertProfile(LearningProfileEntity.fromDomain(profile))
-
-    override suspend fun getModuleProgress(): List<ModuleProgress> =
-        dao.getAllModuleProgress().map { it.toDomain() }
-
-    override fun observeModuleProgress(): Flow<List<ModuleProgress>> =
-        dao.observeModuleProgress().map { list -> list.map { it.toDomain() } }
-
-    private suspend fun currentModule(moduleId: String): ModuleProgress =
-        dao.getAllModuleProgress().firstOrNull { it.moduleId == moduleId }?.toDomain()
-            ?: ModuleProgress(moduleId)
-
-    override suspend fun markPracticed(moduleId: String) {
-        moduleProgressMutex.withLock {
-            val current = currentModule(moduleId)
-            dao.upsertModuleProgress(
-                ModuleProgressEntity.fromDomain(
-                    current.copy(practiced = true, lastPracticedAt = System.currentTimeMillis())
-                )
-            )
-        }
-    }
-
-    override suspend fun markMastered(moduleId: String) {
-        moduleProgressMutex.withLock {
-            val current = currentModule(moduleId)
-            dao.upsertModuleProgress(
-                ModuleProgressEntity.fromDomain(
-                    current.copy(practiced = true, mastered = true, lastPracticedAt = System.currentTimeMillis())
-                )
-            )
-        }
-    }
-
-    override suspend fun recordModuleAttempt(moduleId: String, correct: Boolean) {
-        moduleProgressMutex.withLock {
-            val current = currentModule(moduleId)
-            val nextAttempts = current.attempts + 1
-            val nextCorrect = current.correctAttempts + if (correct) 1 else 0
-            val mastered = current.mastered || (
-                nextAttempts >= MASTERY_MIN_ATTEMPTS &&
-                    nextCorrect.toFloat() / nextAttempts.toFloat() >= MASTERY_ACCURACY
-            )
-            dao.upsertModuleProgress(
-                ModuleProgressEntity.fromDomain(
-                    current.copy(
-                        practiced = true,
-                        mastered = mastered,
-                        attempts = nextAttempts,
-                        correctAttempts = nextCorrect,
-                        lastPracticedAt = System.currentTimeMillis()
-                    )
-                )
-            )
-        }
-    }
-
-    override suspend fun resetModuleProgress() {
-        moduleProgressMutex.withLock {
-            dao.clearModuleProgress()
-        }
-    }
 }
 
 class InMemoryLearningRepository(initial: LearningProfile = LearningProfile()) : LearningRepository {
     private var profile = initial
-    private val modules = mutableMapOf<String, ModuleProgress>()
-    private val moduleProgressFlow = MutableStateFlow<List<ModuleProgress>>(emptyList())
-    private val moduleProgressMutex = Mutex()
 
     override suspend fun getProfile() = profile
     override suspend fun saveProfile(profile: LearningProfile) { this.profile = profile }
-    override suspend fun getModuleProgress() = moduleProgressMutex.withLock { modules.values.toList() }
-    override fun observeModuleProgress(): Flow<List<ModuleProgress>> = moduleProgressFlow.asStateFlow()
-
-    private fun publishModules() {
-        moduleProgressFlow.value = modules.values.toList()
-    }
-
-    override suspend fun markPracticed(moduleId: String) {
-        moduleProgressMutex.withLock {
-            val current = modules[moduleId] ?: ModuleProgress(moduleId)
-            modules[moduleId] = current.copy(practiced = true, lastPracticedAt = System.currentTimeMillis())
-            publishModules()
-        }
-    }
-
-    override suspend fun markMastered(moduleId: String) {
-        moduleProgressMutex.withLock {
-            val current = modules[moduleId] ?: ModuleProgress(moduleId)
-            modules[moduleId] = current.copy(practiced = true, mastered = true, lastPracticedAt = System.currentTimeMillis())
-            publishModules()
-        }
-    }
-
-    override suspend fun recordModuleAttempt(moduleId: String, correct: Boolean) {
-        moduleProgressMutex.withLock {
-            val current = modules[moduleId] ?: ModuleProgress(moduleId)
-            val nextAttempts = current.attempts + 1
-            val nextCorrect = current.correctAttempts + if (correct) 1 else 0
-            val mastered = current.mastered || (
-                nextAttempts >= MASTERY_MIN_ATTEMPTS &&
-                    nextCorrect.toFloat() / nextAttempts.toFloat() >= MASTERY_ACCURACY
-            )
-            modules[moduleId] = current.copy(
-                practiced = true,
-                mastered = mastered,
-                attempts = nextAttempts,
-                correctAttempts = nextCorrect,
-                lastPracticedAt = System.currentTimeMillis()
-            )
-            publishModules()
-        }
-    }
-
-    override suspend fun resetModuleProgress() {
-        moduleProgressMutex.withLock {
-            modules.clear()
-            publishModules()
-        }
-    }
 }

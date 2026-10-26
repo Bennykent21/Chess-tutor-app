@@ -37,7 +37,6 @@ class RatingLinkCoordinator(
         platform: RatingPlatform,
         username: String,
         timeControl: RatingTimeControl,
-        onApplyBotElo: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit,
         importDepth: ImportDepth = ImportDepth.LAST_100,
         /** Told whether the whole import arrived (false when months failed or the download broke). */
@@ -107,7 +106,6 @@ class RatingLinkCoordinator(
                         linkingSuccessMessage = "Connected ${profile.platform.displayName} '@${profile.username}'$syncSuffix"
                     )
                 }
-                onApplyBotElo()
             }.onFailure { err ->
                 updateState {
                     it.copy(
@@ -122,7 +120,6 @@ class RatingLinkCoordinator(
 
     fun refreshProfile(
         currentProfileUsername: String?,
-        onApplyBotElo: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit,
         importDepth: ImportDepth = ImportDepth.LAST_100,
         /** Told whether the whole import arrived (false when months failed or the download broke). */
@@ -179,7 +176,6 @@ class RatingLinkCoordinator(
                         }
                     )
                 }
-                onApplyBotElo()
             }.onFailure { err ->
                 updateState {
                     it.copy(
@@ -192,13 +188,9 @@ class RatingLinkCoordinator(
         }
     }
 
-    fun setRatingTimeControl(
-        timeControl: RatingTimeControl,
-        onApplyBotElo: () -> Unit
-    ) {
+    fun setRatingTimeControl(timeControl: RatingTimeControl) {
         scope.launch {
             ratingRepository.updateTimeControl(timeControl)
-            onApplyBotElo()
         }
     }
 
@@ -210,7 +202,6 @@ class RatingLinkCoordinator(
      */
     fun autoSync(
         sinceMillis: Long?,
-        onApplyBotElo: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit,
         backfill: Backfill? = null,
     ) {
@@ -228,7 +219,6 @@ class RatingLinkCoordinator(
                 )
                 result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
                 if (result.isSuccess) updateState { it.copy(lastSyncedEpochMs = System.currentTimeMillis()) }
-                onApplyBotElo()
                 if (backfill != null) runBackfill(profile.platform, profile.username, backfill, updateState)
             } finally {
                 updateState { it.copy(isAutoSyncing = false) }
@@ -272,7 +262,6 @@ class RatingLinkCoordinator(
     }
 
     fun unlinkAccount(
-        onApplyBotElo: () -> Unit,
         updateState: ((AppUiState) -> AppUiState) -> Unit
     ) {
         activeImportJob?.cancel()
@@ -281,13 +270,11 @@ class RatingLinkCoordinator(
             updateState {
                 it.copy(
                     linkedProfile = null,
-                    useLinkedRatingForBot = false,
                     importProgress = null,
                     linkingSuccessMessage = null,
                     linkingError = null
                 )
             }
-            onApplyBotElo()
         }
     }
 

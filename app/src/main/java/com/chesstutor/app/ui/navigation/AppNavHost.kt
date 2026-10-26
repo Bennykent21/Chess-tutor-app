@@ -88,7 +88,6 @@ import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.StartScreen
 import com.chesstutor.app.navigation.StartingLevel
 import com.chesstutor.app.navigation.TopTab
-import com.chesstutor.app.ui.components.PromotionDialog
 import com.chesstutor.app.viewmodel.AppViewModel
 import java.time.Instant
 
@@ -698,17 +697,6 @@ fun AppNavHost(
                         onBack = { navController.popBackStack() }
                     )
                 }
-            }
-
-            // Overlays shared by every screen. Their Back handlers are registered last, so
-            // Back closes them first.
-            if (state.pendingPromotion != null) {
-                BackHandler { viewModel.cancelPromotion() }
-                PromotionDialog(
-                    request = state.pendingPromotion!!,
-                    onChoose = viewModel::choosePromotion,
-                    onDismiss = viewModel::cancelPromotion
-                )
             }
         }
     }
