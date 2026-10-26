@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chesstutor.app.data.model.GameRecord
@@ -91,6 +92,28 @@ class AccountScreenTest {
 
         compose.onNodeWithText("vs Pip (1450) · White").performClick()
         assertEquals("bot_1", opened)
+    }
+
+    @Test
+    fun overviewShowsBadgesAndRecentActivity() {
+        val overview = OverviewState(
+            badges = listOf(
+                com.chesstutor.app.domain.account.Badge("first-win", "First win", "Beat a bot", com.chesstutor.app.domain.account.BadgeKind.GAMES, 1, 1),
+                com.chesstutor.app.domain.account.Badge("puzzles-10", "Puzzle starter", "Solve 10 puzzles", com.chesstutor.app.domain.account.BadgeKind.PUZZLES, 4, 10),
+            ),
+            recent = listOf(com.chesstutor.app.domain.account.ActivityItem(1_761_480_000_000, "Beat Ziggy", com.chesstutor.app.domain.account.BadgeKind.GAMES)),
+        )
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 0, actions = AccountActions(), overview = overview)
+            }
+        }
+        val list = compose.onNode(androidx.compose.ui.test.hasScrollToNodeAction())
+        list.performScrollToNode(hasText("Badges · 1 of 2"))
+        compose.onNode(androidx.compose.ui.test.hasContentDescription("Puzzle starter: Solve 10 puzzles. 4 of 10.")).assertExists()
+        list.performScrollToNode(hasText("Beat Ziggy"))
+        compose.onNodeWithText("Beat Ziggy").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_badges.png")
     }
 
     @Test

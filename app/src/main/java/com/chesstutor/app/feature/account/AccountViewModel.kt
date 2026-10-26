@@ -33,6 +33,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import com.chesstutor.app.domain.account.AchievementInputs
+import com.chesstutor.app.domain.account.Achievements
+import com.chesstutor.app.domain.account.ActivityItem
+import com.chesstutor.app.domain.account.Badge
+import com.chesstutor.app.domain.learn.LessonLibrary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -58,14 +63,15 @@ class TrainingSources(
     val puzzleHistory: Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList()),
     val loadPack: suspend () -> PuzzlePack = { PuzzlePack.EMPTY },
     val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
-    val loadLessonCount: suspend () -> Int = { 0 },
+    /** The bundled lessons (their count and titles). */
+    val loadLessons: suspend () -> LessonLibrary = { LessonLibrary.EMPTY },
 ) {
     /** The Training report, recomputed when puzzles or lessons change (Training page and Home). */
     fun reports(): Flow<TrainingReport> = combine(
         puzzleHistory,
         lessonProgress,
         flow { emit(runCatching { loadPack() }.getOrDefault(PuzzlePack.EMPTY)) },
-        flow { emit(runCatching { loadLessonCount() }.getOrDefault(0)) },
+        flow { emit(runCatching { loadLessons() }.getOrDefault(LessonLibrary.EMPTY).courses.sumOf { it.lessons.size }) },
     ) { history, lessons, pack, lessonTotal ->
         TrainingCalculator.report(history, { id -> pack.get(id)?.themes }, lessons.values.count { it.completed }, lessonTotal)
     }
@@ -74,6 +80,9 @@ class TrainingSources(
         val EMPTY_REPORT: TrainingReport = TrainingCalculator.report(emptyList(), { null }, 0, 0)
     }
 }
+
+/** Account > Overview's badges and recent activity. */
+data class OverviewState(val badges: List<Badge> = emptyList(), val recent: List<ActivityItem> = emptyList())
 
 /** The player's saved games, newest first, with openings named (plan section 6.4). */
 data class GamesState(
@@ -168,6 +177,26 @@ class AccountViewModel(
     val reviews: StateFlow<Map<String, GameReview>> = games.map { state -> reviewsOf(state) }
         .flowOn(worker)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** Badges and recent activity for the Overview (plan 5.3 and 6.4), from what is already saved. */
+    val overview: StateFlow<OverviewState> = combine(
+        games,
+        reviews,
+        trainingSources.puzzleHistory,
+        stats,
+        combine(trainingSources.lessonProgress, flow { emit(runCatching { trainingSources.loadLessons() }.getOrDefault(LessonLibrary.EMPTY)) }) { progress, library -> progress to library },
+    ) { g, reviewed, puzzles, stats, (progress, library) ->
+        val inputs = AchievementInputs(
+            games = g.games,
+            analysed = g.analysed,
+            reviews = reviewed,
+            puzzles = puzzles,
+            playerLevel = stats.playerLevel.level,
+            lessonsFinished = progress.values.filter { it.completed }.associate { it.lessonId to it.completedAt },
+            lessonTitles = library.courses.flatMap { it.lessons }.associate { it.id to it.title },
+        )
+        OverviewState(Achievements.badges(inputs), Achievements.recent(inputs))
+    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewState())
 
     init {
         viewModelScope.launch { tree.value = runCatching { loadOpenings() }.getOrDefault(OpeningTree.EMPTY) }
