@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chesstutor.app.data.diagnostics.CrashLog
+import com.chesstutor.app.data.network.WorkImportRunner
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.ui.navigation.AppNavHost
 import com.chesstutor.app.ui.theme.ChessTutorTheme
@@ -37,6 +38,8 @@ class MainActivity : ComponentActivity() {
           gameRepository = AppContainer.provideGameRepository(context),
           soundManager = AppContainer.provideSoundManager(context),
           settingsStore = AppContainer.provideSettingsStore(context),
+          // Long imports run in WorkManager, so they carry on when the app leaves the screen.
+          importer = { scope -> WorkImportRunner(context, scope) },
         )
       }
       val appViewModel: AppViewModel = viewModel(factory = factory)

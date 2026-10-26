@@ -28,10 +28,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /** "Analyse" from a puzzle: the position and solution reach the analysis board intact. */
 @RunWith(AndroidJUnit4::class)
 @Config(qualifiers = "w400dp-h1600dp-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AnalysisScreenTest {
 
     @get:Rule

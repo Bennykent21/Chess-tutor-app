@@ -27,7 +27,10 @@ import com.chesstutor.app.data.settings.SettingsStore
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.ChatLevel
 import com.chesstutor.app.engine.ChessEngineManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.chesstutor.app.data.network.ImportRunner
+import com.chesstutor.app.data.network.InProcessImportRunner
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -53,13 +56,20 @@ class AppViewModel(
     private val gameRepository: GameRepository = InMemoryGameRepository(),
     private val soundManager: ChessSoundManager? = null,
     private val settingsStore: SettingsStore = InMemorySettingsStore(),
+    /** Runs the long imports; the app passes WorkManager's, tests a fake. Null: in this view model's scope. */
+    importer: ((CoroutineScope) -> ImportRunner)? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
     val state: StateFlow<AppUiState> = _state.asStateFlow()
 
     private val profileMutex = Mutex()
-    private val ratingLinkCoordinator = RatingLinkCoordinator(ratingRepository, viewModelScope, gameRepository)
+    private val ratingLinkCoordinator = RatingLinkCoordinator(
+        ratingRepository,
+        viewModelScope,
+        gameRepository,
+        importer = importer?.invoke(viewModelScope) ?: InProcessImportRunner(viewModelScope, gameRepository),
+    )
     private var lastAutoSyncAt = 0L
 
     companion object {
@@ -75,6 +85,8 @@ class AppViewModel(
             loadProfile()
             observeLinkedProfile()
         }
+        // A finished import that got everything it was asked for forgets its target.
+        ratingLinkCoordinator.observeImports(_state::update) { finished -> if (finished.complete) setImportTarget(null) }
         viewModelScope.launch {
             // DataStore is the single source of truth for player settings.
             settingsStore.settings.collect { settings ->
@@ -160,7 +172,7 @@ class AppViewModel(
             val target = settingsStore.settings.first().importTarget
             val oldest = mine.minOfOrNull { it.dateMillis }
             val backfill = if (target != null && oldest != null && mine.size < target.maxGames) {
-                RatingLinkCoordinator.Backfill(oldest, target.maxGames - mine.size) { complete -> if (complete) setImportTarget(null) }
+                RatingLinkCoordinator.Backfill(oldest, target.maxGames - mine.size)
             } else {
                 if (target != null && mine.size >= target.maxGames) setImportTarget(null)
                 null
@@ -188,16 +200,12 @@ class AppViewModel(
         importDepth: ImportDepth = _state.value.selectedImportDepth,
     ) {
         setImportTarget(importDepth)
-        ratingLinkCoordinator.linkAccount(platform, username, timeControl, _state::update, importDepth) { complete ->
-            if (complete) setImportTarget(null)
-        }
+        ratingLinkCoordinator.linkAccount(platform, username, timeControl, _state::update, importDepth)
     }
 
     fun refreshLinkedRating(importDepth: ImportDepth = _state.value.selectedImportDepth) {
         setImportTarget(importDepth)
-        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, _state::update, importDepth) { complete ->
-            if (complete) setImportTarget(null)
-        }
+        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, _state::update, importDepth)
     }
 
     fun setRatingTimeControl(timeControl: RatingTimeControl) {
@@ -272,10 +280,11 @@ class AppViewModelFactory(
     private val gameRepository: GameRepository,
     private val soundManager: ChessSoundManager?,
     private val settingsStore: SettingsStore,
+    private val importer: ((CoroutineScope) -> ImportRunner)? = null,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         require(modelClass.isAssignableFrom(AppViewModel::class.java)) { "Unknown ViewModel class: ${modelClass.name}" }
-        return AppViewModel(reviewRepository, engineManager, ratingRepository, learningRepository, gameRepository, soundManager, settingsStore) as T
+        return AppViewModel(reviewRepository, engineManager, ratingRepository, learningRepository, gameRepository, soundManager, settingsStore, importer) as T
     }
 }
