@@ -27,15 +27,15 @@ class MainActivity : ComponentActivity() {
     setContent {
       val context = LocalContext.current.applicationContext
       val factory = remember(context) {
-        val repo = AppContainer.provideReviewRepository(context)
-        val engine = AppContainer.provideEngineClient(context)
-        val ratingRepo = AppContainer.provideRatingRepository(context)
-        val learningRepo = AppContainer.provideLearningRepository(context)
-        val engineManager = AppContainer.provideChessEngineManager(context)
-        val gameRepo = AppContainer.provideGameRepository(context)
-        val soundManager = AppContainer.provideSoundManager(context)
-        val settingsStore = AppContainer.provideSettingsStore(context)
-        AppViewModelFactory(repo, engine, ratingRepo, learningRepo, engineManager, gameRepo, soundManager, settingsStore)
+        AppViewModelFactory(
+          reviewRepository = AppContainer.provideReviewRepository(context),
+          engineManager = AppContainer.provideChessEngineManager(context),
+          ratingRepository = AppContainer.provideRatingRepository(context),
+          learningRepository = AppContainer.provideLearningRepository(context),
+          gameRepository = AppContainer.provideGameRepository(context),
+          soundManager = AppContainer.provideSoundManager(context),
+          settingsStore = AppContainer.provideSettingsStore(context),
+        )
       }
       val appViewModel: AppViewModel = viewModel(factory = factory)
 

@@ -17,7 +17,7 @@ data class Evaluation(
     }
     val cp = centipawns ?: 0
     val pawns = cp / 100.0
-    return if (pawns > 0) "+${String.format("%.1f", pawns)}" else String.format("%.1f", pawns)
+    return if (pawns > 0) "+${String.format(java.util.Locale.ROOT, "%.1f", pawns)}" else String.format(java.util.Locale.ROOT, "%.1f", pawns)
   }
 
   fun winningPercentageWhite(): Float {

@@ -258,7 +258,7 @@ private fun ContinueCard(state: AppUiState, home: HomeUiState, actions: HomeActi
                     Text(text = "Move ${resume.moveCount / 2 + 1} · you play $side", style = CtType.Caption.copy(color = CtColors.Text2))
                 } else {
                     Text(
-                        text = state.trainingRecommendation.ifBlank { coachLine(home) },
+                        text = coachLine(home),
                         style = CtType.Body.copy(color = CtColors.Text),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,

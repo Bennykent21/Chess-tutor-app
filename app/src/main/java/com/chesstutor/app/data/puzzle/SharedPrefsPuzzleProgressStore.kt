@@ -1,6 +1,7 @@
 package com.chesstutor.app.data.puzzle
 
 import android.content.Context
+import androidx.core.content.edit
 import com.chesstutor.app.domain.puzzle.PuzzleProgress
 import com.chesstutor.app.domain.puzzle.PuzzleProgressStore
 import com.chesstutor.app.domain.puzzle.PuzzleRating
@@ -31,15 +32,15 @@ class SharedPrefsPuzzleProgressStore(context: Context) : PuzzleProgressStore {
     fun readLegacy(): PuzzleProgress? = if (prefs.contains(KEY_RATING)) load(PuzzleRating.MIN) else null
 
     override fun save(progress: PuzzleProgress) {
-        prefs.edit()
-            .putInt(KEY_RATING, progress.rating)
-            .putStringSet(KEY_SEEN, progress.seenIds.toSet())
-            .putInt(KEY_ATTEMPTS, progress.attempts)
-            .putInt(KEY_SOLVED, progress.solved)
-            .putInt(KEY_CLEAN, progress.cleanSolves)
-            .putInt(KEY_STREAK, progress.streak)
-            .putInt(KEY_BEST_STREAK, progress.bestStreak)
-            .apply()
+        prefs.edit {
+            putInt(KEY_RATING, progress.rating)
+            putStringSet(KEY_SEEN, progress.seenIds.toSet())
+            putInt(KEY_ATTEMPTS, progress.attempts)
+            putInt(KEY_SOLVED, progress.solved)
+            putInt(KEY_CLEAN, progress.cleanSolves)
+            putInt(KEY_STREAK, progress.streak)
+            putInt(KEY_BEST_STREAK, progress.bestStreak)
+        }
     }
 
     private companion object {
