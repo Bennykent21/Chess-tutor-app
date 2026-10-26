@@ -25,6 +25,8 @@ object ReviewCommentary {
         val san = move.san
         val headline = when (move.quality) {
             MoveQuality.BOOK -> "$san is a book move"
+            MoveQuality.BRILLIANT -> "$san is brilliant!"
+            MoveQuality.GREAT -> "$san is a great move"
             MoveQuality.BEST -> "$san is best"
             MoveQuality.GOOD -> "$san is good"
             MoveQuality.INACCURACY -> "$san is an inaccuracy"
@@ -33,6 +35,8 @@ object ReviewCommentary {
         }
         val detail = when (move.quality) {
             MoveQuality.BOOK -> openingName?.let { "A known move in the ${it.substringBefore(':')}." } ?: "A known opening move."
+            MoveQuality.BRILLIANT -> "A sacrifice that works: the material you give up comes back with interest."
+            MoveQuality.GREAT -> "The only good move here. Everything else let your chances slip."
             MoveQuality.BEST -> when {
                 san.endsWith("#") -> "Checkmate!"
                 san.endsWith("+") -> "A strong check, and the engine's first choice."

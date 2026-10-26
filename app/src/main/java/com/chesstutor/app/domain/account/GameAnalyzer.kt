@@ -78,9 +78,10 @@ class GameAnalyzer(
 
     private suspend fun search(ply: Int, position: Position): PlyEval? {
         val fen = position.toFen()
-        val line = engine.analyseToDepth(fen, lines = 1, depth = depth).firstOrNull()
-            ?: engine.analyse(fen, lines = 1, movetimeMs = FALLBACK_MOVETIME_MS).firstOrNull()
-            ?: return null
+        // Two lines: the second shows whether the best move was the only good one ("Great").
+        val lines = engine.analyseToDepth(fen, lines = 2, depth = depth).ifEmpty { engine.analyse(fen, lines = 2, movetimeMs = FALLBACK_MOVETIME_MS) }
+        val line = lines.firstOrNull() ?: return null
+        val second = lines.getOrNull(1)
         val best = line.firstMove ?: return null
         return PlyEval(
             ply = ply,
@@ -90,6 +91,8 @@ class GameAnalyzer(
             line = line.moves.take(MAX_LINE),
             depth = line.depth,
             lite = engine.status.value.isDegraded,
+            secondCentipawns = second?.centipawns.takeIf { second?.mateInMoves == null },
+            secondMate = second?.mateInMoves,
         )
     }
 
