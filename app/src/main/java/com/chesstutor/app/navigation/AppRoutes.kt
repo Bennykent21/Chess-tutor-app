@@ -16,6 +16,8 @@ object AppRoutes {
     const val BOARD_SETTINGS = "account/board"
     /** The Settings page (plan 6.4), replacing the old settings sheet. */
     const val SETTINGS = "account/settings"
+    /** Every bundled part and its licence, with the licence texts (Settings > About). */
+    const val LICENCES = "account/licences"
     /** One saved game: result, opening, final position and moves (plan section 6.4). */
     const val GAME_ID_ARG = "gameId"
     const val GAME_PATTERN = "account/game/{$GAME_ID_ARG}"
@@ -96,7 +98,7 @@ object AppRoutes {
     /** Full screen (no bottom bar), like every activity that hosts a board. */
     const val BOARD_LAB = "board/lab"
 
-    private val accountPages = setOf(ENGINE_HEALTH, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, GAME_PATTERN)
+    private val accountPages = setOf(ENGINE_HEALTH, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
     /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN)
 

@@ -22,6 +22,7 @@ import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.data.settings.BoardOrientation
 import com.chesstutor.app.data.settings.InMemorySettingsStore
+import com.chesstutor.app.data.settings.ReviewDepth
 import com.chesstutor.app.data.settings.SettingsStore
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.ChatLevel
@@ -235,6 +236,10 @@ class AppViewModel(
     fun setAutoQueen(enabled: Boolean) = updateSettings { it.copy(autoQueen = enabled) }
 
     fun setMascot(mascot: Mascot) = updateSettings { it.copy(mascotId = mascot.id) }
+
+    fun setReviewDepth(depth: ReviewDepth) = updateSettings { it.copy(reviewDepth = depth) }
+
+    fun setOnlineEngine(enabled: Boolean) = updateSettings { it.copy(onlineEngine = enabled) }
 
     fun setBoardColors(colors: BoardColors) = updateSettings { it.copy(boardThemeId = colors.id) }
 
