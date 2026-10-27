@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -188,7 +187,7 @@ fun PositionEditor(
 private fun EditorBoard(board: SetupBoard, theme: BoardTheme, onTap: (com.chesstutor.app.core.Square) -> Unit) {
     // The editor may hold positions the rules engine rejects (no kings yet); draw what is there.
     val position = remember(board) { Position(board.squares.toTypedArray(), board.sideToMove) }
-    BoxWithConstraints(Modifier.fillMaxWidth().aspectRatio(1f)) {
+    Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
         BoardCanvas(
             position = position,
             theme = theme,
