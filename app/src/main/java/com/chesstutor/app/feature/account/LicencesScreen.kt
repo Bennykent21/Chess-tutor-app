@@ -47,7 +47,8 @@ data class Credit(val name: String, val by: String, val licence: Licence)
 /** Everything the app ships, as recorded in `LICENSES.md` (plan section 9). */
 val CREDITS: List<Credit> = listOf(
     Credit("Chess Tutor", "Its developers", Licence.GPL3),
-    Credit("Stockfish 19 chess engine and its network", "The Stockfish developers", Licence.GPL3),
+    Credit("Stockfish 19 chess engine", "The Stockfish developers", Licence.GPL3),
+    Credit("Stockfish neural network (inside the engine)", "The Stockfish network authors", Licence.CC0),
     Credit("Maia human-like move networks", "CSSLab, University of Toronto", Licence.GPL3),
     Credit("Leela Chess Zero move tables (for Maia)", "The LCZero developers", Licence.GPL3),
     Credit("Puzzles", "The Lichess puzzle database (lichess.org)", Licence.CC0),

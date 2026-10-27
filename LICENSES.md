@@ -7,7 +7,7 @@ known before release (plan.md, section 9). Add a row whenever an asset is added.
 | Asset | Where in the repo | Source | Licence |
 |---|---|---|---|
 | Stockfish 19 chess engine | `app/src/main/jniLibs/*/libstockfish.so` (built by CI, not committed) | Official source, tag `sf_19`, commit `edb0d9db6731067ec50ce619ff372b463bc4dd5d`, built by `tools/build_stockfish_android.sh` | GPL-3.0 |
-| Stockfish neural network `nn-1a298aa575a0.nnue` | Embedded inside `libstockfish.so` | Published by the Stockfish project for Stockfish 19; downloaded and SHA-256 checked by Stockfish's own build script | Distributed as part of the GPL-3.0 Stockfish binary. Confirm the networks repository's terms before the first store release |
+| Stockfish neural network `nn-1a298aa575a0.nnue` | Embedded inside `libstockfish.so` | Published by the Stockfish project for Stockfish 19; downloaded and SHA-256 checked by Stockfish's own build script | CC0 1.0: "All networks in this repository were uploaded by the authors under the CC0 license" (github.com/official-stockfish/networks, checked 27 Oct 2026). Shipped inside the GPL-3.0 Stockfish binary |
 | Nunito (Bold, ExtraBold, Black) | `app/src/main/res/font/nunito_*.ttf` | Google Fonts release, version 3.602 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
 | Inter (Regular) | `app/src/main/res/font/inter.ttf` | Inter 4.001 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
 | JetBrains Mono | `app/src/main/res/font/jetbrains_mono.ttf` | JetBrains Mono 2.211 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |

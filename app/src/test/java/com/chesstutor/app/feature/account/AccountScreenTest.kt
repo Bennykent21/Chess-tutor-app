@@ -248,7 +248,7 @@ class AccountScreenTest {
     @Test
     fun theLicencesPageCreditsEveryPartAndOpensLicenceTexts() {
         compose.setContent { CtTheme(reduceMotion = true) { LicencesScreen(onBack = {}) } }
-        compose.onNodeWithText("Stockfish 19 chess engine and its network").assertExists()
+        compose.onNodeWithText("Stockfish 19 chess engine").assertExists()
         compose.onNodeWithText("Kenney (kenney.nl)").performScrollTo().assertExists()
         compose.onNode(hasText("GNU General Public License v3.0") and hasClickAction()).performScrollTo().performClick()
         // The text is read from the app's assets off the main thread.
