@@ -80,7 +80,7 @@ class HomeViewModelTest {
 
     private fun model() = HomeViewModel(
         FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(PuzzleStats(dayStreak = 3)), store,
-        random = Random(1), clock = { test.testScheduler.currentTime },
+        random = Random(1), clock = { test.testScheduler.currentTime }, worker = dispatcher,
     )
 
     private fun BotGame.play(uci: String) {
@@ -194,7 +194,7 @@ class HomeViewModelTest {
         )
         val vm = HomeViewModel(
             FakeEngine(), { tree }, games, bots, flowOf(PuzzleStats()), store,
-            random = Random(1), clock = { test.testScheduler.currentTime },
+            random = Random(1), clock = { test.testScheduler.currentTime }, worker = dispatcher,
         )
         vm.presetBattle("Sicilian Defense", PieceColor.BLACK)
         assertEquals(SideChoice.BLACK, vm.battle.value.side)
@@ -216,7 +216,7 @@ class HomeViewModelTest {
         val report = TrainingReport(emptyList(), 6, 1, emptyList(), listOf(forks), 1, 2)
         val vm = HomeViewModel(
             FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(PuzzleStats()), store,
-            random = Random(1), clock = { test.testScheduler.currentTime },
+            random = Random(1), clock = { test.testScheduler.currentTime }, worker = dispatcher,
             learning = HomeLearning(
                 training = flowOf(report),
                 loadLessons = { library },

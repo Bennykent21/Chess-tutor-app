@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.data.diagnostics.PerfLog
+import com.chesstutor.app.data.diagnostics.AnalysisTiming
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -230,9 +232,13 @@ class AccountViewModel(
                     val game = withTimeoutOrNull(GAME_WAIT_MS) { games.first { !it.loading && it.game(gameId) != null } }
                         ?.game(gameId) ?: return@withLock
                     if (again) analysis.delete(gameId)
-                    GameAnalyzer(engine, analysis, depth = reviewDepth(), clock = clock).analyse(game) { done, total ->
+                    val depth = reviewDepth()
+                    val analyzer = GameAnalyzer(engine, analysis, depth = depth, clock = clock)
+                    analyzer.analyse(game) { done, total ->
                         mutableJobs.update { it + (gameId to AnalysisJob(done, total, waiting = false)) }
                     }
+                    // How fast Stockfish is on this phone (Settings > Engine health), for tuning the depth.
+                    if (analyzer.lastSearched > 0) PerfLog.analysis(AnalysisTiming(analyzer.lastSearched, analyzer.lastSearchMillis, depth))
                 }
                 mutableJobs.update { it - gameId }
             } catch (e: CancellationException) {

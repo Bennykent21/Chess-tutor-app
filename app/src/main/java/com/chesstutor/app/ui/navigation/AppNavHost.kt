@@ -1,5 +1,7 @@
 package com.chesstutor.app.ui.navigation
 
+import android.os.SystemClock
+import com.chesstutor.app.data.diagnostics.PerfLog
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -124,6 +126,8 @@ fun AppNavHost(
         StartScreen.APP -> Unit
     }
 
+    // Start-up time: from the process starting to the first frame with the profile read (plan Phase 6D).
+    LaunchedEffect(Unit) { PerfLog.startup(SystemClock.elapsedRealtime() - android.os.Process.getStartElapsedRealtime()) }
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -786,7 +790,8 @@ fun AppNavHost(
                             report = state.engineSelfTestReport,
                             isRunning = state.isRunningEngineSelfTest,
                             onRunCheck = viewModel::runEngineSelfTest,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            perf = PerfLog.snapshot.collectAsStateWithLifecycle().value,
                         )
                     }
                     composable(AppRoutes.LICENCES) {

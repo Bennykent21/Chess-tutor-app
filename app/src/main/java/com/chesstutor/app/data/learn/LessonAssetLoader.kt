@@ -1,5 +1,6 @@
 package com.chesstutor.app.data.learn
 
+import com.chesstutor.app.data.diagnostics.PerfLog
 import android.content.res.AssetManager
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.LessonCategory
@@ -22,7 +23,7 @@ class LessonAssetLoader(private val assets: AssetManager, private val folder: St
     @Volatile private var cached: LessonLibrary? = null
 
     suspend fun load(): LessonLibrary = cached ?: lock.withLock {
-        cached ?: withContext(Dispatchers.Default) { read() }.also { cached = it }
+        cached ?: withContext(Dispatchers.Default) { PerfLog.timed("Lessons") { read() } }.also { cached = it }
     }
 
     private fun read(): LessonLibrary {

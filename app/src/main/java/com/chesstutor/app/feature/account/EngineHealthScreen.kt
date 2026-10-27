@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.data.diagnostics.PerfSnapshot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,8 @@ fun EngineHealthScreen(
     onRunCheck: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Speed measured on this phone since the app started (plan Phase 6D). */
+    perf: PerfSnapshot = PerfSnapshot(),
 ) {
     val healthy = !status.isDegraded && status.nativeState == NativeEngineState.READY
     val (headline, detail) = when {
@@ -123,8 +126,40 @@ fun EngineHealthScreen(
                         "nodes per second as Stockfish measured it.",
                     style = CtType.Caption,
                 )
+
+                SpeedCard(perf)
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }
     }
+}
+
+/** "Speed on this phone": start-up, loading, the last analysis and import, measured here (plan Phase 6D). */
+@Composable
+private fun SpeedCard(perf: PerfSnapshot) {
+    CtCard(modifier = Modifier.fillMaxWidth()) {
+        Text("Speed on this phone", style = CtType.TitleSmall)
+        Text("Measured since the app started. Nothing is sent anywhere.", style = CtType.Caption)
+        Spacer(Modifier.height(CtSpacing.sm))
+        speedLines(perf).forEach { (label, value) ->
+            Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.xxs)) {
+                Text(label, style = CtType.BodySmall, modifier = Modifier.weight(1f))
+                Text(value, style = CtType.BodySmall.copy(color = CtColors.Text))
+            }
+        }
+    }
+}
+
+/** The speed card's rows, in plain words. */
+internal fun speedLines(perf: PerfSnapshot): List<Pair<String, String>> {
+    fun ms(value: Long?): String = when {
+        value == null -> "not yet"
+        value < 1_000 -> "$value ms"
+        else -> String.format(java.util.Locale.ROOT, "%.1f s", value / 1000.0)
+    }
+    val rows = mutableListOf("App start" to ms(perf.startupMillis))
+    listOf("Puzzles", "Openings", "Lessons").forEach { rows += "Loading ${it.lowercase()}" to ms(perf.loads[it]) }
+    rows += "Last game review" to (perf.analysis?.let { "${it.positions} positions in ${ms(it.millis)} (${ms(it.msPerPosition)} each, depth ${it.depth})" } ?: "not yet")
+    rows += "Last import" to (perf.import?.let { "${it.games} games from ${it.source} in ${ms(it.millis)}" } ?: "not yet")
+    return rows
 }

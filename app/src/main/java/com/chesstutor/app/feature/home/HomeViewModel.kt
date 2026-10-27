@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.home
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -123,6 +126,8 @@ class HomeViewModel(
     /** Maia's human-like networks (D26); null plays every bot in the engine mode. */
     private val maia: MaiaSource? = null,
     learning: HomeLearning = HomeLearning(),
+    /** Where the Training report is computed; tests pass their own dispatcher. */
+    worker: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
     private val playerRating = MutableStateFlow(800)
     private val dueMistakes = MutableStateFlow(0)
@@ -133,6 +138,8 @@ class HomeViewModel(
         learning.lessonProgress,
         learning.training,
     ) { library, progress, report -> nextLessonOf(library, progress) to report }
+        // The Training report counts every puzzle played: keep that off the main thread.
+        .flowOn(worker)
     private val snapshot = MutableStateFlow(store.load())
 
     /** Loaded eagerly, so a saved game against one of them can be resumed at once. */

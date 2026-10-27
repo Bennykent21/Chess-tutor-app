@@ -50,14 +50,24 @@ class GameAnalyzer(
      * after each one, then saves and returns the summary. Cancelling the coroutine stops it
      * between positions.
      */
+    /** Positions Stockfish searched in the last [analyse] (cached ones are not counted), and how long that took. */
+    var lastSearched: Int = 0
+        private set
+    var lastSearchMillis: Long = 0
+        private set
+
     suspend fun analyse(game: GameSummary, onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): AnalysisSummary {
+        lastSearched = 0
+        lastSearchMillis = 0
         val start = game.startFen ?: Position.STARTING_FEN
         val positions = GameReviewer.positions(start, game.moves)
         val cached = repository.evals(game.id).mapTo(HashSet()) { it.ply }
         positions.forEachIndexed { ply, position ->
             currentCoroutineContext().ensureActive()
             if (ply !in cached) {
-                val eval = GameReviewer.terminalEval(ply, position) ?: search(ply, position) ?: throw AnalysisFailedException(ply)
+                val started = System.nanoTime()
+                val eval = GameReviewer.terminalEval(ply, position) ?: search(ply, position)?.also { lastSearched++ } ?: throw AnalysisFailedException(ply)
+                lastSearchMillis += (System.nanoTime() - started) / 1_000_000
                 repository.saveEval(game.id, eval)
             }
             onProgress(ply + 1, positions.size)
