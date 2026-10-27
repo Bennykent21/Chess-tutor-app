@@ -3,6 +3,7 @@ package com.chesstutor.app.viewmodel
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.ImportProgress
+import com.chesstutor.app.data.model.LinkedChessProfile
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.data.network.ImportKind
@@ -34,6 +35,8 @@ class RatingLinkCoordinator(
 ) {
     private var verifyJob: Job? = null
     private var syncJob: Job? = null
+    /** New games "Import more" saved before handing over to the importer, for its end message. */
+    private var newGamesBeforeImport = 0
 
     /**
      * Follows the importer for the life of the app: its progress card while it runs, then the
@@ -46,7 +49,9 @@ class RatingLinkCoordinator(
                     null -> Unit
                     is ImportStatus.Running -> updateState { it.copy(isLinkingLoading = true, importProgress = status.progress) }
                     is ImportStatus.Finished -> {
-                        updateState { finishedState(it, status) }
+                        val newGames = if (status.request.kind == ImportKind.MORE) newGamesBeforeImport else 0
+                        newGamesBeforeImport = 0
+                        updateState { finishedState(it, status, newGames) }
                         onFinished(status)
                         importer.acknowledge()
                     }
@@ -100,11 +105,18 @@ class RatingLinkCoordinator(
         }
     }
 
-    /** "Import more": fresh ratings, then up to [importDepth] of the newest games. */
+    /**
+     * "Import more": fresh ratings and the games played since [sinceMillis] (the newest saved
+     * one), then up to [importDepth] games older than [beforeMillis] (the oldest saved one). It
+     * used to ask for the newest games again, so the games already saved used up the request
+     * and "Import 500" with 257 saved brought nothing new (Phase 7 import fix).
+     */
     fun refreshProfile(
         currentProfileUsername: String?,
         updateState: ((AppUiState) -> AppUiState) -> Unit,
         importDepth: ImportDepth = ImportDepth.LAST_100,
+        beforeMillis: Long? = null,
+        sinceMillis: Long? = null,
     ) {
         if (currentProfileUsername == null) return
         verifyJob?.cancel()
@@ -117,13 +129,16 @@ class RatingLinkCoordinator(
                     importedCount = 0,
                     targetCount = importDepth.maxGames,
                     currentPeriod = currentProfileUsername,
-                    phase = "Syncing '@$currentProfileUsername'...",
+                    phase = "Checking for new games from '@$currentProfileUsername'...",
                 ),
             )
         }
         verifyJob = scope.launch {
             ratingRepository.refreshProfile()
-                .onSuccess { profile -> importer.start(ImportRequest(ImportKind.MORE, profile.platform, profile.username, importDepth.maxGames)) }
+                .onSuccess { profile ->
+                    newGamesBeforeImport = if (sinceMillis != null) fetchNewGames(profile, sinceMillis).getOrNull()?.size ?: 0 else 0
+                    importer.start(ImportRequest(ImportKind.MORE, profile.platform, profile.username, importDepth.maxGames, beforeMillis = beforeMillis))
+                }
                 .onFailure { err -> updateState { it.copy(isLinkingLoading = false, importProgress = null, linkingError = err.message ?: "Failed to refresh rating") } }
         }
     }
@@ -149,14 +164,7 @@ class RatingLinkCoordinator(
             updateState { it.copy(isAutoSyncing = true) }
             try {
                 val profile = ratingRepository.refreshProfile().getOrNull() ?: return@launch
-                val result = ratingApiClient.fetchRecentGames(
-                    platform = profile.platform,
-                    username = profile.username,
-                    maxGames = ImportDepth.LAST_100.maxGames,
-                    sinceMillis = sinceMillis,
-                    onBatch = { batch -> saveGamesOrError(batch) },
-                )
-                result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+                val result = fetchNewGames(profile, sinceMillis)
                 if (result.isSuccess) updateState { it.copy(lastSyncedEpochMs = System.currentTimeMillis()) }
                 if (backfill != null) {
                     importer.start(ImportRequest(ImportKind.BACKFILL, profile.platform, profile.username, backfill.maxGames, beforeMillis = backfill.beforeMillis))
@@ -165,6 +173,19 @@ class RatingLinkCoordinator(
                 updateState { it.copy(isAutoSyncing = false) }
             }
         }
+    }
+
+    /** Up to 100 games played since [sinceMillis] (all of the newest when null), saved as they arrive. */
+    private suspend fun fetchNewGames(profile: LinkedChessProfile, sinceMillis: Long?): Result<List<GameRecord>> {
+        val result = ratingApiClient.fetchRecentGames(
+            platform = profile.platform,
+            username = profile.username,
+            maxGames = ImportDepth.LAST_100.maxGames,
+            sinceMillis = sinceMillis,
+            onBatch = { batch -> saveGamesOrError(batch) },
+        )
+        result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+        return result
     }
 
     /** Finishing an interrupted import: up to [maxGames] games older than [beforeMillis]. */
@@ -194,8 +215,11 @@ class RatingLinkCoordinator(
     }
 
     companion object {
-        /** The screen after an import ends: no progress card, and what to tell the player. */
-        fun finishedState(state: AppUiState, done: ImportStatus.Finished): AppUiState {
+        /**
+         * The screen after an import ends: no progress card, and what to tell the player.
+         * [newGames] are the new games "Import more" saved before the importer started.
+         */
+        fun finishedState(state: AppUiState, done: ImportStatus.Finished, newGames: Int = 0): AppUiState {
             val request = done.request
             val issue = when {
                 done.error != null -> done.error
@@ -208,13 +232,13 @@ class RatingLinkCoordinator(
             val success = when (request.kind) {
                 ImportKind.LINK -> "Connected ${request.platform.displayName} $name" +
                     (if (done.imported > 0) " · Imported ${done.imported} games$incomplete$partial" else if (issue == null) " · No games found yet" else "")
-                ImportKind.MORE -> if (done.imported > 0) "Synced $name (${done.imported} games$incomplete)$partial" else "Updated ratings for $name"
-                ImportKind.BACKFILL -> if (done.imported > 0) "Finished importing: ${done.imported} more games$partial" else null
+                ImportKind.MORE -> moreMessage(done, newGames, name, incomplete, partial, issue)
+                ImportKind.BACKFILL -> if (done.added > 0) "Finished importing: ${games(done.added, "more ")}$partial" else null
             }
             val error = issue?.let { msg ->
                 when (request.kind) {
                     ImportKind.LINK -> "Account connected, but your games weren't imported. $msg"
-                    ImportKind.MORE -> "Ratings updated, but your games weren't synced. $msg"
+                    ImportKind.MORE -> "Ratings updated, but your older games weren't imported. $msg"
                     ImportKind.BACKFILL -> "Your import stopped early. $msg"
                 }
             }
@@ -226,5 +250,21 @@ class RatingLinkCoordinator(
                 linkingSuccessMessage = success ?: state.linkingSuccessMessage,
             )
         }
+
+        /** "Added 3 new games and 500 older games for '@kenny'", or why nothing came. */
+        private fun moreMessage(done: ImportStatus.Finished, newGames: Int, name: String, incomplete: String, partial: String, issue: String?): String? {
+            val older = done.added.takeIf { it > 0 }?.let { games(it, if (done.request.beforeMillis != null) "older " else "") }
+            val fresh = newGames.takeIf { it > 0 }?.let { games(it, "new ") }
+            val added = listOfNotNull(fresh, older)
+            return when {
+                added.isNotEmpty() -> "Added ${added.joinToString(" and ")} for $name$incomplete$partial"
+                issue != null -> null
+                done.request.beforeMillis != null -> "No older games found for $name: every game from ${done.request.platform.displayName} is here already"
+                else -> "Updated ratings for $name"
+            }
+        }
+
+        /** "1 game", "500 older games". */
+        private fun games(count: Int, kind: String = ""): String = if (count == 1) "1 ${kind}game" else "$count ${kind}games"
     }
 }

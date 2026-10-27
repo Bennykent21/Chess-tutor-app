@@ -59,10 +59,11 @@ class AppSettingsTest {
 
     @Test
     fun anUnfinishedImportTargetIsRemembered() {
-        val encoded = AppSettingsCodec.encode(AppSettings(importTarget = com.chesstutor.app.data.model.ImportDepth.ALL))
-        assertEquals("ALL", encoded[AppSettingsCodec.IMPORT_TARGET])
-        assertEquals(com.chesstutor.app.data.model.ImportDepth.ALL, AppSettingsCodec.decode(encoded).importTarget)
+        val encoded = AppSettingsCodec.encode(AppSettings(importTarget = 757))
+        assertEquals("757", encoded[AppSettingsCodec.IMPORT_TARGET])
+        assertEquals(757, AppSettingsCodec.decode(encoded).importTarget)
         assertEquals(null, AppSettingsCodec.decode(AppSettingsCodec.encode(AppSettings())).importTarget)
+        assertEquals("a target saved before Phase 7 still reads", 1500, AppSettingsCodec.decode(mapOf(AppSettingsCodec.IMPORT_TARGET to "ALL")).importTarget)
     }
 
     @Test

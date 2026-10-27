@@ -106,6 +106,7 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         private const val MAX = "max"
         private const val BEFORE = "before"
         private const val IMPORTED = "imported"
+        private const val ADDED = "added"
         private const val INCOMPLETE = "incomplete"
         private const val FAILED = "failed"
         private const val ERROR = "error"
@@ -175,6 +176,7 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         private fun output(finished: ImportStatus.Finished): Data = Data.Builder()
             .putBoolean(DONE, true)
             .putInt(IMPORTED, finished.imported)
+            .putInt(ADDED, finished.added)
             .putInt(INCOMPLETE, finished.incomplete)
             .putInt(FAILED, finished.failedPeriods)
             .putString(ERROR, finished.error)
@@ -189,6 +191,8 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             // A worker that crashed leaves no result.
             error = data.getString(ERROR) ?: if (!data.getBoolean(DONE, false)) "The import stopped before it finished." else null,
             saveFailed = data.getBoolean(SAVE_FAILED, false),
+            // Results written before the count existed: every downloaded game counts.
+            added = data.getInt(ADDED, data.getInt(IMPORTED, 0)),
         )
     }
 }
