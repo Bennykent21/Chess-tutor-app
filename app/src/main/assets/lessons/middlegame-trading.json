@@ -1,0 +1,73 @@
+{
+  "id": "middlegame-trading",
+  "category": "middlegame",
+  "title": "Trading pieces",
+  "intro": "When you are ahead, every trade brings the win closer. Learn to force trades and to see when the pawn ending is won.",
+  "level": "intermediate",
+  "order": 50,
+  "puzzleThemes": ["queenEndgame", "bishopEndgame"],
+  "lessons": [
+    {
+      "id": "middlegame-trade-queens",
+      "title": "Trade queens when you are ahead",
+      "summary": "A check that offers the trade cannot be refused.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White is a pawn up, but with queens on the board Black can give checks for ever. Trading queens ends that, and White's king and pawns win the ending.",
+          "fen": "8/5ppk/4p3/p6p/P4P1P/1Q3PP1/1K3q2/8 w - - 5 43"
+        },
+        {
+          "type": "play",
+          "text": "Offer the trade with check, so Black has no choice.",
+          "fen": "8/5ppk/4p3/p6p/P4P1P/1Q3PP1/1K3q2/8 w - - 5 43",
+          "line": ["b3c2", "f2c2", "b2c2"],
+          "hint": "Find a queen check on the diagonal towards h7, on a square the black queen also reaches.",
+          "ifWrong": "Put your queen where it gives check and faces the black queen.",
+          "ifRight": "Queens are off, and the extra pawn will decide."
+        },
+        {
+          "type": "quiz",
+          "text": "The same idea: force the queen trade with check.",
+          "fen": "8/3PQ1pk/7p/pp6/3q1K2/1P5P/6P1/8 w - - 3 60",
+          "line": ["e7e4", "d4e4", "f4e4"],
+          "hint": "Which check also offers your queen to the black one?",
+          "ifWrong": "Check on e4.",
+          "ifRight": "After the trade, the d-pawn cannot be stopped."
+        }
+      ]
+    },
+    {
+      "id": "middlegame-trade-into-pawn-ending",
+      "title": "Trade into a won pawn ending",
+      "summary": "With the more active king, the last trade wins.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's king on d5 is far more active than White's. If the bishops come off, the king walks in and eats pawns. Trades help the side with the better king.",
+          "fen": "8/8/1p3b1p/p2k2p1/P2P1p2/1P3P1P/4K1P1/B7 b - - 0 44",
+          "highlights": ["d5"]
+        },
+        {
+          "type": "play",
+          "text": "Trade bishops and let your king in.",
+          "fen": "8/8/1p3b1p/p2k2p1/P2P1p2/1P3P1P/4K1P1/B7 b - - 0 44",
+          "line": ["f6d4", "a1d4", "d5d4"],
+          "hint": "Take the pawn on d4 with the bishop.",
+          "ifWrong": "Capture on d4 with the bishop.",
+          "ifRight": "The pawn ending is easily won: the king is already in."
+        },
+        {
+          "type": "quiz",
+          "text": "Again: one trade and the king walks in.",
+          "fen": "8/8/8/1p3pb1/p3kB2/P1P3P1/1P2K3/8 b - - 1 42",
+          "line": ["g5f4", "g3f4", "e4f4"],
+          "hint": "Trade the bishops on f4.",
+          "ifWrong": "Take on f4 with the bishop first.",
+          "ifRight": "Black's king takes the f-pawn and the ending is won."
+        }
+      ]
+    }
+  ]
+}

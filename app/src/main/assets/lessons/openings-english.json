@@ -1,0 +1,39 @@
+{
+  "id": "openings-english",
+  "category": "openings",
+  "title": "English Opening",
+  "intro": "1.c4 grabs the d5 square from the side. Against 1...e5 it is like a Sicilian with colours reversed and an extra move for White.",
+  "level": "intermediate",
+  "order": 55,
+  "side": "white",
+  "battleLine": "English Opening: King's English Variation",
+  "lessons": [
+    {
+      "id": "openings-english-kings",
+      "title": "The King's English",
+      "summary": "c4, Nc3, g3 and Bg2: pressure on d5 and the long diagonal.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "1.c4 controls d5 without putting a pawn in the centre yet. White's plan: Nc3 and a bishop on g2, all aiming at d5 and the long light diagonal.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "arrows": ["c2c4:good", "f1g2:idea"]
+        },
+        {
+          "type": "explain",
+          "text": "If Black takes the centre with ...d5, White swaps it off with cxd5 and the bishop on g2 rakes the long diagonal towards b7 and a8."
+        },
+        {
+          "type": "play",
+          "text": "Set up the English as White.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "line": ["c2c4", "e7e5", "b1c3", "g8f6", "g2g3", "d7d5", "c4d5", "f6d5", "f1g2"],
+          "hint": "c4, Nc3, g3, then take on d5 and put the bishop on g2.",
+          "ifWrong": "Follow the plan: c4, Nc3, g3, cxd5, Bg2.",
+          "ifRight": "The bishop on g2 already hits the knight on d5 and the queenside.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

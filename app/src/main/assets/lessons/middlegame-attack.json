@@ -1,0 +1,73 @@
+{
+  "id": "middlegame-attack",
+  "category": "middlegame",
+  "title": "Attacking the king",
+  "intro": "When the king's shelter is thin, a sacrifice can break it open. Learn the bishop check on h7 and the queen sacrifice that opens the back rank.",
+  "level": "intermediate",
+  "order": 40,
+  "puzzleThemes": ["sacrifice"],
+  "lessons": [
+    {
+      "id": "middlegame-bishop-h7",
+      "title": "The bishop on h7",
+      "summary": "A bishop check that opens a file with tempo.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White's bishop on d3 stands in front of the two rooks on the d-file. Black's rook on d7 is defended only by the rook on d8. If the bishop leaves with check, both white rooks hit d7 at once.",
+          "fen": "3r2k1/pp1rnpp1/2p1p2p/4P3/P7/2PB2P1/1P1R1PP1/3R2K1 w - - 1 22",
+          "arrows": ["d3h7:idea", "d2d7:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Clear the d-file with a bishop check, then win on d7.",
+          "fen": "3r2k1/pp1rnpp1/2p1p2p/4P3/P7/2PB2P1/1P1R1PP1/3R2K1 w - - 1 22",
+          "line": ["d3h7", "g8h7", "d2d7"],
+          "hint": "The bishop gives check on h7. Black has no time to defend d7.",
+          "ifWrong": "Start with the bishop check on h7.",
+          "ifRight": "Two rooks against one defender: White wins a rook for the bishop."
+        },
+        {
+          "type": "quiz",
+          "text": "Black just took on h5. Now h7 is guarded only by the king. Finish it.",
+          "fen": "r2q1rk1/ppp3bp/3p4/4p1Np/2Pn4/3Q4/PP3PP1/R1B1K2R w KQ - 0 15",
+          "expect": ["d3h7"],
+          "hint": "Your queen and knight both attack h7.",
+          "ifWrong": "Look at h7: your queen and knight both attack it.",
+          "ifRight": "Mate on h7, with the knight guarding the queen."
+        }
+      ]
+    },
+    {
+      "id": "middlegame-queen-sacrifice",
+      "title": "Sacrifice the queen to mate",
+      "summary": "Give the biggest piece if mate follows.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's king has no escape square on the back rank. White's queen and rook both look at d8. If the queen goes there with check, the rook that takes it leaves the back rank to White's rook.",
+          "fen": "1r5k/p5pp/5p2/3Qp3/8/8/1q4PP/3R2K1 w - - 2 28",
+          "arrows": ["d5d8:idea", "d1d8:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Sacrifice the queen.",
+          "fen": "1r5k/p5pp/5p2/3Qp3/8/8/1q4PP/3R2K1 w - - 2 28",
+          "line": ["d5d8", "b8d8", "d1d8"],
+          "hint": "Queen to d8 with check.",
+          "ifWrong": "Look for a queen check on the back rank.",
+          "ifRight": "Rxd8 is mate. The queen was a small price."
+        },
+        {
+          "type": "quiz",
+          "text": "The same idea on the h-file.",
+          "fen": "r4k2/1b2rppQ/p3p1n1/1p2P3/2pP4/7R/Pq3PPP/1B1R2K1 w - - 4 29",
+          "line": ["h7h8", "g6h8", "h3h8"],
+          "hint": "Queen to h8 with check: the knight must take, and the h-file opens.",
+          "ifWrong": "Give the queen on h8.",
+          "ifRight": "Rxh8 is mate."
+        }
+      ]
+    }
+  ]
+}

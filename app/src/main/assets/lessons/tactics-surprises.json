@@ -1,0 +1,66 @@
+{
+  "id": "tactics-surprises",
+  "category": "tactics",
+  "title": "Surprise moves",
+  "intro": "Before you play the obvious move, look for a stronger one in between, or a check from two pieces at once.",
+  "level": "intermediate",
+  "order": 60,
+  "puzzleThemes": ["intermezzo", "doubleCheck"],
+  "lessons": [
+    {
+      "id": "tactics-in-between",
+      "title": "In-between moves",
+      "summary": "A check first, then the capture.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The queens face each other on d4 and d1. Qxd4 Nxd4 just trades them, because the knight on c6 guards d4. But a check comes first: the bishop on f3 can take that knight with check.",
+          "fen": "r3kb1r/pp3ppp/2n1p3/8/3q4/P4B1P/1P3PP1/R1BQK2R w KQkq - 0 13",
+          "arrows": ["f3c6:idea", "c6d4:bad"],
+          "highlights": ["d4"]
+        },
+        {
+          "type": "play",
+          "text": "Win the queen: check first, capture second.",
+          "fen": "r3kb1r/pp3ppp/2n1p3/8/3q4/P4B1P/1P3PP1/R1BQK2R w KQkq - 0 13",
+          "line": ["f3c6", "b7c6", "d1d4"],
+          "hint": "Take the knight on c6 with check before touching the queens.",
+          "ifWrong": "Remove the guard of d4 with a check first.",
+          "ifRight": "Black had to answer the check, and then the queen had no defender."
+        },
+        {
+          "type": "quiz",
+          "text": "The same trick in another game. Find the move in between.",
+          "fen": "r3k2r/ppp1bppp/2n5/4P3/3q4/5B1P/PP3P2/R1BQ1RK1 w kq - 0 15",
+          "line": ["f3c6", "b7c6", "d1d4"],
+          "hint": "Again the knight on c6 holds everything together.",
+          "ifWrong": "Check first, then take the queen.",
+          "ifRight": "In-between moves win games: always ask whether a check comes first."
+        }
+      ]
+    },
+    {
+      "id": "tactics-double-check",
+      "title": "Double check",
+      "summary": "Two pieces check at once: the king must run.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A double check comes from two pieces at the same time. Nothing can block both or take both, so the king has to move. That often leaves the rest of the army hanging.",
+          "fen": "5k2/ppqb4/2pp1PPb/8/3Pr3/5R1P/PP4R1/6K1 w - - 1 34",
+          "arrows": ["f3f8:idea", "g6g7:idea"],
+          "highlights": ["f8"]
+        },
+        {
+          "type": "play",
+          "text": "Push the g-pawn with check. After Bxg7, take back with the f-pawn: check from the pawn and the rook together.",
+          "fen": "5k2/ppqb4/2pp1PPb/8/3Pr3/5R1P/PP4R1/6K1 w - - 1 34",
+          "line": ["g6g7", "h6g7", "f6g7"],
+          "hint": "g7 checks first. Then fxg7 opens the f-file for your rook.",
+          "ifWrong": "Start with the check g7.",
+          "ifRight": "Double check: the pawn and the rook both attack the king, and Black's position collapses."
+        }
+      ]
+    }
+  ]
+}

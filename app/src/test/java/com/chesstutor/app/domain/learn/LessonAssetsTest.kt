@@ -38,7 +38,7 @@ class LessonAssetsTest {
     fun battleLinesExistInTheOpeningDatabase() {
         val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(OpeningTree::fromStream)
         val withLines = courses.filter { it.battleLine != null }
-        assertEquals("every opening except the principles course links to Opening Battle", 8, withLines.size)
+        assertEquals("every opening except the principles course links to Opening Battle", 10, withLines.size)
         withLines.forEach { course ->
             val line = OpeningBattles.presetLine(tree, course.battleLine!!)
             assertTrue("${course.id}: no line named \"${course.battleLine}\"", line != null)
