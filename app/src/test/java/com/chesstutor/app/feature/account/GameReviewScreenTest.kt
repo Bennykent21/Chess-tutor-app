@@ -116,6 +116,19 @@ class GameReviewScreenTest {
     }
 
     @Test
+    fun exploreFromHereOpensThePositionWithTheRestOfTheGame() {
+        var explored: Pair<String, List<String>>? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(onExplore = { fen, line -> explored = fen to line }), startPly = 5)
+            }
+        }
+        compose.onNodeWithText("Explore from here").performClick()
+        assertEquals(GameReviewer.positions(Position.STARTING_FEN, moves)[5].toFen(), explored?.first)
+        assertEquals(listOf("g8f6", "h5f7"), explored?.second)
+    }
+
+    @Test
     fun aRunningAnalysisFillsTheGraphWithoutAProgressCard() {
         compose.setContent {
             CtTheme(reduceMotion = true) {

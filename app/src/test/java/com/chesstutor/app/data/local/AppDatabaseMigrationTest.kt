@@ -18,15 +18,15 @@ import org.robolectric.RobolectricTestRunner
 class AppDatabaseMigrationTest {
 
     private companion object {
-        const val LATEST = 12
+        const val LATEST = 13
     }
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun allMigrationsArrayContainsAllVersionsFrom1To12() {
+    fun allMigrationsArrayContainsAllVersionsFrom1ToLatest() {
         val migrations = AppDatabase.ALL_MIGRATIONS
-        assertEquals(11, migrations.size)
+        assertEquals(LATEST - 1, migrations.size)
         migrations.forEachIndexed { i, m ->
             assertEquals(i + 1, m.startVersion)
             assertEquals(i + 2, m.endVersion)
@@ -374,6 +374,47 @@ class AppDatabaseMigrationTest {
             assertTrue(it.isNull(1))
             assertTrue(it.isNull(2))
         }
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    /** A real version-12 database: MIGRATION_12_13 adds the practice and opening drill tables and keeps the games. */
+    @Test
+    fun migration12To13AddsTrainingTablesAndKeepsData() {
+        val name = "migration-12-13-test.db"
+        context.deleteDatabase(name)
+        val config = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(object : SupportSQLiteOpenHelper.Callback(12) {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS review_items (" +
+                            "id TEXT NOT NULL, fen TEXT NOT NULL, dueAt INTEGER NOT NULL, " +
+                            "stage INTEGER NOT NULL DEFAULT -1, attempts INTEGER NOT NULL DEFAULT 0, " +
+                            "mistakeUci TEXT NOT NULL DEFAULT '', bestMoveUci TEXT NOT NULL DEFAULT '', " +
+                            "explanation TEXT NOT NULL DEFAULT '', PRIMARY KEY(id))"
+                    )
+                    AppDatabase.ALL_MIGRATIONS.filter { it.endVersion <= 12 }.forEach { it.migrate(db) }
+                    db.execSQL(
+                        "INSERT INTO game_records (id, dateMillis, botName, botRating, result, pgn, moveCount, userColor, finalFen, uciMoves) " +
+                            "VALUES ('bot_1', 5, 'Pip', 800, '1-0', '', 2, 'white', '', 'e2e4 e7e5')"
+                    )
+                }
+
+                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(config).also { it.writableDatabase.close() }
+
+        val room = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        val db = room.openHelper.writableDatabase
+        assertEquals(LATEST, db.version)
+        db.query("SELECT botName FROM game_records").use { assertTrue(it.moveToFirst()); assertEquals("Pip", it.getString(0)) }
+        db.query("SELECT COUNT(*) FROM course_practice").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
+        db.query("SELECT COUNT(*) FROM opening_drill").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
         room.close()
         context.deleteDatabase(name)
     }

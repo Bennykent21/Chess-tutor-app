@@ -40,6 +40,8 @@ data class PuzzleRunSpec(
     /** A wrong move fails the puzzle and the run moves on (Rush). */
     val oneTry: Boolean = false,
     val nextPuzzle: (index: Int, solvedSoFar: Int) -> Puzzle?,
+    /** Told the score (puzzles solved, out of how many) when the run ends, for practice sets. */
+    val onFinished: (suspend (solved: Int, total: Int) -> Unit)? = null,
 )
 
 enum class PlayerPhase { LOADING, SETUP, SOLVING, REPLYING, SOLVED, REVEALED, FINISHED, UNAVAILABLE }
@@ -318,6 +320,7 @@ class PuzzlePlayer(
         runClock?.cancel()
         val s = mutableState.value
         mutableState.update { it.copy(phase = PlayerPhase.FINISHED) }
+        spec.onFinished?.let { report -> scope.launch { report(s.solvedWithoutReveal, s.results.size) } }
         val level = spec.level ?: return
         if (spec.mode != PuzzleMode.LEVEL) return
         val run = LevelRun(level, s.solvedWithoutReveal, s.results.size)

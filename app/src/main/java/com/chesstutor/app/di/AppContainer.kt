@@ -6,6 +6,7 @@ import com.chesstutor.app.data.account.RoomGameAnalysisRepository
 import com.chesstutor.app.data.bot.RoomBotRepository
 import com.chesstutor.app.data.learn.LessonAssetLoader
 import com.chesstutor.app.data.learn.RoomLessonProgressRepository
+import com.chesstutor.app.data.learn.RoomTrainingRepository
 import com.chesstutor.app.data.local.AppDatabase
 import com.chesstutor.app.domain.learn.LessonProgressRepository
 import com.chesstutor.app.data.maia.MaiaAssetLoader
@@ -141,6 +142,16 @@ object AppContainer {
     fun provideGameAnalysis(context: Context): GameAnalysisRepository {
         return gameAnalysisInstance ?: synchronized(this) {
             gameAnalysisInstance ?: RoomGameAnalysisRepository(AppDatabase.getInstance(context)).also { gameAnalysisInstance = it }
+        }
+    }
+
+    @Volatile
+    private var trainingInstance: RoomTrainingRepository? = null
+
+    /** Practice-set scores and opening trainer progress (Room `course_practice`, `opening_drill`). */
+    fun provideTraining(context: Context): RoomTrainingRepository {
+        return trainingInstance ?: synchronized(this) {
+            trainingInstance ?: RoomTrainingRepository(AppDatabase.getInstance(context)).also { trainingInstance = it }
         }
     }
 

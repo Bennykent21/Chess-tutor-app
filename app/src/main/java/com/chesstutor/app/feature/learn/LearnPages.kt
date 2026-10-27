@@ -55,6 +55,8 @@ import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.learn.LessonLevel
 import com.chesstutor.app.domain.learn.LessonProgress
 import com.chesstutor.app.domain.learn.LessonStep
+import com.chesstutor.app.domain.learn.PracticeResult
+import com.chesstutor.app.domain.learn.PracticeSets
 
 /**
  * A category page (plan section 6.2), for example Openings: every course as a card with
@@ -160,6 +162,10 @@ fun CourseScreen(
     onPractise: (() -> Unit)? = null,
     /** Opens puzzles on the course's themes; null hides the button. */
     onRelatedPuzzles: (() -> Unit)? = null,
+    /** Plays the course's practice set (plan 6C); null hides the card. */
+    onPracticeSet: (() -> Unit)? = null,
+    /** The best go at the practice set so far. */
+    practice: PracticeResult? = null,
 ) {
     CtScreenBackground(modifier) {
         if (course == null) {
@@ -192,9 +198,10 @@ fun CourseScreen(
                     LessonRow(number = i + 1, lesson = lesson, progress = progress[lesson.id], onClick = { onOpenLesson(lesson.id) }, modifier = Modifier.ctEnter(i))
                 }
 
-                if (onPractise != null || onRelatedPuzzles != null) {
+                if (onPractise != null || onRelatedPuzzles != null || onPracticeSet != null) {
                     CtSectionHeader(title = "Practise")
                 }
+                onPracticeSet?.let { PracticeSetCard(practice, accent, onPlay = it) }
                 onPractise?.let {
                     CtButton(text = "Practise in Opening Battle", icon = Icons.Rounded.Flag, style = CtButtonStyle.Secondary, onClick = it, modifier = Modifier.fillMaxWidth())
                 }
@@ -203,6 +210,28 @@ fun CourseScreen(
                 }
                 Spacer(Modifier.height(CtSpacing.lg))
             }
+        }
+    }
+}
+
+/** The course's practice set: the same 10 puzzles each time, best score and mastery. */
+@Composable
+private fun PracticeSetCard(practice: PracticeResult?, accent: androidx.compose.ui.graphics.Color, onPlay: () -> Unit) {
+    CtCard(onClick = onPlay, onClickLabel = "Play the practice set", modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Practice set", style = CtType.TitleSmall)
+                Text(
+                    when {
+                        practice == null -> "${PracticeSets.SIZE} puzzles on this course's ideas. Solve ${PracticeSets.PASS} to master it."
+                        practice.mastered -> "Mastered · best ${practice.best}/${practice.total}"
+                        else -> "Best ${practice.best}/${practice.total} · solve ${PracticeSets.passMark(practice.total)} to master it"
+                    },
+                    style = CtType.Caption,
+                )
+            }
+            if (practice?.mastered == true) CtChip(text = "Mastered", color = CtColors.Lime, icon = Icons.Rounded.Check)
+            else CtChip(text = "Play", color = accent)
         }
     }
 }

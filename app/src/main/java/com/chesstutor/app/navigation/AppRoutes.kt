@@ -34,6 +34,9 @@ object AppRoutes {
     const val PUZZLE_DAILY = "puzzles/daily"
     /** Mistakes review: due positions from the player's own games, full screen on the board. */
     const val MISTAKE_REVIEW = "puzzles/review"
+    /** Starts a course's practice set (plan 6C) and opens the player. */
+    const val PUZZLE_PRACTICE_PATTERN = "puzzles/practice/{courseId}"
+    fun puzzlePractice(courseId: String): String = "puzzles/practice/${encode(courseId)}"
     /** Starts puzzles with a lesson's themes (comma-separated Lichess names) and opens the player. */
     const val THEMES_ARG = "themes"
     const val PUZZLE_RELATED_PATTERN = "puzzles/related/{$THEMES_ARG}"
@@ -41,6 +44,9 @@ object AppRoutes {
     fun parseThemes(value: String?): List<String> = value.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
     /** The lesson player, full screen inside the Learn tab (the lesson is chosen before opening it). */
     const val LESSON = "learn/lesson"
+    /** The opening trainer's list (plan 6C), and one line on the board (full screen). */
+    const val TRAINER = "learn/trainer"
+    const val TRAINER_DRILL = "learn/trainer/drill"
     /** Opens one lesson from another tab (Home's Continue card), then shows the player. */
     const val LESSON_ID_ARG = "lessonId"
     const val LESSON_OPEN_PATTERN = "learn/open/{$LESSON_ID_ARG}"
@@ -100,7 +106,7 @@ object AppRoutes {
 
     private val accountPages = setOf(ENGINE_HEALTH, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
     /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
-    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN)
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
 
     /**
      * The bottom bar shows on tab pages and hides on full-screen activities (anything that
