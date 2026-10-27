@@ -1,7 +1,7 @@
 package com.chesstutor.app.feature.account
 
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -113,6 +113,19 @@ class GameReviewScreenTest {
         compose.onNodeWithText("A side line").assertExists()
         compose.onNodeWithText("Back to the game").performClick()
         compose.onNodeWithText("Nf6 is a blunder").assertExists()
+    }
+
+    @Test
+    fun exploreFromHereOpensThePositionWithTheRestOfTheGame() {
+        var explored: Pair<String, List<String>>? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(onExplore = { fen, line -> explored = fen to line }), startPly = 5)
+            }
+        }
+        compose.onNodeWithText("Explore from here").performClick()
+        assertEquals(GameReviewer.positions(Position.STARTING_FEN, moves)[5].toFen(), explored?.first)
+        assertEquals(listOf("g8f6", "h5f7"), explored?.second)
     }
 
     @Test

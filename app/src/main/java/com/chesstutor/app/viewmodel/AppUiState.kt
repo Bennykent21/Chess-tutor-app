@@ -2,131 +2,29 @@ package com.chesstutor.app.viewmodel
 
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.ImportProgress
-import com.chesstutor.app.domain.ChessPosition
-import com.chesstutor.app.domain.LessonTrainSession
-import com.chesstutor.app.domain.MoveAssessment
+import com.chesstutor.app.data.model.LinkedChessProfile
+import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.domain.ReviewItem
-import com.chesstutor.app.domain.TrainDrillsRepository
-import com.chesstutor.app.navigation.OpeningMode
-import com.chesstutor.app.core.engine.BotStrength
+import com.chesstutor.app.engine.EngineStatus
 
-enum class PuzzlePhase {
-    SOLVING,
-    CORRECT,
-    WRONG,
-    REVEALED
-}
-
-enum class CoachingLevel(val label: String) {
-    OFF("Off"),
-    HINTS_ON_REQUEST("Hints on Request"),
-    LIVE_EVAL("Live Eval"),
-    FULL_COACH("Full Coach")
-}
-
-data class PromotionRequest(
-    val from: String,
-    val to: String,
-    val choices: List<Char>
-)
-
-data class TacticalIssueSummary(
-    val tacticalIssue: String,
-    val explanation: String,
-    val bestAlternativeMove: Pair<String, String>?
-)
-
+/**
+ * App-wide state shared by every tab: the player's profile, settings, linked account, the
+ * mistakes due for review and the engine's health. Each tab's own screens live in their
+ * feature view models.
+ */
 data class AppUiState(
-    val loading: Boolean = false,
-    /** False until the saved learning profile has been read, so start-up does not flash onboarding. */
+    /** False until the saved learning profile has been read, so start-up does not flash the wrong screen. */
     val profileLoaded: Boolean = false,
+    /** The starting rating from Home's welcome card, until a linked account gives a real one. */
     val estimatedRating: Int = 600,
+    /** "COMPLETE" once the player has answered the welcome card (D30). */
     val assessmentState: String = "NOT_STARTED",
-    val assessmentPositionIndex: Int = 0,
-    val assessmentCorrect: Int = 0,
-    val assessmentTotal: Int = 0,
-    val assessmentCompletedAt: Long? = null,
-    val learningGoal: String = "GENERAL_IMPROVEMENT",
-    val tacticalAttempts: Int = 0,
-    val tacticalCorrect: Int = 0,
-    // 0: session host (lesson/drill player; not in the bottom bar), 1: Learn, 2: Play (Arena), 3: Review, 4: Puzzles
-    val tab: Int = 1,
-    val fen: String = TrainDrillsRepository.drills.first().fen,
-    val trainFen: String = TrainDrillsRepository.drills.first().fen,
-    val message: String = TrainDrillsRepository.drills.first().objectivePrompt,
-    val trainMessage: String = TrainDrillsRepository.drills.first().objectivePrompt,
-    val puzzlePhase: PuzzlePhase = PuzzlePhase.SOLVING,
-    val hintLevel: Int = 0, // 0 = none, 1 = concept, 2 = piece, 3 = target, 4 = direct move
-    val hintText: String = "",
-    val busy: Boolean = false,
-    val reviewSolved: Boolean = false,
+    /** Every saved mistake (Puzzles > Mistakes review). */
     val reviews: List<ReviewItem> = emptyList(),
-    val activeReviewIndex: Int = 0,
-    val activeReviewItem: ReviewItem? = null,
-    val isReviewMistakeSolverOpen: Boolean = false,
     val storageWarning: String? = null,
-    val assessment: MoveAssessment? = null,
-    val selectedSquare: String? = null,
-    val legalTargets: Set<String> = emptySet(),
-    val pendingPromotion: PromotionRequest? = null,
-    val recommendedArrow: Pair<String, String>? = null,
-    val trainRecommendedArrow: Pair<String, String>? = null,
-    val lastMove: Pair<String, String>? = null,
-    val trainLastMove: Pair<String, String>? = null,
-    val mistakeDetected: Boolean = false,
-    val mistakeFen: String? = null,
-    val canRetryMistake: Boolean = false,
-    // Dedicated Play (Arena) state so switching tabs never corrupts either board (S2)
-    val arenaInitialized: Boolean = false,
-    val arenaFen: String = ChessPosition.STARTING_FEN,
-    val arenaMessage: String = "Make your first move!",
-    val arenaLastMove: Pair<String, String>? = null,
-    val arenaRecommendedArrow: Pair<String, String>? = null,
-    val arenaDifficulty: String = "Casual", // Beginner, Casual, Intermediate, Advanced, Master, Custom
-    val arenaBotName: String = "Wayne",
-    val customBotElo: Int = 600,
-    val analysis: TacticalIssueSummary? = null,
-    val arenaPlayerSide: Char = 'w',
-    val coachingLevel: CoachingLevel = CoachingLevel.FULL_COACH,
-    val selectedOpeningMode: OpeningMode = OpeningMode.FREE,
-    val selectedOpeningLineId: String? = null,
-    val liveOpeningName: String? = null,
-    val liveOpeningEco: String? = null,
-    val outOfTheoryPly: Int? = null,
-    val bookContinuationHint: String? = null,
-    val arenaNextBookMoveUci: String? = null,
-    val arenaNextBookMoveSan: String? = null,
-    val arenaDeviatedUserMoveSan: String? = null,
-    val arenaDeviatedBookMoveSan: String? = null,
-    val arenaDeviatedBookMoveUci: String? = null,
-    val arenaStatusText: String = "",
-    val evaluationCp: Int? = null,
-    val mateIn: Int? = null,
-    val curriculumLessonId: String? = null,
-    val selectedLearnTopicId: String? = null,
-    val activeLessonSession: LessonTrainSession? = null,
-    val curriculumTab: Int = 0,
-    val activeCoachTitle: String = TrainDrillsRepository.drills.first().title,
-    val activeCoachSubtitle: String = TrainDrillsRepository.drills.first().subtitle,
-    val activeCoachCategory: String = TrainDrillsRepository.drills.first().category,
-    val trainingRecommendation: String = "",
-    val trainingRecommendationReason: String = "",
-    val activeCoachRecommendedMove: String? = TrainDrillsRepository.drills.first().solutionUci,
-    val isSettingsVisible: Boolean = false,
-    val isSoundEnabled: Boolean = true,
-    val showCoordinates: Boolean = true,
-    val showLegalDots: Boolean = true,
-    val inProgressModules: Set<String> = emptySet(),
-    val practicedModules: Set<String> = emptySet(),
-    val masteredModules: Set<String> = emptySet(),
-    val isArenaOpponentSheetVisible: Boolean = false,
-    val isEngineDiagnosticsDialogVisible: Boolean = false,
-    val engineDiagnostics: com.chesstutor.app.engine.EngineDiagnostics? = null,
-    val isRunningDiagnostics: Boolean = false,
     val engineSelfTestReport: String? = null,
     val isRunningEngineSelfTest: Boolean = false,
-    val linkedProfile: com.chesstutor.app.data.model.LinkedChessProfile? = null,
-    val useLinkedRatingForBot: Boolean = false,
+    val linkedProfile: LinkedChessProfile? = null,
     val isLinkingLoading: Boolean = false,
     val linkingError: String? = null,
     val linkingSuccessMessage: String? = null,
@@ -135,55 +33,11 @@ data class AppUiState(
     /** The quiet automatic sync of a linked account is running. */
     val isAutoSyncing: Boolean = false,
     val lastSyncedEpochMs: Long? = null,
-    val isAutoOpponentEnabled: Boolean = true,
-    val opponentThinking: Boolean = false,
-    val currentDrillIndex: Int = 0,
-    val moveHistory: List<String> = emptyList(),
-    val arenaUciHistory: List<String> = emptyList(),
-    val isDrillSheetVisible: Boolean = false,
-    val recentGames: List<com.chesstutor.app.data.model.GameRecord> = emptyList(),
-    val selectedGameForPgn: com.chesstutor.app.data.model.GameRecord? = null,
-    val gameAnalysis: com.chesstutor.app.engine.GameAnalysisResult? = null,
-    val analyzingGameId: String? = null,
-    val isGameHistorySheetOpen: Boolean = false,
     /** Player settings, mirrored from DataStore. */
-    val appSettings: com.chesstutor.app.data.settings.AppSettings = com.chesstutor.app.data.settings.AppSettings(),
+    val appSettings: AppSettings = AppSettings(),
     /** Which engine is answering, for the "Lite engine" badge. */
-    val engineStatus: com.chesstutor.app.engine.EngineStatus = com.chesstutor.app.engine.EngineStatus()
+    val engineStatus: EngineStatus = EngineStatus(),
 ) {
-    val isAnalyzingGame: Boolean
-        get() = analyzingGameId != null
-
     val effectiveUserRating: Int
         get() = linkedProfile?.activeRating ?: estimatedRating
-
-    val hasVerifiedHintSolution: Boolean
-        get() {
-            val rec = activeLessonSession?.currentStep?.solutionUci?.takeIf { it.isNotBlank() }
-                ?: activeCoachRecommendedMove?.takeIf { it.isNotBlank() }
-                ?: return false
-            val currentPos = runCatching { ChessPosition(fen) }.getOrNull() ?: return false
-            return currentPos.legalMoves.any { it.uci.equals(rec, ignoreCase = true) }
-        }
-
-    val effectiveBotElo: Int
-        get() {
-            if (arenaDifficulty.equals("Custom", ignoreCase = true)) {
-                return customBotElo
-            }
-            if (useLinkedRatingForBot && linkedProfile?.activeRating != null) {
-                return linkedProfile.activeRating!!.coerceIn(250, 3200)
-            }
-            return BotStrength.presetForKey(arenaDifficulty)?.rating
-                ?: BotStrength.presets.first().rating
-        }
-
-    val botTuningDescription: String
-        get() {
-            if (useLinkedRatingForBot && linkedProfile?.activeRating != null) {
-                val prof = linkedProfile
-                return "Calibrated to your ${prof.platform.displayName} ${prof.selectedTimeControl.displayName} rating (${prof.activeRating})"
-            }
-            return "$arenaBotName ($effectiveBotElo Elo)"
-        }
 }

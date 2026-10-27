@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.home
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -19,6 +22,14 @@ import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.bot.RosterBot
 import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.GameSetup
+import com.chesstutor.app.domain.game.NextLesson
+import com.chesstutor.app.domain.game.NextStep
+import com.chesstutor.app.domain.game.NextStepRecommender
+import com.chesstutor.app.domain.account.TrainingReport
+import com.chesstutor.app.domain.learn.LessonLibrary
+import com.chesstutor.app.domain.learn.LessonProgress
+import com.chesstutor.app.feature.account.TrainingSources
+import com.chesstutor.app.feature.learn.LearnHubModel
 import com.chesstutor.app.domain.game.PlayRecommendation
 import com.chesstutor.app.domain.game.PlayRecommender
 import com.chesstutor.app.domain.game.SetupBoard
@@ -41,6 +52,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -84,6 +97,17 @@ data class HomeUiState(
     val gamesPlayed: Int = 0,
     /** The player's own bots, oldest first. */
     val myBots: List<CustomBot> = emptyList(),
+    /** The next lesson in Learn, for the Continue card; null once every lesson is done. */
+    val nextLesson: NextLesson? = null,
+    /** The "Recommended" card: mistakes to fix, a weak puzzle theme or a bot. */
+    val nextStep: NextStep? = null,
+)
+
+/** What Home reads from Learn, Puzzles and Account for its Continue and Recommended cards. */
+class HomeLearning(
+    val training: Flow<TrainingReport> = flowOf(TrainingSources.EMPTY_REPORT),
+    val loadLessons: suspend () -> LessonLibrary = { LessonLibrary.EMPTY },
+    val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
 )
 
 /**
@@ -101,8 +125,21 @@ class HomeViewModel(
     private val clock: () -> Long = System::currentTimeMillis,
     /** Maia's human-like networks (D26); null plays every bot in the engine mode. */
     private val maia: MaiaSource? = null,
+    learning: HomeLearning = HomeLearning(),
+    /** Where the Training report is computed; tests pass their own dispatcher. */
+    worker: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
     private val playerRating = MutableStateFlow(800)
+    private val dueMistakes = MutableStateFlow(0)
+
+    /** The next lesson and the Training report, combined before they join the rest of Home. */
+    private val learnSide: Flow<Pair<NextLesson?, TrainingReport>> = combine(
+        flow { emit(runCatching { learning.loadLessons() }.getOrDefault(LessonLibrary.EMPTY)) },
+        learning.lessonProgress,
+        learning.training,
+    ) { library, progress, report -> nextLessonOf(library, progress) to report }
+        // The Training report counts every puzzle played: keep that off the main thread.
+        .flowOn(worker)
     private val snapshot = MutableStateFlow(store.load())
 
     /** Loaded eagerly, so a saved game against one of them can be resumed at once. */
@@ -117,6 +154,12 @@ class HomeViewModel(
                 dailySolved = stats.solvedToday,
                 gamesPlayed = list.count { it.id.startsWith("bot_") },
                 myBots = mine,
+            )
+        }.combine(combine(learnSide, dueMistakes) { side, due -> side to due }) { state, (side, due) ->
+            val (lesson, report) = side
+            state.copy(
+                nextLesson = lesson,
+                nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
             BotRoster.byId(s.botId)?.let { ResumeCard(it, s.moves.size, s.playerColor) }
@@ -203,9 +246,14 @@ class HomeViewModel(
         return true
     }
 
-    /** The player's rating, for picking a fair bot (it lives in the app's older state for now). */
+    /** The player's rating, for picking a fair bot (it lives in the app-wide state). */
     fun setPlayerRating(rating: Int) {
         playerRating.value = rating
+    }
+
+    /** Mistakes due in Puzzles > Mistakes review (app-wide state), for the Recommended card. */
+    fun setDueMistakes(count: Int) {
+        dueMistakes.value = count
     }
 
     /** Quick match: the recommended bot, a random colour, the default rules. */
@@ -232,6 +280,14 @@ class HomeViewModel(
     }
 
     // ------------------------------------------------------------------ From a position (review R4)
+
+    private val mutableExplore = MutableStateFlow(ExploreDraft())
+    /** Explore's start page (D32). */
+    val exploreDraft: StateFlow<ExploreDraft> = mutableExplore.asStateFlow()
+
+    fun updateExplore(change: (ExploreDraft) -> ExploreDraft) {
+        mutableExplore.value = change(mutableExplore.value)
+    }
 
     private val mutablePosition = MutableStateFlow(PositionDraft())
     /** The position being set up. */
@@ -388,11 +444,25 @@ class HomeViewModel(
         private val puzzleStats: Flow<PuzzleStats>,
         private val store: ActiveGameStore,
         private val maia: MaiaSource? = null,
+        private val learning: HomeLearning = HomeLearning(),
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(engine, openings, games, bots, puzzleStats, store, maia = maia) as T
+            HomeViewModel(engine, openings, games, bots, puzzleStats, store, maia = maia, learning = learning) as T
     }
+}
+
+/** The Continue card's lesson: the one Learn's own Continue card picks (started first, else the next new one). */
+internal fun nextLessonOf(library: LessonLibrary, progress: Map<String, LessonProgress>): NextLesson? {
+    val (course, lesson) = LearnHubModel.continueLesson(library, progress) ?: return null
+    return NextLesson(
+        lessonId = lesson.id,
+        courseTitle = course.title,
+        lessonTitle = lesson.title,
+        number = course.lessons.indexOf(lesson) + 1,
+        total = course.lessons.size,
+        started = progress[lesson.id]?.started == true,
+    )
 }
 
 private fun List<GameRecord>.botGamesNewestFirst(): List<GameRecord> =

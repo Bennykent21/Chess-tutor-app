@@ -4,7 +4,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LearningDao {
@@ -14,15 +13,7 @@ interface LearningDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertProfile(profile: LearningProfileEntity)
 
-    @Query("SELECT * FROM module_progress ORDER BY moduleId")
-    suspend fun getAllModuleProgress(): List<ModuleProgressEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertModuleProgress(progress: ModuleProgressEntity)
-
+    /** The classic curriculum's progress, kept only so a data reset can clear it. */
     @Query("DELETE FROM module_progress")
     suspend fun clearModuleProgress()
-
-    @Query("SELECT * FROM module_progress ORDER BY moduleId")
-    fun observeModuleProgress(): Flow<List<ModuleProgressEntity>>
 }

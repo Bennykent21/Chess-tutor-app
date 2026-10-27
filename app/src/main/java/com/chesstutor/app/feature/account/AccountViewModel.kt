@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.data.diagnostics.PerfLog
+import com.chesstutor.app.data.diagnostics.AnalysisTiming
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -33,6 +35,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import com.chesstutor.app.domain.account.AchievementInputs
+import com.chesstutor.app.domain.account.Achievements
+import com.chesstutor.app.domain.account.ActivityItem
+import com.chesstutor.app.domain.account.Badge
+import com.chesstutor.app.domain.learn.LessonLibrary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +57,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Instant
 
 /** Where the Training page's numbers come from. */
@@ -57,8 +65,26 @@ class TrainingSources(
     val puzzleHistory: Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList()),
     val loadPack: suspend () -> PuzzlePack = { PuzzlePack.EMPTY },
     val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
-    val loadLessonCount: suspend () -> Int = { 0 },
-)
+    /** The bundled lessons (their count and titles). */
+    val loadLessons: suspend () -> LessonLibrary = { LessonLibrary.EMPTY },
+) {
+    /** The Training report, recomputed when puzzles or lessons change (Training page and Home). */
+    fun reports(): Flow<TrainingReport> = combine(
+        puzzleHistory,
+        lessonProgress,
+        flow { emit(runCatching { loadPack() }.getOrDefault(PuzzlePack.EMPTY)) },
+        flow { emit(runCatching { loadLessons() }.getOrDefault(LessonLibrary.EMPTY).courses.sumOf { it.lessons.size }) },
+    ) { history, lessons, pack, lessonTotal ->
+        TrainingCalculator.report(history, { id -> pack.get(id)?.themes }, lessons.values.count { it.completed }, lessonTotal)
+    }
+
+    companion object {
+        val EMPTY_REPORT: TrainingReport = TrainingCalculator.report(emptyList(), { null }, 0, 0)
+    }
+}
+
+/** Account > Overview's badges and recent activity. */
+data class OverviewState(val badges: List<Badge> = emptyList(), val recent: List<ActivityItem> = emptyList())
 
 /** The player's saved games, newest first, with openings named (plan section 6.4). */
 data class GamesState(
@@ -100,6 +126,8 @@ class AccountViewModel(
     private val engine: EngineService? = null,
     private val mistakeReviews: ReviewRepository? = null,
     trainingSources: TrainingSources = TrainingSources(),
+    /** Stockfish's depth for game reviews (Settings > Engine), read when each analysis starts. */
+    private val reviewDepth: suspend () -> Int = { GameAnalyzer.DEFAULT_DEPTH },
     worker: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
@@ -141,14 +169,8 @@ class AccountViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReviewState())
 
     /** The Training page: puzzle rating history, theme strengths and lessons done (plan 6.4). */
-    val training: StateFlow<TrainingReport> = combine(
-        trainingSources.puzzleHistory,
-        trainingSources.lessonProgress,
-        flow { emit(runCatching { trainingSources.loadPack() }.getOrDefault(PuzzlePack.EMPTY)) },
-        flow { emit(runCatching { trainingSources.loadLessonCount() }.getOrDefault(0)) },
-    ) { history, lessons, pack, lessonTotal ->
-        TrainingCalculator.report(history, { id -> pack.get(id)?.themes }, lessons.values.count { it.completed }, lessonTotal)
-    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrainingCalculator.report(emptyList(), { null }, 0, 0))
+    val training: StateFlow<TrainingReport> = trainingSources.reports()
+        .flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrainingSources.EMPTY_REPORT)
 
     /** Reviews of every analysed game, kept until the game is analysed again. */
     private val reviewCache = HashMap<String, Pair<Long, GameReview>>()
@@ -157,6 +179,26 @@ class AccountViewModel(
     val reviews: StateFlow<Map<String, GameReview>> = games.map { state -> reviewsOf(state) }
         .flowOn(worker)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** Badges and recent activity for the Overview (plan 5.3 and 6.4), from what is already saved. */
+    val overview: StateFlow<OverviewState> = combine(
+        games,
+        reviews,
+        trainingSources.puzzleHistory,
+        stats,
+        combine(trainingSources.lessonProgress, flow { emit(runCatching { trainingSources.loadLessons() }.getOrDefault(LessonLibrary.EMPTY)) }) { progress, library -> progress to library },
+    ) { g, reviewed, puzzles, stats, (progress, library) ->
+        val inputs = AchievementInputs(
+            games = g.games,
+            analysed = g.analysed,
+            reviews = reviewed,
+            puzzles = puzzles,
+            playerLevel = stats.playerLevel.level,
+            lessonsFinished = progress.values.filter { it.completed }.associate { it.lessonId to it.completedAt },
+            lessonTitles = library.courses.flatMap { it.lessons }.associate { it.id to it.title },
+        )
+        OverviewState(Achievements.badges(inputs), Achievements.recent(inputs))
+    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewState())
 
     init {
         viewModelScope.launch { tree.value = runCatching { loadOpenings() }.getOrDefault(OpeningTree.EMPTY) }
@@ -186,11 +228,17 @@ class AccountViewModel(
         running[gameId] = viewModelScope.launch {
             try {
                 engineLock.withLock {
-                    val game = games.first { !it.loading }.game(gameId) ?: return@withLock
+                    // A game saved a moment ago (a bot game's "Review this game") may not be listed yet.
+                    val game = withTimeoutOrNull(GAME_WAIT_MS) { games.first { !it.loading && it.game(gameId) != null } }
+                        ?.game(gameId) ?: return@withLock
                     if (again) analysis.delete(gameId)
-                    GameAnalyzer(engine, analysis, clock = clock).analyse(game) { done, total ->
+                    val depth = reviewDepth()
+                    val analyzer = GameAnalyzer(engine, analysis, depth = depth, clock = clock)
+                    analyzer.analyse(game) { done, total ->
                         mutableJobs.update { it + (gameId to AnalysisJob(done, total, waiting = false)) }
                     }
+                    // How fast Stockfish is on this phone (Settings > Engine health), for tuning the depth.
+                    if (analyzer.lastSearched > 0) PerfLog.analysis(AnalysisTiming(analyzer.lastSearched, analyzer.lastSearchMillis, depth))
                 }
                 mutableJobs.update { it - gameId }
             } catch (e: CancellationException) {
@@ -250,6 +298,11 @@ class AccountViewModel(
         fresh.sortedByDescending { it.dateMillis }
     }
 
+    companion object {
+        /** How long an analysis waits for a just-saved game to appear in the list. */
+        const val GAME_WAIT_MS = 10_000L
+    }
+
     class Factory(
         private val repository: GameRepository,
         private val loadOpenings: suspend () -> OpeningTree,
@@ -258,9 +311,10 @@ class AccountViewModel(
         private val engine: EngineService,
         private val reviews: ReviewRepository,
         private val trainingSources: TrainingSources,
+        private val reviewDepth: suspend () -> Int = { GameAnalyzer.DEFAULT_DEPTH },
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources) as T
+            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources, reviewDepth = reviewDepth) as T
     }
 }

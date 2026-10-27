@@ -42,6 +42,10 @@ object Palette {
     const val ON_LIME = 0xFF1B2A00L
     const val VIOLET = 0xFFA487FFL
     const val VIOLET_DEEP = 0xFF6A4BE0L
+    const val ON_VIOLET = 0xFF160B3DL
+    /** Sky blue: "Brilliant" moves in a review. */
+    const val SKY = 0xFF5CC8FFL
+    const val ON_SKY = 0xFF00213AL
     const val CORAL = 0xFFFF6F6FL
     const val ON_CORAL = 0xFF2B0505L
 
@@ -55,6 +59,7 @@ object Palette {
         LIME to listOf(BG_DEEP, BG, BG_INDIGO, SURFACE, SURFACE_RAISED, SURFACE_HIGH),
         VIOLET to listOf(BG_DEEP, BG, BG_INDIGO, SURFACE, SURFACE_RAISED),
         CORAL to listOf(BG_DEEP, BG, BG_INDIGO, SURFACE, SURFACE_RAISED),
+        SKY to listOf(BG_DEEP, BG, BG_INDIGO, SURFACE, SURFACE_RAISED),
         ON_GOLD to listOf(GOLD, GOLD_DEEP, LIME),
         // Gradient cards: these text colours may sit anywhere on a teal or violet card.
         TEXT to listOf(CARD_TEAL, CARD_VIOLET),
@@ -64,6 +69,8 @@ object Palette {
         ON_TEAL to listOf(TEAL),
         ON_LIME to listOf(LIME),
         ON_CORAL to listOf(CORAL),
+        ON_VIOLET to listOf(VIOLET),
+        ON_SKY to listOf(SKY),
         // The eval bar's White share is drawn in TEXT; its score label there is BG_DEEP.
         BG_DEEP to listOf(TEXT),
     )

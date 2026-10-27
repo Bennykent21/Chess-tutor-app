@@ -22,7 +22,20 @@ data class PlyEval(
     val depth: Int? = null,
     /** True when the weak built-in engine answered because Stockfish did not. */
     val lite: Boolean = false,
+    /** The engine's second-best line here (White's side), for spotting only-moves ("Great"). Null when unknown. */
+    val secondCentipawns: Int? = null,
+    val secondMate: Int? = null,
 ) {
+    /** True when the engine gave a second-best line. */
+    val hasSecond: Boolean get() = secondCentipawns != null || secondMate != null
+
+    /** The mover's winning chances after the second-best move, 0 to 100, or null when unknown. */
+    fun secondWinFor(color: PieceColor): Double? {
+        if (!hasSecond) return null
+        val white = WinProbability.fromScore(secondCentipawns, secondMate)
+        return if (color == PieceColor.WHITE) white else 100.0 - white
+    }
+
     /** White's winning chances, 0 to 100. */
     val whiteWin: Double get() = WinProbability.fromScore(centipawns, mate)
 
@@ -73,6 +86,10 @@ enum class GamePhase(val label: String) {
 /** How good a move was (plan 6.4), judged by how much of the mover's winning chances it threw away. */
 enum class MoveQuality(val label: String, val symbol: String) {
     BOOK("Book", ""),
+    /** A good sacrifice (see [SpecialMoves]). */
+    BRILLIANT("Brilliant", "!!"),
+    /** The only good move: everything else was much worse (see [SpecialMoves]). */
+    GREAT("Great", "!"),
     BEST("Best", ""),
     GOOD("Good", ""),
     INACCURACY("Inaccuracy", "?!"),
@@ -80,6 +97,9 @@ enum class MoveQuality(val label: String, val symbol: String) {
     BLUNDER("Blunder", "??");
 
     val isError: Boolean get() = this == INACCURACY || this == MISTAKE || this == BLUNDER
+
+    /** Best, Great or Brilliant: nothing better to show. */
+    val isTop: Boolean get() = this == BEST || this == GREAT || this == BRILLIANT
 
     companion object {
         /**
@@ -207,12 +227,19 @@ object GameReviewer {
             val winAfter = after.winFor(mover)
             val loss = (winBefore - winAfter).coerceAtLeast(0.0)
             val book = i < bookPlies
+            val base = MoveQuality.of(loss, playedBest = best?.uci == played.uci)
+            val quality = when {
+                book -> MoveQuality.BOOK
+                SpecialMoves.isBrilliant(position, played, positions[i + 1], base, winBefore, winAfter) -> MoveQuality.BRILLIANT
+                SpecialMoves.isGreat(position, played, base, winBefore, before.secondWinFor(mover), winAfter, previous = moves.getOrNull(i - 1)) -> MoveQuality.GREAT
+                else -> base
+            }
             reviewed += ReviewedMove(
                 ply = i + 1,
                 uci = played.uci,
                 san = SanFormatter.format(position, played),
                 mover = mover,
-                quality = if (book) MoveQuality.BOOK else MoveQuality.of(loss, playedBest = best?.uci == played.uci),
+                quality = quality,
                 winBefore = winBefore,
                 winAfter = winAfter,
                 bestMove = before.bestMove,

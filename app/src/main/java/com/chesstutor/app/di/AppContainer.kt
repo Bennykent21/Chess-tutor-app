@@ -6,6 +6,7 @@ import com.chesstutor.app.data.account.RoomGameAnalysisRepository
 import com.chesstutor.app.data.bot.RoomBotRepository
 import com.chesstutor.app.data.learn.LessonAssetLoader
 import com.chesstutor.app.data.learn.RoomLessonProgressRepository
+import com.chesstutor.app.data.learn.RoomTrainingRepository
 import com.chesstutor.app.data.local.AppDatabase
 import com.chesstutor.app.domain.learn.LessonProgressRepository
 import com.chesstutor.app.data.maia.MaiaAssetLoader
@@ -27,6 +28,10 @@ import com.chesstutor.app.data.settings.SettingsStore
 import com.chesstutor.app.domain.account.GameAnalysisRepository
 import com.chesstutor.app.domain.puzzle.PuzzlePack
 import com.chesstutor.app.domain.puzzle.PuzzleRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import com.chesstutor.app.engine.EngineService
@@ -39,6 +44,9 @@ import com.chesstutor.app.engine.StockfishProcessEngineClient
 import java.io.File
 
 object AppContainer {
+    /** Work that lives as long as the app process (following settings). */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     @Volatile
     private var repositoryInstance: ReviewRepository? = null
 
@@ -137,6 +145,16 @@ object AppContainer {
         }
     }
 
+    @Volatile
+    private var trainingInstance: RoomTrainingRepository? = null
+
+    /** Practice-set scores and opening trainer progress (Room `course_practice`, `opening_drill`). */
+    fun provideTraining(context: Context): RoomTrainingRepository {
+        return trainingInstance ?: synchronized(this) {
+            trainingInstance ?: RoomTrainingRepository(AppDatabase.getInstance(context)).also { trainingInstance = it }
+        }
+    }
+
     /** Progress through the lessons (Room `lesson_progress`). */
     fun provideLessonProgress(context: Context): LessonProgressRepository {
         return lessonProgressInstance ?: synchronized(this) {
@@ -211,6 +229,9 @@ object AppContainer {
         return engineClientInstance ?: synchronized(this) {
             val deterministicFallback = LocalFallbackEngineClient()
             val cloudFallback = OnlineStockfishEngineClient(fallback = deterministicFallback)
+            // Settings > Engine can turn the online engine off; follow it for the life of the process.
+            val settings = provideSettingsStore(context).settings
+            appScope.launch { settings.collect { cloudFallback.enabled = it.onlineEngine } }
             val nativeLibFile = File(context.applicationContext.applicationInfo.nativeLibraryDir, "libstockfish.so")
             val primaryClient = StockfishProcessEngineClient(
                 binaryPath = nativeLibFile.absolutePath,

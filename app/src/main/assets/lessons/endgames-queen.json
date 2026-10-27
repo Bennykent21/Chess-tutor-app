@@ -1,0 +1,42 @@
+{
+  "id": "endgames-queen",
+  "category": "endgames",
+  "title": "Queen endings",
+  "intro": "In queen endings checks fly in every direction. Look for the check that also attacks something: a skewer, or a mate.",
+  "level": "advanced",
+  "order": 40,
+  "puzzleThemes": ["queenEndgame"],
+  "lessons": [
+    {
+      "id": "endgames-queen-skewer",
+      "title": "Checks that win the queen",
+      "summary": "Check the king and take what stands behind it.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's king on h5 and queen on h2 stand on the same file. A check on that file must be answered by the king, and then the queen behind it falls. That is a skewer.",
+          "fen": "8/p3Q3/1pp3p1/3p1p1k/3P2p1/2PK4/7q/8 w - - 0 57",
+          "arrows": ["e7h7:idea", "h7h2:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Skewer the king and queen.",
+          "fen": "8/p3Q3/1pp3p1/3p1p1k/3P2p1/2PK4/7q/8 w - - 0 57",
+          "line": ["e7h7", "h5g5", "h7h2"],
+          "hint": "Check on the h-file.",
+          "ifWrong": "Give check on h7: the king and the queen share the h-file.",
+          "ifRight": "The king moved and the queen fell."
+        },
+        {
+          "type": "quiz",
+          "text": "Here a check leaves the black king with no squares at all.",
+          "fen": "7k/6pp/6p1/3p4/3Pq3/7P/Q4PP1/6K1 w - - 1 39",
+          "line": ["a2a8", "e4e8", "a8e8"],
+          "hint": "The back rank: g7 and h7 are blocked by Black's own pawns.",
+          "ifWrong": "Check on the back rank.",
+          "ifRight": "Qe8 blocks, but Qxe8 is mate."
+        }
+      ]
+    }
+  ]
+}

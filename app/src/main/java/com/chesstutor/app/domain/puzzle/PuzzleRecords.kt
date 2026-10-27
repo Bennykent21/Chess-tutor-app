@@ -93,7 +93,16 @@ interface PuzzleRepository {
 
     /** Every finished puzzle, oldest first, for the Training page (rating history, themes). */
     fun history(): Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList())
+
+    /** Every "another move works" report, oldest first, for the player to share (Settings > Your data). */
+    suspend fun savedReports(): List<PuzzleReport> = emptyList()
+
+    /** Forgets the reports once shared. */
+    suspend fun clearReports() {}
 }
+
+/** One "I found another move that works" report (plan section 6.3.5). */
+data class PuzzleReport(val puzzleId: String, val fen: String, val moveUci: String, val note: String, val createdAt: Long)
 
 /** One finished puzzle as the Training page sees it. */
 data class PuzzleHistoryEntry(

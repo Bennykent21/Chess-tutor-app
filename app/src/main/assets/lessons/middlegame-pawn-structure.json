@@ -1,0 +1,97 @@
+{
+  "id": "middlegame-pawn-structure",
+  "category": "middlegame",
+  "title": "Pawn structure",
+  "intro": "Pawns cannot move back, so their shape decides the plans for the whole game. Learn the weak pawns to attack and the strong ones to push.",
+  "level": "intermediate",
+  "order": 30,
+  "puzzleThemes": ["advancedPawn"],
+  "lessons": [
+    {
+      "id": "middlegame-isolated-pawn",
+      "title": "The isolated pawn",
+      "summary": "Blockade it, then attack it.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's d5 pawn has no pawns beside it on the c- or e-file. No pawn can ever guard it, so pieces must. And the square in front of it, d4, can never be attacked by a black pawn.",
+          "fen": "r2q1rk1/pp2bppp/2n1bn2/3p4/8/2N2N2/PP2BPPP/R1BQ1RK1 w - - 0 10",
+          "highlights": ["d5", "d4:idea"]
+        },
+        {
+          "type": "explain",
+          "text": "The plan: first put a piece on d4 so the pawn cannot move (a blockade). A knight is the best blocker. Then aim more pieces at d5."
+        },
+        {
+          "type": "play",
+          "text": "Put a knight on the blockade square.",
+          "fen": "r2q1rk1/pp2bppp/2n1bn2/3p4/8/2N2N2/PP2BPPP/R1BQ1RK1 w - - 0 10",
+          "expect": ["f3d4"],
+          "hint": "Which square sits right in front of the isolated pawn?",
+          "ifWrong": "Blockade first: a knight on d4.",
+          "ifRight": "The knight on d4 can never be chased by a pawn, and the d5 pawn is stuck.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "middlegame-doubled-pawns",
+      "title": "Doubled pawns",
+      "summary": "Two pawns on one file are weaker than two side by side.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "After Bxc6 dxc6, Black has two pawns on the c-file. Doubled pawns cannot guard each other. In an endgame, White's four kingside pawns against three can make a passed pawn, while Black's extra queenside pawn cannot.",
+          "fen": "r1bqkbnr/1pp2ppp/p1p5/4p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 5",
+          "highlights": ["c7", "c6"]
+        },
+        {
+          "type": "explain",
+          "text": "Black got something back: the two bishops and open lines. Doubled pawns are a weakness for the endgame, not a reason to panic now. So White plays calmly: castle, then d4, and trade pieces towards an ending.",
+          "arrows": ["d2d4:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Start with the calm move: get your king safe.",
+          "fen": "r1bqkbnr/1pp2ppp/p1p5/4p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 5",
+          "expect": ["e1g1"],
+          "hint": "Your king is still in the centre.",
+          "ifWrong": "Castle short first.",
+          "ifRight": "The king is safe. Now the better pawns can count in the long run.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "middlegame-passed-pawns",
+      "title": "Passed pawns must be pushed",
+      "summary": "No enemy pawn can stop it: push it.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A passed pawn has no enemy pawns in front of it or on the files beside it. Only pieces can stop it, and every step makes it stronger. White's e-pawn is passed, and the black king is far away.",
+          "fen": "k7/8/1p1K4/1pp1P3/1n6/8/8/8 w - - 0 50",
+          "arrows": ["e5e8:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Push the passed pawn.",
+          "fen": "k7/8/1p1K4/1pp1P3/1n6/8/8/8 w - - 0 50",
+          "line": ["e5e6", "a8b7", "e6e7"],
+          "hint": "The knight cannot get back to the e-file in time.",
+          "ifWrong": "Push the e-pawn.",
+          "ifRight": "Nothing can stop the pawn now."
+        },
+        {
+          "type": "quiz",
+          "text": "Another passed pawn, on the a-file, and the knight is far away. Run!",
+          "fen": "8/4k3/6p1/P3p1P1/4P2K/3n4/8/8 w - - 0 56",
+          "line": ["a5a6", "e7d6", "a6a7"],
+          "hint": "Count the moves: the knight needs too long to reach a8.",
+          "ifWrong": "Push the a-pawn.",
+          "ifRight": "The a-pawn will queen."
+        }
+      ]
+    }
+  ]
+}

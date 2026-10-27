@@ -60,19 +60,6 @@ class ChessSoundManager(context: Context) {
         if (soundEnabled) feedback.sound?.let(::playSound)
     }
 
-    fun playMove(soundEnabled: Boolean = true, isCapture: Boolean = false, isCheck: Boolean = false) {
-        val sound = when {
-            isCheck -> BoardSound.CHECK
-            isCapture -> BoardSound.CAPTURE
-            else -> BoardSound.MOVE
-        }
-        play(BoardFeedback(sound, if (isCheck || isCapture) HapticPattern.FIRM else HapticPattern.TICK), soundEnabled)
-    }
-
-    fun playBlunder(soundEnabled: Boolean = true) = play(MoveEffects.WRONG, soundEnabled)
-
-    fun playSuccess(soundEnabled: Boolean = true) = play(MoveEffects.CORRECT, soundEnabled)
-
     private fun playSound(sound: BoardSound) {
         val id = soundIds[sound] ?: return
         if (id == 0) return

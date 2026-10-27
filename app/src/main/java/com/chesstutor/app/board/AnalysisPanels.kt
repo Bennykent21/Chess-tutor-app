@@ -14,9 +14,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.LastPage
 import androidx.compose.material.icons.rounded.Draw
 import androidx.compose.material.icons.rounded.FirstPage
-import androidx.compose.material.icons.rounded.LastPage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -214,7 +214,7 @@ fun AnalysisToolbar(
         ToolButton(Icons.Rounded.FirstPage, "Go to the start", view.canGoBack, onStart)
         ToolButton(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back one move", view.canGoBack, onBack)
         ToolButton(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Forward one move", view.canGoForward, onForward)
-        ToolButton(Icons.Rounded.LastPage, "Go to the end", view.canGoForward, onEnd)
+        ToolButton(Icons.AutoMirrored.Rounded.LastPage, "Go to the end", view.canGoForward, onEnd)
         ToolButton(Icons.Rounded.Draw, if (drawing) "Stop drawing arrows" else "Draw arrows", true, onToggleDrawing, active = drawing)
     }
 }

@@ -39,6 +39,10 @@ class OnlineStockfishEngineClient(
 
     private val consecutiveFailures = AtomicInteger(0)
 
+    /** Off when the player turned the online engine off (Settings > Engine): the Lite engine answers instead. */
+    @Volatile
+    var enabled: Boolean = true
+
     override suspend fun initialize() {
         fallback.initialize()
     }
@@ -70,6 +74,8 @@ class OnlineStockfishEngineClient(
             logD("OnlineStockfish cache hit for position: ${request.fen.take(20)}...")
             return@withContext cached.copy(requestId = request.requestId)
         }
+
+        if (!enabled) return@withContext fallback.analyze(request)
 
         val now = System.currentTimeMillis()
         // If recently rate-limited or circuit breaker is open, skip external calls and use fast deterministic fallback

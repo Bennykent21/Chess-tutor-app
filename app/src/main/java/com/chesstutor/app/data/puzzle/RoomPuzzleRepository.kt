@@ -19,6 +19,7 @@ import com.chesstutor.app.domain.puzzle.PuzzleBookkeeping
 import com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry
 import com.chesstutor.app.domain.puzzle.PuzzleProgress
 import com.chesstutor.app.domain.puzzle.PuzzleRating
+import com.chesstutor.app.domain.puzzle.PuzzleReport
 import com.chesstutor.app.domain.puzzle.PuzzleRepository
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import kotlinx.coroutines.flow.Flow
@@ -131,6 +132,11 @@ class RoomPuzzleRepository(
 
     override suspend fun mistakePuzzleIds(limit: Int): List<String> =
         dao.latestUncleanAttempts(limit).map { it.puzzleId }
+
+    override suspend fun savedReports(): List<PuzzleReport> =
+        dao.reports().map { PuzzleReport(it.puzzleId, it.fen, it.moveUci, it.note, it.createdAt) }
+
+    override suspend fun clearReports() = dao.clearReports()
 
     override fun history(): Flow<List<PuzzleHistoryEntry>> =
         dao.history().map { rows -> rows.map { PuzzleHistoryEntry(it.puzzleId, it.solved, it.clean, it.ratingAfter, it.finishedAt) } }

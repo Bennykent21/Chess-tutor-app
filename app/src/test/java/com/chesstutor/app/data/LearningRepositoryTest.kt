@@ -1,112 +1,19 @@
-package com.chesstutor.app.data.repository
+package com.chesstutor.app.data
 
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.flow.first
+import com.chesstutor.app.data.model.LearningProfile
+import com.chesstutor.app.data.repository.InMemoryLearningRepository
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.coroutineScope
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class LearningRepositoryTest {
 
     @Test
-    fun inMemoryObserverReflectsRecordedAttempt() = runTest {
+    fun inMemoryProfileRoundTrips() = runTest {
         val repository = InMemoryLearningRepository()
-
-        assertEquals(emptyList<com.chesstutor.app.data.model.ModuleProgress>(), repository.observeModuleProgress().first())
-
-        repository.recordModuleAttempt("opening_fundamentals", correct = true)
-
-        val updated = repository.observeModuleProgress().first()
-        assertEquals(1, updated.size)
-        assertEquals(1, updated.single().attempts)
-        assertEquals(1, updated.single().correctAttempts)
-    }
-
-    @Test
-    fun inMemoryObserverTracksAttemptAccuracy() {
-        val repository = InMemoryLearningRepository()
-
-        kotlinx.coroutines.runBlocking {
-            repository.recordModuleAttempt("forks", correct = true)
-            repository.recordModuleAttempt("forks", correct = false)
-        }
-
-        val progress = kotlinx.coroutines.runBlocking {
-            repository.getModuleProgress().single()
-        }
-
-        org.junit.Assert.assertEquals(2, progress.attempts)
-        org.junit.Assert.assertEquals(1, progress.correctAttempts)
-        org.junit.Assert.assertEquals(0.5f, progress.accuracy)
-    }
-
-    @Test
-    fun inMemoryConcurrentAttemptsAreNotLost() = runTest {
-        val repository = InMemoryLearningRepository()
-
-        coroutineScope {
-            (1..100).map { index ->
-                async {
-                    repository.recordModuleAttempt("forks", correct = index % 2 == 0)
-                }
-            }.awaitAll()
-        }
-
-        val progress = repository.getModuleProgress().single()
-        assertEquals(100, progress.attempts)
-        assertEquals(50, progress.correctAttempts)
-    }
-
-    @Test
-    fun inMemoryAttemptsAutomaticallyMarkModuleMasteredAtThreshold() = runTest {
-        val repository = InMemoryLearningRepository()
-
-        repository.recordModuleAttempt("forks", correct = true)
-        repository.recordModuleAttempt("forks", correct = true)
-
-        assertEquals(false, repository.getModuleProgress().single().mastered)
-
-        repository.recordModuleAttempt("forks", correct = true)
-
-        val progress = repository.getModuleProgress().single()
-        assertEquals(3, progress.attempts)
-        assertEquals(3, progress.correctAttempts)
-        assertEquals(true, progress.mastered)
-    }
-
-    @Test
-    fun inMemoryWeakPerformanceDoesNotAutoMaster() = runTest {
-        val repository = InMemoryLearningRepository()
-
-        repository.recordModuleAttempt("forks", correct = true)
-        repository.recordModuleAttempt("forks", correct = false)
-        repository.recordModuleAttempt("forks", correct = false)
-
-        assertEquals(false, repository.getModuleProgress().single().mastered)
-    }
-
-    @Test
-    fun inMemoryObserverReflectsMastery() = runTest {
-        val repository = InMemoryLearningRepository()
-
-        repository.markMastered("forks")
-
-        val progress = repository.observeModuleProgress().first().single()
-        assertEquals(true, progress.practiced)
-        assertEquals(true, progress.mastered)
-    }
-
-    @Test
-    fun inMemoryObserverReflectsReset() = runTest {
-        val repository = InMemoryLearningRepository()
-        repository.markPracticed("endgame_opposition")
-
-        assertEquals(1, repository.observeModuleProgress().first().size)
-
-        repository.resetModuleProgress()
-
-        assertEquals(emptyList<com.chesstutor.app.data.model.ModuleProgress>(), repository.observeModuleProgress().first())
+        assertEquals(LearningProfile(), repository.getProfile())
+        val saved = LearningProfile(estimatedRating = 1200, assessmentState = "COMPLETE")
+        repository.saveProfile(saved)
+        assertEquals(saved, repository.getProfile())
     }
 }

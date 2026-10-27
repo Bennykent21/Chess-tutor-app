@@ -1,0 +1,64 @@
+{
+  "id": "endgames-rook-technique",
+  "category": "endgames",
+  "title": "Rook technique",
+  "intro": "Rooks love open files and the back rank. Learn when to trade them and how to use them against a weak back rank.",
+  "level": "intermediate",
+  "order": 25,
+  "puzzleThemes": ["rookEndgame"],
+  "lessons": [
+    {
+      "id": "endgames-trade-rooks",
+      "title": "Trade rooks into a pawn ending",
+      "summary": "When your king is better placed, the trade wins.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's d-pawn is passed and supported by the rook. But White can take it: Rxd3 offers a rook trade with check, and then White's king is right in front of the action.",
+          "fen": "8/8/3k2pp/8/5PP1/2rpK2P/8/3R4 w - - 6 53",
+          "highlights": ["d3"]
+        },
+        {
+          "type": "play",
+          "text": "Take the pawn and trade rooks.",
+          "fen": "8/8/3k2pp/8/5PP1/2rpK2P/8/3R4 w - - 6 53",
+          "line": ["d1d3", "c3d3", "e3d3"],
+          "hint": "Capture on d3 with the rook, with check.",
+          "ifWrong": "Rxd3+ first.",
+          "ifRight": "The rooks are off and White's extra kingside pawn wins the king and pawn ending."
+        }
+      ]
+    },
+    {
+      "id": "endgames-back-rank",
+      "title": "Rooks on the back rank",
+      "summary": "Trade, then invade with check.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "The rooks face each other on the b-file. After Rxb8 Rxb8 Rxb8, White's last rook lands on the back rank with check and Black is a rook down.",
+          "fen": "1r1r1k2/p4ppp/2p1p3/8/P2P4/1RP5/5PPP/1R4K1 w - - 3 20",
+          "arrows": ["b3b8:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Win the rook on the b-file.",
+          "fen": "1r1r1k2/p4ppp/2p1p3/8/P2P4/1RP5/5PPP/1R4K1 w - - 3 20",
+          "line": ["b3b8", "d8b8", "b1b8"],
+          "hint": "Capture on b8. Two rooks attack it, only one defends.",
+          "ifWrong": "Take on b8.",
+          "ifRight": "Two attackers beat one defender: White is a rook up."
+        },
+        {
+          "type": "quiz",
+          "text": "Mate the king on the back rank.",
+          "fen": "1k6/5R2/1K6/2P5/5p2/8/8/7r w - - 10 56",
+          "expect": ["f7f8"],
+          "hint": "Your king takes away the squares on the 7th rank.",
+          "ifWrong": "Use the back rank.",
+          "ifRight": "Checkmate: the king covered a7, b7 and c7."
+        }
+      ]
+    }
+  ]
+}

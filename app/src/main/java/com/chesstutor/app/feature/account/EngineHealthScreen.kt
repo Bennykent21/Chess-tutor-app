@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.data.diagnostics.PerfSnapshot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtButton
@@ -49,6 +51,8 @@ fun EngineHealthScreen(
     onRunCheck: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Speed measured on this phone since the app started (plan Phase 6D). */
+    perf: PerfSnapshot = PerfSnapshot(),
 ) {
     val healthy = !status.isDegraded && status.nativeState == NativeEngineState.READY
     val (headline, detail) = when {
@@ -123,8 +127,41 @@ fun EngineHealthScreen(
                         "nodes per second as Stockfish measured it.",
                     style = CtType.Caption,
                 )
+
+                SpeedCard(perf)
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }
     }
+}
+
+/** "Speed on this phone": start-up, loading, the last analysis and import, measured here (plan Phase 6D). */
+@Composable
+private fun SpeedCard(perf: PerfSnapshot) {
+    CtCard(modifier = Modifier.fillMaxWidth()) {
+        Text("Speed on this phone", style = CtType.TitleSmall)
+        Text("Measured since the app started. Nothing is sent anywhere.", style = CtType.Caption)
+        Spacer(Modifier.height(CtSpacing.sm))
+        speedLines(perf).forEach { (label, value) ->
+            // Both sides get a share of the width, so a long value wraps instead of crushing its label.
+            Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.xxs), horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                Text(label, style = CtType.BodySmall, modifier = Modifier.weight(0.4f))
+                Text(value, style = CtType.BodySmall.copy(color = CtColors.Text), textAlign = TextAlign.End, modifier = Modifier.weight(0.6f))
+            }
+        }
+    }
+}
+
+/** The speed card's rows, in plain words. */
+internal fun speedLines(perf: PerfSnapshot): List<Pair<String, String>> {
+    fun ms(value: Long?): String = when {
+        value == null -> "not yet"
+        value < 1_000 -> "$value ms"
+        else -> String.format(java.util.Locale.ROOT, "%.1f s", value / 1000.0)
+    }
+    val rows = mutableListOf("App start" to ms(perf.startupMillis))
+    listOf("Puzzles", "Openings", "Lessons").forEach { rows += "Loading ${it.lowercase()}" to ms(perf.loads[it]) }
+    rows += "Last game review" to (perf.analysis?.let { "${it.positions} positions in ${ms(it.millis)} (${ms(it.msPerPosition)} each, depth ${it.depth})" } ?: "not yet")
+    rows += "Last import" to (perf.import?.let { "${it.games} games from ${it.source} in ${ms(it.millis)}" } ?: "not yet")
+    return rows
 }

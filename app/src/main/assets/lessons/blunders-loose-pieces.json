@@ -1,0 +1,105 @@
+{
+  "id": "blunders-loose-pieces",
+  "category": "blunders",
+  "title": "Loose pieces",
+  "intro": "A piece nobody defends is a target. Learn to spot loose pieces, both yours and your opponent's, and pieces with nowhere to go.",
+  "level": "beginner",
+  "order": 30,
+  "puzzleThemes": ["hangingPiece", "trappedPiece"],
+  "lessons": [
+    {
+      "id": "blunders-is-it-defended",
+      "title": "Is it defended?",
+      "summary": "Count who guards each piece before you move.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Look at Black's rook on d8. Who guards it? Not the king, not the queen. It is loose, and White's rook stares at it down the d-file.",
+          "fen": "3r2k1/p4ppp/1p6/2q5/2P1pPP1/7P/PP6/2KR4 w - - 0 33",
+          "arrows": ["d1d8:idea"],
+          "highlights": ["d8"]
+        },
+        {
+          "type": "play",
+          "text": "Take the loose rook. After the queen blocks the check, take that too.",
+          "fen": "3r2k1/p4ppp/1p6/2q5/2P1pPP1/7P/PP6/2KR4 w - - 0 33",
+          "line": ["d1d8", "c5f8", "d8f8"],
+          "hint": "Capture on d8 with check.",
+          "ifWrong": "The rook on d8 has no defender: take it.",
+          "ifRight": "One loose rook cost Black the game."
+        },
+        {
+          "type": "quiz",
+          "text": "Black's queen on f3 just captured. Is it safe there?",
+          "fen": "1k4r1/1p6/4p3/p3P2p/P7/5q2/1P1p2Q1/6RK w - - 4 46",
+          "line": ["g2f3", "g8g1", "h1g1"],
+          "hint": "Your queen on g2 is attacked, but it can also take something.",
+          "ifWrong": "The black queen is loose: take it.",
+          "ifRight": "The queen was loose. Rxg1+ is only a desperate try."
+        }
+      ]
+    },
+    {
+      "id": "blunders-trapped-pieces",
+      "title": "Trapped pieces",
+      "summary": "A piece with no safe square can be won.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's knight on g5 has very few squares. A pawn push can attack it and leave it nowhere to go.",
+          "fen": "6k1/5ppp/p3p3/1p4n1/3p4/P2P1P2/1PB2PK1/8 w - - 2 34",
+          "highlights": ["g5"]
+        },
+        {
+          "type": "play",
+          "text": "Trap the knight.",
+          "fen": "6k1/5ppp/p3p3/1p4n1/3p4/P2P1P2/1PB2PK1/8 w - - 2 34",
+          "line": ["f3f4", "h7h5", "f4g5"],
+          "hint": "Attack it with a pawn. Check every square it could run to.",
+          "ifWrong": "Push a pawn so the knight is attacked and every escape square is covered.",
+          "ifRight": "f4 attacked the knight, and all of its squares were covered: it was lost."
+        },
+        {
+          "type": "quiz",
+          "text": "Black's bishop on a8 is stuck behind your pawns. Make sure it never gets out.",
+          "fen": "b7/7p/PP1k2p1/5p2/8/6P1/6PP/6K1 w - - 0 42",
+          "line": ["b6b7", "a8b7", "a6b7"],
+          "hint": "A pawn push offers the bishop a pawn, and then the other pawn promotes.",
+          "ifWrong": "Push the b-pawn: if the bishop takes, the a-pawn recaptures and runs.",
+          "ifRight": "The bishop had to give itself up, and the b-pawn will queen."
+        }
+      ]
+    },
+    {
+      "id": "blunders-loose-back-rank",
+      "title": "Loose pieces near the king",
+      "summary": "An undefended piece next to the king can mean mate.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's rook on f8 is the only guard of the back rank, and White's rook on f6 attacks it. Taking it is not just a win of material.",
+          "fen": "5r1k/1pp3pp/pb3R1q/8/2B3b1/2Nr1N2/PP3PPP/R5K1 w - - 1 21",
+          "arrows": ["f6f8:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Take the rook on f8.",
+          "fen": "5r1k/1pp3pp/pb3R1q/8/2B3b1/2Nr1N2/PP3PPP/R5K1 w - - 1 21",
+          "expect": ["f6f8"],
+          "hint": "The rook on f8 is defended by nothing.",
+          "ifWrong": "Capture the loose rook on f8.",
+          "ifRight": "Checkmate: the loose rook was holding the back rank."
+        },
+        {
+          "type": "quiz",
+          "text": "Black's queen on e8 guards the king, but is anything guarding it?",
+          "fen": "4q1k1/6p1/1pQ2pP1/2p5/1p2nNK1/1P6/P7/8 w - - 7 44",
+          "expect": ["c6e8"],
+          "hint": "Your queen can reach e8.",
+          "ifWrong": "The black queen is loose: take it.",
+          "ifRight": "Mate. A loose queen next to the king lost at once."
+        }
+      ]
+    }
+  ]
+}

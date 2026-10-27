@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -66,7 +67,6 @@ import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.puzzle.PuzzleLevels
 import com.chesstutor.app.domain.puzzle.WorldAccent
-import java.util.Locale
 
 /**
  * The Puzzles tab (plan section 6.3.1): stats, the coach, the level path through five
@@ -114,8 +114,10 @@ fun PuzzlesHomeScreen(
 
 @Composable
 private fun StatsStrip(state: PuzzlesHomeState) {
+    // The phone's locale, read so a language change redraws the numbers.
+    val locale = LocalConfiguration.current.locales[0]
     Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        StatPill(String.format(Locale.getDefault(), "%,d", state.stats.totalXp), "XP", Icons.Rounded.Star, CtColors.Gold, Modifier.weight(1f))
+        StatPill(String.format(locale, "%,d", state.stats.totalXp), "XP", Icons.Rounded.Star, CtColors.Gold, Modifier.weight(1f))
         StatPill("${state.stats.dayStreak}", "Day streak", Icons.Rounded.LocalFireDepartment, CtColors.Coral, Modifier.weight(1f))
         StatPill("${state.stats.rating}", "Rating", Icons.AutoMirrored.Rounded.TrendingUp, CtColors.Teal, Modifier.weight(1f))
     }

@@ -16,13 +16,17 @@ object AppRoutes {
     const val BOARD_SETTINGS = "account/board"
     /** The Settings page (plan 6.4), replacing the old settings sheet. */
     const val SETTINGS = "account/settings"
+    /** Every bundled part and its licence, with the licence texts (Settings > About). */
+    const val LICENCES = "account/licences"
     /** One saved game: result, opening, final position and moves (plan section 6.4). */
     const val GAME_ID_ARG = "gameId"
     const val GAME_PATTERN = "account/game/{$GAME_ID_ARG}"
     fun game(id: String): String = "account/game/${encode(id)}"
-    /** A game's review on the board, full screen (no bottom bar). */
-    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}"
-    fun review(id: String): String = "account/review/${encode(id)}"
+    /** A game's review on the board, full screen (no bottom bar); [analyse] starts Stockfish on arrival. */
+    const val ANALYSE_ARG = "analyse"
+    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}?$ANALYSE_ARG={$ANALYSE_ARG}"
+    fun review(id: String, analyse: Boolean = false): String =
+        "account/review/${encode(id)}" + if (analyse) "?$ANALYSE_ARG=true" else ""
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
@@ -30,6 +34,9 @@ object AppRoutes {
     const val PUZZLE_DAILY = "puzzles/daily"
     /** Mistakes review: due positions from the player's own games, full screen on the board. */
     const val MISTAKE_REVIEW = "puzzles/review"
+    /** Starts a course's practice set (plan 6C) and opens the player. */
+    const val PUZZLE_PRACTICE_PATTERN = "puzzles/practice/{courseId}"
+    fun puzzlePractice(courseId: String): String = "puzzles/practice/${encode(courseId)}"
     /** Starts puzzles with a lesson's themes (comma-separated Lichess names) and opens the player. */
     const val THEMES_ARG = "themes"
     const val PUZZLE_RELATED_PATTERN = "puzzles/related/{$THEMES_ARG}"
@@ -37,6 +44,13 @@ object AppRoutes {
     fun parseThemes(value: String?): List<String> = value.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
     /** The lesson player, full screen inside the Learn tab (the lesson is chosen before opening it). */
     const val LESSON = "learn/lesson"
+    /** The opening trainer's list (plan 6C), and one line on the board (full screen). */
+    const val TRAINER = "learn/trainer"
+    const val TRAINER_DRILL = "learn/trainer/drill"
+    /** Opens one lesson from another tab (Home's Continue card), then shows the player. */
+    const val LESSON_ID_ARG = "lessonId"
+    const val LESSON_OPEN_PATTERN = "learn/open/{$LESSON_ID_ARG}"
+    fun openLesson(id: String): String = "learn/open/${encode(id)}"
     /** A Learn category page (courses with search and filters); the argument is a `LessonCategory.key`. */
     const val CATEGORY_ARG = "category"
     const val LEARN_CATEGORY_PATTERN = "learn/category/{$CATEGORY_ARG}"
@@ -67,22 +81,32 @@ object AppRoutes {
 
     const val ANALYSIS_FEN_ARG = "fen"
     const val ANALYSIS_LINE_ARG = "line"
-    const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}&$ANALYSIS_LINE_ARG={$ANALYSIS_LINE_ARG}"
+    /** "white" or "black" when the engine plays that side; empty when nobody does. */
+    const val ANALYSIS_ENGINE_ARG = "engine"
+    /** The engine's strength; 0 for full strength. */
+    const val ANALYSIS_ELO_ARG = "elo"
+    const val ANALYSIS_PATTERN = "analysis?$ANALYSIS_FEN_ARG={$ANALYSIS_FEN_ARG}&$ANALYSIS_LINE_ARG={$ANALYSIS_LINE_ARG}" +
+        "&$ANALYSIS_ENGINE_ARG={$ANALYSIS_ENGINE_ARG}&$ANALYSIS_ELO_ARG={$ANALYSIS_ELO_ARG}"
 
     /**
-     * Route to the analysis board on [fen], with [line] (UCI moves) loaded as the main line,
-     * for example a puzzle's solution. Spaces and slashes are encoded for the URL.
+     * Route to Explore (the analysis board) on [fen], with [line] (UCI moves) loaded as the
+     * main line, for example a puzzle's solution, and optionally the engine playing
+     * [engineSide] at [engineElo] (null: full strength). Spaces and slashes are encoded.
      */
-    fun analysis(fen: String, line: List<String> = emptyList()): String =
-        "analysis?$ANALYSIS_FEN_ARG=${encode(fen)}&$ANALYSIS_LINE_ARG=${encode(line.joinToString(" "))}"
+    fun analysis(fen: String, line: List<String> = emptyList(), engineSide: String? = null, engineElo: Int? = null): String =
+        "analysis?$ANALYSIS_FEN_ARG=${encode(fen)}&$ANALYSIS_LINE_ARG=${encode(line.joinToString(" "))}" +
+            (engineSide?.let { "&$ANALYSIS_ENGINE_ARG=$it&$ANALYSIS_ELO_ARG=${engineElo ?: 0}" } ?: "")
+
+    /** Explore's start page on Home: choose the position and who the engine plays. */
+    const val EXPLORE = "home/explore"
 
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
     /** Full screen (no bottom bar), like every activity that hosts a board. */
     const val BOARD_LAB = "board/lab"
 
-    private val accountPages = setOf(ENGINE_HEALTH, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, GAME_PATTERN)
+    private val accountPages = setOf(ENGINE_HEALTH, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
     /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
-    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN)
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
 
     /**
      * The bottom bar shows on tab pages and hides on full-screen activities (anything that

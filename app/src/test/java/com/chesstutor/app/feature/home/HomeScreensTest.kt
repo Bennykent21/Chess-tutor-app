@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -21,7 +21,10 @@ import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.MoveChoice
 import com.chesstutor.app.domain.bot.BotBrain
+import com.chesstutor.app.domain.account.ThemeScore
 import com.chesstutor.app.domain.bot.BotRoster
+import com.chesstutor.app.domain.game.NextLesson
+import com.chesstutor.app.domain.game.NextStep
 import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.GameSetup
 import com.chesstutor.app.domain.game.PlayRecommender
@@ -47,6 +50,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -99,7 +103,7 @@ class HomeScreensTest {
             recommendation = PlayRecommender.recommend(emptyList(), 800),
             dayStreak = 4,
             gamesPlayed = 3,
-        )
+        ).let { it.copy(nextStep = NextStep.Bot(it.recommendation!!)) }
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 HomeScreen(state = AppUiState(), home = home, actions = noActions.copy(onOpenBot = { opened = it }))
@@ -110,6 +114,30 @@ class HomeScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home.png")
         compose.onNode(hasText("Pebble")).performScrollTo().performClick()
         assertEquals("pebble", opened)
+    }
+
+    @Test
+    fun withNoGameWaitingTheCardsOfferTheNextLessonAndAWeakTheme() {
+        var lesson: String? = null
+        var theme: String? = null
+        val home = HomeUiState(
+            recommendation = PlayRecommender.recommend(emptyList(), 800),
+            gamesPlayed = 3,
+            nextLesson = NextLesson("o2", "Italian Game", "Castle early", number = 2, total = 5, started = false),
+            nextStep = NextStep.Theme(ThemeScore("fork", attempts = 6, clean = 1)),
+        )
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                HomeScreen(state = AppUiState(), home = home, actions = noActions.copy(onOpenLesson = { lesson = it }, onPractiseTheme = { theme = it }))
+            }
+        }
+        compose.onNodeWithText("Next up: Castle early").assertExists()
+        compose.onNodeWithText("Italian Game · lesson 2 of 5").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home_next.png")
+        compose.onNodeWithText("Next up: Castle early").performClick()
+        assertEquals("o2", lesson)
+        compose.onNodeWithText("Fork puzzles trip you up (17% clean). Practise a few.").performClick()
+        assertEquals("fork", theme)
     }
 
     @Test
@@ -139,9 +167,10 @@ class HomeScreensTest {
         )
         game.start()
         var rematch = false
+        var reviewed: String? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                PlayScreen(game, AppSettings(), onFeedback = {}, onRematch = { rematch = true }, onAnalyse = { _, _ -> }, onBack = {})
+                PlayScreen(game, AppSettings(), onFeedback = {}, onRematch = { rematch = true }, onAnalyse = { _, _ -> }, onBack = {}, onReview = { reviewed = it })
             }
         }
         step()
@@ -162,6 +191,8 @@ class HomeScreensTest {
         step()
         compose.onNodeWithText("Wayne won").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play_result.png")
+        compose.onNode(hasText("Review this game")).performScrollTo().performClick()
+        assertTrue("the saved game opens", reviewed!!.startsWith("bot_wayne_"))
         compose.onNode(hasText("Rematch")).performScrollTo().performClick()
         assertEquals(true, rematch)
     }

@@ -109,6 +109,8 @@ data class ReviewActions(
     val onPractise: (ReviewedMove) -> Unit = {},
     val onFeedback: (BoardFeedback) -> Unit = {},
     val onBack: () -> Unit = {},
+    /** "Explore from here": Explore on this position, with the rest of the game as its main line. */
+    val onExplore: (fen: String, line: List<String>) -> Unit = { _, _ -> },
 )
 
 /**
@@ -254,18 +256,27 @@ private fun PlayersAndCounts(review: GameReview, white: String, black: String) {
             AccuracyBox(b.accuracy, light = false, modifier = Modifier.width(COLUMN))
         }
         Spacer(Modifier.height(CtSpacing.md))
-        MoveQuality.entries.reversed().forEach { q ->
+        SUMMARY_ORDER.forEach { q ->
             Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.xxs), verticalAlignment = Alignment.CenterVertically) {
                 Text(q.label, style = CtType.BodySmall.copy(color = CtColors.Text), modifier = Modifier.weight(1f))
                 // Each count sits right under its player's accuracy box, the icon in the gap between.
-                CountText(w.count(q), qualityColor(q), Modifier.width(COLUMN))
+                CountText(w.count(q), countColor(q), Modifier.width(COLUMN))
                 Box(Modifier.width(GAP), contentAlignment = Alignment.Center) { QualityIcon(q, size = 26) }
-                CountText(b.count(q), qualityColor(q), Modifier.width(COLUMN))
+                CountText(b.count(q), countColor(q), Modifier.width(COLUMN))
             }
         }
         if (!review.complete) Text("Counting so far: the analysis is not finished.", style = CtType.Caption)
     }
 }
+
+/** The summary's rows, best first, as Chess.com lists them. */
+private val SUMMARY_ORDER = listOf(
+    MoveQuality.BRILLIANT, MoveQuality.GREAT, MoveQuality.BEST, MoveQuality.GOOD, MoveQuality.BOOK,
+    MoveQuality.INACCURACY, MoveQuality.MISTAKE, MoveQuality.BLUNDER,
+)
+
+/** A count's colour: the quality's own, except Book's neutral chip colour, which would not read as text. */
+private fun countColor(quality: MoveQuality): Color = if (quality == MoveQuality.BOOK) CtColors.Text2 else qualityColor(quality)
 
 /** The two player columns of the summary, and the gap between them that holds the quality icons. */
 private val COLUMN = 88.dp
@@ -397,6 +408,11 @@ private fun ReviewBoard(
                                 ?.let { actions.onFeedback(session.onMove(it)) }
                         })
                     }
+                    CtChip(text = "Explore from here", color = CtColors.Violet, onClick = {
+                        playing = false
+                        // On the game's line, what really happened next comes along to compare.
+                        actions.onExplore(board.position.toFen(), ply?.let { game.moves.drop(it) }.orEmpty())
+                    })
                     if (ply == null) {
                         CtChip(text = "Back to the game", color = CtColors.Teal, onClick = {
                             goToPly(backToGamePly(mainIds, view.tokens.map { (it as? NotationToken.MoveToken)?.nodeId }, view.currentId))
@@ -613,7 +629,7 @@ internal fun QualityIcon(quality: MoveQuality, size: Int = 24, modifier: Modifie
     }
 }
 
-private fun badgeText(quality: MoveQuality): String = when (quality) {
+internal fun badgeText(quality: MoveQuality): String = when (quality) {
     MoveQuality.BOOK -> "≡"
     MoveQuality.BEST -> "★"
     MoveQuality.GOOD -> "✓"
@@ -621,7 +637,9 @@ private fun badgeText(quality: MoveQuality): String = when (quality) {
 }
 
 internal fun qualityColor(quality: MoveQuality): Color = when (quality) {
-    MoveQuality.BOOK -> CtColors.Violet
+    MoveQuality.BOOK -> CtColors.SurfaceHigh
+    MoveQuality.BRILLIANT -> CtColors.Sky
+    MoveQuality.GREAT -> CtColors.Violet
     MoveQuality.BEST -> CtColors.Lime
     MoveQuality.GOOD -> CtColors.Teal
     MoveQuality.INACCURACY -> CtColors.Gold
@@ -629,7 +647,9 @@ internal fun qualityColor(quality: MoveQuality): Color = when (quality) {
     MoveQuality.BLUNDER -> CtColors.Coral
 }
 
-private fun qualityTextColor(quality: MoveQuality): Color = when (quality) {
+internal fun qualityTextColor(quality: MoveQuality): Color = when (quality) {
+    MoveQuality.BRILLIANT -> CtColors.OnSky
+    MoveQuality.GREAT -> CtColors.OnViolet
     MoveQuality.BEST -> CtColors.OnLime
     MoveQuality.GOOD -> CtColors.OnTeal
     MoveQuality.INACCURACY, MoveQuality.MISTAKE -> CtColors.OnGold
@@ -669,7 +689,7 @@ private const val PLAY_STEP_MS = 800L
 
 /** "Show best" is offered on every move that was not the best one (book and good moves too). */
 internal fun canShowBest(move: ReviewedMove): Boolean =
-    move.quality != MoveQuality.BEST && move.bestMove.isNotEmpty() && move.bestMove != move.uci
+    !move.quality.isTop && move.bestMove.isNotEmpty() && move.bestMove != move.uci
 
 /** Where Play stops: a capture, a check or mate, castling, or a move that cost something. */
 internal fun isKeyMoment(san: String, quality: MoveQuality?): Boolean =
