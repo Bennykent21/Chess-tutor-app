@@ -1,0 +1,96 @@
+{
+  "id": "endgames-technique",
+  "category": "endgames",
+  "title": "Endgame technique",
+  "intro": "With few pieces left, small ideas decide: racing pawns against a bishop or a knight, and zugzwang, when having to move is the problem.",
+  "level": "intermediate",
+  "order": 30,
+  "puzzleThemes": ["bishopEndgame", "knightEndgame", "zugzwang"],
+  "lessons": [
+    {
+      "id": "endgames-pawn-vs-bishop",
+      "title": "Pawns against a bishop",
+      "summary": "Push where the bishop cannot reach in time.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White's c-pawn needs two moves to queen. Black's bishop on h2 must get to the c7-h2 diagonal or to c8. Count the moves before you push.",
+          "fen": "8/1K6/2Pk4/8/8/8/7b/8 w - - 5 56",
+          "arrows": ["c6c8:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Push the pawn. If the bishop checks or covers c7, the king protects the next step.",
+          "fen": "8/1K6/2Pk4/8/8/8/7b/8 w - - 5 56",
+          "line": ["c6c7", "h2f4", "c7c8q"],
+          "hint": "c7 first: the king on b7 guards c8.",
+          "ifWrong": "Push to c7: your king already guards the queening square.",
+          "ifRight": "The pawn queens: the bishop could not cover c8."
+        },
+        {
+          "type": "quiz",
+          "text": "Win the bishop with a check: look for a skewer of king and bishop.",
+          "fen": "3b4/2k5/p2p4/3P1p2/5P2/2B3K1/P7/8 w - - 3 41",
+          "line": ["c3a5", "c7c8", "a5d8"],
+          "hint": "A bishop check on the same diagonal as the black bishop.",
+          "ifWrong": "Check on a5: the king moves, and the bishop behind it falls.",
+          "ifRight": "A skewer: the king had to move, and the bishop on d8 was lost."
+        }
+      ]
+    },
+    {
+      "id": "endgames-knight-vs-pawn",
+      "title": "A knight against a passed pawn",
+      "summary": "Knights are slow over long distances.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A knight needs several jumps to cross the board, and it struggles most against a pawn near the edge. Black's h-pawn is two steps from queening.",
+          "fen": "8/5k2/8/1p2KP2/1P5p/8/6N1/8 b - - 0 52",
+          "arrows": ["h4h1:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Run with the h-pawn.",
+          "fen": "8/5k2/8/1p2KP2/1P5p/8/6N1/8 b - - 0 52",
+          "line": ["h4h3", "g2f4", "h3h2"],
+          "hint": "Push the h-pawn: the knight cannot cover both h2 and h1 in time.",
+          "ifWrong": "Push the h-pawn.",
+          "ifRight": "The knight is too slow: the pawn will queen on h1."
+        }
+      ]
+    },
+    {
+      "id": "endgames-zugzwang",
+      "title": "Zugzwang",
+      "summary": "Sometimes the best move is to make your opponent move.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Zugzwang means that any move makes things worse. In king and pawn endings it decides games: the kings face each other, and whoever must step aside loses ground.",
+          "fen": "8/3k2p1/1p3p1p/1P3P1P/3K4/8/8/8 w - - 3 58",
+          "highlights": ["d5", "c6"]
+        },
+        {
+          "type": "play",
+          "text": "Walk your king in towards the b6 pawn.",
+          "fen": "8/3k2p1/1p3p1p/1P3P1P/3K4/8/8/8 w - - 3 58",
+          "line": ["d4d5", "d7e7", "d5c6"],
+          "hint": "Go to d5, then on to c6.",
+          "ifWrong": "Bring the king forward to d5.",
+          "ifRight": "The king reaches c6 and the b6 pawn falls. Black's king could not stop it."
+        },
+        {
+          "type": "quiz",
+          "text": "Black's e4 pawn needs its king. Step forward so the black king must give way.",
+          "fen": "8/8/7p/3k2pP/3Pp1P1/8/4K3/8 w - - 2 63",
+          "line": ["e2e3", "d5d6", "e3e4"],
+          "hint": "Ke3 attacks the e4 pawn. Black's king must leave d5 and the pawn falls.",
+          "ifWrong": "Bring the king to e3.",
+          "ifRight": "Black had to move the king away, and the e-pawn was lost."
+        }
+      ]
+    }
+  ]
+}

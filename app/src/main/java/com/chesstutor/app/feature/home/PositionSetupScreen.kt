@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -84,15 +83,6 @@ fun PositionSetupScreen(
 ) {
     val board = draft.board
     val problem = remember(board) { board.problem() }
-    // The FEN box keeps what was typed until it reads as a board.
-    var fenText by remember { mutableStateOf(board.toFen()) }
-    var fenError by remember { mutableStateOf(false) }
-    val boardFen = board.toFen()
-    // A change on the board (or a FEN that read well) rewrites the box.
-    LaunchedEffect(boardFen) {
-        fenText = boardFen
-        fenError = false
-    }
 
     CtScreenBackground {
         Column(Modifier.fillMaxSize()) {
@@ -104,34 +94,13 @@ fun PositionSetupScreen(
                     .padding(horizontal = CtSpacing.gutter),
                 verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
             ) {
-                EditorBoard(board, theme) { square -> onChange { it.copy(board = it.board.place(square, it.brush)) } }
-                Palette(theme, draft.brush) { brush -> onChange { it.copy(brush = brush) } }
-                Text("Tap a piece, then tap squares to place it. Tap the same piece again to remove it.", style = CtType.Caption)
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    CtButton(text = "Start position", style = CtButtonStyle.Secondary, onClick = { onChange { it.copy(board = SetupBoard.START) } }, modifier = Modifier.weight(1f))
-                    CtButton(text = "Kings only", style = CtButtonStyle.Secondary, onClick = { onChange { it.copy(board = SetupBoard.KINGS_ONLY.withSideToMove(it.board.sideToMove)) } }, modifier = Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    PieceColor.entries.forEach { color ->
-                        val label = if (color == PieceColor.WHITE) "White to move" else "Black to move"
-                        CtChip(text = label, selected = board.sideToMove == color, color = CtColors.Teal, onClick = { onChange { it.copy(board = it.board.withSideToMove(color)) } })
-                    }
-                }
-                CtTextField(
-                    value = fenText,
-                    onValueChange = { text ->
-                        fenText = text
-                        val parsed = SetupBoard.fromFen(text)
-                        fenError = parsed == null
-                        if (parsed != null) onChange { it.copy(board = parsed) }
-                    },
-                    label = "FEN",
-                    placeholder = Position.STARTING_FEN,
+                PositionEditor(
+                    board = board,
+                    brush = draft.brush,
+                    theme = theme,
+                    onBoard = { next -> onChange { it.copy(board = next) } },
+                    onBrush = { brush -> onChange { it.copy(brush = brush) } },
                 )
-                when {
-                    fenError -> Text("That FEN cannot be read.", style = CtType.BodySmall.copy(color = CtColors.Coral))
-                    problem != null -> Text(problem, style = CtType.BodySmall.copy(color = CtColors.Coral))
-                }
 
                 CtSectionHeader(title = "You play")
                 Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
@@ -149,7 +118,7 @@ fun PositionSetupScreen(
                 CtButton(
                     text = "Play from here",
                     icon = Icons.Rounded.PlayArrow,
-                    enabled = problem == null && !fenError,
+                    enabled = problem == null,
                     onClick = onStart,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -159,11 +128,66 @@ fun PositionSetupScreen(
     }
 }
 
+/**
+ * The board editor shared by "From a position" and Explore: place pieces, start from the
+ * usual position or kings only, choose who moves, or paste a FEN. Problems (no king, a side
+ * in check out of turn) show under it; [SetupBoard.problem] says whether it can be played.
+ */
+@Composable
+fun PositionEditor(
+    board: SetupBoard,
+    brush: Piece?,
+    theme: BoardTheme,
+    onBoard: (SetupBoard) -> Unit,
+    onBrush: (Piece?) -> Unit,
+) {
+    val problem = remember(board) { board.problem() }
+    // The FEN box keeps what was typed until it reads as a board.
+    var fenText by remember { mutableStateOf(board.toFen()) }
+    var fenError by remember { mutableStateOf(false) }
+    val boardFen = board.toFen()
+    // A change on the board (or a FEN that read well) rewrites the box.
+    LaunchedEffect(boardFen) {
+        fenText = boardFen
+        fenError = false
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+        EditorBoard(board, theme) { square -> onBoard(board.place(square, brush)) }
+        Palette(theme, brush, onBrush)
+        Text("Tap a piece, then tap squares to place it. Tap the same piece again to remove it.", style = CtType.Caption)
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            CtButton(text = "Start position", style = CtButtonStyle.Secondary, onClick = { onBoard(SetupBoard.START) }, modifier = Modifier.weight(1f))
+            CtButton(text = "Kings only", style = CtButtonStyle.Secondary, onClick = { onBoard(SetupBoard.KINGS_ONLY.withSideToMove(board.sideToMove)) }, modifier = Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            PieceColor.entries.forEach { color ->
+                val label = if (color == PieceColor.WHITE) "White to move" else "Black to move"
+                CtChip(text = label, selected = board.sideToMove == color, color = CtColors.Teal, onClick = { onBoard(board.withSideToMove(color)) })
+            }
+        }
+        CtTextField(
+            value = fenText,
+            onValueChange = { text ->
+                fenText = text
+                val parsed = SetupBoard.fromFen(text)
+                fenError = parsed == null
+                if (parsed != null) onBoard(parsed)
+            },
+            label = "FEN",
+            placeholder = Position.STARTING_FEN,
+        )
+        when {
+            fenError -> Text("That FEN cannot be read.", style = CtType.BodySmall.copy(color = CtColors.Coral))
+            problem != null -> Text(problem, style = CtType.BodySmall.copy(color = CtColors.Coral))
+        }
+    }
+}
+
 @Composable
 private fun EditorBoard(board: SetupBoard, theme: BoardTheme, onTap: (com.chesstutor.app.core.Square) -> Unit) {
     // The editor may hold positions the rules engine rejects (no kings yet); draw what is there.
     val position = remember(board) { Position(board.squares.toTypedArray(), board.sideToMove) }
-    BoxWithConstraints(Modifier.fillMaxWidth().aspectRatio(1f)) {
+    Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
         BoardCanvas(
             position = position,
             theme = theme,

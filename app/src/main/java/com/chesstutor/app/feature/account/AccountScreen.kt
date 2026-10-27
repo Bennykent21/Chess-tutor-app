@@ -120,6 +120,8 @@ fun AccountScreen(
     /** Reviews of the analysed games, for the Performance page. */
     reviews: Map<String, GameReview> = emptyMap(),
     training: TrainingReport = TrainingCalculator.report(emptyList(), { null }, 0, 0),
+    /** Badges and recent activity (Overview). */
+    overview: OverviewState = OverviewState(),
 ) {
     var tabName by rememberSaveable { mutableStateOf(initialTab.name) }
     val tab = AccountTab.valueOf(tabName)
@@ -153,7 +155,7 @@ fun AccountScreen(
                 }
             }
             when (tab) {
-                AccountTab.OVERVIEW -> overview(state, games, stats, dueReviewCount, actions, onSeeAllGames = { tabName = AccountTab.GAMES.name })
+                AccountTab.OVERVIEW -> overview(state, games, stats, overview, dueReviewCount, actions, onSeeAllGames = { tabName = AccountTab.GAMES.name })
                 AccountTab.GAMES -> gamesList(games, filterState, onFilter = { filterState = it }, onOpenGame = actions.onOpenGame)
                 AccountTab.PERFORMANCE -> item(key = "performance") {
                     PerformancePage(
@@ -215,6 +217,7 @@ private fun LazyListScope.overview(
     state: AppUiState,
     games: GamesState,
     stats: PuzzleStats,
+    achievements: OverviewState,
     dueReviewCount: Int,
     actions: AccountActions,
     onSeeAllGames: () -> Unit,
@@ -236,6 +239,12 @@ private fun LazyListScope.overview(
     }
     if (showsLinkCard(state)) {
         item(key = "linked") { LinkAccountCard(state = state, actions = actions, modifier = Modifier.padding(horizontal = CtSpacing.gutter)) }
+    }
+    if (achievements.badges.isNotEmpty()) {
+        item(key = "badges") { BadgesCard(achievements.badges, Modifier.padding(horizontal = CtSpacing.gutter)) }
+    }
+    if (achievements.recent.isNotEmpty()) {
+        item(key = "activity") { RecentActivityCard(achievements.recent, Modifier.padding(horizontal = CtSpacing.gutter)) }
     }
     item(key = "games-header") {
         CtSectionHeader(

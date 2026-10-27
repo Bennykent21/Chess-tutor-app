@@ -20,6 +20,13 @@ enum class BoardOrientation {
     WHITE_ALWAYS_BOTTOM,
 }
 
+/** How deeply Stockfish looks at each position of a game review (Settings > Engine). */
+enum class ReviewDepth(val label: String, val detail: String, val depth: Int) {
+    FAST("Fast", "Quicker reviews, may miss deep tactics", 12),
+    NORMAL("Normal", "A good balance on most phones", 14),
+    DEEP("Deep", "Slower, catches more", 18),
+}
+
 /**
  * Everything the player can set once and have applied everywhere (plan section 4).
  */
@@ -41,6 +48,10 @@ data class AppSettings(
     val chatLevel: ChatLevel = ChatLevel.SOME,
     /** How many games the player asked to import, until the import has finished (an import cut short carries on later). */
     val importTarget: ImportDepth? = null,
+    /** Game review depth (Settings > Engine). */
+    val reviewDepth: ReviewDepth = ReviewDepth.NORMAL,
+    /** May the free online engine stand in when Stockfish on the phone fails? (plan 4.5, D18) */
+    val onlineEngine: Boolean = true,
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
 
@@ -70,6 +81,8 @@ object AppSettingsCodec {
     const val MASCOT = "mascot_id"
     const val BOT_CHAT = "bot_chat"
     const val IMPORT_TARGET = "import_target"
+    const val REVIEW_DEPTH = "review_depth"
+    const val ONLINE_ENGINE = "online_engine"
 
     /** Marks that settings formerly kept elsewhere were copied in (see [SettingsStore]). */
     const val LEGACY_IMPORTED = "legacy_imported_v1"
@@ -93,6 +106,8 @@ object AppSettingsCodec {
             mascotId = Mascot.fromId(values[MASCOT] as? String).id,
             chatLevel = (values[BOT_CHAT] as? String)?.let { name -> ChatLevel.entries.firstOrNull { it.name == name } } ?: defaults.chatLevel,
             importTarget = (values[IMPORT_TARGET] as? String)?.let { name -> ImportDepth.entries.firstOrNull { it.name == name } },
+            reviewDepth = (values[REVIEW_DEPTH] as? String)?.let { name -> ReviewDepth.entries.firstOrNull { it.name == name } } ?: defaults.reviewDepth,
+            onlineEngine = bool(ONLINE_ENGINE, defaults.onlineEngine),
         )
     }
 
@@ -110,6 +125,8 @@ object AppSettingsCodec {
         MASCOT to settings.mascotId,
         BOT_CHAT to settings.chatLevel.name,
         IMPORT_TARGET to (settings.importTarget?.name ?: ""),
+        REVIEW_DEPTH to settings.reviewDepth.name,
+        ONLINE_ENGINE to settings.onlineEngine,
     )
 }
 

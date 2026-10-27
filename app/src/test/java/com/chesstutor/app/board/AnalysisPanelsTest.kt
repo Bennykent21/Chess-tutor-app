@@ -1,12 +1,14 @@
 package com.chesstutor.app.board
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -108,12 +110,13 @@ class AnalysisPanelsTest {
         )
         var selected = -1
         compose.setContent {
+            val view by session.view.collectAsState()
             CtTheme {
                 CtScreenBackground {
                     Column(Modifier.padding(CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                         EngineLinesPanel(position = position, lines = lines, engineName = "Stockfish", onPlayLine = {})
-                        AnalysisToolbar(session.view.value, drawing = true, onStart = {}, onBack = {}, onForward = {}, onEnd = {}, onToggleDrawing = {})
-                        AnalysisMoveList(view = session.view.value, onSelect = { selected = it })
+                        AnalysisToolbar(view, drawing = true, onStart = {}, onBack = {}, onForward = {}, onEnd = {}, onToggleDrawing = {})
+                        AnalysisMoveList(view = view, onSelect = { selected = it })
                     }
                 }
             }

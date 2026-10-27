@@ -33,6 +33,9 @@ class AnalysisSession(start: Position = Position.initial()) : BoardSession {
     /** The id of the position on the board, for things kept per position (drawn arrows). */
     val currentId: Int get() = tree.current.id
 
+    /** The id of the position before the current move, or null at the start (Explore judges that move). */
+    val parentId: Int? get() = tree.current.parent?.id
+
     override fun onMove(move: Move): BoardFeedback {
         val before = tree.current.position
         tree.play(move)

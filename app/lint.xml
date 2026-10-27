@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Third-party piece art (merida, GPL): kept exactly as published, so long paths are expected. -->
+    <issue id="VectorPath">
+        <ignore path="src/main/res/drawable/piece_merida_*.xml" />
+    </issue>
+</lint>

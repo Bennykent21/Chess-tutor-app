@@ -39,9 +39,11 @@ object TacticalAnalysis {
      * Identifies all squares containing pieces of [targetColor] that are currently hanging:
      * either completely undefended and attacked, or under-defended with a positive SEE capture for the opponent.
      */
-    fun findHangingPieces(chessPos: ChessPosition, targetColor: PieceColor? = null): List<HangingPiece> {
-        val pos = chessPos.internalPosition
-        val color = targetColor ?: pos.sideToMove
+    fun findHangingPieces(chessPos: ChessPosition, targetColor: PieceColor? = null): List<HangingPiece> =
+        findHangingPieces(chessPos.internalPosition, targetColor ?: chessPos.internalPosition.sideToMove)
+
+    /** [findHangingPieces] on a core [Position], for pieces of [color]. */
+    fun findHangingPieces(pos: Position, color: PieceColor): List<HangingPiece> {
         val enemyColor = color.opposite()
         val hanging = mutableListOf<HangingPiece>()
 

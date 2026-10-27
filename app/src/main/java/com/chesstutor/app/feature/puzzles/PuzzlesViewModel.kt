@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.puzzles
 
+import com.chesstutor.app.domain.learn.Course
+import com.chesstutor.app.domain.learn.PracticeRepository
+import com.chesstutor.app.domain.learn.PracticeSets
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -46,6 +49,8 @@ data class PuzzlesHomeState(
 class PuzzlesViewModel(
     private val repository: PuzzleRepository,
     private val loadPack: suspend () -> PuzzlePack,
+    /** Where practice-set scores go (plan 6C). */
+    private val practice: PracticeRepository? = null,
 ) : ViewModel() {
     private val pack = MutableStateFlow<PuzzlePack?>(null)
 
@@ -127,6 +132,18 @@ class PuzzlesViewModel(
         PuzzleRunSpec(PuzzleMode.THEME, title, plannedCount = puzzles.size, nextPuzzle = { i, _ -> puzzles.getOrNull(i) })
     }
 
+    /** A course's practice set (plan 6C): its fixed puzzles; the score is kept as the course's best. */
+    fun startPractice(course: Course) = startRun { pack ->
+        val puzzles = PracticeSets.puzzlesFor(course, pack)
+        PuzzleRunSpec(
+            mode = PuzzleMode.THEME,
+            title = "${course.title}: practice set",
+            plannedCount = puzzles.size,
+            nextPuzzle = { i, _ -> puzzles.getOrNull(i) },
+            onFinished = { solved, total -> practice?.recordPractice(course.id, solved, total, System.currentTimeMillis()) },
+        )
+    }
+
     fun startCustom(band: RatingBand, pattern: String?, count: Int, timed: Boolean) = startRun { pack ->
         val seen = repository.loadProgress(PuzzleLevels.FIRST_RATING).seenIds
         val puzzles = PuzzleModes.custom(pack, band, pattern, count, System.currentTimeMillis(), seen)
@@ -178,8 +195,9 @@ class PuzzlesViewModel(
     class Factory(
         private val repository: PuzzleRepository,
         private val loadPack: suspend () -> PuzzlePack,
+        private val practice: PracticeRepository? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = PuzzlesViewModel(repository, loadPack) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = PuzzlesViewModel(repository, loadPack, practice) as T
     }
 }

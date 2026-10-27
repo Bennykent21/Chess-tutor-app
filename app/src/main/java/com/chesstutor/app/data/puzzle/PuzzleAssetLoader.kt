@@ -1,5 +1,6 @@
 package com.chesstutor.app.data.puzzle
 
+import com.chesstutor.app.data.diagnostics.PerfLog
 import android.content.Context
 import com.chesstutor.app.domain.puzzle.PuzzlePack
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,7 @@ class PuzzleAssetLoader(
         for (candidate in candidates) {
             try {
                 context.assets.open(candidate).use { stream ->
-                    val pack = PuzzlePack.fromStream(stream)
+                    val pack = PerfLog.timed("Puzzles") { PuzzlePack.fromStream(stream) }
                     if (!pack.isEmpty) {
                         return@withContext pack
                     }

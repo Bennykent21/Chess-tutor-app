@@ -1,9 +1,12 @@
 package com.chesstutor.app.feature.account
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,17 +17,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Code
-import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Memory
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -32,16 +40,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import com.chesstutor.app.BuildConfig
+import com.chesstutor.app.data.settings.ReviewDepth
 import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
+import com.chesstutor.app.design.CtConfirmDialog
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
+import com.chesstutor.app.design.CtToggleRow
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.bot.ChatLevel
@@ -50,39 +61,38 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** What the Settings page can do; the linking actions come from [AccountActions]. */
+/** What the Settings page can do. */
 data class SettingsActions(
     val onMascot: (com.chesstutor.app.domain.Mascot) -> Unit = {},
     val onChatLevel: (ChatLevel) -> Unit = {},
     val onOpenBoardSettings: () -> Unit = {},
     val onOpenEngineHealth: () -> Unit = {},
-    val onOpenDesignGallery: () -> Unit = {},
-    val onOpenBoardLab: () -> Unit = {},
+    val onOpenLicences: () -> Unit = {},
+    val onReviewDepth: (ReviewDepth) -> Unit = {},
+    val onOnlineEngine: (Boolean) -> Unit = {},
     /** Every saved game as one PGN text, for "Export my games". */
     val exportPgn: suspend () -> String = { "" },
-    /** "Support the developer" link; blank hides the row (always blank in the Play build). */
+    /** The crash log on this phone ("" when there were no crashes), and clearing it. */
+    val crashLog: suspend () -> String = { "" },
+    val clearCrashLog: suspend () -> Unit = {},
+    /** The "another move works" puzzle reports as text ("" when none), and clearing them. */
+    val puzzleReports: suspend () -> String = { "" },
+    val clearPuzzleReports: suspend () -> Unit = {},
+    /** Erases every game, progress, setting and the linked account, then restarts the app. */
+    val eraseEverything: suspend () -> Unit = {},
+    /** "Support the developer" link; blank hides the row. */
     val supportUrl: String = BuildConfig.SUPPORT_URL,
     val onBack: () -> Unit = {},
-)
-
-/** The main credits for the About section; `LICENSES.md` has the full record. */
-internal val CREDITS = listOf(
-    "Stockfish 19 chess engine" to "GPL-3.0",
-    "Maia human-like move networks (CSSLab)" to "GPL-3.0",
-    "Puzzles from the Lichess puzzle database" to "CC0",
-    "Opening names from lichess-org/chess-openings" to "CC0",
-    "Pieces: cburnett and merida (GPL), chessnut (Apache 2.0), fantasy (MIT)" to "Various",
-    "Sounds by Kenney (kenney.nl)" to "CC0",
-    "Fonts: Nunito, Inter, JetBrains Mono" to "SIL OFL 1.1",
 )
 
 const val SOURCE_URL = "https://github.com/Bennykent21/Chess-tutor-app"
 
 /**
- * Settings as a normal page (plan 6.4), replacing the old settings sheet: coach, board and
- * sound, bot chat, the linked account, engine diagnostics under Advanced, exporting games,
- * and About (version, source code, open-source credits).
+ * Settings as a normal page (plan 6.4): coach, board and sound, bot chat, the linked
+ * account, the engine (review depth, the online engine, health), your data (export, crash
+ * log, puzzle reports, erase everything) and About (version, source code, licences).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     state: AppUiState,
@@ -94,6 +104,15 @@ fun SettingsScreen(
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
     var exportMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmErase by rememberSaveable { mutableStateOf(false) }
+    // Re-read after a share or clear, so the counts stay true.
+    var dataVersion by remember { mutableIntStateOf(0) }
+    var crashText by remember { mutableStateOf("") }
+    var reportText by remember { mutableStateOf("") }
+    LaunchedEffect(dataVersion) {
+        crashText = runCatching { actions.crashLog() }.getOrDefault("")
+        reportText = runCatching { actions.puzzleReports() }.getOrDefault("")
+    }
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/x-chess-pgn")) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
@@ -105,6 +124,14 @@ fun SettingsScreen(
                 "Your games were saved."
             }.getOrElse { "The file could not be saved." }
         }
+    }
+    fun share(subject: String, text: String) {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, subject)
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        runCatching { context.startActivity(Intent.createChooser(send, subject)) }
     }
 
     CtScreenBackground(modifier) {
@@ -137,6 +164,35 @@ fun SettingsScreen(
                 CtSectionHeader(title = "Linked account")
                 ManageAccountCard(state = state, actions = accountActions)
 
+                CtSectionHeader(title = "Engine")
+                CtCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("Game review depth", style = CtType.Label)
+                    Text(
+                        "How deeply Stockfish checks each move of a game. ${state.appSettings.reviewDepth.detail}. Games already reviewed keep their review until you analyse them again.",
+                        style = CtType.Caption,
+                    )
+                    Spacer(Modifier.height(CtSpacing.sm))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+                        ReviewDepth.entries.forEach { depth ->
+                            CtChip(text = depth.label, color = CtColors.Teal, selected = state.appSettings.reviewDepth == depth, onClick = { actions.onReviewDepth(depth) })
+                        }
+                    }
+                }
+                CtToggleRow(
+                    title = "Online engine as a backup",
+                    subtitle = "If Stockfish on this phone stops, ask a free online engine (needs the internet). Off: the built-in Lite engine answers instead.",
+                    checked = state.appSettings.onlineEngine,
+                    onCheckedChange = actions.onOnlineEngine,
+                )
+                CtListRow(
+                    title = "Engine health",
+                    subtitle = if (state.engineStatus.isDegraded) "Stockfish is not running: using a weaker engine" else "Check that Stockfish is running on this phone",
+                    icon = Icons.Rounded.Memory,
+                    iconTint = if (state.engineStatus.isDegraded) CtColors.Coral else CtColors.Lime,
+                    onClick = actions.onOpenEngineHealth,
+                    trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
+                )
+
                 CtSectionHeader(title = "Your data")
                 CtCard(modifier = Modifier.fillMaxWidth()) {
                     Text("Export my games", style = CtType.Label)
@@ -151,16 +207,34 @@ fun SettingsScreen(
                     )
                     exportMessage?.let { Text(it, style = CtType.Caption) }
                 }
-
-                CtSectionHeader(title = "Advanced")
-                CtListRow(
-                    title = "Engine health",
-                    subtitle = if (state.engineStatus.isDegraded) "Stockfish is not running: using a weaker engine" else "Check that Stockfish is running on this phone",
-                    icon = Icons.Rounded.Memory,
-                    iconTint = if (state.engineStatus.isDegraded) CtColors.Coral else CtColors.Lime,
-                    onClick = actions.onOpenEngineHealth,
-                    trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
+                ShareCard(
+                    title = "Crash log",
+                    empty = "No crashes recorded on this phone.",
+                    filled = "The app crashed ${countLabel(crashCount(crashText), "time")} recently. Sharing the log helps fix it; it holds the error, the app version and your phone model, nothing else.",
+                    text = crashText,
+                    onShare = { share("Chess Tutor crash log", crashText) },
+                    onClear = { scope.launch { actions.clearCrashLog(); dataVersion++ } },
                 )
+                ShareCard(
+                    title = "Puzzle reports",
+                    empty = "When you report that another move works in a puzzle, it is kept here to share.",
+                    filled = "${countLabel(reportText.lines().count { it.isNotBlank() }, "report")} of another move that works. Share them so the puzzles can be checked.",
+                    text = reportText,
+                    onShare = { share("Chess Tutor puzzle reports", reportText) },
+                    onClear = { scope.launch { actions.clearPuzzleReports(); dataVersion++ } },
+                )
+                CtCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("Erase everything", style = CtType.Label)
+                    Text("Deletes your games, reviews, puzzle and lesson progress, XP, bots, settings and linked account from this phone, then restarts the app.", style = CtType.Caption)
+                    Spacer(Modifier.height(CtSpacing.sm))
+                    CtButton(
+                        text = "Erase all my data",
+                        icon = Icons.Rounded.DeleteForever,
+                        style = CtButtonStyle.Ghost,
+                        onClick = { confirmErase = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
 
                 CtSectionHeader(title = "About")
                 CtCard(modifier = Modifier.fillMaxWidth()) {
@@ -173,7 +247,13 @@ fun SettingsScreen(
                     icon = Icons.Rounded.Code,
                     onClick = { runCatching { uriHandler.openUri(SOURCE_URL) } },
                 )
-                // Only in builds that carry a support link: never in the Play version (plan section 9).
+                CtListRow(
+                    title = "Open-source licences",
+                    subtitle = "Stockfish, Maia, the puzzles, pieces, sounds, fonts and libraries",
+                    icon = Icons.Rounded.Description,
+                    onClick = actions.onOpenLicences,
+                )
+                // Only in builds that carry a support link (plan section 9).
                 if (actions.supportUrl.isNotBlank()) {
                     CtListRow(
                         title = "Support the developer",
@@ -183,22 +263,49 @@ fun SettingsScreen(
                         onClick = { runCatching { uriHandler.openUri(actions.supportUrl) } },
                     )
                 }
-                CtCard(modifier = Modifier.fillMaxWidth()) {
-                    Text("Open-source licences", style = CtType.Label)
-                    CREDITS.forEach { (name, licence) ->
-                        Spacer(Modifier.height(CtSpacing.xs))
-                        Row {
-                            Text(name, style = CtType.Caption, modifier = Modifier.weight(1f))
-                            Text(licence, style = CtType.Caption.copy(color = CtColors.Text2))
-                        }
-                    }
-                }
-
-                CtSectionHeader(title = "During development")
-                CtListRow(title = "Design system", subtitle = "Colours, type and components", icon = Icons.Rounded.Palette, iconTint = CtColors.Violet, onClick = actions.onOpenDesignGallery)
-                CtListRow(title = "Board lab", subtitle = "Try the new board: moves, sounds and motion", icon = Icons.Rounded.Science, iconTint = CtColors.Gold, onClick = actions.onOpenBoardLab)
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }
     }
+    if (confirmErase) {
+        CtConfirmDialog(
+            title = "Erase everything?",
+            text = "Your games, progress, settings and linked account will be deleted from this phone. This cannot be undone.",
+            confirmLabel = "Erase",
+            onConfirm = {
+                confirmErase = false
+                scope.launch { actions.eraseEverything() }
+            },
+            onDismiss = { confirmErase = false },
+        )
+    }
 }
+
+/** A text the player may share (crash log, puzzle reports): what it is, then Share and Clear. */
+@Composable
+private fun ShareCard(
+    title: String,
+    empty: String,
+    filled: String,
+    text: String,
+    onShare: () -> Unit,
+    onClear: () -> Unit,
+) {
+    CtCard(modifier = Modifier.fillMaxWidth()) {
+        Text(title, style = CtType.Label)
+        Text(if (text.isBlank()) empty else filled, style = CtType.Caption)
+        if (text.isNotBlank()) {
+            Spacer(Modifier.height(CtSpacing.sm))
+            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                CtButton(text = "Share", icon = Icons.Rounded.Share, style = CtButtonStyle.Secondary, onClick = onShare, modifier = Modifier.weight(1f))
+                CtButton(text = "Clear", icon = Icons.Rounded.Delete, style = CtButtonStyle.Ghost, onClick = onClear, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+/** How many crashes a crash log holds (each starts with its own header line). */
+internal fun crashCount(log: String): Int = log.lines().count { it.startsWith("=== Crash") }
+
+/** "1 time", "3 times". */
+internal fun countLabel(count: Int, noun: String): String = "$count $noun" + if (count == 1) "" else "s"

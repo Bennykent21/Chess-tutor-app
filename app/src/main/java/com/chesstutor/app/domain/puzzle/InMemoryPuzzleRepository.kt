@@ -75,7 +75,19 @@ class InMemoryPuzzleRepository(
     override fun levelProgress(): Flow<Map<Int, LevelProgress>> = levels.map { it }
 
     override suspend fun reportAnotherMove(puzzleId: String, fen: String, moveUci: String, note: String, at: Long) {
-        mutex.withLock { reports += "$puzzleId $moveUci" }
+        mutex.withLock {
+            reports += "$puzzleId $moveUci"
+            saved += PuzzleReport(puzzleId, fen, moveUci, note, at)
+        }
+    }
+
+    private val saved = mutableListOf<PuzzleReport>()
+
+    override suspend fun savedReports(): List<PuzzleReport> = mutex.withLock { saved.toList() }
+
+    override suspend fun clearReports() = mutex.withLock {
+        saved.clear()
+        reports.clear()
     }
 
     override suspend fun mistakePuzzleIds(limit: Int): List<String> = mutex.withLock {

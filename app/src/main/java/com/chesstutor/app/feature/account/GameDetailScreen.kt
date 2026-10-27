@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import android.content.ClipData
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,12 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.board.BoardView
 import com.chesstutor.app.board.moveListOf
@@ -50,6 +52,7 @@ import com.chesstutor.app.domain.PgnFormatter
 import com.chesstutor.app.domain.account.AnalysisSummary
 import com.chesstutor.app.domain.account.GameOutcome
 import com.chesstutor.app.domain.account.GameSummary
+import kotlinx.coroutines.launch
 
 /** What the game page can do. */
 data class GameDetailActions(
@@ -80,7 +83,8 @@ fun GameDetailScreen(
         }
         var confirmDelete by rememberSaveable { mutableStateOf(false) }
         var copied by rememberSaveable { mutableStateOf(false) }
-        val clipboard = LocalClipboardManager.current
+        val clipboard = LocalClipboard.current
+        val copyScope = rememberCoroutineScope()
         val start = remember(game.id) { game.startFen ?: Position.STARTING_FEN }
         val finalPosition = remember(game.id) { runCatching { Position.fromFen(game.record.finalFen) }.getOrElse { Position.fromFen(start) } }
         val moveText = remember(game.id) { movesText(start, game.moves) }
@@ -153,7 +157,8 @@ fun GameDetailScreen(
                         icon = Icons.Rounded.ContentCopy,
                         style = CtButtonStyle.Secondary,
                         onClick = {
-                            clipboard.setText(AnnotatedString(PgnFormatter.reconstructPgnFromGameRecord(game.record)))
+                            val pgn = PgnFormatter.reconstructPgnFromGameRecord(game.record)
+                            copyScope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("PGN", pgn))) }
                             copied = true
                         },
                         modifier = Modifier.weight(1f),

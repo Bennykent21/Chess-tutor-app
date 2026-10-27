@@ -1,0 +1,141 @@
+{
+  "id": "tactics-defenders",
+  "category": "tactics",
+  "title": "Beat the defender",
+  "intro": "Most targets are protected. Take the defender away, drag it off its job, or lure a piece onto a bad square, and the target falls.",
+  "level": "intermediate",
+  "order": 50,
+  "puzzleThemes": [
+    "capturingDefender",
+    "deflection",
+    "attraction"
+  ],
+  "lessons": [
+    {
+      "id": "tactics-remove-defender",
+      "title": "Remove the defender",
+      "summary": "Capture the piece that holds everything together.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White wants to mate on h7: the queen and the bishop on d3 both aim there. Only the knight on f6 guards h7.",
+          "fen": "r2q1rk1/ppp2ppp/5n2/6B1/7Q/3B4/PPP2PPP/R4RK1 w - - 0 1",
+          "arrows": [
+            "h4h7:idea",
+            "d3h7:idea",
+            "f6h7:bad"
+          ],
+          "highlights": [
+            "h7"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Take the defender away.",
+          "fen": "r2q1rk1/ppp2ppp/5n2/6B1/7Q/3B4/PPP2PPP/R4RK1 w - - 0 1",
+          "expect": [
+            "g5f6"
+          ],
+          "hint": "Which white piece can capture the knight on f6?",
+          "ifWrong": "Remove the knight that guards h7 first.",
+          "ifRight": "The knight is gone. Whatever Black takes back with, Qxh7 is mate."
+        },
+        {
+          "type": "quiz",
+          "text": "Black's queen guards the knight on e4. Remove that guard, then collect the knight.",
+          "fen": "8/p4pk1/1p4p1/4p3/3qn3/5BP1/PQ3PK1/8 w - - 2 38",
+          "line": [
+            "b2d4",
+            "e5d4",
+            "f3e4"
+          ],
+          "hint": "Trade queens on d4 first. What is left guarding e4 after that?",
+          "ifWrong": "Capture the defender of e4 first: the queen on d4.",
+          "ifRight": "The queen trade removed the knight's only defender."
+        },
+        {
+          "type": "explain",
+          "text": "Before you attack a piece or a square, ask: what defends it? If you can capture or chase that defender, the target is left alone."
+        }
+      ]
+    },
+    {
+      "id": "tactics-deflection",
+      "title": "Deflection",
+      "summary": "Force a defender away from its job.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Black's king on f7 has a job: it guards the bishop on e6. Chase the king away with check, and the bishop is left alone.",
+          "fen": "7r/2p2kpp/p1n1b3/2B1Pp2/2p5/P4N2/P4PPP/2R3K1 w - - 3 22",
+          "arrows": [
+            "f7e6:idea"
+          ],
+          "highlights": [
+            "e6"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Deflect the king with a knight check, then take the bishop.",
+          "fen": "7r/2p2kpp/p1n1b3/2B1Pp2/2p5/P4N2/P4PPP/2R3K1 w - - 3 22",
+          "line": [
+            "f3g5",
+            "f7g6",
+            "g5e6"
+          ],
+          "hint": "Which knight check also attacks the bishop on e6?",
+          "ifWrong": "Give a check that pulls the king away from e6.",
+          "ifRight": "The king had to step away, and the bishop fell."
+        }
+      ]
+    },
+    {
+      "id": "tactics-decoy",
+      "title": "Decoy",
+      "summary": "Lure the king onto the square where it gets forked.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A decoy is a sacrifice that drags a piece onto a bad square. Here the knight would love to fork the king and the queen from e7, but the king is on h8, not g8.",
+          "fen": "7k/pp3p1p/2q5/3N4/8/6R1/5P1P/6K1 w - - 0 1",
+          "arrows": [
+            "d5e7:idea"
+          ],
+          "highlights": [
+            "g8",
+            "c6"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Lure the king to g8, then fork.",
+          "fen": "7k/pp3p1p/2q5/3N4/8/6R1/5P1P/6K1 w - - 0 1",
+          "line": [
+            "g3g8",
+            "h8g8",
+            "d5e7",
+            "g8f8",
+            "e7c6"
+          ],
+          "hint": "Give up the rook on g8. The king has to take it.",
+          "ifWrong": "Sacrifice the rook with check on g8 first.",
+          "ifRight": "A rook for the queen: the decoy worked."
+        },
+        {
+          "type": "quiz",
+          "text": "Another decoy: lure the king onto e8, then take the bishop on c8 with check.",
+          "fen": "2b1n3/5k1p/prB1p1p1/8/8/1P4P1/P4P1P/2R3K1 w - - 5 29",
+          "line": [
+            "c6e8",
+            "f7e8",
+            "c1c8"
+          ],
+          "hint": "Capture the knight on e8 with check. Where does the king end up?",
+          "ifWrong": "Start with the capture on e8: it drags the king onto the back rank.",
+          "ifRight": "The king took on e8 and walked into Rxc8 with check."
+        }
+      ]
+    }
+  ]
+}
