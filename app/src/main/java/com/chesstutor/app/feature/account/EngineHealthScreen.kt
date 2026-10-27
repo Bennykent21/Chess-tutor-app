@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtButton
@@ -142,9 +143,10 @@ private fun SpeedCard(perf: PerfSnapshot) {
         Text("Measured since the app started. Nothing is sent anywhere.", style = CtType.Caption)
         Spacer(Modifier.height(CtSpacing.sm))
         speedLines(perf).forEach { (label, value) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.xxs)) {
-                Text(label, style = CtType.BodySmall, modifier = Modifier.weight(1f))
-                Text(value, style = CtType.BodySmall.copy(color = CtColors.Text))
+            // Both sides get a share of the width, so a long value wraps instead of crushing its label.
+            Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.xxs), horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                Text(label, style = CtType.BodySmall, modifier = Modifier.weight(0.4f))
+                Text(value, style = CtType.BodySmall.copy(color = CtColors.Text), textAlign = TextAlign.End, modifier = Modifier.weight(0.6f))
             }
         }
     }
