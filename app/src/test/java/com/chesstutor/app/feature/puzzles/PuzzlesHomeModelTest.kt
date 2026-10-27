@@ -78,7 +78,7 @@ class PuzzlesHomeModelTest {
     fun theViewModelLoadsThePackAndFollowsTheRepository() = runTest {
         val repository = InMemoryPuzzleRepository()
         val puzzle = Puzzle("p", "8/8/8/8/8/8/8/K6k w - - 0 1", listOf("a1a2", "h1h2"), 500, "fork", emptySet())
-        val vm = PuzzlesViewModel(repository) { PuzzlePack(listOf(puzzle)) }
+        val vm = PuzzlesViewModel(repository, loadPack = { PuzzlePack(listOf(puzzle)) })
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.home.collect {} }
 
         val loaded = vm.home.first { !it.loading }
@@ -96,7 +96,7 @@ class PuzzlesHomeModelTest {
 
     @Test
     fun anEmptyPackIsReportedAsUnavailable() = runTest {
-        val vm = PuzzlesViewModel(InMemoryPuzzleRepository()) { PuzzlePack.EMPTY }
+        val vm = PuzzlesViewModel(InMemoryPuzzleRepository(), loadPack = { PuzzlePack.EMPTY })
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.home.collect {} }
         assertFalse(vm.home.first { !it.loading }.packAvailable)
     }

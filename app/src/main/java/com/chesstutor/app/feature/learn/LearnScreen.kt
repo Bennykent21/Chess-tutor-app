@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtGradients
@@ -44,6 +45,8 @@ import com.chesstutor.app.domain.learn.LessonCategory
 data class LearnHubActions(
     val onOpenCategory: (LessonCategory) -> Unit,
     val onOpenLesson: (lessonId: String) -> Unit,
+    /** The opening trainer (plan 6C). */
+    val onOpenTrainer: () -> Unit = {},
 )
 
 /**
@@ -55,6 +58,8 @@ fun LearnScreen(
     learn: LearnState,
     actions: LearnHubActions,
     modifier: Modifier = Modifier,
+    /** Opening trainer lines due again, for its row. */
+    trainerDue: Int = 0,
 ) {
     val tiles = remember(learn) { LearnHubModel.tiles(learn.library, learn.progress) }
     val next = remember(learn) { LearnHubModel.continueLesson(learn.library, learn.progress) }
@@ -112,6 +117,14 @@ fun LearnScreen(
                         if (rowTiles.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
+                CtListRow(
+                    title = "Opening trainer",
+                    subtitle = if (trainerDue > 0) "$trainerDue line${if (trainerDue == 1) "" else "s"} due for review" else "Learn 15 openings' main lines by heart",
+                    icon = Icons.Rounded.Flag,
+                    iconTint = CtColors.Gold,
+                    onClick = actions.onOpenTrainer,
+                    modifier = Modifier.ctEnter(tiles.size / 2 + 2),
+                )
                 Spacer(Modifier.height(CtSpacing.lg))
             }
         }

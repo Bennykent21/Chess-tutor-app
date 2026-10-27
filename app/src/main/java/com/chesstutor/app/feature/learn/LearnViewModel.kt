@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import com.chesstutor.app.domain.learn.PracticeRepository
+import com.chesstutor.app.domain.learn.PracticeResult
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -21,6 +24,8 @@ data class LearnState(
     val loading: Boolean = true,
     val library: LessonLibrary = LessonLibrary.EMPTY,
     val progress: Map<String, LessonProgress> = emptyMap(),
+    /** Practice-set best scores by course (plan 6C). */
+    val practice: Map<String, PracticeResult> = emptyMap(),
 )
 
 /**
@@ -30,11 +35,12 @@ data class LearnState(
 class LearnViewModel(
     private val progress: LessonProgressRepository,
     private val loadLibrary: suspend () -> LessonLibrary,
+    practice: PracticeRepository? = null,
 ) : ViewModel() {
     private val library = MutableStateFlow<LessonLibrary?>(null)
 
-    val learn: StateFlow<LearnState> = combine(library, progress.observe()) { lib, rows ->
-        LearnState(loading = lib == null, library = lib ?: LessonLibrary.EMPTY, progress = rows)
+    val learn: StateFlow<LearnState> = combine(library, progress.observe(), practice?.observePractice() ?: flowOf(emptyMap())) { lib, rows, sets ->
+        LearnState(loading = lib == null, library = lib ?: LessonLibrary.EMPTY, progress = rows, practice = sets)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LearnState())
 
     private val mutablePlayer = MutableStateFlow<LessonPlayer?>(null)
@@ -75,8 +81,9 @@ class LearnViewModel(
     class Factory(
         private val progress: LessonProgressRepository,
         private val loadLibrary: suspend () -> LessonLibrary,
+        private val practice: PracticeRepository? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = LearnViewModel(progress, loadLibrary) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = LearnViewModel(progress, loadLibrary, practice) as T
     }
 }

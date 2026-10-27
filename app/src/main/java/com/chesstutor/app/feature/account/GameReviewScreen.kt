@@ -109,6 +109,8 @@ data class ReviewActions(
     val onPractise: (ReviewedMove) -> Unit = {},
     val onFeedback: (BoardFeedback) -> Unit = {},
     val onBack: () -> Unit = {},
+    /** "Explore from here": Explore on this position, with the rest of the game as its main line. */
+    val onExplore: (fen: String, line: List<String>) -> Unit = { _, _ -> },
 )
 
 /**
@@ -406,6 +408,11 @@ private fun ReviewBoard(
                                 ?.let { actions.onFeedback(session.onMove(it)) }
                         })
                     }
+                    CtChip(text = "Explore from here", color = CtColors.Violet, onClick = {
+                        playing = false
+                        // On the game's line, what really happened next comes along to compare.
+                        actions.onExplore(board.position.toFen(), ply?.let { game.moves.drop(it) }.orEmpty())
+                    })
                     if (ply == null) {
                         CtChip(text = "Back to the game", color = CtColors.Teal, onClick = {
                             goToPly(backToGamePly(mainIds, view.tokens.map { (it as? NotationToken.MoveToken)?.nodeId }, view.currentId))
