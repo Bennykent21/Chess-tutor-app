@@ -51,9 +51,11 @@ class GameAnalyzerTest {
         val engine = FakeEngine()
         val repo = InMemoryGameAnalysisRepository()
         val progress = mutableListOf<Pair<Int, Int>>()
-        val summary = GameAnalyzer(engine, repo, clock = { 42 }).analyse(game) { done, total -> progress += done to total }
+        val analyzer = GameAnalyzer(engine, repo, clock = { 42 })
+        val summary = analyzer.analyse(game) { done, total -> progress += done to total }
 
         assertEquals(5, engine.calls)
+        assertEquals("every position was searched (none cached)", 5, analyzer.lastSearched)
         assertEquals(List(5) { GameAnalyzer.DEFAULT_DEPTH }, engine.depths)
         assertEquals((1..5).map { it to 5 }, progress)
         assertEquals(5, repo.evals("g").size)

@@ -1,5 +1,7 @@
 package com.chesstutor.app.data.network
 
+import com.chesstutor.app.data.diagnostics.PerfLog
+import com.chesstutor.app.data.diagnostics.ImportTiming
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.ImportProgress
 import com.chesstutor.app.data.model.RatingPlatform
@@ -77,6 +79,7 @@ suspend fun runImport(
 ): ImportStatus.Finished {
     var last: ImportProgress? = null
     var saveFailed = false
+    val started = System.nanoTime()
     val result = client.fetchRecentGames(
         platform = request.platform,
         username = request.username,
@@ -98,6 +101,7 @@ suspend fun runImport(
     )
     result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
     val imported = result.getOrDefault(emptyList())
+    PerfLog.import(ImportTiming(imported.size, (System.nanoTime() - started) / 1_000_000, request.platform.displayName))
     return ImportStatus.Finished(
         request = request,
         imported = imported.size,

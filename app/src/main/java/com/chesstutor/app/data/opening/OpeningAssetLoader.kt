@@ -1,5 +1,6 @@
 package com.chesstutor.app.data.opening
 
+import com.chesstutor.app.data.diagnostics.PerfLog
 import android.content.res.AssetManager
 import com.chesstutor.app.domain.opening.OpeningTree
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +19,7 @@ class OpeningAssetLoader(private val assets: AssetManager, private val assetName
     @Volatile private var cached: OpeningTree? = null
 
     suspend fun load(): OpeningTree = cached ?: lock.withLock {
-        cached ?: withContext(Dispatchers.Default) { read() }.also { cached = it }
+        cached ?: withContext(Dispatchers.Default) { PerfLog.timed("Openings") { read() } }.also { cached = it }
     }
 
     private fun read(): OpeningTree {
