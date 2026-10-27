@@ -1,0 +1,43 @@
+{
+  "id": "blunders-opening-traps",
+  "category": "blunders",
+  "title": "The h7 trap",
+  "intro": "In the opening, h7 (or h2) is guarded only by the king. When a knight and a queen both aim at it, one careless move loses at once.",
+  "level": "beginner",
+  "order": 40,
+  "puzzleThemes": ["mateIn1"],
+  "lessons": [
+    {
+      "id": "blunders-h7-mate",
+      "title": "Mate on h7",
+      "summary": "Queen and knight against the castled king.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "White's knight on g5 and queen on c2 both aim at h7. Black's knight left f6, the square that usually guards h7, so now only the king defends it.",
+          "fen": "r1b2rk1/ppqn1ppp/3bp3/2pp2N1/3P4/2P1P3/PPQ1BPPP/RN3RK1 w - - 1 12",
+          "arrows": ["c2h7:idea", "g5h7:idea"],
+          "highlights": ["h7"]
+        },
+        {
+          "type": "play",
+          "text": "Punish it.",
+          "fen": "r1b2rk1/ppqn1ppp/3bp3/2pp2N1/3P4/2P1P3/PPQ1BPPP/RN3RK1 w - - 1 12",
+          "expect": ["c2h7"],
+          "hint": "Two white pieces attack h7 and only the king defends it.",
+          "ifWrong": "Take on h7: the knight protects your queen there.",
+          "ifRight": "Checkmate. Keep a knight on f6 (or f3) while queen and knight aim at h7."
+        },
+        {
+          "type": "quiz",
+          "text": "Here the queen and a rook line up on h7. Find the mate.",
+          "fen": "r1bq1rk1/pp1n1ppp/2p2b2/2Pp4/3p4/P1N1PNP1/1PQ2PP1/R3KB1R w KQ - 0 13",
+          "expect": ["c2h7"],
+          "hint": "The queen on c2 reaches h7 along the diagonal, and your rook on h1 backs it up from behind.",
+          "ifWrong": "Look at the diagonal from c2 to h7.",
+          "ifRight": "Mate on h7 again. When your knight leaves f6, check what guards h7."
+        }
+      ]
+    }
+  ]
+}

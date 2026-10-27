@@ -1,0 +1,40 @@
+{
+  "id": "openings-scandinavian",
+  "category": "openings",
+  "title": "Scandinavian Defense",
+  "intro": "Black answers 1.e4 with 1...d5 at once and takes back with the queen. Simple to learn and solid, with a clear plan.",
+  "level": "beginner",
+  "order": 85,
+  "side": "black",
+  "battleLine": "Scandinavian Defense: Main Line",
+  "lessons": [
+    {
+      "id": "openings-scandinavian-main",
+      "title": "The main line with Qa5",
+      "summary": "Hit e4, take back with the queen, then tuck it on a5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "1...d5 attacks the e4 pawn straight away. After 2.exd5 Qxd5 the queen is out early, and 3.Nc3 chases it with tempo.",
+          "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+          "arrows": ["d7d5:good"]
+        },
+        {
+          "type": "explain",
+          "text": "The queen goes to a5: away from the knight, out of the centre, and still eyeing e1 and the knight on c3. Then Black develops with ...Nf6, ...c6 and ...Bf5, a sturdy position with an easy plan."
+        },
+        {
+          "type": "play",
+          "text": "Play the main line as Black.",
+          "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+          "line": ["d7d5", "e4d5", "d8d5", "b1c3", "d5a5", "d2d4", "g8f6", "g1f3", "c7c6"],
+          "hint": "d5, take back with the queen, then queen to a5, knight to f6 and pawn to c6.",
+          "ifWrong": "Follow the plan: ...d5, ...Qxd5, ...Qa5, ...Nf6, ...c6.",
+          "ifRight": "That is the Scandinavian main line. Next comes ...Bf5 and ...e6.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}
