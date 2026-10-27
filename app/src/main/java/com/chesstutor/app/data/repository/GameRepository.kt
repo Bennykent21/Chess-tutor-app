@@ -4,6 +4,7 @@ import com.chesstutor.app.data.local.GameRecordDao
 import com.chesstutor.app.data.local.GameRecordEntity
 import com.chesstutor.app.data.model.GameRecord
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 interface GameRepository {
@@ -16,6 +17,12 @@ interface GameRepository {
         }
     }
     suspend fun deleteGame(id: String)
+
+    /** Which of [ids] are saved already, so an import can count the games it really added. */
+    suspend fun existingIds(ids: Collection<String>): Set<String> {
+        val saved = observeGames().first().mapTo(HashSet()) { it.id }
+        return ids.filterTo(HashSet()) { it in saved }
+    }
 }
 
 class RoomGameRepository(
@@ -41,6 +48,9 @@ class RoomGameRepository(
     override suspend fun deleteGame(id: String) {
         dao.deleteGame(id)
     }
+
+    override suspend fun existingIds(ids: Collection<String>): Set<String> =
+        ids.distinct().chunked(500).flatMapTo(HashSet()) { dao.existingIds(it) }
 }
 
 class InMemoryGameRepository : GameRepository {

@@ -46,8 +46,11 @@ data class AppSettings(
     val mascotId: String = Mascot.DEFAULT.id,
     /** How much bots chat during games (review R6). */
     val chatLevel: ChatLevel = ChatLevel.SOME,
-    /** How many games the player asked to import, until the import has finished (an import cut short carries on later). */
-    val importTarget: ImportDepth? = null,
+    /**
+     * How many games from the linked site the player wants saved in total, until the import has
+     * finished (an import cut short carries on later). "Import 500 more" with 257 saved is 757.
+     */
+    val importTarget: Int? = null,
     /** Game review depth (Settings > Engine). */
     val reviewDepth: ReviewDepth = ReviewDepth.NORMAL,
     /** May the free online engine stand in when Stockfish on the phone fails? (plan 4.5, D18) */
@@ -105,7 +108,10 @@ object AppSettingsCodec {
             pieceSetId = PieceSet.fromId(values[PIECE_SET] as? String).id,
             mascotId = Mascot.fromId(values[MASCOT] as? String).id,
             chatLevel = (values[BOT_CHAT] as? String)?.let { name -> ChatLevel.entries.firstOrNull { it.name == name } } ?: defaults.chatLevel,
-            importTarget = (values[IMPORT_TARGET] as? String)?.let { name -> ImportDepth.entries.firstOrNull { it.name == name } },
+            // Before Phase 7 the target was an ImportDepth name ("LAST_500").
+            importTarget = (values[IMPORT_TARGET] as? String)?.let { text ->
+                text.toIntOrNull()?.takeIf { it > 0 } ?: ImportDepth.entries.firstOrNull { it.name == text }?.maxGames
+            },
             reviewDepth = (values[REVIEW_DEPTH] as? String)?.let { name -> ReviewDepth.entries.firstOrNull { it.name == name } } ?: defaults.reviewDepth,
             onlineEngine = bool(ONLINE_ENGINE, defaults.onlineEngine),
         )
@@ -124,7 +130,7 @@ object AppSettingsCodec {
         PIECE_SET to settings.pieceSetId,
         MASCOT to settings.mascotId,
         BOT_CHAT to settings.chatLevel.name,
-        IMPORT_TARGET to (settings.importTarget?.name ?: ""),
+        IMPORT_TARGET to (settings.importTarget?.toString() ?: ""),
         REVIEW_DEPTH to settings.reviewDepth.name,
         ONLINE_ENGINE to settings.onlineEngine,
     )

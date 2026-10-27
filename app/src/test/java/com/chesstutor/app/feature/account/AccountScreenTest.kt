@@ -282,7 +282,7 @@ class AccountScreenTest {
         compose.onNodeWithText("Rapid 1848 · Blitz 1720 · Bullet –").assertExists()
         compose.onNodeWithText("Blitz").performClick()
         assertEquals(RatingTimeControl.BLITZ, rating)
-        compose.onNodeWithText("Import last 100 games").performClick()
+        compose.onNodeWithText("Import 100 more games").performClick()
         assertTrue(imported)
         compose.onNodeWithText("Support the developer").assertExists()
     }
