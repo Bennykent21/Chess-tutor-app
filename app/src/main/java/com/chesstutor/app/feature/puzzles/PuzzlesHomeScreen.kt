@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtCoachBubble
 import com.chesstutor.app.design.CtColors
@@ -86,6 +87,7 @@ fun PuzzlesHomeScreen(
     val current = state.currentLevel
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize()) {
+            CtScreenTitle(title = "Puzzles")
             Column(
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),

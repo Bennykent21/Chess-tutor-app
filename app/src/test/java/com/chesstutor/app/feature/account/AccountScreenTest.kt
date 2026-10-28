@@ -219,30 +219,55 @@ class AccountScreenTest {
         }
         compose.onNodeWithText("No account linked. Link Chess.com or Lichess on the Account page to bring in your games.").assertExists()
         compose.onNodeWithText("Support the developer").assertDoesNotExist()
-        compose.onNodeWithText("Export as PGN").assertExists()
+        compose.onNodeWithText("Export my games").performScrollTo().assertExists()
         compose.onNodeWithText("Board lab").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_settings.png")
-        compose.onNodeWithText("Board, pieces and sound").performClick()
+        compose.onNodeWithText("Board and pieces").performScrollTo().performClick()
         assertTrue(boardOpened)
-        compose.onNodeWithText("Lots").performClick()
+        compose.onNodeWithText("Lots").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.domain.bot.ChatLevel.LOTS, chat)
         compose.onNodeWithText("Deep").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.data.settings.ReviewDepth.DEEP, depth)
         compose.onNodeWithText("Online engine as a backup").performScrollTo().performClick()
         assertEquals(false, online)
         compose.onNodeWithText("The app crashed 1 time recently.", substring = true).performScrollTo().assertExists()
-        compose.onNodeWithText("When you report that another move works in a puzzle, it is kept here to share.").assertExists()
+        compose.onNodeWithText("Reports of another move that works appear here.").assertExists()
         compose.onNodeWithText("Clear").performScrollTo().performClick()
         compose.waitForIdle()
         assertTrue(crashCleared)
         compose.onNodeWithText("No crashes recorded on this phone.").assertExists()
         compose.onNodeWithText("Open-source licences").performScrollTo().performClick()
         assertTrue(licences)
-        compose.onNodeWithText("Erase all my data").performScrollTo().performClick()
+        compose.onNodeWithText("Erase everything").performScrollTo().performClick()
         compose.onNodeWithText("Erase everything?").assertExists()
         compose.onNodeWithText("Erase").performClick()
         compose.waitForIdle()
         assertTrue(erased)
+    }
+
+    @Test
+    fun settingsPicksTheCoachInASheetAndFlipsTheEverydaySwitches() {
+        var mascot: com.chesstutor.app.domain.Mascot? = null
+        var sound: Boolean? = null
+        var reduceMotion: Boolean? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                SettingsScreen(
+                    state = AppUiState(),
+                    accountActions = AccountActions(),
+                    actions = SettingsActions(onMascot = { mascot = it }, onSound = { sound = it }, onReduceMotion = { reduceMotion = it }, supportUrl = ""),
+                )
+            }
+        }
+        compose.onNodeWithText("Sound").performScrollTo().performClick()
+        assertEquals("sound starts on, so a tap turns it off", false, sound)
+        compose.onNodeWithText("Reduce motion").performScrollTo().performClick()
+        assertEquals(true, reduceMotion)
+        compose.onNodeWithText("Coach").performScrollTo().performClick()
+        compose.onNode(hasText("Sage") and hasClickAction()).performClick()
+        compose.waitForIdle()
+        assertEquals(com.chesstutor.app.domain.Mascot.SAGE, mascot)
+        compose.onNodeWithText("Your coach").assertDoesNotExist()
     }
 
     @Test

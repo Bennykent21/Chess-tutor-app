@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtColors
@@ -37,7 +38,6 @@ import com.chesstutor.app.design.CtIconBubble
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSpacing
-import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.learn.LessonCategory
 
@@ -72,7 +72,7 @@ fun LearnScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            CtTopBar(title = "Learn", subtitle = "Lessons from the first move to the endgame")
+            CtScreenTitle(title = "Learn")
             Column(
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter),
                 verticalArrangement = Arrangement.spacedBy(CtSpacing.md),

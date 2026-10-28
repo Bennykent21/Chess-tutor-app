@@ -296,6 +296,54 @@ fun CtTopBar(
     }
 }
 
+/**
+ * The big title at the top of a tab or a top-level page (30 sp), with small [trailing] items
+ * on the right, such as a streak or a settings button (design language section 5).
+ */
+@Composable
+fun CtScreenTitle(
+    title: String,
+    modifier: Modifier = Modifier,
+    trailing: @Composable (RowScope.() -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 56.dp)
+            .padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = CtType.Display,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
+        )
+        if (trailing != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), content = trailing)
+        }
+    }
+}
+
+/** Just a back arrow, above a page that shows its own big [CtScreenTitle] (Settings). */
+@Composable
+fun CtBackBar(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier = modifier.fillMaxWidth().height(56.dp).padding(horizontal = CtSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(CtSpacing.touchTarget)
+                .clip(CtShapes.Pill)
+                .ctPressable(onClickLabel = "Go back", onClick = onBack),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = CtColors.Text)
+        }
+    }
+}
+
 @Composable
 fun CtSectionHeader(
     title: String,
@@ -758,17 +806,21 @@ fun CtProgressBar(
     }
 }
 
-/** A tappable row: an icon, a title, at most one short detail and a chevron, over a hairline. */
+/**
+ * A tappable row: an icon (or any 40 dp [leading] picture, such as a board or a coach), a
+ * title, at most one short detail and a chevron, over a hairline.
+ */
 @Composable
 fun CtListRow(
     title: String,
-    icon: ImageVector,
+    icon: ImageVector?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     iconTint: Color = CtColors.Accent,
     divider: Boolean = true,
     trailing: @Composable (() -> Unit)? = null,
+    leading: @Composable (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -779,8 +831,11 @@ fun CtListRow(
                 .padding(vertical = CtSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CtIconBubble(icon = icon, tint = iconTint, size = 40.dp)
-            Spacer(Modifier.width(14.dp))
+            when {
+                leading != null -> Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { leading() }
+                icon != null -> CtIconBubble(icon = icon, tint = iconTint, size = 40.dp)
+            }
+            if (leading != null || icon != null) Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
                 Text(text = title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (subtitle != null) {
