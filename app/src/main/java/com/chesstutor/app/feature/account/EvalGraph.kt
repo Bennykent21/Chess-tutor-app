@@ -37,6 +37,12 @@ fun EvalGraph(
     modifier: Modifier = Modifier,
 ) {
     val slots = (totalPositions - 1).coerceAtLeast(1)
+    val midColor = CtColors.Line
+    val areaColor = CtColors.Text.copy(alpha = 0.85f)
+    val lineColor = CtColors.Violet
+    val blunderColor = CtColors.Coral
+    val mistakeColor = CtColors.Gold
+    val cursorColor = CtColors.Teal
     Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -57,7 +63,7 @@ fun EvalGraph(
         fun y(share: Float) = h * (1f - share.coerceIn(0.02f, 0.98f))
 
         // The middle line: equal chances.
-        drawLine(CtColors.Line, Offset(0f, h / 2), Offset(w, h / 2), strokeWidth = 1.dp.toPx())
+        drawLine(midColor, Offset(0f, h / 2), Offset(w, h / 2), strokeWidth = 1.dp.toPx())
         if (points.isNotEmpty()) {
             val area = Path().apply {
                 moveTo(0f, h)
@@ -65,23 +71,23 @@ fun EvalGraph(
                 lineTo(x(points.lastIndex), h)
                 close()
             }
-            drawPath(area, CtColors.Text.copy(alpha = 0.85f))
+            drawPath(area, areaColor)
             val line = Path().apply {
                 points.forEachIndexed { ply, share -> if (ply == 0) moveTo(0f, y(share)) else lineTo(x(ply), y(share)) }
             }
-            drawPath(line, CtColors.Violet, style = Stroke(width = 1.5.dp.toPx()))
+            drawPath(line, lineColor, style = Stroke(width = 1.5.dp.toPx()))
             qualities.forEach { (ply, quality) ->
                 if (ply >= points.size) return@forEach
                 val color = when (quality) {
-                    MoveQuality.BLUNDER -> CtColors.Coral
-                    MoveQuality.MISTAKE -> CtColors.Gold
+                    MoveQuality.BLUNDER -> blunderColor
+                    MoveQuality.MISTAKE -> mistakeColor
                     else -> return@forEach
                 }
                 drawCircle(color, radius = 3.5.dp.toPx(), center = Offset(x(ply), y(points[ply])))
             }
         }
         currentPly?.takeIf { it in 0..slots }?.let { ply ->
-            drawLine(CtColors.Teal, Offset(x(ply), 0f), Offset(x(ply), h), strokeWidth = 2.dp.toPx())
+            drawLine(cursorColor, Offset(x(ply), 0f), Offset(x(ply), h), strokeWidth = 2.dp.toPx())
         }
     }
 }

@@ -37,7 +37,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 34.sp,
         letterSpacing = (-0.2).sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextPrimary
     ),
     titleLarge = TextStyle(
         fontFamily = InterFontFamily,
@@ -46,7 +45,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 28.sp,
         letterSpacing = (-0.1).sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextPrimary
     ),
     titleMedium = TextStyle(
         fontFamily = InterFontFamily,
@@ -55,7 +53,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 24.sp,
         letterSpacing = 0.sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextPrimary
     ),
     titleSmall = TextStyle(
         fontFamily = InterFontFamily,
@@ -64,7 +61,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 21.sp,
         letterSpacing = 0.sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextPrimary
     ),
     bodyLarge = TextStyle(
         fontFamily = InterFontFamily,
@@ -73,7 +69,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 23.sp,
         letterSpacing = 0.1.sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextPrimary
     ),
     bodyMedium = TextStyle(
         fontFamily = InterFontFamily,
@@ -82,7 +77,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 22.sp,
         letterSpacing = 0.1.sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextSecondary
     ),
     bodySmall = TextStyle(
         fontFamily = InterFontFamily,
@@ -91,7 +85,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 20.sp,
         letterSpacing = 0.15.sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextSecondary
     ),
     labelLarge = TextStyle(
         fontFamily = InterFontFamily,
@@ -100,7 +93,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextPrimary
     ),
     labelMedium = TextStyle(
         fontFamily = InterFontFamily,
@@ -109,7 +101,6 @@ val ChessTutorTypography = Typography(
         lineHeight = 18.sp,
         letterSpacing = 0.2.sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextSecondary
     ),
     labelSmall = TextStyle(
         fontFamily = InterFontFamily,
@@ -118,6 +109,5 @@ val ChessTutorTypography = Typography(
         lineHeight = 16.sp,
         letterSpacing = 0.4.sp,
         fontFeatureSettings = "tnum",
-        color = ChessTutorColors.TextTertiary
     )
 )

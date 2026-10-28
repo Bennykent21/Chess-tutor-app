@@ -4,6 +4,8 @@ import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.PieceSet
 import com.chesstutor.app.data.model.ImportDepth
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.ChatLevel
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +57,10 @@ data class AppSettings(
     val reviewDepth: ReviewDepth = ReviewDepth.NORMAL,
     /** May the free online engine stand in when Stockfish on the phone fails? (plan 4.5, D18) */
     val onlineEngine: Boolean = true,
+    /** The app's colour theme (D37). */
+    val appTheme: AppTheme = AppTheme.DEFAULT,
+    /** Light, dark, or the phone's setting (D36). */
+    val appearance: Appearance = Appearance.DEFAULT,
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
 
@@ -86,6 +92,8 @@ object AppSettingsCodec {
     const val IMPORT_TARGET = "import_target"
     const val REVIEW_DEPTH = "review_depth"
     const val ONLINE_ENGINE = "online_engine"
+    const val APP_THEME = "app_theme"
+    const val APPEARANCE = "appearance"
 
     /** Marks that settings formerly kept elsewhere were copied in (see [SettingsStore]). */
     const val LEGACY_IMPORTED = "legacy_imported_v1"
@@ -114,6 +122,8 @@ object AppSettingsCodec {
             },
             reviewDepth = (values[REVIEW_DEPTH] as? String)?.let { name -> ReviewDepth.entries.firstOrNull { it.name == name } } ?: defaults.reviewDepth,
             onlineEngine = bool(ONLINE_ENGINE, defaults.onlineEngine),
+            appTheme = AppTheme.fromName(values[APP_THEME] as? String),
+            appearance = Appearance.fromName(values[APPEARANCE] as? String),
         )
     }
 
@@ -133,6 +143,8 @@ object AppSettingsCodec {
         IMPORT_TARGET to (settings.importTarget?.toString() ?: ""),
         REVIEW_DEPTH to settings.reviewDepth.name,
         ONLINE_ENGINE to settings.onlineEngine,
+        APP_THEME to settings.appTheme.name,
+        APPEARANCE to settings.appearance.name,
     )
 }
 

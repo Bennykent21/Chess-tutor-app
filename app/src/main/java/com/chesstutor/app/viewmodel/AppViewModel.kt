@@ -25,6 +25,8 @@ import com.chesstutor.app.data.settings.BoardOrientation
 import com.chesstutor.app.data.settings.InMemorySettingsStore
 import com.chesstutor.app.data.settings.ReviewDepth
 import com.chesstutor.app.data.settings.SettingsStore
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.ChatLevel
 import com.chesstutor.app.engine.ChessEngineManager
@@ -267,6 +269,10 @@ class AppViewModel(
     fun setMascot(mascot: Mascot) = updateSettings { it.copy(mascotId = mascot.id) }
 
     fun setReviewDepth(depth: ReviewDepth) = updateSettings { it.copy(reviewDepth = depth) }
+
+    fun setAppTheme(theme: AppTheme) = updateSettings { it.copy(appTheme = theme) }
+
+    fun setAppearance(appearance: Appearance) = updateSettings { it.copy(appearance = appearance) }
 
     fun setOnlineEngine(enabled: Boolean) = updateSettings { it.copy(onlineEngine = enabled) }
 

@@ -37,6 +37,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -171,6 +172,8 @@ private fun LevelPath(state: PuzzlesHomeState, onPlayLevel: (Int) -> Unit) {
     }
 }
 
+@Composable
+@ReadOnlyComposable
 private fun WorldAccent.color(): Color = when (this) {
     WorldAccent.LIME -> CtColors.Lime
     WorldAccent.TEAL -> CtColors.Teal

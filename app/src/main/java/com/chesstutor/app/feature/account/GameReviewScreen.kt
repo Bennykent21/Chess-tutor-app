@@ -36,6 +36,7 @@ import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -276,6 +277,8 @@ private val SUMMARY_ORDER = listOf(
 )
 
 /** A count's colour: the quality's own, except Book's neutral chip colour, which would not read as text. */
+@Composable
+@ReadOnlyComposable
 private fun countColor(quality: MoveQuality): Color = if (quality == MoveQuality.BOOK) CtColors.Text2 else qualityColor(quality)
 
 /** The two player columns of the summary, and the gap between them that holds the quality icons. */
@@ -636,6 +639,8 @@ internal fun badgeText(quality: MoveQuality): String = when (quality) {
     else -> quality.symbol
 }
 
+@Composable
+@ReadOnlyComposable
 internal fun qualityColor(quality: MoveQuality): Color = when (quality) {
     MoveQuality.BOOK -> CtColors.SurfaceHigh
     MoveQuality.BRILLIANT -> CtColors.Sky
@@ -647,6 +652,8 @@ internal fun qualityColor(quality: MoveQuality): Color = when (quality) {
     MoveQuality.BLUNDER -> CtColors.Coral
 }
 
+@Composable
+@ReadOnlyComposable
 internal fun qualityTextColor(quality: MoveQuality): Color = when (quality) {
     MoveQuality.BRILLIANT -> CtColors.OnSky
     MoveQuality.GREAT -> CtColors.OnViolet
