@@ -2,8 +2,6 @@ package com.chesstutor.app.board
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,6 +46,7 @@ import com.chesstutor.app.core.PieceType
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.Square
 import com.chesstutor.app.design.CtColors
+import com.chesstutor.app.design.CtMotion
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.LocalReduceMotion
 import com.chesstutor.app.design.ctPressable
@@ -122,7 +121,7 @@ fun BoardHost(
         if (plan != null && !reduceMotion) {
             slide.snapTo(0f)
             animatedVersion = state.version
-            slide.animateTo(1f, spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow))
+            slide.animateTo(1f, tween(CtMotion.PIECE_SLIDE_MS, easing = CtMotion.EaseOut))
         } else {
             slide.snapTo(1f)
             animatedVersion = state.version
