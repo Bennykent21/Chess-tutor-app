@@ -504,6 +504,31 @@ fun CtButton(
 }
 
 /**
+ * A square button that shows only an icon, beside a wider main button (Analyse next to
+ * "Next puzzle"). [contentDescription] is what screen readers say.
+ */
+@Composable
+fun CtIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .clip(CtShapes.Control)
+            .background(if (enabled) CtColors.Surface else CtColors.Track)
+            .ctPressable(enabled = enabled, onClickLabel = contentDescription, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = if (enabled) CtColors.Text else CtColors.Text2, modifier = Modifier.size(22.dp))
+    }
+}
+
+/**
  * Small rounded label, optionally selectable (filters) or clickable. Neutral by default; a
  * success or error [color] marks a state (solved, failed). Selected chips fill.
  */

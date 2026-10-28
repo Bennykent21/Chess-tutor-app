@@ -76,6 +76,9 @@ data class PuzzlePlayerState(
     val rating: Int? = null,
     val ratingDelta: Int? = null,
     val xpEarned: Int? = null,
+    /** Everything earned in this run, shown on the result screen at the end (not after each puzzle). */
+    val runXp: Int = 0,
+    val runRatingDelta: Int = 0,
     val results: List<ResultMark> = emptyList(),
     val lastWrongMove: Move? = null,
     /** Where [lastWrongMove] was tried (puzzles with several moves change position). */
@@ -272,7 +275,15 @@ class PuzzlePlayer(
         }
         scope.launch {
             val result = repository.recordAttempt(AttemptRecord(board.puzzle, outcome, spec.mode, spec.level, elapsed, clock()))
-            mutableState.update { it.copy(rating = result.progress.rating, ratingDelta = result.ratingDelta, xpEarned = result.xpEarned) }
+            mutableState.update {
+                it.copy(
+                    rating = result.progress.rating,
+                    ratingDelta = result.ratingDelta,
+                    xpEarned = result.xpEarned,
+                    runXp = it.runXp + result.xpEarned,
+                    runRatingDelta = it.runRatingDelta + result.ratingDelta,
+                )
+            }
         }
         val maxStrikes = spec.maxStrikes
         if (maxStrikes != null && strikes >= maxStrikes) {
