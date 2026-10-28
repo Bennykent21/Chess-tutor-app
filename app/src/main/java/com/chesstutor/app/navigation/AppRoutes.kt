@@ -30,6 +30,8 @@ object AppRoutes {
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
+    /** Every level of the five worlds (D43). */
+    const val PUZZLE_LEVELS = "puzzles/levels"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
     const val PUZZLE_DAILY = "puzzles/daily"
     /** Mistakes review: due positions from the player's own games, full screen on the board. */
@@ -111,6 +113,7 @@ object AppRoutes {
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
     /** Home's browsing pages keep the bottom bar too. */
     private val homePages = setOf(BOTS)
+    private val puzzlePages = setOf(PUZZLE_LEVELS)
 
     /**
      * The bottom bar shows on tab pages and hides on full-screen activities (anything that
@@ -120,7 +123,7 @@ object AppRoutes {
     fun showsBottomBar(route: String?): Boolean {
         if (route == null) return true
         if (TopTab.entries.any { it.startRoute == route }) return true
-        return route in accountPages || route in learnPages || route in homePages
+        return route in accountPages || route in learnPages || route in homePages || route in puzzlePages
     }
 
     /** The tab a destination belongs to, used to highlight the bottom bar. */
@@ -129,6 +132,7 @@ object AppRoutes {
         route in accountPages -> TopTab.ACCOUNT
         route in learnPages -> TopTab.LEARN
         route in homePages -> TopTab.HOME
+        route in puzzlePages -> TopTab.PUZZLES
         else -> TopTab.entries.firstOrNull { it.startRoute == route }
     }
 }

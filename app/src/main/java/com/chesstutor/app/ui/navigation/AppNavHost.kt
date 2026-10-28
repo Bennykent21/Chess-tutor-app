@@ -1,5 +1,6 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.feature.puzzles.PuzzleLevelsScreen
 import android.os.SystemClock
 import com.chesstutor.app.data.diagnostics.PerfLog
 import androidx.activity.compose.BackHandler
@@ -578,14 +579,28 @@ private fun AppShell(
                     val home by puzzles.home.collectAsStateWithLifecycle()
                     PuzzlesHomeScreen(
                         state = home,
-                        mascot = state.appSettings.mascot,
                         dueReviewCount = dueReviews,
                         onPlayLevel = { level ->
                             puzzles.startLevel(level)
                             navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
                         },
                         onOpenModes = { navController.navigate(AppRoutes.PUZZLE_MODES) { launchSingleTop = true } },
-                        onReviewMistakes = { navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true } }
+                        onReviewMistakes = { navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true } },
+                        onOpenLevels = { navController.navigate(AppRoutes.PUZZLE_LEVELS) { launchSingleTop = true } },
+                        onDailyPuzzle = { navController.navigate(AppRoutes.PUZZLE_DAILY) { launchSingleTop = true } },
+                        boardColors = state.appSettings.boardTheme.colors,
+                    )
+                }
+                composable(AppRoutes.PUZZLE_LEVELS) { entry ->
+                    val puzzles = puzzlesViewModel(navController, entry)
+                    val levels by puzzles.home.collectAsStateWithLifecycle()
+                    PuzzleLevelsScreen(
+                        state = levels,
+                        onPlayLevel = { level ->
+                            puzzles.startLevel(level)
+                            navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
+                        },
+                        onBack = { navController.popBackStack() },
                     )
                 }
                 // Home's daily challenge card: starts today's puzzle, then shows the player.
