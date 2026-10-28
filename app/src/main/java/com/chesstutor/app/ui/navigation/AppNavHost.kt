@@ -506,7 +506,8 @@ private fun AppShell(
                         category = category,
                         learn = lessons,
                         onOpenCourse = { id -> navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } },
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        boardTheme = state.appSettings.boardTheme,
                     )
                 }
                 composable(
