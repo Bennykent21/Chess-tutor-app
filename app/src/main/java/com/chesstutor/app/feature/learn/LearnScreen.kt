@@ -1,17 +1,22 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Flag
@@ -20,28 +25,37 @@ import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.chesstutor.app.design.CtScreenTitle
-import com.chesstutor.app.design.CtListRow
-import com.chesstutor.app.design.CtCard
+import com.chesstutor.app.board.BoardTheme
+import com.chesstutor.app.board.BoardView
+import com.chesstutor.app.board.PieceArt
+import com.chesstutor.app.core.Piece
+import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.PieceType
+import com.chesstutor.app.core.Position
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtGradients
-import com.chesstutor.app.design.CtIconBubble
+import com.chesstutor.app.design.CtDivider
+import com.chesstutor.app.design.CtHeroCard
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
+import com.chesstutor.app.design.CtScreenTitle
+import com.chesstutor.app.design.CtSectionHeader
+import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
+import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.learn.LessonCategory
 
-/** Everything the hub can open. */
+/** What the Learn hub can open. */
 data class LearnHubActions(
     val onOpenCategory: (LessonCategory) -> Unit,
     val onOpenLesson: (lessonId: String) -> Unit,
@@ -50,8 +64,8 @@ data class LearnHubActions(
 )
 
 /**
- * Learn hub (plan section 6.2): a "Continue" card, then big category buttons with progress,
- * no lists or accordions. Each button opens its category page.
+ * The Learn hub (plan 6.2, Phase 7D, canvas `Learn.dc.html`): how far you are, the lesson to
+ * continue with a picture of its board, the topics with their progress, and the opening trainer.
  */
 @Composable
 fun LearnScreen(
@@ -60,6 +74,8 @@ fun LearnScreen(
     modifier: Modifier = Modifier,
     /** Opening trainer lines due again, for its row. */
     trainerDue: Int = 0,
+    /** The player's board and pieces, for the continue card's picture and the topic icons. */
+    boardTheme: BoardTheme = BoardTheme(),
 ) {
     val tiles = remember(learn) { LearnHubModel.tiles(learn.library, learn.progress) }
     val next = remember(learn) { LearnHubModel.continueLesson(learn.library, learn.progress) }
@@ -70,107 +86,125 @@ fun LearnScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = CtSpacing.xl),
         ) {
             CtScreenTitle(title = "Learn")
-            Column(
+            Text(
+                text = "$done of $total lessons",
+                style = CtType.BodySmall,
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
-            ) {
-                Column(modifier = Modifier) {
-                    Text(text = "$done of $total lessons complete", style = CtType.Label)
-                    Spacer(Modifier.height(CtSpacing.sm))
-                    CtProgressBar(progress = LearnHubModel.overallProgress(tiles), color = CtColors.Teal)
-                }
-
+            )
+            Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
                 next?.let { (course, lesson) ->
+                    Spacer(Modifier.height(CtSpacing.lg))
+                    val number = course.lessons.indexOf(lesson) + 1
+                    val courseDone = course.lessons.count { LearnHubModel.status(it, learn.progress) == LessonStatus.DONE }
                     val started = LearnHubModel.status(lesson, learn.progress) == LessonStatus.STARTED
-                    CtCard(
-                        background = CtGradients.Teal,
+                    CtHeroCard(
+                        kicker = course.title,
+                        title = lesson.title,
+                        detail = "Lesson $number of ${course.lessons.size}",
+                        progress = courseDone.toFloat() / course.lessons.size.coerceAtLeast(1),
                         onClick = { actions.onOpenLesson(lesson.id) },
-                        onClickLabel = "Open ${lesson.title}",
-                        modifier = Modifier.fillMaxWidth(),
+                        onClickLabel = (if (started) "Continue " else "Start ") + lesson.title,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                            Column(Modifier.weight(1f)) {
-                                Text(if (started) "Continue" else "Up next", style = CtType.Label.copy(color = CtColors.Gold))
-                                Text(lesson.title, style = CtType.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                Text(course.title, style = CtType.BodySmall.copy(color = CtColors.Text))
-                            }
-                            Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = CtColors.Gold)
-                        }
+                        val position = lesson.steps.firstOrNull()?.fen?.let { Position.tryFromFen(it).getOrNull() } ?: Position.initial()
+                        BoardView(position = position, theme = boardTheme, showCoordinates = false, showLegalDots = false)
                     }
                 }
 
-                tiles.chunked(2).forEachIndexed { rowIndex, rowTiles ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-                        modifier = Modifier,
-                    ) {
-                        rowTiles.forEach { tile ->
-                            HubTile(
-                                tile = tile,
-                                onClick = { actions.onOpenCategory(tile.category) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        if (rowTiles.size == 1) Spacer(Modifier.weight(1f))
-                    }
+                CtSectionHeader(title = "Topics", modifier = Modifier.padding(top = CtSpacing.md))
+                tiles.forEachIndexed { i, tile ->
+                    TopicRow(tile, boardTheme, last = i == tiles.lastIndex, onClick = { actions.onOpenCategory(tile.category) })
                 }
-                CtListRow(
-                    title = "Opening trainer",
-                    subtitle = if (trainerDue > 0) "$trainerDue line${if (trainerDue == 1) "" else "s"} due for review" else "Learn 15 openings' main lines by heart",
-                    icon = Icons.Rounded.Flag,
-                    iconTint = CtColors.Gold,
-                    onClick = actions.onOpenTrainer,
-                    modifier = Modifier,
-                )
-                Spacer(Modifier.height(CtSpacing.lg))
+
+                Spacer(Modifier.height(CtSpacing.md))
+                TrainerRow(due = trainerDue, onClick = actions.onOpenTrainer)
             }
         }
     }
 }
 
-/** Icon and accent colour of a category, shared by the hub and the category page. */
+/** The piece that stands for a topic (canvas `Learn.dc.html`), drawn in the player's own set. */
+internal fun categoryPiece(category: LessonCategory): PieceType = when (category) {
+    LessonCategory.BASICS -> PieceType.PAWN
+    LessonCategory.OPENINGS -> PieceType.KNIGHT
+    LessonCategory.TACTICS -> PieceType.BISHOP
+    LessonCategory.MIDDLEGAME -> PieceType.ROOK
+    LessonCategory.ENDGAMES -> PieceType.KING
+    LessonCategory.BLUNDERS -> PieceType.QUEEN
+}
+
+/** Icon and accent colour of a category, for the category page. */
 @Composable
 @ReadOnlyComposable
 internal fun categoryStyle(category: LessonCategory): Pair<ImageVector, Color> = when (category) {
-    LessonCategory.BASICS -> Icons.Rounded.School to CtColors.Lime
-    LessonCategory.OPENINGS -> Icons.Rounded.Flag to CtColors.Gold
-    LessonCategory.TACTICS -> Icons.Rounded.Bolt to CtColors.Coral
-    LessonCategory.MIDDLEGAME -> Icons.Rounded.Psychology to CtColors.Violet
-    LessonCategory.ENDGAMES -> Icons.Rounded.AutoStories to CtColors.Teal
-    LessonCategory.BLUNDERS -> Icons.Rounded.Shield to CtColors.Coral
+    LessonCategory.BASICS -> Icons.Rounded.School to CtColors.Accent
+    LessonCategory.OPENINGS -> Icons.Rounded.Flag to CtColors.Accent
+    LessonCategory.TACTICS -> Icons.Rounded.Bolt to CtColors.Accent
+    LessonCategory.MIDDLEGAME -> Icons.Rounded.Psychology to CtColors.Accent
+    LessonCategory.ENDGAMES -> Icons.Rounded.AutoStories to CtColors.Accent
+    LessonCategory.BLUNDERS -> Icons.Rounded.Shield to CtColors.Accent
 }
 
+/** A topic: its piece, its name, "3 of 12" and a thin bar; topics without lessons yet do not open. */
 @Composable
-private fun HubTile(tile: LearnHubTile, onClick: () -> Unit, modifier: Modifier) {
-    val (icon, accent) = categoryStyle(tile.category)
-    CtCard(
-        modifier = modifier,
-        onClick = if (tile.isAvailable) onClick else null,
-        onClickLabel = "Open ${tile.title}",
+private fun TopicRow(tile: LearnHubTile, boardTheme: BoardTheme, last: Boolean, onClick: () -> Unit) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 64.dp)
+                .then(if (tile.isAvailable) Modifier.ctPressable(onClickLabel = "Open ${tile.title}", onClick = onClick) else Modifier)
+                .padding(vertical = CtSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(Modifier.size(40.dp).clip(CtShapes.Pill).background(CtColors.Surface), contentAlignment = Alignment.Center) {
+                Image(
+                    painter = painterResource(PieceArt.drawable(boardTheme.pieceSet, Piece(categoryPiece(tile.category), PieceColor.WHITE))),
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(tile.title, style = CtType.TitleSmall, modifier = Modifier.weight(1f))
+                    Text(
+                        if (tile.isAvailable) "${tile.completedLessons} of ${tile.totalLessons}" else "Lessons on the way",
+                        style = CtType.Caption,
+                    )
+                }
+                if (tile.isAvailable) CtProgressBar(progress = tile.progress, height = 3.dp)
+            }
+            if (tile.isAvailable) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2)
+        }
+        if (!last) CtDivider()
+    }
+}
+
+/** The opening trainer, with how many lines are due again. */
+@Composable
+private fun TrainerRow(due: Int, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .clip(CtShapes.CardSmall)
+            .background(CtColors.Surface)
+            .ctPressable(onClickLabel = "Open the opening trainer", onClick = onClick)
+            .padding(horizontal = CtSpacing.lg),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        CtIconBubble(icon = icon, tint = accent, size = 48.dp)
-        Spacer(Modifier.height(CtSpacing.md))
-        Text(text = tile.title, style = CtType.Title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(
-            text = tile.subtitle,
-            style = CtType.Caption,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.height(32.dp),
-        )
-        Spacer(Modifier.height(CtSpacing.sm))
-        if (!tile.isAvailable) {
-            Text(text = "Lessons on the way", style = CtType.Caption, modifier = Modifier.fillMaxWidth())
-        } else {
-            CtProgressBar(progress = tile.progress, color = accent, height = 8.dp)
-            Spacer(Modifier.height(CtSpacing.xs))
+        Icon(Icons.Rounded.Flag, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(22.dp))
+        Text("Opening trainer", style = CtType.TitleSmall, modifier = Modifier.weight(1f))
+        if (due > 0) {
             Text(
-                text = "${tile.completedLessons}/${tile.totalLessons} done",
-                style = CtType.Caption,
-                modifier = Modifier.fillMaxWidth(),
+                text = "$due due",
+                style = CtType.Label.copy(color = CtColors.OnPrimary),
+                modifier = Modifier.clip(CtShapes.Pill).background(CtColors.Primary).padding(horizontal = 10.dp, vertical = 3.dp),
             )
         }
     }
