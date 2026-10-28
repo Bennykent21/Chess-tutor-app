@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chesstutor.app.core.Move
 import com.chesstutor.app.data.settings.AppSettings
@@ -22,6 +21,9 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import org.junit.After
 import org.junit.Assert.assertEquals
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onNodeWithTag
+import com.chesstutor.app.design.CtBoardScreenTags
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -74,9 +76,11 @@ class PuzzlePlayerScreenTest {
         player.start()
         show(player)
         step(700)
-        compose.onNodeWithText("Level 3 · 1/5").assertExists()
+        compose.onNodeWithText("Level 3").assertExists()
+        compose.onNodeWithText("1 of 5").assertExists()
         compose.onNodeWithText("Find the checkmate in one move").assertExists()
-        compose.onNodeWithText("You play Black").assertExists()
+        compose.onNodeWithText("Black to move").assertExists()
+        val boardWhileSolving = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
         compose.onNodeWithText("Hint").performClick()
         step(10)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/PuzzlePlayer_solving.png")
@@ -84,8 +88,11 @@ class PuzzlePlayerScreenTest {
         player.state.value.board!!.onMove(Move.fromUci("d8h4"))
         step(100)
         compose.onNodeWithText("Correct! Well found.").assertExists()
+        compose.onNodeWithText("Solved").assertExists()
         compose.onNodeWithText("Mate in 1").assertExists()
-        compose.onNode(hasText("Next puzzle")).performScrollTo().assertExists()
+        compose.onNode(hasText("Next puzzle")).assertExists()
+        // D39: the hint, the result and the new buttons never move the board.
+        assertEquals(boardWhileSolving, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/PuzzlePlayer_solved.png")
     }
 
@@ -107,7 +114,7 @@ class PuzzlePlayerScreenTest {
         val start = player.state.value.board!!.state.value.position.toFen()
         player.state.value.board!!.onMove(Move.fromUci("d8h4"))
         step(100)
-        compose.onNode(hasText("Analyse")).performScrollTo().performClick()
+        compose.onNode(hasText("Analyse")).performClick()
         assertEquals(start to listOf("d8h4"), analysed)
     }
 
