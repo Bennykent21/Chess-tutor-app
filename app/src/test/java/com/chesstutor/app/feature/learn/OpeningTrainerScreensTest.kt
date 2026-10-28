@@ -82,7 +82,7 @@ class OpeningTrainerScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("Best 6/10 · solve 8 to master it").assertExists()
+        compose.onNodeWithText("Best 6/10, solve 8 to master it").assertExists()
         compose.onNodeWithText("Practice set").performClick()
         assertEquals(true, played)
     }

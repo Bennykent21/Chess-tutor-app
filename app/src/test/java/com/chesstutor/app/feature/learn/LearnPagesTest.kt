@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onAllNodesWithText
@@ -96,10 +99,16 @@ class LearnPagesTest {
         }
         compose.onNodeWithText("Italian Game").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_category.png")
-        compose.onNodeWithText("Black").performScrollTo().performClick()
+        // Side is a dropdown chip: open it and pick Black.
+        compose.onNodeWithText("Both sides").performClick()
+        compose.onNodeWithText("Black").performClick()
         compose.onNodeWithText("Italian Game").assertDoesNotExist()
         compose.onNodeWithText("Caro-Kann").assertExists()
-        compose.onNodeWithText("Black").performScrollTo().performClick()
+        compose.onNodeWithText("Black").performClick()
+        compose.onNodeWithText("Both sides").performClick()
+        // Search waits behind its icon.
+        compose.onNode(hasSetTextAction()).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Search courses").performClick()
         compose.onNode(hasSetTextAction()).performTextInput("solid set")
         compose.onNodeWithText("London System").assertExists()
         compose.onNodeWithText("Caro-Kann").assertDoesNotExist()
@@ -119,8 +128,9 @@ class LearnPagesTest {
                 )
             }
         }
-        compose.onNodeWithText("Done · tap to play again").assertExists()
+        compose.onAllNodesWithContentDescription("Finished").onFirst().assertExists()
         compose.onNodeWithText("Resume at step 3 of 6").assertExists()
+        compose.onNodeWithText("Continue").assertExists()
         compose.onNodeWithText("Related puzzles").assertExists()
         compose.onNodeWithText("Practise in Opening Battle").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_course.png")
