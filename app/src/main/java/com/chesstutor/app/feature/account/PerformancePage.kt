@@ -223,6 +223,8 @@ internal fun RatingChart(points: List<RatingPoint>, color: Color) {
         text = readout?.let { "${it.rating} on ${formatDate(it.dateMillis)}" } ?: "Tap the line to read any point",
         style = if (readout != null) CtType.Label.copy(color = color) else CtType.Caption,
     )
+    val guideColor = CtColors.Text3
+    val pointColor = CtColors.Text
     Canvas(
         Modifier
             .fillMaxWidth()
@@ -245,8 +247,8 @@ internal fun RatingChart(points: List<RatingPoint>, color: Color) {
         drawPath(path, color, style = Stroke(width = 2.dp.toPx()))
         drawCircle(color, radius = 4.dp.toPx(), center = Offset(x(points.lastIndex), y(points.last().rating)))
         selected?.let { i ->
-            drawLine(CtColors.Text3, Offset(x(i), 0f), Offset(x(i), h), strokeWidth = 1.dp.toPx())
-            drawCircle(CtColors.Text, radius = 5.dp.toPx(), center = Offset(x(i), y(points[i].rating)))
+            drawLine(guideColor, Offset(x(i), 0f), Offset(x(i), h), strokeWidth = 1.dp.toPx())
+            drawCircle(pointColor, radius = 5.dp.toPx(), center = Offset(x(i), y(points[i].rating)))
             drawCircle(color, radius = 3.dp.toPx(), center = Offset(x(i), y(points[i].rating)))
         }
     }

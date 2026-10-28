@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,8 @@ internal fun badgeIcon(kind: BadgeKind): ImageVector = when (kind) {
     BadgeKind.REVIEW -> Icons.Rounded.Insights
 }
 
+@Composable
+@ReadOnlyComposable
 internal fun badgeColor(kind: BadgeKind): Color = when (kind) {
     BadgeKind.GAMES -> CtColors.Gold
     BadgeKind.PUZZLES -> CtColors.Teal

@@ -41,6 +41,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import com.chesstutor.app.BuildConfig
 import com.chesstutor.app.data.settings.ReviewDepth
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
@@ -70,6 +72,8 @@ data class SettingsActions(
     val onOpenLicences: () -> Unit = {},
     val onReviewDepth: (ReviewDepth) -> Unit = {},
     val onOnlineEngine: (Boolean) -> Unit = {},
+    val onAppTheme: (AppTheme) -> Unit = {},
+    val onAppearance: (Appearance) -> Unit = {},
     /** Every saved game as one PGN text, for "Export my games". */
     val exportPgn: suspend () -> String = { "" },
     /** The crash log on this phone ("" when there were no crashes), and clearing it. */
@@ -138,6 +142,24 @@ fun SettingsScreen(
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             CtTopBar(title = "Settings", onBack = actions.onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                // A plain picker until Phase 7C3 builds the theme cards with live previews.
+                CtCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("Appearance", style = CtType.Label)
+                    Spacer(Modifier.height(CtSpacing.sm))
+                    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        Appearance.entries.forEach { mode ->
+                            CtChip(text = mode.label, selected = state.appSettings.appearance == mode, onClick = { actions.onAppearance(mode) })
+                        }
+                    }
+                    Spacer(Modifier.height(CtSpacing.md))
+                    Text("Theme", style = CtType.Label)
+                    Spacer(Modifier.height(CtSpacing.sm))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+                        AppTheme.entries.forEach { theme ->
+                            CtChip(text = theme.label, selected = state.appSettings.appTheme == theme, onClick = { actions.onAppTheme(theme) })
+                        }
+                    }
+                }
                 CtCard(modifier = Modifier.fillMaxWidth()) {
                     CoachPicker(selected = state.appSettings.mascot, onSelect = actions.onMascot)
                 }

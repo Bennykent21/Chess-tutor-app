@@ -3,6 +3,8 @@ package com.chesstutor.app.data.settings
 import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.PieceSet
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.domain.Mascot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -31,8 +33,29 @@ class AppSettingsTest {
             boardThemeId = "walnut",
             pieceSetId = "merida",
             mascotId = Mascot.SAGE.id,
+            appTheme = AppTheme.SLATE,
+            appearance = Appearance.DARK,
         )
         assertEquals(custom, AppSettingsCodec.decode(AppSettingsCodec.encode(custom)))
+    }
+
+    @Test
+    fun appThemeDefaultsToParchmentFollowingThePhone() {
+        val decoded = AppSettingsCodec.decode(emptyMap())
+        assertEquals(AppTheme.PARCHMENT, decoded.appTheme)
+        assertEquals(Appearance.SYSTEM, decoded.appearance)
+    }
+
+    @Test
+    fun appThemeIsStoredByNameAndUnknownNamesFallBack() {
+        val encoded = AppSettingsCodec.encode(AppSettings(appTheme = AppTheme.BAIZE, appearance = Appearance.LIGHT))
+        assertEquals("BAIZE", encoded[AppSettingsCodec.APP_THEME])
+        assertEquals("LIGHT", encoded[AppSettingsCodec.APPEARANCE])
+        listOf("", "NAVY", "baize", 3).forEach { stored ->
+            val decoded = AppSettingsCodec.decode(mapOf(AppSettingsCodec.APP_THEME to stored, AppSettingsCodec.APPEARANCE to stored))
+            assertEquals("stored value $stored", AppTheme.PARCHMENT, decoded.appTheme)
+            assertEquals("stored value $stored", Appearance.SYSTEM, decoded.appearance)
+        }
     }
 
     @Test

@@ -64,7 +64,7 @@ import com.chesstutor.app.navigation.TopTab
 
 // ------------------------------------------------------------------ surfaces
 
-/** Full-screen navy-to-indigo background used behind every new screen. */
+/** Full-screen theme background used behind every screen. */
 @Composable
 fun CtScreenBackground(
     modifier: Modifier = Modifier,
@@ -201,7 +201,7 @@ fun CtSectionHeader(
 
 enum class CtButtonStyle { Primary, Secondary, Ghost }
 
-/** Big pill button. Primary is the sunrise-gold action ("Play", "Solve"). */
+/** Big pill button. Primary is the one main action of a screen ("Play", "Solve"). */
 @Composable
 fun CtButton(
     text: String,
@@ -212,13 +212,13 @@ fun CtButton(
     enabled: Boolean = true,
 ) {
     val background: Brush = when (style) {
-        CtButtonStyle.Primary -> if (enabled) CtGradients.Gold else SolidColor(CtColors.SurfaceHigh)
+        CtButtonStyle.Primary -> SolidColor(if (enabled) CtColors.Primary else CtColors.Track)
         CtButtonStyle.Secondary -> SolidColor(CtColors.SurfaceRaised)
         CtButtonStyle.Ghost -> SolidColor(Color.Transparent)
     }
     val contentColor = when {
         !enabled -> CtColors.Text2
-        style == CtButtonStyle.Primary -> CtColors.OnGold
+        style == CtButtonStyle.Primary -> CtColors.OnPrimary
         style == CtButtonStyle.Secondary -> CtColors.Text
         else -> CtColors.Teal
     }

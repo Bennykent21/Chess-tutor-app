@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -132,6 +133,8 @@ fun LearnScreen(
 }
 
 /** Icon and accent colour of a category, shared by the hub and the category page. */
+@Composable
+@ReadOnlyComposable
 internal fun categoryStyle(category: LessonCategory): Pair<ImageVector, Color> = when (category) {
     LessonCategory.BASICS -> Icons.Rounded.School to CtColors.Lime
     LessonCategory.OPENINGS -> Icons.Rounded.Flag to CtColors.Gold
