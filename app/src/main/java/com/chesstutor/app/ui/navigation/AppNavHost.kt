@@ -710,6 +710,9 @@ private fun AppShell(
                             onOnlineEngine = viewModel::setOnlineEngine,
                             onAppTheme = viewModel::setAppTheme,
                             onAppearance = viewModel::setAppearance,
+                            onSound = viewModel::setSoundEnabled,
+                            onHaptics = viewModel::setHapticsEnabled,
+                            onReduceMotion = viewModel::setReduceMotion,
                             exportPgn = {
                                 AppContainer.provideGameRepository(context).getRecentGames(Int.MAX_VALUE)
                                     .joinToString("\n\n") { PgnFormatter.reconstructPgnFromGameRecord(it).trim() }

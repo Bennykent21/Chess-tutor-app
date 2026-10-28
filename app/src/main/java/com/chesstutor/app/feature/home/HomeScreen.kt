@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtCard
@@ -103,19 +104,11 @@ fun HomeScreen(
         ) {
             val gutter = Modifier.padding(horizontal = CtSpacing.gutter)
             // D28: one slim header row; the coach speaks once, inside the Continue card.
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = gutter) {
-                Text(
-                    text = if (name != null) "Hi, $name" else "Ready to play?",
-                    style = CtType.Headline,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
+            CtScreenTitle(title = if (name != null) "Hi, $name" else "Ready to play?") {
                 if (home.dayStreak > 0) {
-                    CtChip(text = "${home.dayStreak}", color = CtColors.Coral, icon = Icons.Rounded.LocalFireDepartment)
-                    Spacer(Modifier.width(CtSpacing.sm))
+                    CtChip(text = "${home.dayStreak}", icon = Icons.Rounded.LocalFireDepartment)
                 }
-                CtChip(text = "${state.effectiveUserRating}", color = CtColors.Gold, icon = Icons.Rounded.EmojiEvents)
+                CtChip(text = "${state.effectiveUserRating}", icon = Icons.Rounded.EmojiEvents)
             }
 
             if (needsWelcome(state.assessmentState)) {

@@ -51,6 +51,7 @@ import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
+import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
@@ -64,7 +65,6 @@ import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtStatTile
 import com.chesstutor.app.design.CtTextField
-import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameLibrary
@@ -136,12 +136,9 @@ fun AccountScreen(
             verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
         ) {
             item(key = "top") {
-                CtTopBar(
-                    title = "Account",
-                    trailing = {
-                        SettingsButton(onClick = actions.onOpenSettings)
-                    },
-                )
+                CtScreenTitle(title = "Account") {
+                    SettingsButton(onClick = actions.onOpenSettings)
+                }
             }
             item(key = "header") { ProfileHeader(state, stats, Modifier.padding(horizontal = CtSpacing.gutter)) }
             item(key = "tabs") {
