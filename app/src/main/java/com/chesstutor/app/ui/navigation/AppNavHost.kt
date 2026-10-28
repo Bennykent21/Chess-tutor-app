@@ -66,6 +66,7 @@ import com.chesstutor.app.feature.home.PositionSetupScreen
 import com.chesstutor.app.feature.home.WatchSetupScreen
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.feature.home.BotSetupScreen
+import com.chesstutor.app.feature.home.BotsScreen
 import com.chesstutor.app.feature.home.ExploreSetupScreen
 import com.chesstutor.app.feature.account.LicencesScreen
 import com.chesstutor.app.data.diagnostics.CrashLog
@@ -202,6 +203,7 @@ private fun AppShell(
                             onFromPosition = { navController.navigate(AppRoutes.POSITION) { launchSingleTop = true } },
                             onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
                             onExplore = { navController.navigate(AppRoutes.EXPLORE) { launchSingleTop = true } },
+                            onOpenBots = { navController.navigate(AppRoutes.BOTS) { launchSingleTop = true } },
                             onNewBot = {
                                 homeModel.newBot()
                                 navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
@@ -324,6 +326,21 @@ private fun AppShell(
                             onChange = { names -> homeModel.updateDraft { if (white) it.copy(white = names) else it.copy(black = names) } },
                             popular = if (white) BotOpeningChoices.white else BotOpeningChoices.black,
                         ),
+                    )
+                }
+                composable(AppRoutes.BOTS) { entry ->
+                    val homeModel = homeViewModel(navController, entry)
+                    val home by homeModel.home.collectAsStateWithLifecycle()
+                    BotsScreen(
+                        roster = home.roster,
+                        myBots = home.myBots,
+                        onOpenBot = { id -> navController.navigate(AppRoutes.bot(id)) { launchSingleTop = true } },
+                        onNewBot = {
+                            homeModel.newBot()
+                            navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
+                        },
+                        onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
+                        onBack = { navController.popBackStack() },
                     )
                 }
                 composable(AppRoutes.WATCH) { entry ->

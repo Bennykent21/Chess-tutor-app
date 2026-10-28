@@ -98,6 +98,8 @@ class AccessibilityTest {
 
     private val noHome = HomeActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 
+    /** Wide enough that the sideways "More ways to play" row is all on screen. */
+    @Config(qualifiers = "w600dp-h3000dp-xxhdpi")
     @Test fun home() = check("Home") { HomeScreen(state = AppUiState(), home = HomeUiState(), actions = noHome) }
 
     /** Every design-system component at once (Phase 7C2c), on a screen big enough to show all of it. */
