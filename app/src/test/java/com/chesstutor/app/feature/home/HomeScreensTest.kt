@@ -99,24 +99,38 @@ class HomeScreensTest {
     private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 
     @Test
-    fun homeShowsTheRosterAndTheResumeCard() {
+    fun homeShowsTheResumeCardQuickMatchAndMoreWaysToPlay() {
         var opened: String? = null
+        var resumed = false
+        var bots = false
         val home = HomeUiState(
             resume = ResumeCard(BotRoster.byId("juno")!!, moveCount = 14, playerColor = PieceColor.WHITE),
             recommendation = PlayRecommender.recommend(emptyList(), 800),
             dayStreak = 4,
             gamesPlayed = 3,
         ).let { it.copy(nextStep = NextStep.Bot(it.recommendation!!)) }
+        val recommended = home.recommendation!!.bot
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                HomeScreen(state = AppUiState(), home = home, actions = noActions.copy(onOpenBot = { opened = it }))
+                HomeScreen(
+                    state = AppUiState(),
+                    home = home,
+                    actions = noActions.copy(onOpenBot = { opened = it }, onResume = { resumed = true }, onOpenBots = { bots = true }),
+                )
             }
         }
-        compose.onNodeWithText("Move 8 · you play White").assertExists()
-        compose.onNodeWithText("Your game against Juno is waiting. Shall we finish it?").assertExists()
+        compose.onNodeWithText("vs Juno").assertExists()
+        compose.onNodeWithText("Move 8, you play White").assertExists()
+        compose.onNodeWithText("Quick match").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home.png")
-        compose.onNode(hasText("Pebble")).performScrollTo().performClick()
-        assertEquals("pebble", opened)
+        compose.onNodeWithText("vs Juno").performClick()
+        assertTrue(resumed)
+        compose.onNodeWithText("Play ${recommended.name}").performClick()
+        assertEquals(recommended.id, opened)
+        // D42: the bots live behind "Bots" in More ways to play, not on Home itself.
+        compose.onNodeWithText("Meet the bots").assertDoesNotExist()
+        compose.onNodeWithText("Bots").performScrollTo().performClick()
+        assertTrue(bots)
     }
 
     @Test
@@ -134,13 +148,39 @@ class HomeScreensTest {
                 HomeScreen(state = AppUiState(), home = home, actions = noActions.copy(onOpenLesson = { lesson = it }, onPractiseTheme = { theme = it }))
             }
         }
-        compose.onNodeWithText("Next up: Castle early").assertExists()
-        compose.onNodeWithText("Italian Game · lesson 2 of 5").assertExists()
+        compose.onNodeWithText("Italian Game").assertExists()
+        compose.onNodeWithText("Lesson 2 of 5").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home_next.png")
-        compose.onNodeWithText("Next up: Castle early").performClick()
+        compose.onNodeWithText("Castle early").performClick()
         assertEquals("o2", lesson)
-        compose.onNodeWithText("Fork puzzles trip you up (17% clean). Practise a few.").performClick()
+        compose.onNodeWithText("Practise Fork").performClick()
         assertEquals("fork", theme)
+    }
+
+    @Test
+    fun theBotsPageListsEveryBotYourOwnAndBuildAndWatch() {
+        var opened: String? = null
+        var built = false
+        var watched = false
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BotsScreen(
+                    roster = BotRoster.bots,
+                    myBots = emptyList(),
+                    onOpenBot = { opened = it },
+                    onNewBot = { built = true },
+                    onWatch = { watched = true },
+                    onBack = {},
+                )
+            }
+        }
+        compose.onNodeWithText("My bots").assertDoesNotExist()
+        compose.onNodeWithText("Build a bot").performClick()
+        assertTrue(built)
+        compose.onNodeWithText("Watch two").performClick()
+        assertTrue(watched)
+        compose.onNodeWithText("Pebble").performScrollTo().performClick()
+        assertEquals("pebble", opened)
     }
 
     @Test

@@ -13,6 +13,8 @@ data class NextLesson(
     val total: Int,
     /** True when the player already began it. */
     val started: Boolean,
+    /** The lesson's first position, for the card's board picture. */
+    val fen: String? = null,
 )
 
 /** Home's "Recommended" card (plan 6.1 and 6.4): the most useful thing to do next, and why. */

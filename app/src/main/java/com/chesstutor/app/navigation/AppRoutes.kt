@@ -97,6 +97,8 @@ object AppRoutes {
         "analysis?$ANALYSIS_FEN_ARG=${encode(fen)}&$ANALYSIS_LINE_ARG=${encode(line.joinToString(" "))}" +
             (engineSide?.let { "&$ANALYSIS_ENGINE_ARG=$it&$ANALYSIS_ELO_ARG=${engineElo ?: 0}" } ?: "")
 
+    /** Every bot, your own bots, "Build a bot" and "Watch two" (D42). */
+    const val BOTS = "home/bots"
     /** Explore's start page on Home: choose the position and who the engine plays. */
     const val EXPLORE = "home/explore"
 
@@ -107,6 +109,8 @@ object AppRoutes {
     private val accountPages = setOf(ENGINE_HEALTH, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
     /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
+    /** Home's browsing pages keep the bottom bar too. */
+    private val homePages = setOf(BOTS)
 
     /**
      * The bottom bar shows on tab pages and hides on full-screen activities (anything that
@@ -116,7 +120,7 @@ object AppRoutes {
     fun showsBottomBar(route: String?): Boolean {
         if (route == null) return true
         if (TopTab.entries.any { it.startRoute == route }) return true
-        return route in accountPages || route in learnPages
+        return route in accountPages || route in learnPages || route in homePages
     }
 
     /** The tab a destination belongs to, used to highlight the bottom bar. */
@@ -124,6 +128,7 @@ object AppRoutes {
         route == null -> null
         route in accountPages -> TopTab.ACCOUNT
         route in learnPages -> TopTab.LEARN
+        route in homePages -> TopTab.HOME
         else -> TopTab.entries.firstOrNull { it.startRoute == route }
     }
 }

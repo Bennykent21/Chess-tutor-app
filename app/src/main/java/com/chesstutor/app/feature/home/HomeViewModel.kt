@@ -41,6 +41,7 @@ import com.chesstutor.app.domain.opening.OpeningBattles
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.engine.EngineService
+import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.feature.play.ActiveGameSnapshot
 import com.chesstutor.app.feature.play.ActiveGameStore
 import com.chesstutor.app.feature.play.BotGame
@@ -85,7 +86,17 @@ data class PositionDraft(
 )
 
 /** An unfinished game shown on Home's Continue card. */
-data class ResumeCard(val bot: RosterBot, val moveCount: Int, val playerColor: PieceColor)
+data class ResumeCard(
+    val bot: RosterBot,
+    val moveCount: Int,
+    val playerColor: PieceColor,
+    /** Where the game stands now, for the card's board picture. */
+    val fen: String? = null,
+)
+
+/** The resume card for a saved game: its bot, how far it got and its current position. */
+private fun ActiveGameSnapshot.toResumeCard(bot: RosterBot): ResumeCard =
+    ResumeCard(bot, moves.size, playerColor, GameReviewer.positions(startFen, moves).lastOrNull()?.toFen())
 
 /** Everything Home draws besides the player's name and rating (plan 6.1). */
 data class HomeUiState(
@@ -148,7 +159,7 @@ class HomeViewModel(
     val home: StateFlow<HomeUiState> =
         combine(games.observeGames(), puzzleStats, snapshot, playerRating, myBots) { list, stats, saved, rating, mine ->
             HomeUiState(
-                resume = saved?.let { s -> findBot(s.botId, mine)?.let { ResumeCard(it, s.moves.size, s.playerColor) } },
+                resume = saved?.let { s -> findBot(s.botId, mine)?.let { s.toResumeCard(it) } },
                 recommendation = PlayRecommender.recommend(list.botGamesNewestFirst(), rating),
                 dayStreak = stats.dayStreak,
                 dailySolved = stats.solvedToday,
@@ -162,7 +173,7 @@ class HomeViewModel(
                 nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
-            BotRoster.byId(s.botId)?.let { ResumeCard(it, s.moves.size, s.playerColor) }
+            BotRoster.byId(s.botId)?.let { s.toResumeCard(it) }
         }))
 
     /** A roster bot or one of the player's own, by id. */
@@ -462,6 +473,7 @@ internal fun nextLessonOf(library: LessonLibrary, progress: Map<String, LessonPr
         number = course.lessons.indexOf(lesson) + 1,
         total = course.lessons.size,
         started = progress[lesson.id]?.started == true,
+        fen = lesson.steps.firstOrNull()?.fen,
     )
 }
 
