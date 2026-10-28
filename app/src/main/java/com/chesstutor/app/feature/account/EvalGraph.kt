@@ -39,10 +39,10 @@ fun EvalGraph(
     val slots = (totalPositions - 1).coerceAtLeast(1)
     val midColor = CtColors.Line
     val areaColor = CtColors.Text.copy(alpha = 0.85f)
-    val lineColor = CtColors.Violet
-    val blunderColor = CtColors.Coral
-    val mistakeColor = CtColors.Gold
-    val cursorColor = CtColors.Teal
+    val lineColor = CtColors.Text2
+    val blunderColor = qualityColor(MoveQuality.BLUNDER)
+    val mistakeColor = qualityColor(MoveQuality.MISTAKE)
+    val cursorColor = CtColors.Accent
     Canvas(
         modifier = modifier
             .fillMaxWidth()
