@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -176,7 +179,7 @@ class HomeScreensTest {
         step()
         game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e2e4" })
         step(5_000)
-        compose.onNodeWithText("Scandinavian Defense · in book").assertExists()
+        compose.onNodeWithText("Scandinavian Defense, in book").assertExists()
         compose.onNodeWithText("vs Wayne").assertExists()
         // Take the pawn: the captured pieces and the lead appear by the players.
         game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e4d5" })
@@ -185,15 +188,19 @@ class HomeScreensTest {
         step(5_000)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play.png")
 
+        val boardBefore = compose.onNodeWithContentDescription("Chess board", substring = true).fetchSemanticsNode().boundsInRoot
         compose.onNodeWithText("Resign").performClick()
         compose.onNodeWithText("Resign this game?").assertExists()
-        compose.onNode(hasText("Resign") and !hasText("Resign this game?")).performClick()
+        // The dialog's own Resign button (the bottom bar has one too).
+        compose.onNode(hasText("Resign") and hasAnyAncestor(isDialog())).performClick()
         step()
         compose.onNodeWithText("Wayne won").assertExists()
+        // D39: the result slides up over the screen; the board underneath stays put.
+        assertEquals(boardBefore, compose.onNodeWithContentDescription("Chess board", substring = true).fetchSemanticsNode().boundsInRoot)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play_result.png")
-        compose.onNode(hasText("Review this game")).performScrollTo().performClick()
+        compose.onNode(hasText("Review this game")).performClick()
         assertTrue("the saved game opens", reviewed!!.startsWith("bot_wayne_"))
-        compose.onNode(hasText("Rematch")).performScrollTo().performClick()
+        compose.onNode(hasText("Rematch") and hasClickAction()).performClick()
         assertEquals(true, rematch)
     }
 
