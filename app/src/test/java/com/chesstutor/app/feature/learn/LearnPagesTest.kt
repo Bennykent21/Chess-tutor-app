@@ -76,7 +76,7 @@ class LearnPagesTest {
                 )
             }
         }
-        compose.onNodeWithText("Continue").assertExists()
+        compose.onNodeWithText("Lesson ", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_hub.png")
         compose.onNodeWithText("Checkmate wins the game").performClick()
         assertEquals("basics-checkmate", opened)

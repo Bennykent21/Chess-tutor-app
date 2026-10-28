@@ -449,6 +449,7 @@ private fun AppShell(
                     LearnScreen(
                         learn = lessons,
                         trainerDue = trainer.dueTotal,
+                        boardTheme = state.appSettings.boardTheme,
                         actions = LearnHubActions(
                             onOpenCategory = { category -> navController.navigate(AppRoutes.learnCategory(category.key)) { launchSingleTop = true } },
                             onOpenLesson = { id ->
