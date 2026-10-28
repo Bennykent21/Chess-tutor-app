@@ -864,9 +864,6 @@ private fun AppShell(
                             onShowLegalDots = viewModel::setShowLegalDots,
                             onAutoQueen = viewModel::setAutoQueen,
                             onOrientation = viewModel::setBoardOrientation,
-                            onSound = viewModel::setSoundEnabled,
-                            onHaptics = viewModel::setHapticsEnabled,
-                            onReduceMotion = viewModel::setReduceMotion
                         ),
                         onBack = { navController.popBackStack() }
                     )

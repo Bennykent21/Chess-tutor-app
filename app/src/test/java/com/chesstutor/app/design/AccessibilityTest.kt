@@ -128,7 +128,7 @@ class AccessibilityTest {
 
     @Test fun settings() = check("Settings") { SettingsScreen(state = AppUiState(), accountActions = AccountActions(), actions = SettingsActions(supportUrl = "")) }
 
-    @Test fun boardSettings() = check("Board settings") { BoardSettingsScreen(settings = AppSettings(), actions = BoardSettingsActions({}, {}, {}, {}, {}, {}, {}, {}, {}), onBack = {}) }
+    @Test fun boardSettings() = check("Board settings") { BoardSettingsScreen(settings = AppSettings(), actions = BoardSettingsActions({}, {}, {}, {}, {}, {}), onBack = {}) }
 
     @Test fun licences() = check("Licences") { LicencesScreen(onBack = {}) }
 

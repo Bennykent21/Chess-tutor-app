@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -32,7 +33,7 @@ import org.robolectric.annotation.GraphicsMode
 /** Board and pieces settings (step 1D): every control changes the saved settings. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w360dp-h1900dp-xxhdpi")
+@Config(qualifiers = "w360dp-h800dp-xxhdpi")
 class BoardSettingsScreenTest {
 
     @get:Rule
@@ -51,9 +52,6 @@ class BoardSettingsScreenTest {
             onShowLegalDots = { settings = settings.copy(showLegalDots = it) },
             onAutoQueen = { settings = settings.copy(autoQueen = it) },
             onOrientation = { settings = settings.copy(boardOrientation = it) },
-            onSound = { settings = settings.copy(soundEnabled = it) },
-            onHaptics = { settings = settings.copy(hapticsEnabled = it) },
-            onReduceMotion = { settings = settings.copy(reduceMotion = it) },
         )
         compose.setContent { CtTheme { BoardSettingsScreen(settings = settings, actions = actions, onBack = {}) } }
     }
@@ -63,7 +61,7 @@ class BoardSettingsScreenTest {
         show()
         compose.onNode(hasText("Classic") and isRadio and isSelected()).assertExists()
         compose.onNode(hasText("Fantasy") and isRadio).performScrollTo().performClick()
-        compose.onNode(hasText("Neon") and isRadio).performScrollTo().performClick()
+        compose.onNode(hasContentDescription("Neon") and isRadio).performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(PieceSet.FANTASY, settings.boardTheme.pieceSet)
         assertEquals(BoardColors.NEON, settings.boardTheme.colors)
@@ -76,11 +74,13 @@ class BoardSettingsScreenTest {
         show()
         compose.onNode(hasText("Coordinates") and isSwitch).performScrollTo().assertIsOn().performClick()
         compose.onNode(hasText("White always at the bottom") and isSwitch).performScrollTo().assertIsOff().performClick()
-        compose.onNode(hasText("Reduce motion") and isSwitch).performScrollTo().performClick()
+        compose.onNode(hasText("Move dots") and isSwitch).performScrollTo().performClick()
         compose.waitForIdle()
         assertFalse(settings.showCoordinates)
+        assertFalse(settings.showLegalDots)
         assertEquals(BoardOrientation.WHITE_ALWAYS_BOTTOM, settings.boardOrientation)
-        assertEquals(true, settings.reduceMotion)
         compose.onNode(hasText("Coordinates") and isSwitch).assertIsOff()
+        // Sound, vibration and reduce motion are in Settings only.
+        compose.onNode(hasText("Reduce motion")).assertDoesNotExist()
     }
 }
