@@ -88,14 +88,18 @@ fun DesignGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 }
 
                 CtSectionHeader(title = "Type")
-                Text("Display 32", style = CtType.Display)
-                Text("Headline 26", style = CtType.Headline)
-                Text("Title 20", style = CtType.Title)
-                Text("Title small 17", style = CtType.TitleSmall)
+                Text("Display 30", style = CtType.Display)
+                Text("Headline 22", style = CtType.Headline)
+                Text("Top bar 20", style = CtType.TopBar)
+                Text("Title 19", style = CtType.Title)
+                Text("Title small 16", style = CtType.TitleSmall)
                 Text("Body 16: the quick brown fox jumps over the lazy dog.", style = CtType.Body)
                 Text("Body small 14: secondary information.", style = CtType.BodySmall)
                 Text("Label 14", style = CtType.Label)
-                Text("Caption 12", style = CtType.Caption)
+                Text("Caption 13", style = CtType.Caption)
+                Text("Nav label 12", style = CtType.NavLabel)
+                Text("1,482", style = CtType.BigNumber)
+                Text("Number 22: 1,111 and 1,888 line up", style = CtType.Number)
 
                 CtSectionHeader(title = "Buttons")
                 CtButton(text = "Solve puzzles", icon = Icons.Rounded.PlayArrow, onClick = {}, modifier = Modifier.fillMaxWidth())

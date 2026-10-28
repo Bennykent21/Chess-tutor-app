@@ -5,14 +5,16 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.R
+import com.chesstutor.app.design.GroteskFontFamily
 
+/** Body and interface text (Inter 4.001, SIL Open Font License, bundled as real 400, 500 and 600 weights). */
 val InterFontFamily = FontFamily(
-    Font(R.font.inter, FontWeight.Normal),
-    Font(R.font.inter, FontWeight.Medium),
-    Font(R.font.inter, FontWeight.SemiBold),
-    Font(R.font.inter, FontWeight.Bold)
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
 )
 
 val JetBrainsMonoFontFamily = FontFamily(
@@ -22,92 +24,40 @@ val JetBrainsMonoFontFamily = FontFamily(
     Font(R.font.jetbrains_mono, FontWeight.Bold)
 )
 
-val TabularTextStyle = TextStyle(
-    fontFamily = JetBrainsMonoFontFamily,
-    fontFeatureSettings = "tnum"
+private fun heading(size: Int, line: Int) = TextStyle(
+    fontFamily = GroteskFontFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    letterSpacing = (-0.02).em,
 )
 
-// Design System Typography (Review 2 §4.1 & Review 3 S9):
-// Bundled Inter + JetBrains Mono with tabular numerals ("tnum") and readable >=14-16sp body scale.
+private fun text(weight: FontWeight, size: Int, line: Int) = TextStyle(
+    fontFamily = InterFontFamily,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    fontFeatureSettings = "tnum",
+)
+
+/**
+ * The same type scale for Material components (dialogs, menus, text fields), so they match
+ * `CtType`. Colours come from the theme, never from here.
+ */
 val ChessTutorTypography = Typography(
-    displayLarge = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp,
-        lineHeight = 34.sp,
-        letterSpacing = (-0.2).sp,
-        fontFeatureSettings = "tnum",
-    ),
-    titleLarge = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = (-0.1).sp,
-        fontFeatureSettings = "tnum",
-    ),
-    titleMedium = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 17.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.sp,
-        fontFeatureSettings = "tnum",
-    ),
-    titleSmall = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 15.sp,
-        lineHeight = 21.sp,
-        letterSpacing = 0.sp,
-        fontFeatureSettings = "tnum",
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 23.sp,
-        letterSpacing = 0.1.sp,
-        fontFeatureSettings = "tnum",
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        lineHeight = 22.sp,
-        letterSpacing = 0.1.sp,
-        fontFeatureSettings = "tnum",
-    ),
-    bodySmall = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.15.sp,
-        fontFeatureSettings = "tnum",
-    ),
-    labelLarge = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp,
-        fontFeatureSettings = "tnum",
-    ),
-    labelMedium = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
-        letterSpacing = 0.2.sp,
-        fontFeatureSettings = "tnum",
-    ),
-    labelSmall = TextStyle(
-        fontFamily = InterFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp,
-        fontFeatureSettings = "tnum",
-    )
+    displayLarge = heading(30, 36),
+    displayMedium = heading(30, 36),
+    displaySmall = heading(30, 36),
+    headlineLarge = heading(22, 27),
+    headlineMedium = heading(22, 27),
+    headlineSmall = heading(22, 27),
+    titleLarge = heading(20, 26),
+    titleMedium = text(FontWeight.SemiBold, 16, 22),
+    titleSmall = text(FontWeight.Medium, 14, 20),
+    bodyLarge = text(FontWeight.Normal, 16, 23),
+    bodyMedium = text(FontWeight.Normal, 14, 20),
+    bodySmall = text(FontWeight.Normal, 13, 18),
+    labelLarge = text(FontWeight.SemiBold, 14, 18),
+    labelMedium = text(FontWeight.Medium, 13, 18),
+    labelSmall = text(FontWeight.Medium, 12, 16),
 )
