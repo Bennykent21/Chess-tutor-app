@@ -58,7 +58,7 @@ class ImportFlowTest {
     fun linkingHandsTheImportToTheImporterAndShowsItsResult() = runTest(dispatcher) {
         val importer = FakeImporter()
         val settings = InMemorySettingsStore()
-        val vm = AppViewModel(InMemoryReviewRepository(), ChessEngineManager(LocalFallbackEngineClient()), settingsStore = settings, importer = { importer })
+        val vm = AppViewModel(InMemoryReviewRepository(), ChessEngineManager(LocalFallbackEngineClient(), ioDispatcher = dispatcher), settingsStore = settings, importer = { importer })
         advanceUntilIdle()
 
         vm.linkRatingAccount(RatingPlatform.LICHESS, "kenny", importDepth = ImportDepth.LAST_500)

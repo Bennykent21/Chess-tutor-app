@@ -122,7 +122,9 @@ class ChessEngineManager(
     val analysisService: AnalysisService = AnalysisService(engineClient),
     private val localBotMoveSelector: LocalBotMoveSelector = LocalBotMoveSelector(),
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob()),
-    private val calculationDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Default
+    private val calculationDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Default,
+    /** Where start-up and diagnostics block. Tests pass their own dispatcher, so no thread outlives a test. */
+    private val ioDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val _state = MutableStateFlow(ChessEngineState())
     val state: StateFlow<ChessEngineState> = _state.asStateFlow()
@@ -145,7 +147,7 @@ class ChessEngineManager(
     /**
      * Initializes the underlying engine client.
      */
-    suspend fun initialize() = withContext(Dispatchers.IO) {
+    suspend fun initialize() = withContext(ioDispatcher) {
         try {
             engineClient.initialize()
             _state.update { it.copy(isInitialized = true, lastError = null) }
@@ -404,7 +406,7 @@ class ChessEngineManager(
      * Runs engine diagnostics for the diagnostics dialog. The engine name and numbers come
      * from the engine's own output, never from constants.
      */
-    suspend fun runDiagnostics(movetimeMs: Int = 1000): EngineDiagnostics = withContext(Dispatchers.IO) {
+    suspend fun runDiagnostics(movetimeMs: Int = 1000): EngineDiagnostics = withContext(ioDispatcher) {
         val report = runCatching { healthCheck(movetimeMs) }.getOrNull()
         if (report != null) {
             return@withContext EngineDiagnostics(
@@ -455,7 +457,7 @@ class ChessEngineManager(
      * Engine self-test shown in Settings. Reports which engine actually answered, the speed
      * the engine itself reported, and whether its neural network loaded.
      */
-    suspend fun runSelfTest(): String = withContext(Dispatchers.IO) {
+    suspend fun runSelfTest(): String = withContext(ioDispatcher) {
         try {
             val report = healthCheck(movetimeMs = 1000)
                 ?: return@withContext "This engine cannot report its health."
