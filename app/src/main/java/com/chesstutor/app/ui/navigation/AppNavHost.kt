@@ -706,22 +706,30 @@ private fun AppShell(
                     val account = accountViewModel(navController, entry)
                     val games by account.games.collectAsStateWithLifecycle()
                     val stats by account.stats.collectAsStateWithLifecycle()
-                    val reviews by account.reviews.collectAsStateWithLifecycle()
                     val training by account.training.collectAsStateWithLifecycle()
                     val overview by account.overview.collectAsStateWithLifecycle()
+                    val openingCourses by account.openingCourses.collectAsStateWithLifecycle()
                     AccountScreen(
                         state = state,
                         games = games,
                         stats = stats,
-                        reviews = reviews,
                         training = training,
                         overview = overview,
+                        openingCourses = openingCourses,
                         dueReviewCount = dueReviews,
                         actions = linkActions.copy(
                             onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
                             onReviewMistakes = {
                                 navController.navigateToTab(TopTab.PUZZLES)
                                 navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true }
+                            },
+                            onOpenCourse = { id ->
+                                navController.navigateToTab(TopTab.LEARN)
+                                navController.navigate(AppRoutes.course(id)) { launchSingleTop = true }
+                            },
+                            onPracticeTheme = { theme ->
+                                navController.navigateToTab(TopTab.PUZZLES)
+                                navController.navigate(AppRoutes.puzzleRelated(listOf(theme))) { launchSingleTop = true }
                             },
                             onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) { launchSingleTop = true } },
                             onShown = { viewModel.autoSyncLinkedAccount() }

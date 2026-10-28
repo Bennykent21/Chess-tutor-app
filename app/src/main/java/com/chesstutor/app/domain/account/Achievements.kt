@@ -30,9 +30,6 @@ data class AchievementInputs(
     val lessonTitles: Map<String, String> = emptyMap(),
 )
 
-/** One line of Account > Overview's recent activity. */
-data class ActivityItem(val at: Long, val text: String, val kind: BadgeKind)
-
 object Achievements {
 
     /** Every badge, earned ones first, then by how close the player is. */
@@ -68,43 +65,6 @@ object Achievements {
             Badge("brilliant", "Brilliant!", "Play a brilliant move in a reviewed game", BadgeKind.REVIEW, brilliant.coerceAtMost(1), 1),
         )
         return all.sortedWith(compareByDescending<Badge> { it.earned }.thenByDescending { it.progress.toFloat() / it.goal })
-    }
-
-    /**
-     * The latest things the player did, newest first: games, reviews, lessons finished, and
-     * puzzles grouped by day.
-     */
-    fun recent(inputs: AchievementInputs, limit: Int = 8, zone: ZoneId = ZoneId.systemDefault()): List<ActivityItem> {
-        val items = mutableListOf<ActivityItem>()
-        inputs.games.forEach { g ->
-            val versus = when (g.source) {
-                GameSource.ARENA -> g.opponent
-                GameSource.CHESS_COM -> "${g.opponent} on Chess.com"
-                GameSource.LICHESS -> "${g.opponent} on Lichess"
-            }
-            val text = when (g.outcome) {
-                GameOutcome.WIN -> "Beat $versus"
-                GameOutcome.LOSS -> "Lost to $versus"
-                GameOutcome.DRAW -> "Drew with $versus"
-                GameOutcome.UNKNOWN -> "Played $versus"
-            }
-            items += ActivityItem(g.dateMillis, text, BadgeKind.GAMES)
-        }
-        inputs.analysed.values.forEach { a ->
-            val game = inputs.games.firstOrNull { it.id == a.gameId } ?: return@forEach
-            val accuracy = a.accuracyFor(game.userColor)?.let { " (${Math.round(it)}% accuracy)" }.orEmpty()
-            items += ActivityItem(a.analysedAt, "Reviewed your game against ${game.opponent}$accuracy", BadgeKind.REVIEW)
-        }
-        inputs.lessonsFinished.forEach { (id, at) ->
-            if (at != null) items += ActivityItem(at, "Finished the lesson \"${inputs.lessonTitles[id] ?: "a lesson"}\"", BadgeKind.LEARNING)
-        }
-        inputs.puzzles.groupBy { day(it.finishedAt, zone) }.forEach { (_, day) ->
-            val solved = day.count { it.solved }
-            val clean = day.count { it.clean }
-            val noun = if (solved == 1) "puzzle" else "puzzles"
-            items += ActivityItem(day.maxOf { it.finishedAt }, "Solved $solved $noun ($clean without a slip)", BadgeKind.PUZZLES)
-        }
-        return items.sortedByDescending { it.at }.take(limit)
     }
 
     /** The longest run of true values in a row. */

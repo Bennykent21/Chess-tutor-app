@@ -121,4 +121,18 @@ class PerformanceTest {
         assertEquals(GamePhase.MIDDLEGAME, GamePhase.of(30, Position.initial()))
         assertEquals(GamePhase.ENDGAME, GamePhase.of(5, Position.fromFen("4k3/8/8/8/8/8/4P3/R3K3 w - - 0 1")))
     }
+
+    @Test
+    fun theWeakestOpeningsScoreUnderHalfFromEnoughGames() {
+        fun row(label: String, w: Int, d: Int, l: Int) = WdlRow(label, Wdl(w, d, l), GameFilter(openingFamily = label))
+        val rows = listOf(
+            row("Italian Game", 6, 1, 2),
+            row("Sicilian Defense", 1, 1, 4),
+            row("French Defense", 0, 0, 2),
+            row("Caro-Kann Defense", 2, 0, 3),
+            row("Queen's Gambit Declined", 1, 0, 3),
+        )
+        assertEquals(setOf("Sicilian Defense", "Queen's Gambit Declined"), PerformanceCalculator.weakest(rows))
+        assertEquals("nobody is weak while winning", emptySet<String>(), PerformanceCalculator.weakest(listOf(row("Italian Game", 3, 0, 0))))
+    }
 }

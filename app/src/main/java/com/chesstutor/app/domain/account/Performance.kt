@@ -110,6 +110,19 @@ object PerformanceCalculator {
         )
     }
 
+    /**
+     * The openings the player does worst in, marked on Account > Stats: at most [WEAK_ROWS]
+     * rows scoring under half the points, each from at least [MIN_WEAK_GAMES] games.
+     */
+    fun weakest(rows: List<WdlRow>): Set<String> =
+        rows.filter { it.wdl.games >= MIN_WEAK_GAMES && it.wdl.score < 0.5f }
+            .sortedWith(compareBy<WdlRow> { it.wdl.score }.thenByDescending { it.wdl.games })
+            .take(WEAK_ROWS)
+            .mapTo(HashSet()) { it.label }
+
+    const val WEAK_ROWS = 2
+    const val MIN_WEAK_GAMES = 3
+
     /** What kind of costly move [move] was, or null if it was not a mistake or blunder. */
     fun kindOf(move: ReviewedMove): MistakeKind? {
         if (move.quality != MoveQuality.MISTAKE && move.quality != MoveQuality.BLUNDER) return null

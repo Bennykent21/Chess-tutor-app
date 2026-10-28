@@ -1,35 +1,32 @@
 package com.chesstutor.app.feature.account
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.EmojiEvents
-import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SportsEsports
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,11 +34,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,37 +51,39 @@ import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
-import com.chesstutor.app.design.CtScreenTitle
-import com.chesstutor.app.design.CtBadge
-import com.chesstutor.app.design.CtCard
+import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
-import com.chesstutor.app.design.CtIconBubble
+import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
-import com.chesstutor.app.design.CtShapes
-import com.chesstutor.app.design.ctPressable
+import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtSectionHeader
+import com.chesstutor.app.design.CtSegmented
+import com.chesstutor.app.design.CtShapes
+import com.chesstutor.app.design.CtSheet
 import com.chesstutor.app.design.CtSpacing
-import com.chesstutor.app.design.CtStatTile
-import com.chesstutor.app.design.CtTextField
 import com.chesstutor.app.design.CtType
+import com.chesstutor.app.design.ctPressable
+import com.chesstutor.app.domain.account.Badge
 import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.account.GameOutcome
-import com.chesstutor.app.domain.account.GameReview
 import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.domain.account.TrainingCalculator
 import com.chesstutor.app.domain.account.TrainingReport
 import com.chesstutor.app.domain.account.label
+import com.chesstutor.app.domain.learn.Course
+import com.chesstutor.app.domain.learn.OpeningCourses
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.viewmodel.AppUiState
+import java.util.Locale
 
-/** The Account tab's pages (plan section 6.4). */
+/** The Account tab's pages (plan section 6.4; "Performance" became "Stats" in D44). */
 enum class AccountTab(val label: String) {
     OVERVIEW("Overview"),
     GAMES("Games"),
-    PERFORMANCE("Performance"),
+    STATS("Stats"),
     TRAINING("Training"),
 }
 
@@ -90,6 +92,10 @@ data class AccountActions(
     val onOpenGame: (gameId: String) -> Unit = {},
     /** Opens the spaced review of positions from the player's games (Puzzles > Mistakes review). */
     val onReviewMistakes: () -> Unit = {},
+    /** Stats: an opening row opens the Learn course that teaches it (D44). */
+    val onOpenCourse: (courseId: String) -> Unit = {},
+    /** Training: a theme row plays puzzles of that theme. */
+    val onPracticeTheme: (theme: String) -> Unit = {},
     val onLink: (RatingPlatform, String, RatingTimeControl) -> Unit = { _, _, _ -> },
     /** Settings > Linked account: which rating the app follows, and importing more of the history. */
     val onRatingTimeControl: (RatingTimeControl) -> Unit = {},
@@ -104,9 +110,9 @@ data class AccountActions(
 )
 
 /**
- * Account tab (plan section 6.4): the player's header, then Overview (ratings, linked
- * account, recent games), Games (every saved game with filters) and Performance (results,
- * accuracy and rating trend) and Training (puzzles, themes, lessons, mistakes due).
+ * Account tab (plan section 6.4, D44): the player, their two ratings and level, then
+ * Overview (recent games, badges), Games (every saved game, one filter sheet), Stats (score,
+ * openings, colours) and Training (themes to work on, mistakes to review).
  */
 @Composable
 fun AccountScreen(
@@ -117,167 +123,205 @@ fun AccountScreen(
     actions: AccountActions,
     modifier: Modifier = Modifier,
     initialTab: AccountTab = AccountTab.OVERVIEW,
-    /** Reviews of the analysed games, for the Performance page. */
-    reviews: Map<String, GameReview> = emptyMap(),
     training: TrainingReport = TrainingCalculator.report(emptyList(), { null }, 0, 0),
-    /** Badges and recent activity (Overview). */
     overview: OverviewState = OverviewState(),
+    /** The Learn courses that teach openings, for Stats (D44). */
+    openingCourses: List<Course> = emptyList(),
 ) {
     var tabName by rememberSaveable { mutableStateOf(initialTab.name) }
-    val tab = AccountTab.valueOf(tabName)
+    val tab = AccountTab.entries.firstOrNull { it.name == tabName } ?: AccountTab.OVERVIEW
     // The games filter lives here so it survives opening a game and coming back.
-    var filterState by rememberSaveable(stateSaver = GameFilterSaver) { mutableStateOf(GameFilter()) }
+    var filter by rememberSaveable(stateSaver = GameFilterSaver) { mutableStateOf(GameFilter()) }
+    var filtersOpen by rememberSaveable { mutableStateOf(false) }
+    var badgeId by rememberSaveable { mutableStateOf<String?>(null) }
+    val courseIdFor = remember(openingCourses) { { family: String -> OpeningCourses.courseFor(family, openingCourses)?.id } }
     LaunchedEffect(Unit) { actions.onShown() }
 
     CtScreenBackground(modifier) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = CtSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
-        ) {
-            item(key = "top") {
-                CtScreenTitle(title = "Account") {
-                    SettingsButton(onClick = actions.onOpenSettings)
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = CtSpacing.xl),
+            ) {
+                item(key = "top") {
+                    CtScreenTitle(title = "Account") { SettingsButton(onClick = actions.onOpenSettings) }
                 }
-            }
-            item(key = "header") { ProfileHeader(state, stats, Modifier.padding(horizontal = CtSpacing.gutter)) }
-            item(key = "tabs") {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = CtSpacing.gutter),
-                    horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-                ) {
-                    AccountTab.entries.forEach { entry ->
-                        CtChip(text = entry.label, color = CtColors.Gold, selected = entry == tab, onClick = { tabName = entry.name })
+                item(key = "profile") { ProfileRow(state, stats, Modifier.padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.md)) }
+                item(key = "numbers") { Numbers(state, stats, Modifier.padding(horizontal = CtSpacing.gutter)) }
+                if (showsLinkCard(state)) {
+                    item(key = "linked") { LinkAccountCard(state = state, actions = actions, modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg)) }
+                }
+                item(key = "tabs") {
+                    CtSegmented(
+                        options = AccountTab.entries,
+                        selected = tab,
+                        label = { it.label },
+                        onSelect = { tabName = it.name },
+                        modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg),
+                    )
+                }
+                val page = Modifier.padding(horizontal = CtSpacing.gutter)
+                when (tab) {
+                    AccountTab.OVERVIEW -> overview(games, overview.badges, actions.onOpenGame, onSeeAll = { tabName = AccountTab.GAMES.name }, onOpenBadge = { badgeId = it.id })
+                    AccountTab.GAMES -> gamesList(games, filter, onOpenFilters = { filtersOpen = true }, onOpenGame = actions.onOpenGame)
+                    AccountTab.STATS -> item(key = "stats") {
+                        StatsPage(
+                            games = games,
+                            courseIdFor = courseIdFor,
+                            onOpenCourse = actions.onOpenCourse,
+                            onShowGames = { shown ->
+                                filter = shown
+                                tabName = AccountTab.GAMES.name
+                            },
+                            modifier = page,
+                        )
+                    }
+                    AccountTab.TRAINING -> item(key = "training") {
+                        TrainingPage(
+                            training = training,
+                            dueReviewCount = dueReviewCount,
+                            onReviewMistakes = actions.onReviewMistakes,
+                            onPracticeTheme = actions.onPracticeTheme,
+                            modifier = page,
+                        )
                     }
                 }
             }
-            when (tab) {
-                AccountTab.OVERVIEW -> overview(state, games, stats, overview, dueReviewCount, actions, onSeeAllGames = { tabName = AccountTab.GAMES.name })
-                AccountTab.GAMES -> gamesList(games, filterState, onFilter = { filterState = it }, onOpenGame = actions.onOpenGame)
-                AccountTab.PERFORMANCE -> item(key = "performance") {
-                    PerformancePage(
-                        games = games,
-                        reviews = reviews,
-                        onShowGames = { filter ->
-                            filterState = filter
-                            tabName = AccountTab.GAMES.name
-                        },
-                        modifier = Modifier.padding(horizontal = CtSpacing.gutter),
-                    )
-                }
-                AccountTab.TRAINING -> item(key = "training") {
-                    TrainingPage(
-                        stats = stats,
-                        training = training,
-                        dueReviewCount = dueReviewCount,
-                        onReviewMistakes = actions.onReviewMistakes,
-                        modifier = Modifier.padding(horizontal = CtSpacing.gutter),
-                    )
-                }
+            GameFilterSheet(
+                visible = filtersOpen,
+                games = games,
+                filter = filter,
+                onFilter = { filter = it },
+                onDismiss = { filtersOpen = false },
+            )
+            BadgeSheet(badge = overview.badges.firstOrNull { it.id == badgeId }, onDismiss = { badgeId = null })
+        }
+    }
+}
+
+// ------------------------------------------------------------------ header
+
+/** Initial (or a person), "@name" with where the rating comes from, and the day streak. */
+@Composable
+private fun ProfileRow(state: AppUiState, stats: PuzzleStats, modifier: Modifier = Modifier) {
+    val linked = state.linkedProfile
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(
+            modifier = Modifier.size(52.dp).clip(CtShapes.Pill).background(CtColors.Surface),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (linked != null) {
+                Text(linked.username.take(1).uppercase(Locale.UK), style = CtType.Headline)
+            } else {
+                Icon(Icons.Rounded.Person, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(26.dp))
             }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
+            Text(linked?.let { "@${it.username}" } ?: "You", style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (linked != null) {
+                Text("${linked.platform.displayName}, ${linked.selectedTimeControl.displayName.lowercase(Locale.UK)}", style = CtType.Caption)
+            }
+        }
+        if (stats.dayStreak > 0) StreakChip(stats.dayStreak)
+    }
+}
+
+@Composable
+private fun StreakChip(days: Int) {
+    Row(
+        modifier = Modifier
+            .height(32.dp)
+            .clip(CtShapes.Pill)
+            .background(CtColors.Surface)
+            .padding(horizontal = CtSpacing.md)
+            .clearAndSetSemantics { contentDescription = "$days-day streak" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(Icons.Rounded.LocalFireDepartment, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(16.dp))
+        Text("$days", style = CtType.Label)
+    }
+}
+
+/** Rating and puzzle rating as big numbers, then the level with its XP bar. */
+@Composable
+private fun Numbers(state: AppUiState, stats: PuzzleStats, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+            NumberTile("${state.effectiveUserRating}", "Rating", Modifier.weight(1f))
+            NumberTile("${stats.rating}", "Puzzle rating", Modifier.weight(1f))
+        }
+        Row(
+            modifier = Modifier.semantics(mergeDescendants = true) {},
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+        ) {
+            Text("Level ${stats.playerLevel.level}", style = CtType.Label)
+            CtProgressBar(progress = stats.playerLevel.progress, height = 3.dp, modifier = Modifier.weight(1f))
+            Text("${String.format(Locale.UK, "%,d", stats.totalXp)} XP", style = CtType.Caption)
         }
     }
 }
 
 @Composable
-private fun ProfileHeader(state: AppUiState, stats: PuzzleStats, modifier: Modifier = Modifier) {
-    val linked = state.linkedProfile
-    CtCard(modifier = modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CtIconBubble(icon = Icons.Rounded.AccountCircle, tint = CtColors.Gold, size = 56.dp)
-            Spacer(Modifier.width(CtSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = linked?.let { "@${it.username}" } ?: "Your profile",
-                    style = CtType.Title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(text = headerLine(state, stats), style = CtType.BodySmall)
-            }
-        }
+private fun NumberTile(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(CtShapes.Card)
+            .background(CtColors.Surface)
+            .semantics(mergeDescendants = true) {}
+            .padding(horizontal = CtSpacing.lg, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs),
+    ) {
+        Text(value, style = CtType.Display, maxLines = 1)
+        Text(label, style = CtType.Caption, maxLines = 1)
     }
-}
-
-/** "1848 rapid on Chess.com · 5-day streak · Level 11". */
-internal fun headerLine(state: AppUiState, stats: PuzzleStats): String {
-    val linked = state.linkedProfile
-    val rating = linked?.activeRating?.let { "$it ${linked.selectedTimeControl.displayName.lowercase()} on ${linked.platform.displayName}" }
-        ?: "${state.effectiveUserRating} estimated"
-    val streak = if (stats.dayStreak > 0) " · ${stats.dayStreak}-day streak" else ""
-    return "$rating$streak · Level ${stats.playerLevel.level}"
 }
 
 // ------------------------------------------------------------------ overview
 
 private fun LazyListScope.overview(
-    state: AppUiState,
     games: GamesState,
-    stats: PuzzleStats,
-    achievements: OverviewState,
-    dueReviewCount: Int,
-    actions: AccountActions,
-    onSeeAllGames: () -> Unit,
+    badges: List<Badge>,
+    onOpenGame: (String) -> Unit,
+    onSeeAll: () -> Unit,
+    onOpenBadge: (Badge) -> Unit,
 ) {
-    item(key = "tiles") {
-        Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                CtStatTile(value = "${state.effectiveUserRating}", label = "Rating", icon = Icons.Rounded.EmojiEvents, accent = CtColors.Gold, modifier = Modifier.weight(1f))
-                CtStatTile(value = "${stats.rating}", label = "Puzzle rating", icon = Icons.Rounded.Extension, accent = CtColors.Teal, modifier = Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                CtStatTile(value = "${stats.playerLevel.level}", label = "Level · ${stats.totalXp} XP", icon = Icons.Rounded.Star, accent = CtColors.Violet, modifier = Modifier.weight(1f))
-                CtStatTile(value = "${stats.dayStreak}", label = "Day streak", icon = Icons.Rounded.LocalFireDepartment, accent = CtColors.Coral, modifier = Modifier.weight(1f))
-            }
-            if (dueReviewCount > 0) {
-                Text("$dueReviewCount mistake${if (dueReviewCount == 1) "" else "s"} due for review in Puzzles", style = CtType.Caption)
-            }
-        }
-    }
-    if (showsLinkCard(state)) {
-        item(key = "linked") { LinkAccountCard(state = state, actions = actions, modifier = Modifier.padding(horizontal = CtSpacing.gutter)) }
-    }
-    if (achievements.badges.isNotEmpty()) {
-        item(key = "badges") { BadgesCard(achievements.badges, Modifier.padding(horizontal = CtSpacing.gutter)) }
-    }
-    if (achievements.recent.isNotEmpty()) {
-        item(key = "activity") { RecentActivityCard(achievements.recent, Modifier.padding(horizontal = CtSpacing.gutter)) }
-    }
     item(key = "games-header") {
         CtSectionHeader(
             title = "Recent games",
             actionLabel = if (games.games.isNotEmpty()) "See all" else null,
-            onAction = onSeeAllGames,
-            modifier = Modifier.padding(horizontal = CtSpacing.gutter),
+            onAction = onSeeAll,
+            modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm),
         )
     }
     if (games.games.isEmpty()) {
         item(key = "games-empty") { NoGames(loading = games.loading) }
     } else {
-        item(key = "totals") { TotalsRow(games, Modifier.padding(horizontal = CtSpacing.gutter)) }
-        items(games.games.take(3), key = { "recent-${it.id}" }) { game ->
-            GameRow(game, onClick = { actions.onOpenGame(game.id) }, modifier = Modifier.padding(horizontal = CtSpacing.gutter), accuracy = games.analysed[game.id]?.accuracyFor(game.userColor))
+        val recent = games.games.take(RECENT_GAMES)
+        itemsIndexed(recent, key = { _, game -> "recent-${game.id}" }) { i, game ->
+            GameListRow(
+                game = game,
+                onClick = { onOpenGame(game.id) },
+                accuracy = games.analysed[game.id]?.accuracyFor(game.userColor),
+                divider = i < recent.lastIndex,
+                modifier = Modifier.padding(horizontal = CtSpacing.gutter),
+            )
         }
+    }
+    if (badges.isNotEmpty()) {
+        item(key = "badges") { BadgesRow(badges, onOpen = onOpenBadge, modifier = Modifier.padding(top = CtSpacing.sm)) }
     }
 }
 
-@Composable
-private fun TotalsRow(games: GamesState, modifier: Modifier = Modifier) {
-    val totals = remember(games.games) { GameLibrary.totals(games.games) }
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        Text("${totals.games} game${if (totals.games == 1) "" else "s"}", style = CtType.Label, modifier = Modifier.weight(1f))
-        CtChip(text = "${totals.wins} won", color = CtColors.Lime)
-        CtChip(text = "${totals.draws} drawn", color = CtColors.Text2)
-        CtChip(text = "${totals.losses} lost", color = CtColors.Coral)
-    }
-}
+private const val RECENT_GAMES = 3
 
 @Composable
 private fun NoGames(loading: Boolean) {
     CtEmptyState(
         icon = Icons.Rounded.SportsEsports,
         title = if (loading) "Loading your games" else "No games yet",
-        body = if (loading) "Naming the openings…" else "Play a bot from Home, or link Chess.com or Lichess above to bring in your games.",
+        body = if (loading) "Naming the openings…" else "Play a bot from Home, or link your account.",
     )
 }
 
@@ -286,7 +330,7 @@ private fun NoGames(loading: Boolean) {
 private fun LazyListScope.gamesList(
     games: GamesState,
     filter: GameFilter,
-    onFilter: (GameFilter) -> Unit,
+    onOpenFilters: () -> Unit,
     onOpenGame: (String) -> Unit,
 ) {
     if (games.games.isEmpty()) {
@@ -294,77 +338,152 @@ private fun LazyListScope.gamesList(
         return
     }
     val shown = GameLibrary.filter(games.games, filter)
-    item(key = "filters") { GameFilters(games, filter, onFilter, Modifier.padding(horizontal = CtSpacing.gutter)) }
     item(key = "count") {
-        Row(Modifier.padding(horizontal = CtSpacing.gutter), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg, bottom = CtSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                text = if (filter.isEmpty) "${shown.size} games" else "${shown.size} of ${games.games.size} games",
+                text = if (filter.isEmpty) gamesCount(shown.size) else "${shown.size} of ${gamesCount(games.games.size)}",
                 style = CtType.Caption,
                 modifier = Modifier.weight(1f),
             )
-            if (!filter.isEmpty) CtChip(text = "Clear filters", color = CtColors.Coral, onClick = { onFilter(GameFilter()) })
+            FilterButton(active = activeFilters(filter), onClick = onOpenFilters)
         }
     }
     if (shown.isEmpty()) {
         item(key = "no-match") {
-            CtEmptyState(icon = Icons.Rounded.History, title = "Nothing matches", body = "Try another word or clear the filters.")
+            CtEmptyState(icon = Icons.Rounded.History, title = "Nothing matches", body = "Change or clear the filters.")
         }
     }
-    items(shown, key = { it.id }) { game ->
-        GameRow(game, onClick = { onOpenGame(game.id) }, modifier = Modifier.padding(horizontal = CtSpacing.gutter), accuracy = games.analysed[game.id]?.accuracyFor(game.userColor))
+    itemsIndexed(shown, key = { _, game -> game.id }) { i, game ->
+        GameListRow(
+            game = game,
+            onClick = { onOpenGame(game.id) },
+            accuracy = games.analysed[game.id]?.accuracyFor(game.userColor),
+            divider = i < shown.lastIndex,
+            modifier = Modifier.padding(horizontal = CtSpacing.gutter),
+        )
     }
 }
 
+private fun gamesCount(n: Int): String = "$n game${if (n == 1) "" else "s"}"
+
+/** How many filters are set; the search counts as one. */
+internal fun activeFilters(filter: GameFilter): Int =
+    listOf(filter.source, filter.outcome, filter.color, filter.timeClass, filter.openingFamily).count { it != null } +
+        if (filter.query.isBlank()) 0 else 1
+
+/** "Filter", or "Filters (2)" on the primary colour while any are set. */
 @Composable
-private fun GameFilters(games: GamesState, filter: GameFilter, onFilter: (GameFilter) -> Unit, modifier: Modifier = Modifier) {
+private fun FilterButton(active: Int, onClick: () -> Unit) {
+    val on = active > 0
+    Row(
+        modifier = Modifier
+            .height(40.dp)
+            .clip(CtShapes.Pill)
+            .background(if (on) CtColors.Primary else CtColors.Surface)
+            .ctPressable(onClickLabel = "Filter games", onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+    ) {
+        val ink = if (on) CtColors.OnPrimary else CtColors.Text
+        Icon(Icons.Rounded.Tune, contentDescription = null, tint = ink, modifier = Modifier.size(18.dp))
+        Text(if (on) "Filters ($active)" else "Filter", style = CtType.Label.copy(color = ink))
+    }
+}
+
+/** Every games filter in one sheet: search, then one row of choices per kind. */
+@Composable
+private fun GameFilterSheet(visible: Boolean, games: GamesState, filter: GameFilter, onFilter: (GameFilter) -> Unit, onDismiss: () -> Unit) {
     val sources = remember(games.games) { GameLibrary.sources(games.games) }
     val timeClasses = remember(games.games) { GameLibrary.timeClasses(games.games) }
     val openings = remember(games.games) { GameLibrary.topOpenings(games.games) }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        CtTextField(value = filter.query, onValueChange = { onFilter(filter.copy(query = it)) }, label = "Search", placeholder = "Opponent or opening")
-        if (sources.size > 1) {
-            ChipRow {
-                CtChip(text = "All", selected = filter.source == null, onClick = { onFilter(filter.copy(source = null)) })
-                sources.forEach { source ->
-                    CtChip(text = source.label, selected = filter.source == source, onClick = { onFilter(filter.copy(source = source.takeUnless { it == filter.source })) })
-                }
+    val shown = remember(games.games, filter) { GameLibrary.filter(games.games, filter).size }
+    CtSheet(visible = visible, onDismiss = onDismiss) {
+        CtSectionHeader(
+            title = "Filter games",
+            actionLabel = if (filter.isEmpty) null else "Clear",
+            onAction = { onFilter(GameFilter()) },
+        )
+        SearchField(value = filter.query, onValueChange = { onFilter(filter.copy(query = it)) })
+        Column(
+            modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(CtSpacing.lg),
+        ) {
+            if (sources.size > 1) {
+                FilterGroup("Source", listOf(null) + sources, filter.source, { it?.label ?: "Any" }) { onFilter(filter.copy(source = it)) }
+            }
+            FilterGroup("Result", listOf(null, GameOutcome.WIN, GameOutcome.DRAW, GameOutcome.LOSS), filter.outcome, ::outcomeLabel) { onFilter(filter.copy(outcome = it)) }
+            FilterGroup("Colour", listOf(null, PieceColor.WHITE, PieceColor.BLACK), filter.color, ::colourLabel) { onFilter(filter.copy(color = it)) }
+            if (timeClasses.size > 1) {
+                FilterGroup("Time", listOf(null) + timeClasses, filter.timeClass, { it?.label ?: "Any" }) { onFilter(filter.copy(timeClass = it)) }
+            }
+            if (openings.isNotEmpty()) {
+                FilterGroup("Opening", listOf(null) + openings, filter.openingFamily, { it ?: "Any" }) { onFilter(filter.copy(openingFamily = it)) }
             }
         }
-        ChipRow {
-            listOf(GameOutcome.WIN to "Wins", GameOutcome.DRAW to "Draws", GameOutcome.LOSS to "Losses").forEach { (outcome, label) ->
-                CtChip(text = label, color = CtColors.Lime, selected = filter.outcome == outcome, onClick = { onFilter(filter.copy(outcome = outcome.takeUnless { it == filter.outcome })) })
-            }
-            listOf(PieceColor.WHITE to "As White", PieceColor.BLACK to "As Black").forEach { (color, label) ->
-                CtChip(text = label, color = CtColors.Gold, selected = filter.color == color, onClick = { onFilter(filter.copy(color = color.takeUnless { it == filter.color })) })
-            }
-        }
-        if (timeClasses.size > 1) {
-            ChipRow {
-                timeClasses.forEach { time ->
-                    CtChip(text = time.label, color = CtColors.Violet, selected = filter.timeClass == time, onClick = { onFilter(filter.copy(timeClass = time.takeUnless { it == filter.timeClass })) })
-                }
-            }
-        }
-        if (openings.isNotEmpty()) {
-            ChipRow {
-                openings.forEach { family ->
-                    CtChip(text = family, color = CtColors.Teal, selected = filter.openingFamily == family, onClick = { onFilter(filter.copy(openingFamily = family.takeUnless { it == filter.openingFamily })) })
-                }
+        CtButton(text = "Show ${gamesCount(shown)}", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+private fun outcomeLabel(outcome: GameOutcome?): String = when (outcome) {
+    null -> "Any"
+    GameOutcome.WIN -> "Wins"
+    GameOutcome.DRAW -> "Draws"
+    GameOutcome.LOSS -> "Losses"
+    GameOutcome.UNKNOWN -> "Unfinished"
+}
+
+private fun colourLabel(color: PieceColor?): String = when (color) {
+    null -> "Both"
+    PieceColor.WHITE -> "White"
+    PieceColor.BLACK -> "Black"
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun <T> FilterGroup(title: String, options: List<T>, selected: T, label: (T) -> String, onPick: (T) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        Text(title, style = CtType.Label.copy(color = CtColors.Text2))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            options.forEach { option ->
+                CtChip(text = label(option), selected = option == selected, onClick = { onPick(option) })
             }
         }
     }
 }
 
 @Composable
-private fun ChipRow(content: @Composable () -> Unit) {
+private fun SearchField(value: String, onValueChange: (String) -> Unit) {
     Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-    ) { content() }
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(CtSpacing.touchTarget)
+            .clip(CtShapes.Control)
+            .background(CtColors.Surface)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(Icons.Rounded.Search, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(18.dp))
+        Box(Modifier.weight(1f)) {
+            if (value.isEmpty()) Text("Opponent or opening", style = CtType.Body.copy(color = CtColors.Text2))
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = CtType.Body.copy(color = CtColors.Text),
+                cursorBrush = SolidColor(CtColors.Text),
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search games" },
+            )
+        }
+    }
 }
 
 /** Saves the games filter across navigation and process death as plain strings. */
-private val GameFilterSaver = androidx.compose.runtime.saveable.listSaver<GameFilter, String>(
+private val GameFilterSaver = listSaver<GameFilter, String>(
     save = { f ->
         listOf(f.source?.name.orEmpty(), f.outcome?.name.orEmpty(), f.color?.name.orEmpty(), f.timeClass?.name.orEmpty(), f.openingFamily.orEmpty(), f.query)
     },
@@ -392,6 +511,6 @@ private fun SettingsButton(onClick: () -> Unit) {
             .semantics { contentDescription = "Settings" },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Rounded.Settings, contentDescription = null, tint = CtColors.Text)
+        Icon(Icons.Rounded.Settings, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(20.dp))
     }
 }
