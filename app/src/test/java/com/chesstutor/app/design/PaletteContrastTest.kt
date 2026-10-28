@@ -62,6 +62,24 @@ class PaletteContrastTest {
     }
 
     @Test
+    fun moveGradesReadInEveryThemeAndMode() {
+        val failures = GradeColor.entries.flatMap { grade ->
+            Palette.ALL.flatMap { p ->
+                val text = grade.text(p.dark)
+                val onPage = listOf(p.bg, p.surface, p.raised).mapNotNull { bg ->
+                    val ratio = Palette.contrastRatio(text, bg)
+                    if (ratio < 4.5) "${grade.name} text in ${name(p)} on %08X = %.2f".format(bg, ratio) else null
+                }
+                // The symbol (!!, ?!, ??) on a badge needs 4.5:1; an icon needs 3:1.
+                val ink = Palette.contrastRatio(grade.ink(p.dark), grade.fill(p.dark))
+                val need = if (grade.iconOnly) 3.0 else 4.5
+                onPage + listOfNotNull(if (ink < need) "${grade.name} ink on its fill in ${name(p)} = %.2f".format(ink) else null)
+            }
+        }
+        assertTrue("Move grades below contrast: $failures", failures.isEmpty())
+    }
+
+    @Test
     fun contrastFormulaMatchesKnownValues() {
         assertEquals(21.0, Palette.contrastRatio(0xFFFFFFFFL, 0xFF000000L), 0.01)
         assertEquals(1.0, Palette.contrastRatio(0xFF777777L, 0xFF777777L), 0.0001)

@@ -212,3 +212,34 @@ object Palette {
         return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
     }
 }
+
+/**
+ * Move-grade colours (design language section 2), the same in every theme. Each grade has a
+ * fill for badges and the board tint, an ink for the symbol on that fill, and a text colour for
+ * the grade written on the page. In light mode the text colours are darker shades of the fills,
+ * because the fills themselves are too light to read as text (all tested in PaletteContrastTest).
+ */
+enum class GradeColor(
+    val lightFill: Long,
+    val lightInk: Long,
+    val lightText: Long,
+    val darkFill: Long,
+    val darkInk: Long,
+    /** Best, good and book carry an icon, not a symbol: their ink only needs 3:1. */
+    val iconOnly: Boolean = false,
+) {
+    BRILLIANT(0xFF1C8AA3, 0xFF13110E, 0xFF166E82, 0xFF4CC3D9, 0xFF13110E),
+    GREAT(0xFF4769CC, 0xFFFFFFFF, 0xFF395EC8, 0xFF8AA4F0, 0xFF13110E),
+    BEST(0xFF2E8650, 0xFFFFFFFF, 0xFF277144, 0xFF6CC08E, 0xFF13110E, iconOnly = true),
+    GOOD(0xFF6A8D71, 0xFF13110E, 0xFF506A55, 0xFF93AE98, 0xFF13110E, iconOnly = true),
+    BOOK(0xFF8A7356, 0xFFFFFFFF, 0xFF746148, 0xFFB59E80, 0xFF13110E, iconOnly = true),
+    INACCURACY(0xFFB07A0C, 0xFF13110E, 0xFF855C09, 0xFFE8B44A, 0xFF13110E),
+    MISTAKE(0xFFC9601A, 0xFF13110E, 0xFFA04D15, 0xFFEE8B4A, 0xFF13110E),
+    BLUNDER(0xFFBF3728, 0xFFFFFFFF, 0xFFB93527, 0xFFEC6A5C, 0xFF13110E),
+    ;
+
+    fun fill(dark: Boolean): Long = if (dark) darkFill else lightFill
+    fun ink(dark: Boolean): Long = if (dark) darkInk else lightInk
+    /** Dark backgrounds read the fill itself as text. */
+    fun text(dark: Boolean): Long = if (dark) darkFill else lightText
+}

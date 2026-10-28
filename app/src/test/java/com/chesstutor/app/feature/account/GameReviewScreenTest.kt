@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.design.CtBoardScreenTags
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -90,13 +93,16 @@ class GameReviewScreenTest {
         }
         compose.onNodeWithText("Nf6 is a blunder").assertExists()
         compose.onNodeWithText("It allows mate in 1, starting with Qxf7#. Best was g6.").assertExists()
-        // The evaluation shows in the coach bubble and on the eval bar.
+        // The evaluation shows in the verdict row and on the eval bar.
         compose.onAllNodesWithText("M1").assertCountEquals(2)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_review_blunder.png")
 
+        val boardBefore = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
         compose.onNodeWithContentDescription("Next move").performClick()
         compose.onNodeWithText("Qxf7# is best").assertExists()
         compose.onNodeWithText("Checkmate!").assertExists()
+        // D39: a new verdict and a new comment never move the board.
+        assertEquals(boardBefore, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
 
         compose.onNodeWithText("Summary").performClick()
         compose.onNodeWithText("Start review").assertExists()
