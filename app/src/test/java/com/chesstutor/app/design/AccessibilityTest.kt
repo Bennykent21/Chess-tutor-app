@@ -117,7 +117,7 @@ class AccessibilityTest {
     }
 
     @Test fun puzzlesHome() = check("Puzzles") {
-        PuzzlesHomeScreen(PuzzlesHomeState(loading = false, stats = PuzzleStats()), AppSettings().mascot, 0, onPlayLevel = {}, onOpenModes = {}, onReviewMistakes = {})
+        PuzzlesHomeScreen(PuzzlesHomeState(loading = false, stats = PuzzleStats()), 0, onPlayLevel = {}, onOpenModes = {}, onReviewMistakes = {})
     }
 
     @Test fun puzzleModes() = check("Puzzle modes") { PuzzleModesScreen(patternsFor = { emptyList() }, actions = PuzzleModeActions({}, {}, { _, _, _ -> }, { _, _, _, _ -> }, {}), onBack = {}) }
