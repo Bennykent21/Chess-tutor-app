@@ -1,5 +1,11 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.design.CtSpeechBubble
+import com.chesstutor.app.design.CtMascotArt
+import com.chesstutor.app.design.CtBoardScreen
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.rounded.Close
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -47,11 +53,8 @@ import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
-import com.chesstutor.app.design.CtCoachStrip
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtGradients
 import com.chesstutor.app.design.CtIconBubble
-import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
@@ -65,9 +68,11 @@ import com.chesstutor.app.domain.learn.MarkTone
 import com.chesstutor.app.domain.learn.phase
 
 /**
- * The lesson player (plan section 6.2): the base board with the coach strip, going through
+ * The lesson player (plan section 6.2, Phase 7D, canvas `Lesson.dc.html`), going through
  * Watch (a video slot), Learn (explanations with arrows), Try (find the move, with hints),
- * Quiz ("Challenge 1/5") and Done (XP and the next lesson).
+ * Quiz ("Challenge 1/5") and Done (XP and the next lesson). Board steps are a board screen:
+ * the lesson's progress in the fixed row above the board, the coach below it, and Hint or
+ * Again and Next at the bottom, so the board never moves (D39).
  */
 @Composable
 fun LessonPlayerScreen(
@@ -84,23 +89,26 @@ fun LessonPlayerScreen(
     onRelatedPuzzles: (() -> Unit)? = null,
 ) {
     BackHandler(onBack = onBack)
+    if (player == null) {
+        CtScreenBackground(modifier) { CtTopBar(title = "Lesson", onBack = onBack) }
+        return
+    }
+    val state by player.state.collectAsState()
+    if (state.phase != LessonPhase.DONE && state.step !is LessonStep.Watch) {
+        BoardStep(player, state, settings, onFeedback, onBack, modifier)
+        return
+    }
     CtScreenBackground(modifier) {
-        if (player == null) {
-            Column(Modifier.fillMaxSize()) { CtTopBar(title = "Lesson", onBack = onBack) }
-            return@CtScreenBackground
-        }
-        val state by player.state.collectAsState()
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             CtTopBar(title = state.lessonTitle, subtitle = state.courseTitle, onBack = onBack)
             Column(
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter),
                 verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
             ) {
-                PhaseRow(player, state)
-                when {
-                    state.phase == LessonPhase.DONE -> DoneCard(state, onNextLesson, onReplay, onBack, onPractise, onRelatedPuzzles)
-                    state.step is LessonStep.Watch -> WatchCard(state.step as LessonStep.Watch, onStart = player::next)
-                    else -> BoardStep(player, state, settings, onFeedback)
+                if (state.phase == LessonPhase.DONE) {
+                    DoneCard(state, onNextLesson, onReplay, onBack, onPractise, onRelatedPuzzles)
+                } else {
+                    WatchCard(state.step as LessonStep.Watch, onStart = player::next)
                 }
                 Spacer(Modifier.height(CtSpacing.lg))
             }
@@ -108,42 +116,77 @@ fun LessonPlayerScreen(
     }
 }
 
-/** Watch · Learn · Try · Quiz · Done, with the parts this lesson has, and a progress bar. */
+/** One thin segment per step of the lesson: done, current, still to come (canvas `Lesson.dc.html`). */
 @Composable
-private fun PhaseRow(player: LessonPlayer, state: LessonPlayerState) {
-    val phases = player.lesson.steps.map { it.phase }.distinct() + LessonPhase.DONE
-    val done = if (state.phase == LessonPhase.DONE) 1f else state.stepIndex.toFloat() / state.stepCount
-    Column(
-        modifier = Modifier.semantics(mergeDescendants = true) {
-            contentDescription = "${state.phase.label}, step ${minOf(state.stepIndex + 1, state.stepCount)} of ${state.stepCount}"
-        },
-        verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
+private fun StepProgress(state: LessonPlayerState) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${state.phase.label}, step ${minOf(state.stepIndex + 1, state.stepCount)} of ${state.stepCount}"
+            },
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            phases.forEach { phase ->
-                val current = phase == state.phase
-                val passed = phases.indexOf(phase) < phases.indexOf(state.phase)
-                Text(
-                    text = phase.label,
-                    style = CtType.Label.copy(color = if (current) CtColors.OnGold else if (passed) CtColors.Text else CtColors.Text3),
-                    modifier = Modifier
-                        .clip(CtShapes.Pill)
-                        .background(if (current) CtColors.Gold else CtColors.SurfaceRaised)
-                        .padding(horizontal = CtSpacing.md, vertical = CtSpacing.xs),
-                )
+        repeat(state.stepCount) { i ->
+            val color = when {
+                i < state.stepIndex -> CtColors.Accent
+                i == state.stepIndex -> CtColors.Text2
+                else -> CtColors.Track
+            }
+            Box(Modifier.weight(1f).height(4.dp).clip(CtShapes.Pill).background(color))
+        }
+    }
+}
+
+/** The coach below the board: its mood, a tailed bubble, and a tick or a cross after a move. */
+@Composable
+private fun LessonCoach(state: LessonPlayerState, settings: AppSettings, label: String?, mood: MascotMood) {
+    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs), modifier = Modifier.semantics(mergeDescendants = true) {}) {
+        CtMascotArt(mascot = settings.mascot, mood = mood, height = 60.dp, modifier = Modifier.size(60.dp))
+        CtSpeechBubble(modifier = Modifier.weight(1f)) {
+            when (state.feedbackTone) {
+                FeedbackTone.GOOD -> ToneBadge(Icons.Rounded.Check, CtColors.Success, CtColors.OnSuccess, "Correct")
+                FeedbackTone.BAD -> ToneBadge(Icons.Rounded.Close, CtColors.Error, CtColors.OnError, "Not quite")
+                null -> Unit
+            }
+            Column {
+                if (label != null) Text(label, style = CtType.Caption.copy(color = CtColors.Accent))
+                Text(state.coachText, style = CtType.Chat)
             }
         }
-        CtProgressBar(progress = done, color = CtColors.Teal, height = 6.dp)
     }
 }
 
 @Composable
-private fun BoardStep(player: LessonPlayer, state: LessonPlayerState, settings: AppSettings, onFeedback: (BoardFeedback) -> Unit) {
+private fun ToneBadge(icon: ImageVector, fill: Color, ink: Color, description: String) {
+    Box(
+        modifier = Modifier
+            .padding(top = 1.dp)
+            .size(20.dp)
+            .clip(CtShapes.Pill)
+            .background(fill)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(14.dp))
+    }
+}
+
+@Composable
+private fun BoardStep(
+    player: LessonPlayer,
+    state: LessonPlayerState,
+    settings: AppSettings,
+    onFeedback: (BoardFeedback) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier,
+) {
+    val side = if (state.orientation == PieceColor.WHITE) "White" else "Black"
     val label = when {
         state.feedbackTone == FeedbackTone.GOOD -> "Correct!"
         state.feedbackTone == FeedbackTone.BAD -> "Not quite"
         state.challenge != null -> "Challenge ${state.challenge.first}/${state.challenge.second}"
-        state.step is LessonStep.Play -> "Your turn"
+        state.step is LessonStep.Play -> if (state.orientation == PieceColor.WHITE) "Your turn" else "Your turn, you play $side"
         else -> null
     }
     val mood = when (state.feedbackTone) {
@@ -151,8 +194,6 @@ private fun BoardStep(player: LessonPlayer, state: LessonPlayerState, settings: 
         FeedbackTone.BAD -> MascotMood.KIND
         else -> MascotMood.READY
     }
-    CtCoachStrip(mascot = settings.mascot, text = state.coachText, label = label, mood = mood, modifier = Modifier.fillMaxWidth())
-
     val arrows = state.arrows.map { BoardArrow(Square.fromAlgebraic(it.from), Square.fromAlgebraic(it.to), it.tone.kind()) } +
         listOfNotNull(state.hint?.to?.let { to -> BoardArrow(Square.fromAlgebraic(state.hint.from), Square.fromAlgebraic(to), MarkKind.HINT) })
     val rings = state.highlights.map { SquareRing(Square.fromAlgebraic(it.square), it.tone.kind()) } +
@@ -160,47 +201,56 @@ private fun BoardStep(player: LessonPlayer, state: LessonPlayerState, settings: 
             state.hint?.takeIf { it.to == null }?.let { SquareRing(Square.fromAlgebraic(it.from), MarkKind.HINT) },
             state.mistakeSquare?.let { SquareRing(Square.fromAlgebraic(it), MarkKind.MISTAKE) },
         )
-    BoardHost(
-        session = player.board,
-        theme = settings.boardTheme,
-        whiteAtBottom = whiteAtBottom(settings.boardOrientation, state.orientation),
-        showCoordinates = settings.showCoordinates,
-        showLegalDots = settings.showLegalDots,
-        autoQueen = settings.autoQueen,
-        arrows = arrows,
-        rings = rings,
-        onFeedback = onFeedback,
-    )
-    val side = if (state.orientation == PieceColor.WHITE) "White" else "Black"
-    if (state.step is LessonStep.Play && !state.canAdvance) {
-        Text("You play $side", style = CtType.Caption)
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        if (state.step is LessonStep.Play && !state.canAdvance) {
-            CtButton(
-                text = "Hint",
-                icon = Icons.Rounded.Lightbulb,
-                style = CtButtonStyle.Secondary,
-                enabled = state.expectsMove,
-                onClick = player::hint,
-                modifier = Modifier.weight(1f),
+    val yourMove = state.step is LessonStep.Play && !state.canAdvance
+    CtBoardScreen(
+        title = state.lessonTitle,
+        onBack = onBack,
+        modifier = modifier,
+        status = { StepProgress(state) },
+        board = {
+            BoardHost(
+                session = player.board,
+                theme = settings.boardTheme,
+                whiteAtBottom = whiteAtBottom(settings.boardOrientation, state.orientation),
+                showCoordinates = settings.showCoordinates,
+                showLegalDots = settings.showLegalDots,
+                autoQueen = settings.autoQueen,
+                arrows = arrows,
+                rings = rings,
+                onFeedback = onFeedback,
             )
-        } else {
-            CtButton(
-                text = "Again",
-                icon = Icons.Rounded.Refresh,
-                style = CtButtonStyle.Secondary,
-                enabled = !state.busy,
-                onClick = player::replayStep,
-                modifier = Modifier.weight(1f),
-            )
-            CtButton(
-                text = if (state.isLastStep) "Finish" else "Next",
-                icon = if (state.isLastStep) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.ArrowForward,
-                enabled = state.canAdvance,
-                onClick = player::next,
-                modifier = Modifier.weight(1f),
-            )
+        },
+        controls = {
+            if (yourMove) {
+                CtButton(
+                    text = "Hint",
+                    icon = Icons.Rounded.Lightbulb,
+                    style = CtButtonStyle.Secondary,
+                    enabled = state.expectsMove,
+                    onClick = player::hint,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                CtButton(
+                    text = "Again",
+                    icon = Icons.Rounded.Refresh,
+                    style = CtButtonStyle.Secondary,
+                    enabled = !state.busy,
+                    onClick = player::replayStep,
+                    modifier = Modifier.weight(1f),
+                )
+                CtButton(
+                    text = if (state.isLastStep) "Finish" else "Next",
+                    icon = if (state.isLastStep) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.ArrowForward,
+                    enabled = state.canAdvance,
+                    onClick = player::next,
+                    modifier = Modifier.weight(1.6f),
+                )
+            }
+        },
+    ) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(top = CtSpacing.lg)) {
+            LessonCoach(state, settings, label, mood)
         }
     }
 }
@@ -214,11 +264,11 @@ private fun WatchCard(step: LessonStep.Watch, onStart: () -> Unit) {
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
                 .clip(CtShapes.CardSmall)
-                .background(CtColors.SurfaceHigh),
+                .background(CtColors.Surface),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CtIconBubble(icon = Icons.Rounded.OndemandVideo, tint = CtColors.Violet, size = 56.dp)
+                CtIconBubble(icon = Icons.Rounded.OndemandVideo, tint = CtColors.Accent, size = 56.dp)
                 Spacer(Modifier.height(CtSpacing.sm))
                 Text("Video coming soon", style = CtType.Label)
             }
@@ -241,9 +291,9 @@ private fun DoneCard(
 ) {
     val result = state.result
     val completion = state.completion
-    CtCard(background = CtGradients.Teal, modifier = Modifier.fillMaxWidth()) {
+    CtCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-            Icon(Icons.Rounded.EmojiEvents, contentDescription = null, tint = CtColors.Gold, modifier = Modifier.size(40.dp))
+            Icon(Icons.Rounded.EmojiEvents, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(40.dp))
             Column {
                 Text("Lesson complete!", style = CtType.Headline)
                 Text(state.lessonTitle, style = CtType.Body.copy(color = CtColors.Text))
@@ -259,7 +309,7 @@ private fun DoneCard(
         when {
             completion == null -> Text("Saving…", style = CtType.Caption.copy(color = CtColors.Text))
             completion.xp > 0 -> {
-                Text("+${completion.xp} XP", style = CtType.Number.copy(color = CtColors.Gold))
+                Text("+${completion.xp} XP", style = CtType.Number.copy(color = CtColors.Accent))
                 if (completion.newlyPerfect) Text("Includes a perfect bonus of ${LessonXp.PERFECT_BONUS} XP", style = CtType.Caption.copy(color = CtColors.Text))
             }
             else -> Text("Practice round: XP is earned the first time.", style = CtType.Caption.copy(color = CtColors.Text))
