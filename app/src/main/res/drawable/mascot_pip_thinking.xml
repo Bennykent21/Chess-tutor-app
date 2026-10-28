@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pip, thinking: generated from design/mascot/pip_thinking.svg (the source of truth).
+     Original art, GPL-3.0 with the app. See LICENSES.md. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="60dp"
+    android:height="60dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <path
+        android:pathData="M28,110a32,4.5 0 1,0 64,0a32,4.5 0 1,0 -64,0Z"
+        android:fillColor="#FF000000"
+        android:fillAlpha="0.13" />
+    <path
+        android:pathData="M37,94H83A7,7 0 0,1 90,101V101A7,7 0 0,1 83,108H37A7,7 0 0,1 30,101V101A7,7 0 0,1 37,94Z"
+        android:fillColor="#FFD6C3A0" />
+    <path
+        android:pathData="M35.5,94H84.5A1.5,1.5 0 0,1 86,95.5V95.5A1.5,1.5 0 0,1 84.5,97H35.5A1.5,1.5 0 0,1 34,95.5V95.5A1.5,1.5 0 0,1 35.5,94Z"
+        android:fillColor="#FFE6D7BB" />
+    <path
+        android:pathData="M44 70 C45 82 40 90 34 96 L86 96 C80 90 75 82 76 70 Z"
+        android:fillColor="#FFEFE3CD" />
+    <path
+        android:pathData="M66 70 C67 82 70 90 76 96 L86 96 C80 90 75 82 76 70 Z"
+        android:fillColor="#FFE0D0B3" />
+    <path
+        android:pathData="M70 72 L79 91 L72.5 89 L65 74 Z"
+        android:fillColor="#FFB5873E" />
+    <path
+        android:pathData="M40 64 Q60 72 80 64 L80 72 Q60 80 40 72 Z"
+        android:fillColor="#FFC99A4E" />
+    <path
+        android:pathData="M34,40a26,26 0 1,0 52,0a26,26 0 1,0 -52,0Z"
+        android:fillColor="#FFF6ECDA" />
+    <path
+        android:pathData="M60 14 A26 26 0 0 1 60 66 A21 26 0 0 0 60 14 Z"
+        android:fillColor="#FFE7D8BE" />
+    <group android:rotation="-25" android:pivotX="49" android:pivotY="25">
+      <path
+          android:pathData="M42,25a7,3.8 0 1,0 14,0a7,3.8 0 1,0 -14,0Z"
+          android:fillColor="#FFFFFFFF"
+          android:fillAlpha="0.6" />
+    </group>
+    <path
+        android:pathData="M40,49a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z"
+        android:fillColor="#FFEBA27F"
+        android:fillAlpha="0.35" />
+    <path
+        android:pathData="M70,49a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z"
+        android:fillColor="#FFEBA27F"
+        android:fillAlpha="0.35" />
+    <group>
+      <path
+          android:pathData="M49.1,38a3.4,4.4 0 1,0 6.8,0a3.4,4.4 0 1,0 -6.8,0Z"
+          android:fillColor="#FF2B2118" />
+      <path
+          android:pathData="M67.1,38a3.4,4.4 0 1,0 6.8,0a3.4,4.4 0 1,0 -6.8,0Z"
+          android:fillColor="#FF2B2118" />
+      <path
+          android:pathData="M52.5,36.4a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0Z"
+          android:fillColor="#FFFFFFFF" />
+      <path
+          android:pathData="M70.5,36.4a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0Z"
+          android:fillColor="#FFFFFFFF" />
+      <path
+          android:pathData="M46 31 L55 30.5"
+          android:strokeColor="#FF2B2118"
+          android:strokeWidth="2.2"
+          android:strokeLineCap="round" />
+      <path
+          android:pathData="M65 28 Q70 24.5 75 28"
+          android:strokeColor="#FF2B2118"
+          android:strokeWidth="2.2"
+          android:strokeLineCap="round" />
+      <path
+          android:pathData="M56 52 Q60 51 64 52.5"
+          android:strokeColor="#FF2B2118"
+          android:strokeWidth="2.4"
+          android:strokeLineCap="round" />
+      <path
+          android:pathData="M86.6,22a2.4,2.4 0 1,0 4.8,0a2.4,2.4 0 1,0 -4.8,0Z"
+          android:fillColor="#FFC99A4E" />
+      <path
+          android:pathData="M92.8,14.5a3.2,3.2 0 1,0 6.4,0a3.2,3.2 0 1,0 -6.4,0Z"
+          android:fillColor="#FFC99A4E" />
+      <path
+          android:pathData="M101,7a4,4 0 1,0 8,0a4,4 0 1,0 -8,0Z"
+          android:fillColor="#FFC99A4E" />
+    </group>
+</vector>

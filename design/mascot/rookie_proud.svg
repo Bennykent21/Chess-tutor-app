@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Rookie, proud. Original art for Chess Tutor (GPL-3.0 with the app). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+    <ellipse cx="60" cy="110" rx="34" ry="4.5" fill="#000000" opacity="0.15"/>
+    <rect x="28" y="94" width="64" height="14" rx="6" fill="#2E333B"/>
+    <rect x="28" y="94" width="64" height="4" rx="2" fill="#3F4650"/>
+    <path d="M38 40 L82 40 L78 94 L42 94 Z" fill="#2E333B"/>
+    <path d="M68 40 L82 40 L78 94 L66 94 Z" fill="#252A31"/>
+    <path d="M32 22 L44 22 L44 30 L54 30 L54 22 L66 22 L66 30 L76 30 L76 22 L88 22 L88 42 L32 42 Z" fill="#363C46"/>
+    <path d="M32 22 L44 22 L44 25 L32 25 Z M54 22 L66 22 L66 25 L54 25 Z M76 22 L88 22 L88 25 L76 25 Z" fill="#4A525E"/>
+    <path d="M38.8 43 L42.6 92" fill="none" stroke="#4A525E" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M40.6 79 L79.4 79 L79 86 L41 86 Z" fill="#C99A4E"/>
+    <path d="M66.5 79 L79.4 79 L79 86 L66 86 Z" fill="#B5873E"/>
+    <g>
+      <path d="M45 60 Q51 52.5 57 60" fill="none" stroke="#F4EEE2" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M63 60 Q69 52.5 75 60" fill="none" stroke="#F4EEE2" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M52 68 Q60 79 68 68 Z" fill="#14171C" stroke="#F4EEE2" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M56.5 73.6 Q60 76.6 63.5 73.6 Q60 72.2 56.5 73.6 Z" fill="#E07A6A"/>
+      <path d="M100 6 L102 13 L109 15 L102 17 L100 24 L98 17 L91 15 L98 13 Z" fill="#C99A4E"/>
+      <path d="M18 34 L19.3 38.2 L23.5 39.5 L19.3 40.8 L18 45 L16.7 40.8 L12.5 39.5 L16.7 38.2 Z" fill="#C99A4E"/>
+    </g>
+</svg>

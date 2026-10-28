@@ -57,6 +57,7 @@ import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
+import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.domain.learn.LessonPhase
 import com.chesstutor.app.domain.learn.LessonStep
 import com.chesstutor.app.domain.learn.LessonXp
@@ -145,7 +146,12 @@ private fun BoardStep(player: LessonPlayer, state: LessonPlayerState, settings: 
         state.step is LessonStep.Play -> "Your turn"
         else -> null
     }
-    CtCoachStrip(mascot = settings.mascot, text = state.coachText, label = label, modifier = Modifier.fillMaxWidth())
+    val mood = when (state.feedbackTone) {
+        FeedbackTone.GOOD -> MascotMood.PROUD
+        FeedbackTone.BAD -> MascotMood.KIND
+        else -> MascotMood.READY
+    }
+    CtCoachStrip(mascot = settings.mascot, text = state.coachText, label = label, mood = mood, modifier = Modifier.fillMaxWidth())
 
     val arrows = state.arrows.map { BoardArrow(Square.fromAlgebraic(it.from), Square.fromAlgebraic(it.to), it.tone.kind()) } +
         listOfNotNull(state.hint?.to?.let { to -> BoardArrow(Square.fromAlgebraic(state.hint.from), Square.fromAlgebraic(to), MarkKind.HINT) })
