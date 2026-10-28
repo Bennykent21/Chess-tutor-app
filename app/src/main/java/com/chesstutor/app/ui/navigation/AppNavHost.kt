@@ -705,6 +705,7 @@ private fun AppShell(
                             onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
                             onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
                             onOpenLicences = { navController.navigate(AppRoutes.LICENCES) },
+                            onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
                             onReviewDepth = viewModel::setReviewDepth,
                             onOnlineEngine = viewModel::setOnlineEngine,
                             onAppTheme = viewModel::setAppTheme,

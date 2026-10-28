@@ -16,6 +16,7 @@ import com.chesstutor.app.feature.account.AccountActions
 import com.chesstutor.app.feature.account.AccountScreen
 import com.chesstutor.app.feature.account.BoardSettingsActions
 import com.chesstutor.app.feature.account.BoardSettingsScreen
+import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.GamesState
 import com.chesstutor.app.feature.account.LicencesScreen
 import com.chesstutor.app.feature.account.SettingsActions
@@ -98,6 +99,10 @@ class AccessibilityTest {
     private val noHome = HomeActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 
     @Test fun home() = check("Home") { HomeScreen(state = AppUiState(), home = HomeUiState(), actions = noHome) }
+
+    /** Every design-system component at once (Phase 7C2c), on a screen big enough to show all of it. */
+    @Config(qualifiers = "w600dp-h6000dp-xxhdpi")
+    @Test fun designGallery() = check("Design gallery") { DesignGalleryScreen(onBack = {}) }
 
     @Test fun learnHub() = check("Learn") { LearnScreen(learn = LearnState(loading = false, library = library), actions = LearnHubActions({}, {})) }
 

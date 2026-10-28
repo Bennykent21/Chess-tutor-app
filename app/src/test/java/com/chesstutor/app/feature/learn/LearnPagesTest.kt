@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chesstutor.app.core.PieceColor
@@ -95,10 +96,10 @@ class LearnPagesTest {
         }
         compose.onNodeWithText("Italian Game").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_category.png")
-        compose.onNodeWithText("Black").performClick()
+        compose.onNodeWithText("Black").performScrollTo().performClick()
         compose.onNodeWithText("Italian Game").assertDoesNotExist()
         compose.onNodeWithText("Caro-Kann").assertExists()
-        compose.onNodeWithText("Black").performClick()
+        compose.onNodeWithText("Black").performScrollTo().performClick()
         compose.onNode(hasSetTextAction()).performTextInput("solid set")
         compose.onNodeWithText("London System").assertExists()
         compose.onNodeWithText("Caro-Kann").assertDoesNotExist()

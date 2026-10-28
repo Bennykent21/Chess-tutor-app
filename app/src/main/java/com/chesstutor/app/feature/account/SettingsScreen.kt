@@ -24,6 +24,7 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Text
@@ -39,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.unit.dp
 import com.chesstutor.app.BuildConfig
 import com.chesstutor.app.data.settings.ReviewDepth
 import com.chesstutor.app.design.AppTheme
@@ -55,6 +57,8 @@ import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtToggleRow
+import com.chesstutor.app.design.CtSegmented
+import com.chesstutor.app.design.CtThemeCard
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.bot.ChatLevel
@@ -74,6 +78,8 @@ data class SettingsActions(
     val onOnlineEngine: (Boolean) -> Unit = {},
     val onAppTheme: (AppTheme) -> Unit = {},
     val onAppearance: (Appearance) -> Unit = {},
+    /** The design gallery, shown while the Phase 7 redesign is under way. */
+    val onOpenDesignGallery: () -> Unit = {},
     /** Every saved game as one PGN text, for "Export my games". */
     val exportPgn: suspend () -> String = { "" },
     /** The crash log on this phone ("" when there were no crashes), and clearing it. */
@@ -142,24 +148,26 @@ fun SettingsScreen(
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             CtTopBar(title = "Settings", onBack = actions.onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                // A plain picker until Phase 7C3 builds the theme cards with live previews.
-                CtCard(modifier = Modifier.fillMaxWidth()) {
-                    Text("Appearance", style = CtType.Label)
-                    Spacer(Modifier.height(CtSpacing.sm))
-                    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                        Appearance.entries.forEach { mode ->
-                            CtChip(text = mode.label, selected = state.appSettings.appearance == mode, onClick = { actions.onAppearance(mode) })
-                        }
-                    }
-                    Spacer(Modifier.height(CtSpacing.md))
-                    Text("Theme", style = CtType.Label)
-                    Spacer(Modifier.height(CtSpacing.sm))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-                        AppTheme.entries.forEach { theme ->
-                            CtChip(text = theme.label, selected = state.appSettings.appTheme == theme, onClick = { actions.onAppTheme(theme) })
+                CtSectionHeader(title = "Appearance")
+                AppTheme.entries.chunked(2).forEach { pair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        pair.forEach { theme ->
+                            CtThemeCard(
+                                theme = theme,
+                                dark = CtColors.IsDark,
+                                selected = state.appSettings.appTheme == theme,
+                                onClick = { actions.onAppTheme(theme) },
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }
+                CtSegmented(
+                    options = Appearance.entries,
+                    selected = state.appSettings.appearance,
+                    label = { it.label },
+                    onSelect = actions.onAppearance,
+                )
                 CtCard(modifier = Modifier.fillMaxWidth()) {
                     CoachPicker(selected = state.appSettings.mascot, onSelect = actions.onMascot)
                 }
@@ -274,6 +282,12 @@ fun SettingsScreen(
                     subtitle = "Stockfish, Maia, the puzzles, pieces, sounds, fonts and libraries",
                     icon = Icons.Rounded.Description,
                     onClick = actions.onOpenLicences,
+                )
+                CtListRow(
+                    title = "Design gallery",
+                    subtitle = "Every part of the new design, for the redesign",
+                    icon = Icons.Rounded.Palette,
+                    onClick = actions.onOpenDesignGallery,
                 )
                 // Only in builds that carry a support link (plan section 9).
                 if (actions.supportUrl.isNotBlank()) {
