@@ -56,6 +56,8 @@ class CtColorScheme(val palette: CtPalette) {
     val onSuccess = Color(palette.onSuccess)
     val error = Color(palette.error)
     val onError = Color(palette.onError)
+    val switchOff = Color(palette.switchOff)
+    val outlinedCards = palette.outlinedCards
 
     /** The same roles for Material components (dialogs, menus, switches, text fields). */
     val material: ColorScheme = if (isDark) {
@@ -117,6 +119,7 @@ object CtColors {
     val OnSuccess: Color @Composable @ReadOnlyComposable get() = LocalCtColors.current.onSuccess
     val Error: Color @Composable @ReadOnlyComposable get() = LocalCtColors.current.error
     val OnError: Color @Composable @ReadOnlyComposable get() = LocalCtColors.current.onError
+    val SwitchOff: Color @Composable @ReadOnlyComposable get() = LocalCtColors.current.switchOff
 
     // Old names (transition only).
     val BgDeep: Color @Composable @ReadOnlyComposable get() = Bg
@@ -152,6 +155,9 @@ object CtGradients {
     val Card: Brush @Composable @ReadOnlyComposable get() = SolidColor(CtColors.Raised)
 }
 
+/** Hairline-outlined cards (dark themes, Mono) or softly shadowed ones (other light themes). */
+val CtOutlinedCards: Boolean @Composable @ReadOnlyComposable get() = LocalCtColors.current.outlinedCards
+
 object CtSpacing {
     val xxs = 2.dp
     val xs = 4.dp
@@ -161,17 +167,28 @@ object CtSpacing {
     val xl = 24.dp
     val xxl = 32.dp
 
-    /** Side margin of every screen. */
-    val gutter = 16.dp
+    /** Side margin of every screen (design language section 4). */
+    val gutter = 20.dp
 
     /** Minimum touch target (accessibility). */
     val touchTarget = 48.dp
 }
 
+/** Corner radii (design language section 4). The playing board itself has square corners. */
 object CtShapes {
-    val Card = RoundedCornerShape(22.dp)
+    /** Hero cards and tiles. */
+    val Card = RoundedCornerShape(20.dp)
+    /** List cards, mode cards, theme cards. */
     val CardSmall = RoundedCornerShape(16.dp)
-    val Chip = RoundedCornerShape(12.dp)
+    /** Primary buttons. */
+    val Button = RoundedCornerShape(16.dp)
+    /** Secondary buttons, text fields, the segmented control. */
+    val Control = RoundedCornerShape(14.dp)
+    /** Small inner parts: a selected segment, board thumbnails. */
+    val Chip = RoundedCornerShape(10.dp)
+    /** Sheets rise from the bottom with rounded top corners. */
+    val Sheet = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    /** Chips, badges and round buttons. */
     val Pill = RoundedCornerShape(percent = 50)
 }
 

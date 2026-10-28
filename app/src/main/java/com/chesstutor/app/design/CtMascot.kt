@@ -2,7 +2,6 @@ package com.chesstutor.app.design
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,12 +37,9 @@ fun CtMascotArt(
     )
 }
 
-/** Speech bubble whose sharp corner points down at the mascot. */
-private val BubbleShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp, bottomEnd = 22.dp, bottomStart = 4.dp)
-
 /**
- * The coach speaking (plan section 6.3.1): the player's chosen mascot with a speech bubble.
- * Screen readers hear it as one item: the mascot's name, then [text].
+ * The coach speaking (plan section 6.3.1): the player's chosen mascot beside a speech bubble
+ * whose tail points at it (D41). Screen readers hear it as one item: the mascot's name, then [text].
  */
 @Composable
 fun CtCoachBubble(
@@ -54,22 +49,16 @@ fun CtCoachBubble(
 ) {
     Row(
         modifier = modifier.semantics(mergeDescendants = true) {},
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
     ) {
         // Fixed width (Sage's art is the widest), so bubbles line up whichever coach speaks.
-        CtMascotArt(mascot = mascot, height = 72.dp, modifier = Modifier.width(66.dp))
-        Column(
-            modifier = Modifier
-                .padding(bottom = CtSpacing.md)
-                .widthIn(max = 520.dp)
-                .clip(BubbleShape)
-                .background(CtColors.SurfaceRaised)
-                .border(1.dp, CtColors.Line, BubbleShape)
-                .padding(horizontal = CtSpacing.lg, vertical = CtSpacing.md),
-        ) {
-            Text(text = mascot.displayName, style = CtType.Caption.copy(color = CtColors.Gold))
-            Text(text = text, style = CtType.Body.copy(color = CtColors.Text))
+        CtMascotArt(mascot = mascot, height = 60.dp, modifier = Modifier.width(56.dp))
+        CtSpeechBubble(modifier = Modifier.widthIn(max = 520.dp), tail = CtTail.Start) {
+            Column {
+                Text(text = mascot.displayName, style = CtType.Caption.copy(color = CtColors.Accent))
+                Text(text = text, style = CtType.Body.copy(color = CtColors.Text))
+            }
         }
     }
 }

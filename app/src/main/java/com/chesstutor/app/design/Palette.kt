@@ -69,7 +69,15 @@ data class CtPalette(
     val onSuccess: Long,
     val error: Long,
     val onError: Long,
+    /** A switch's track when it is off (the white knob marks it). */
+    val switchOff: Long,
+    /** The board this theme suggests (D38: the player's own board choice always wins). */
+    val boardLight: Long,
+    val boardDark: Long,
 ) {
+    /** Dark themes and Mono outline their cards with a hairline; the other light themes use a soft shadow. */
+    val outlinedCards: Boolean get() = dark || theme == AppTheme.MONO
+
     /** Text colour and the backgrounds it is allowed on. Tested to meet WCAG AA (4.5:1). */
     val textPairs: List<Pair<Long, List<Long>>>
         get() = listOf(
@@ -101,6 +109,7 @@ object Palette {
         navPill = 0xFFE6DCC9, navIcon = 0xFF1C1814,
         success = 0xFF39704D, onSuccess = 0xFFFFFDF8,
         error = 0xFFAA4337, onError = 0xFFFFFDF8,
+        switchOff = 0xFFD9CFBD, boardLight = 0xFFECDDC2, boardDark = 0xFFB8956A,
     )
     val PARCHMENT_DARK = CtPalette(
         theme = AppTheme.PARCHMENT, dark = true,
@@ -111,6 +120,7 @@ object Palette {
         navPill = 0xFF2F281C, navIcon = 0xFFF2ECE1,
         success = 0xFF7DBE93, onSuccess = 0xFF13110E,
         error = 0xFFE08374, onError = 0xFF13110E,
+        switchOff = 0xFF4A4236, boardLight = 0xFFD4BD98, boardDark = 0xFF8F6E48,
     )
     val BAIZE_LIGHT = CtPalette(
         theme = AppTheme.BAIZE, dark = false,
@@ -121,6 +131,7 @@ object Palette {
         navPill = 0xFFD6E7DC, navIcon = 0xFF143A2A,
         success = 0xFF2B6A4D, onSuccess = 0xFFFFFFFF,
         error = 0xFFB24639, onError = 0xFFFFFFFF,
+        switchOff = 0xFFC4CFC7, boardLight = 0xFFE6EBDD, boardDark = 0xFF7C9D84,
     )
     val BAIZE_DARK = CtPalette(
         theme = AppTheme.BAIZE, dark = true,
@@ -131,6 +142,7 @@ object Palette {
         navPill = 0xFF1F3328, navIcon = 0xFFC5E6D1,
         success = 0xFF7CC19B, onSuccess = 0xFF0D1210,
         error = 0xFFE08374, onError = 0xFF0D1210,
+        switchOff = 0xFF3A4740, boardLight = 0xFFCBD5C2, boardDark = 0xFF60846A,
     )
     val MONO_LIGHT = CtPalette(
         theme = AppTheme.MONO, dark = false,
@@ -141,6 +153,7 @@ object Palette {
         navPill = 0xFFEDEDED, navIcon = 0xFF0A0A0A,
         success = 0xFF1F7A4A, onSuccess = 0xFFFFFFFF,
         error = 0xFFC0392B, onError = 0xFFFFFFFF,
+        switchOff = 0xFFCFCFCF, boardLight = 0xFFEAD3AF, boardDark = 0xFFB3825A,
     )
     val MONO_DARK = CtPalette(
         theme = AppTheme.MONO, dark = true,
@@ -151,6 +164,7 @@ object Palette {
         navPill = 0xFF262626, navIcon = 0xFFF5F5F5,
         success = 0xFF6CC08E, onSuccess = 0xFF000000,
         error = 0xFFEC7A6A, onError = 0xFF000000,
+        switchOff = 0xFF3A3A3A, boardLight = 0xFFD9BF97, boardDark = 0xFF9B6D47,
     )
     // Slate takes the colours of the developer's own mock-up (dark); its light mode is derived.
     val SLATE_LIGHT = CtPalette(
@@ -162,6 +176,7 @@ object Palette {
         navPill = 0xFFF1E2C2, navIcon = 0xFF5C3F10,
         success = 0xFF2D744A, onSuccess = 0xFFFFFFFF,
         error = 0xFFB04539, onError = 0xFFFFFFFF,
+        switchOff = 0xFFC3CCD5, boardLight = 0xFFE8E0D1, boardDark = 0xFF58707E,
     )
     val SLATE_DARK = CtPalette(
         theme = AppTheme.SLATE, dark = true,
@@ -172,6 +187,7 @@ object Palette {
         navPill = 0xFF2C2618, navIcon = 0xFFE2B566,
         success = 0xFF74B78E, onSuccess = 0xFF0E1216,
         error = 0xFFDC7466, onError = 0xFF0E1216,
+        switchOff = 0xFF3A4652, boardLight = 0xFFE8E0D1, boardDark = 0xFF58707E,
     )
 
     val ALL: List<CtPalette> = listOf(
