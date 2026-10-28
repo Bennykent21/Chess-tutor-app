@@ -84,24 +84,26 @@ class AccountScreenTest {
                 AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 2, actions = AccountActions(onOpenGame = { opened = it }))
             }
         }
+        compose.onNodeWithText("Puzzle rating").assertExists()
+        compose.onNodeWithText("Level ${stats.playerLevel.level}").assertExists()
+        compose.onNodeWithContentDescription("5-day streak").assertExists()
         compose.onNodeWithText("Link your account").assertExists()
-        compose.onNodeWithText("Recent games").assertExists()
-        compose.onNodeWithText("1 won").assertExists()
-        compose.onNodeWithText("1 lost").assertExists()
+        compose.onNodeWithText("Recent games").performScrollTo()
+        compose.onNodeWithText("@rookie99").assertExists()
+        compose.onNodeWithText("Recent activity").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_overview.png")
 
-        compose.onNodeWithText("vs Pip (1450) · White").performClick()
+        compose.onNodeWithText("Pip").performClick()
         assertEquals("bot_1", opened)
     }
 
     @Test
-    fun overviewShowsBadgesAndRecentActivity() {
+    fun overviewShowsBadgesAndOpensOne() {
         val overview = OverviewState(
             badges = listOf(
                 com.chesstutor.app.domain.account.Badge("first-win", "First win", "Beat a bot", com.chesstutor.app.domain.account.BadgeKind.GAMES, 1, 1),
                 com.chesstutor.app.domain.account.Badge("puzzles-10", "Puzzle starter", "Solve 10 puzzles", com.chesstutor.app.domain.account.BadgeKind.PUZZLES, 4, 10),
             ),
-            recent = listOf(com.chesstutor.app.domain.account.ActivityItem(1_761_480_000_000, "Beat Ziggy", com.chesstutor.app.domain.account.BadgeKind.GAMES)),
         )
         compose.setContent {
             CtTheme(reduceMotion = true) {
@@ -109,15 +111,15 @@ class AccountScreenTest {
             }
         }
         val list = compose.onNode(androidx.compose.ui.test.hasScrollToNodeAction())
-        list.performScrollToNode(hasText("Badges · 1 of 2"))
-        compose.onNode(androidx.compose.ui.test.hasContentDescription("Puzzle starter: Solve 10 puzzles. 4 of 10.")).assertExists()
-        list.performScrollToNode(hasText("Beat Ziggy"))
-        compose.onNodeWithText("Beat Ziggy").assertExists()
+        list.performScrollToNode(hasText("Badges"))
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_badges.png")
+        compose.onNode(androidx.compose.ui.test.hasContentDescription("Puzzle starter: Solve 10 puzzles. 4 of 10.")).performClick()
+        compose.onNodeWithText("4 / 10").assertExists()
+        compose.onNodeWithText("Solve 10 puzzles").assertExists()
     }
 
     @Test
-    fun gamesPageFiltersBySourceResultAndSearch() {
+    fun gamesPageFiltersInOneSheet() {
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 0, actions = AccountActions(), initialTab = AccountTab.GAMES)
@@ -126,42 +128,62 @@ class AccountScreenTest {
         compose.onNodeWithText("3 games").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_games.png")
 
-        compose.onNodeWithText("Chess.com").performClick()
+        compose.onNodeWithText("Filter").performClick()
+        // The link card above the list has a "Chess.com" chip too; the sheet's comes last.
+        compose.onAllNodesWithText("Chess.com").onLast().performClick()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_games_filter.png")
+        compose.onNodeWithText("Show 1 game").performClick()
         compose.onNodeWithText("1 of 3 games").assertExists()
-        compose.onNodeWithText("vs rookie99 (1450) · Black").assertExists()
-        compose.onNodeWithText("vs Pip (1450) · White").assertDoesNotExist()
+        compose.onNodeWithText("@rookie99").assertExists()
+        compose.onNodeWithText("Pip").assertDoesNotExist()
 
-        compose.onNodeWithText("Clear filters").performClick()
+        compose.onNodeWithText("Filters (1)").performClick()
+        compose.onNodeWithText("Clear").performClick()
         compose.onNodeWithText("Losses").performClick()
-        compose.onNodeWithText("vs rookie99 (1450) · Black").assertExists()
-        compose.onNodeWithText("Losses").performClick()
+        compose.onNodeWithText("Show 1 game").assertExists()
         compose.onNodeWithText("Draws").performClick()
-        compose.onNodeWithText("vs sagefan (1450) · White").assertExists()
+        compose.onNodeWithText("Show 1 game").performClick()
+        compose.onNodeWithText("@sagefan").assertExists()
+        compose.onNodeWithText("@rookie99").assertDoesNotExist()
 
-        compose.onNodeWithText("Clear filters").performClick()
-        compose.onNode(hasSetTextAction()).performTextInput("nobody")
+        compose.onNodeWithText("Filters (1)").performClick()
+        compose.onNodeWithText("Clear").performClick()
+        compose.onNodeWithContentDescription("Search games").performTextInput("nobody")
+        compose.onNodeWithText("Show 0 games").performClick()
         compose.onNodeWithText("Nothing matches").assertExists()
     }
 
     @Test
-    fun performancePageShowsResultsAndOpensTheGamesBehindABar() {
+    fun statsShowOpeningsThatOpenTheirCourseOrTheirGames() {
+        val italian = com.chesstutor.app.domain.learn.Course(
+            id = "openings-italian", category = com.chesstutor.app.domain.learn.LessonCategory.OPENINGS, title = "Italian Game",
+            intro = "", level = com.chesstutor.app.domain.learn.LessonLevel.BEGINNER, order = 20, lessons = emptyList(),
+        )
+        var course: String? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 0, actions = AccountActions(), initialTab = AccountTab.PERFORMANCE)
+                AccountScreen(
+                    state = AppUiState(), games = games, stats = stats, dueReviewCount = 0,
+                    actions = AccountActions(onOpenCourse = { course = it }),
+                    initialTab = AccountTab.STATS, openingCourses = listOf(italian),
+                )
             }
         }
-        compose.onNodeWithText("Score 50%").assertExists()
-        compose.onNodeWithText("By time control").assertExists()
-        compose.onNodeWithText("Open a game and tap Review to analyse it. Accuracy by phase and your common mistakes then show here.").assertExists()
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_performance.png")
+        compose.onNodeWithText("Score").assertExists()
+        compose.onNodeWithText("Accuracy").assertDoesNotExist()
+        compose.onNodeWithText("Your openings").performScrollTo()
+        compose.onNodeWithText("By colour").performScrollTo()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_stats.png")
 
-        compose.onNodeWithText("Blitz").performClick()
+        compose.onNodeWithText("Italian Game").performScrollTo().performClick()
+        assertEquals("openings-italian", course)
+        compose.onNodeWithText("Sicilian Defense").performScrollTo().performClick()
         compose.onNodeWithText("1 of 3 games").assertExists()
-        compose.onNodeWithText("vs rookie99 (1450) · Black").assertExists()
+        compose.onNodeWithText("@sagefan").assertExists()
     }
 
     @Test
-    fun trainingPageShowsPuzzlesThemesLessonsAndDueMistakes() {
+    fun trainingShowsThemesToWorkOnAndDueMistakes() {
         val history = (1..6).map { i ->
             com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry("p$i", solved = true, clean = i % 2 == 0, ratingAfter = 1000 + i * 15, finishedAt = i.toLong())
         }
@@ -172,20 +194,21 @@ class AccountScreenTest {
             lessonsTotal = 48,
         )
         var reviewed = false
+        var practised: String? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 AccountScreen(
                     state = AppUiState(), games = games, stats = stats, dueReviewCount = 2,
-                    actions = AccountActions(onReviewMistakes = { reviewed = true }),
+                    actions = AccountActions(onReviewMistakes = { reviewed = true }, onPracticeTheme = { practised = it }),
                     initialTab = AccountTab.TRAINING, training = training,
                 )
             }
         }
-        compose.onNodeWithText("Your strengths").assertExists()
-        compose.onNodeWithText("Worth practising").assertExists()
-        compose.onNodeWithText("12 of 48 lessons done").assertExists()
+        compose.onNodeWithText("Themes to work on").performScrollTo()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_training.png")
-        compose.onNodeWithText("Review now").performClick()
+        compose.onNodeWithText("0% clean").performScrollTo().performClick()
+        assertEquals("pin", practised)
+        compose.onNodeWithText("Mistakes to review").performScrollTo().performClick()
         assertTrue(reviewed)
     }
 
@@ -298,7 +321,9 @@ class AccountScreenTest {
                 }
             }
         }
-        compose.onNodeWithText("1848 rapid on Lichess · 5-day streak · Level ${stats.playerLevel.level}").assertExists()
+        compose.onNodeWithText("@kenny").assertExists()
+        compose.onNodeWithText("Lichess, rapid").assertExists()
+        compose.onNodeWithText("1848").assertExists()
         compose.onNodeWithText("Link your account").assertDoesNotExist()
         compose.onNodeWithContentDescription("Settings").assertExists()
 
