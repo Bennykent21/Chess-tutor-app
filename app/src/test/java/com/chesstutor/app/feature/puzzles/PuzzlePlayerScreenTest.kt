@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -89,7 +90,9 @@ class PuzzlePlayerScreenTest {
         step(100)
         compose.onNodeWithText("Correct! Well found.").assertExists()
         compose.onNodeWithText("Solved").assertExists()
-        compose.onNodeWithText("Mate in 1").assertExists()
+        // What a puzzle earns (XP, rating) and its themes wait for the run's result screen.
+        compose.onNodeWithText("Mate in 1").assertDoesNotExist()
+        compose.onNodeWithText("+", substring = true).assertDoesNotExist()
         compose.onNode(hasText("Next puzzle")).assertExists()
         // D39: the hint, the result and the new buttons never move the board.
         assertEquals(boardWhileSolving, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
@@ -114,7 +117,7 @@ class PuzzlePlayerScreenTest {
         val start = player.state.value.board!!.state.value.position.toFen()
         player.state.value.board!!.onMove(Move.fromUci("d8h4"))
         step(100)
-        compose.onNode(hasText("Analyse")).performClick()
+        compose.onNodeWithContentDescription("Analyse").performClick()
         assertEquals(start to listOf("d8h4"), analysed)
     }
 
@@ -135,6 +138,8 @@ class PuzzlePlayerScreenTest {
         }
         step(100)
         compose.onNodeWithText("Level 3 passed!").assertExists()
+        compose.onNodeWithText("XP earned", substring = true).assertExists()
+        compose.onNodeWithText("Rating, ", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/PuzzlePlayer_result.png")
         compose.onNodeWithText("Next level").performClick()
         assertEquals(4, nextLevel)

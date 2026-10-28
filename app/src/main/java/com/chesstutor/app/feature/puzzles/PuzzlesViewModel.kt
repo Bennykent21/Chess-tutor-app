@@ -102,7 +102,7 @@ class PuzzlesViewModel(
         val rush = RushSelector(pack, RushSelector.startFor(home.value.stats.rating), seed = System.currentTimeMillis())
         PuzzleRunSpec(
             mode = PuzzleMode.RUSH,
-            title = if (minutes != null) "Rush · $minutes min" else "Survival",
+            title = if (minutes != null) "$minutes-minute rush" else "Survival",
             timeLimitMs = minutes?.let { it * 60_000L },
             maxStrikes = if (minutes == null) 3 else null,
             oneTry = true,

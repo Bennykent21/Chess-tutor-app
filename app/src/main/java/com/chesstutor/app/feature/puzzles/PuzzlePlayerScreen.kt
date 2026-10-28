@@ -3,7 +3,6 @@ package com.chesstutor.app.feature.puzzles
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +24,8 @@ import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -58,7 +59,8 @@ import com.chesstutor.app.design.CtBoardScreen
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
-import com.chesstutor.app.design.CtChip
+import com.chesstutor.app.design.CtIconButton
+import com.chesstutor.app.design.CtStatTile
 import com.chesstutor.app.design.CtCoachStrip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
@@ -169,18 +171,16 @@ private fun Playing(
         },
         controls = {
             if (after) {
-                CtButton(
-                    text = "Analyse",
+                CtIconButton(
                     icon = Icons.Rounded.Science,
-                    style = CtButtonStyle.Secondary,
+                    contentDescription = "Analyse",
                     onClick = { onAnalyse(board.solvingFen, board.puzzle.moves.drop(1)) },
-                    modifier = Modifier.weight(1f),
                 )
                 CtButton(
                     text = if (state.isLastOfRun) "See your result" else "Next puzzle",
                     icon = Icons.AutoMirrored.Rounded.ArrowForward,
                     onClick = player::next,
-                    modifier = Modifier.weight(1.5f),
+                    modifier = Modifier.weight(1f),
                 )
             } else {
                 CtButton(
@@ -303,25 +303,9 @@ private fun ReportMenu(enabled: Boolean, reported: Boolean, onReport: () -> Unit
     }
 }
 
+/** After a puzzle: the main line when you found another way, and thanks for a report. What you earned waits for the run's end. */
 @Composable
 private fun AfterPuzzle(player: PuzzlePlayer, state: PuzzlePlayerState) {
-    val earned = listOfNotNull(
-        state.xpEarned?.let { "+$it XP" },
-        state.rating?.let { rating -> "Rating $rating" + (state.ratingDelta?.let { if (it >= 0) " (+$it)" else " ($it)" } ?: "") },
-    )
-    if (earned.isNotEmpty()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-            earned.forEach { Text(it, style = CtType.Label.copy(color = CtColors.Accent)) }
-        }
-    }
-    if (state.revealedThemes.isNotEmpty()) {
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-        ) {
-            state.revealedThemes.forEach { CtChip(text = it) }
-        }
-    }
     if (state.solvedWithAlternative) {
         CtButton(
             text = "See the main line",
@@ -362,8 +346,28 @@ private fun RunResult(state: PuzzlePlayerState, onPlayLevel: (Int) -> Unit, onBa
         }
         state.levelResult?.takeIf { it.newlyPassed }?.let { result ->
             Spacer(Modifier.height(CtSpacing.sm))
-            Text("+${result.bonusXp} XP bonus", style = CtType.Label.copy(color = CtColors.Accent))
             result.worldCompleted?.let { Text("World complete! Badge earned: ${it.badge}", style = CtType.Label.copy(color = CtColors.Accent)) }
+        }
+    }
+    // Everything the run earned, in one place at the end.
+    val bonus = state.levelResult?.takeIf { it.newlyPassed }?.bonusXp ?: 0
+    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+        CtStatTile(
+            value = "+${state.runXp + bonus}",
+            label = if (bonus > 0) "XP earned, with a $bonus bonus" else "XP earned",
+            icon = Icons.Rounded.Star,
+            accent = CtColors.Accent,
+            modifier = Modifier.weight(1f),
+        )
+        state.rating?.let { rating ->
+            val delta = state.runRatingDelta
+            CtStatTile(
+                value = "$rating",
+                label = "Rating, " + if (delta >= 0) "+$delta" else "$delta",
+                icon = Icons.AutoMirrored.Rounded.TrendingUp,
+                accent = CtColors.Accent,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
     if (level != null) {
