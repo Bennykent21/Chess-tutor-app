@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.learn
 
+import org.junit.Assert.assertEquals
+import com.chesstutor.app.design.CtBoardScreenTags
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -73,12 +77,13 @@ class LessonPlayerScreenTest {
         compose.onNodeWithText("When a piece attacks the king", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_learn.png")
 
-        compose.onNodeWithText("Next").performScrollTo().performClick()
+        compose.onNodeWithText("Next").performClick()
         step()
-        compose.onNodeWithText("Next").performScrollTo().performClick()
+        compose.onNodeWithText("Next").performClick()
         step()
         compose.onNodeWithText("Your turn: give check with the rook.").assertExists()
-        compose.onNodeWithText("Hint").performScrollTo().performClick()
+        val boardBefore = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
+        compose.onNodeWithText("Hint").performClick()
         step()
         compose.onNodeWithText("Rooks move in straight lines", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_try_hint.png")
@@ -86,6 +91,8 @@ class LessonPlayerScreenTest {
         player.board.onMove(Move.fromUci("a1a8"))
         step()
         compose.onNodeWithText("Correct!").assertExists()
+        // D39: the hint, the longer coach text and the new buttons never move the board.
+        assertEquals(boardBefore, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
     }
 
     @Test
@@ -107,7 +114,7 @@ class LessonPlayerScreenTest {
         step()
         player.next()
         step()
-        compose.onNodeWithText("Finish").performScrollTo().performClick()
+        compose.onNodeWithText("Finish").performClick()
         step()
         compose.onNodeWithText("Lesson complete!").assertExists()
         compose.onNodeWithText("+20 XP").assertExists()
