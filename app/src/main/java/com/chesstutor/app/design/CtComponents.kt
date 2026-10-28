@@ -149,7 +149,7 @@ fun CtTopBar(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = CtType.Headline,
+                style = CtType.TopBar,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.semantics { heading() },
@@ -624,7 +624,7 @@ fun CtBottomBar(
                 ) {
                     Icon(tab.icon(), contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
                 }
-                Text(text = tab.label, style = CtType.Caption.copy(color = tint), maxLines = 1)
+                Text(text = tab.label, style = CtType.NavLabel.copy(color = tint), maxLines = 1)
             }
         }
     }

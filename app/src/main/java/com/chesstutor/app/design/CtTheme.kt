@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.chesstutor.app.R
@@ -174,44 +175,79 @@ object CtShapes {
     val Pill = RoundedCornerShape(percent = 50)
 }
 
-/** Rounded display face for headings (Nunito, SIL Open Font License, bundled). */
-val NunitoFontFamily = FontFamily(
-    Font(R.font.nunito_bold, FontWeight.Bold),
-    Font(R.font.nunito_extrabold, FontWeight.ExtraBold),
-    Font(R.font.nunito_black, FontWeight.Black),
+/**
+ * Headings, titles and big numbers (Schibsted Grotesk SemiBold, SIL Open Font License, bundled;
+ * decision D38). Only 600 is bundled: a heavier request uses it as is, never a faked bold.
+ */
+val GroteskFontFamily = FontFamily(
+    Font(R.font.schibsted_grotesk_semibold, FontWeight.SemiBold),
 )
 
-/** The type scale in the current theme's text colours. */
+/** Tabular figures, so ratings, clocks and counts do not shift as digits change. */
+private const val TABULAR = "tnum"
+
+private fun grotesk(size: Int, line: Int, color: Color) = TextStyle(
+    fontFamily = GroteskFontFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    letterSpacing = (-0.02).em,
+    fontFeatureSettings = TABULAR,
+    color = color,
+)
+
+private fun inter(weight: FontWeight, size: Int, line: Int, color: Color) = TextStyle(
+    fontFamily = InterFontFamily,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    fontFeatureSettings = TABULAR,
+    color = color,
+)
+
+/** The type scale (`docs/design-language.md` section 3) in the current theme's text colours. */
 @Immutable
 class CtTypeScale(colors: CtColorScheme) {
-    val display = TextStyle(fontFamily = NunitoFontFamily, fontWeight = FontWeight.Black, fontSize = 32.sp, lineHeight = 38.sp, color = colors.text)
-    val headline = TextStyle(fontFamily = NunitoFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 32.sp, color = colors.text)
-    val title = TextStyle(fontFamily = NunitoFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 26.sp, color = colors.text)
-    val titleSmall = TextStyle(fontFamily = NunitoFontFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, lineHeight = 22.sp, color = colors.text)
-    val body = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 23.sp, color = colors.text2)
-    val bodySmall = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp, color = colors.text2)
-    val label = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 18.sp, color = colors.text)
-    val caption = TextStyle(fontFamily = InterFontFamily, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp, color = colors.text2)
-    val number = TextStyle(fontFamily = NunitoFontFamily, fontWeight = FontWeight.Black, fontSize = 22.sp, lineHeight = 26.sp, color = colors.text)
-    val button = TextStyle(fontFamily = NunitoFontFamily, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, lineHeight = 22.sp)
+    val display = grotesk(30, 36, colors.text)
+    val headline = grotesk(22, 27, colors.text)
+    val topBar = grotesk(20, 26, colors.text)
+    val title = grotesk(19, 24, colors.text)
+    val titleSmall = inter(FontWeight.SemiBold, 16, 22, colors.text)
+    val body = inter(FontWeight.Normal, 16, 23, colors.text2)
+    val bodySmall = inter(FontWeight.Normal, 14, 20, colors.text2)
+    val label = inter(FontWeight.SemiBold, 14, 18, colors.text)
+    val caption = inter(FontWeight.Normal, 13, 18, colors.text2)
+    val navLabel = inter(FontWeight.Medium, 12, 16, colors.text2)
+    val number = grotesk(22, 26, colors.text)
+    val bigNumber = grotesk(48, 52, colors.text)
+    val button = inter(FontWeight.SemiBold, 16, 20, colors.onPrimary)
 }
 
 val LocalCtType = staticCompositionLocalOf { CtTypeScale(CtColorScheme(Palette.PARCHMENT_LIGHT)) }
 
 /**
- * The type scale. Every new screen uses these styles instead of raw font sizes, which is
- * what fixes the 205 hard-coded sizes in the old screens (plan section 5.1).
+ * The type scale. Every screen uses these styles instead of raw font sizes. Grotesk for
+ * headings and numbers, Inter for everything else.
  */
 object CtType {
+    /** Screen title, 30 sp. */
     val Display: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.display
+    /** Card and sheet title, 22 sp. */
     val Headline: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.headline
+    /** Top bar title, 20 sp. */
+    val TopBar: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.topBar
+    /** Section title, 19 sp. */
     val Title: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.title
     val TitleSmall: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.titleSmall
     val Body: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.body
     val BodySmall: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.bodySmall
     val Label: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.label
     val Caption: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.caption
+    /** Bottom navigation labels, 12 sp. */
+    val NavLabel: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.navLabel
     val Number: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.number
+    /** The one big figure of a screen (a rating, a score), 48 sp. */
+    val BigNumber: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.bigNumber
     val Button: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.button
 }
 
@@ -251,7 +287,7 @@ fun CtTheme(
             LocalReduceMotion provides reduceMotion,
             LocalContentColor provides colors.text,
         ) {
-            ProvideTextStyle(TextStyle(fontFamily = InterFontFamily, fontFeatureSettings = "tnum", color = colors.text), content)
+            ProvideTextStyle(TextStyle(fontFamily = InterFontFamily, fontFeatureSettings = TABULAR, color = colors.text), content)
         }
     }
 }

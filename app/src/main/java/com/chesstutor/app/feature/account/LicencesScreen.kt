@@ -58,7 +58,7 @@ val CREDITS: List<Credit> = listOf(
     Credit("Pieces \"Chessnut\"", "Alexis Luengas", Licence.APACHE2),
     Credit("Pieces \"Fantasy\"", "Maurizio Monge", Licence.MIT),
     Credit("Sound effects", "Kenney (kenney.nl)", Licence.CC0),
-    Credit("Fonts Nunito, Inter and JetBrains Mono", "Their designers, via Google Fonts and JetBrains", Licence.OFL),
+    Credit("Fonts Schibsted Grotesk, Inter and JetBrains Mono", "Their designers, via Google Fonts and JetBrains", Licence.OFL),
     Credit("Jetpack Compose, Room, DataStore, Navigation and other AndroidX libraries", "Google and the Android Open Source Project", Licence.APACHE2),
     Credit("Kotlin and kotlinx.coroutines", "JetBrains", Licence.APACHE2),
     Credit("OkHttp and Moshi", "Square", Licence.APACHE2),
