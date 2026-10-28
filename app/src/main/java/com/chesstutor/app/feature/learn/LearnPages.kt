@@ -48,7 +48,6 @@ import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTextField
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
-import com.chesstutor.app.design.ctEnter
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.Lesson
 import com.chesstutor.app.domain.learn.LessonCategory
@@ -113,7 +112,7 @@ fun LearnCategoryScreen(
                     )
                 }
                 shown.forEachIndexed { i, course ->
-                    CourseCard(course, learn.progress, accent, onClick = { onOpenCourse(course.id) }, modifier = Modifier.ctEnter(i))
+                    CourseCard(course, learn.progress, accent, onClick = { onOpenCourse(course.id) }, modifier = Modifier)
                 }
                 Spacer(Modifier.height(CtSpacing.lg))
             }
@@ -195,7 +194,7 @@ fun CourseScreen(
 
                 CtSectionHeader(title = "Lessons")
                 course.lessons.forEachIndexed { i, lesson ->
-                    LessonRow(number = i + 1, lesson = lesson, progress = progress[lesson.id], onClick = { onOpenLesson(lesson.id) }, modifier = Modifier.ctEnter(i))
+                    LessonRow(number = i + 1, lesson = lesson, progress = progress[lesson.id], onClick = { onOpenLesson(lesson.id) }, modifier = Modifier)
                 }
 
                 if (onPractise != null || onRelatedPuzzles != null || onPracticeSet != null) {

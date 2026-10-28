@@ -39,7 +39,6 @@ import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
-import com.chesstutor.app.design.ctEnter
 import com.chesstutor.app.domain.learn.LessonCategory
 
 /** Everything the hub can open. */
@@ -78,7 +77,7 @@ fun LearnScreen(
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter),
                 verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
             ) {
-                Column(modifier = Modifier.ctEnter(0)) {
+                Column(modifier = Modifier) {
                     Text(text = "$done of $total lessons complete", style = CtType.Label)
                     Spacer(Modifier.height(CtSpacing.sm))
                     CtProgressBar(progress = LearnHubModel.overallProgress(tiles), color = CtColors.Teal)
@@ -90,7 +89,7 @@ fun LearnScreen(
                         background = CtGradients.Teal,
                         onClick = { actions.onOpenLesson(lesson.id) },
                         onClickLabel = "Open ${lesson.title}",
-                        modifier = Modifier.fillMaxWidth().ctEnter(1),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                             Column(Modifier.weight(1f)) {
@@ -106,7 +105,7 @@ fun LearnScreen(
                 tiles.chunked(2).forEachIndexed { rowIndex, rowTiles ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-                        modifier = Modifier.ctEnter(rowIndex + 2),
+                        modifier = Modifier,
                     ) {
                         rowTiles.forEach { tile ->
                             HubTile(
@@ -124,7 +123,7 @@ fun LearnScreen(
                     icon = Icons.Rounded.Flag,
                     iconTint = CtColors.Gold,
                     onClick = actions.onOpenTrainer,
-                    modifier = Modifier.ctEnter(tiles.size / 2 + 2),
+                    modifier = Modifier,
                 )
                 Spacer(Modifier.height(CtSpacing.lg))
             }

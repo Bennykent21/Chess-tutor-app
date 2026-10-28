@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.lerp
@@ -28,7 +28,7 @@ import com.chesstutor.app.core.Piece
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.Square
-import com.chesstutor.app.design.CtShapes
+import com.chesstutor.app.design.CtMotion
 import com.chesstutor.app.design.CtType
 
 /** Square marks an activity asks for. Empty by default: a plain board. */
@@ -121,7 +121,9 @@ internal fun BoardCanvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(CtShapes.Chip)
+            // Square corners: the playing board runs edge to edge (design language section 4).
+            // Thumbnails get their rounded corners from the card that holds them.
+            .clipToBounds()
             .semantics { contentDescription = description },
     ) {
         val cell = size.minDimension / 8f
@@ -300,7 +302,9 @@ private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painte
 
     if (sliding) {
         motion.captured?.let { (square, piece) ->
-            painters[piece]?.let { drawPiece(it, cellTopLeft(square, whiteAtBottom, cell), cell, alpha = 1f - motion.slideProgress) }
+            // The captured piece is gone a little before the slide lands (180 of 220 ms).
+            val fade = (motion.slideProgress * CtMotion.PIECE_SLIDE_MS / CtMotion.FADE_MS).coerceIn(0f, 1f)
+            painters[piece]?.let { drawPiece(it, cellTopLeft(square, whiteAtBottom, cell), cell, alpha = 1f - fade) }
         }
     }
     for (index in 0 until 64) {

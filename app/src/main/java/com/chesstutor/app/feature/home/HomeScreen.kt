@@ -52,7 +52,6 @@ import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
-import com.chesstutor.app.design.ctEnter
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.RosterBot
@@ -104,7 +103,7 @@ fun HomeScreen(
         ) {
             val gutter = Modifier.padding(horizontal = CtSpacing.gutter)
             // D28: one slim header row; the coach speaks once, inside the Continue card.
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = gutter.ctEnter(0)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = gutter) {
                 Text(
                     text = if (name != null) "Hi, $name" else "Ready to play?",
                     style = CtType.Headline,
@@ -120,11 +119,11 @@ fun HomeScreen(
             }
 
             if (needsWelcome(state.assessmentState)) {
-                WelcomeCard(state.appSettings.mascot, actions.onStartingLevel, gutter.fillMaxWidth().ctEnter(1))
+                WelcomeCard(state.appSettings.mascot, actions.onStartingLevel, gutter.fillMaxWidth())
             }
-            ContinueCard(state, home, actions, gutter.fillMaxWidth().ctEnter(1))
+            ContinueCard(state, home, actions, gutter.fillMaxWidth())
 
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(2)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter) {
                 CtCard(
                     onClick = actions.onDailyPuzzle,
                     onClickLabel = "Open the daily puzzle",
@@ -143,7 +142,7 @@ fun HomeScreen(
                 CtCard(
                     onClick = actions.onOpenEngineHealth,
                     onClickLabel = "Open engine health",
-                    modifier = gutter.fillMaxWidth().ctEnter(2),
+                    modifier = gutter.fillMaxWidth(),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning)
@@ -156,8 +155,8 @@ fun HomeScreen(
                 }
             }
 
-            CtSectionHeader(title = "Play", modifier = gutter.ctEnter(3))
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(4)) {
+            CtSectionHeader(title = "Play", modifier = gutter)
+            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter) {
                 val opponent = home.recommendation?.bot
                 PlayTile(
                     title = "Quick match",
@@ -177,7 +176,7 @@ fun HomeScreen(
                     buttonText = "Build",
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter.ctEnter(5)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = gutter) {
                 PlayTile(
                     title = "Opening battle",
                     subtitle = "Play or drill one opening",
@@ -204,24 +203,24 @@ fun HomeScreen(
                 icon = Icons.Rounded.Search,
                 iconTint = CtColors.Teal,
                 onClick = actions.onExplore,
-                modifier = gutter.ctEnter(5),
+                modifier = gutter,
             )
 
-            CtSectionHeader(title = "Meet the bots", actionLabel = "Watch two", onAction = actions.onWatch, modifier = gutter.ctEnter(6))
+            CtSectionHeader(title = "Meet the bots", actionLabel = "Watch two", onAction = actions.onWatch, modifier = gutter)
             LazyRow(
                 contentPadding = PaddingValues(horizontal = CtSpacing.gutter),
                 horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-                modifier = Modifier.ctEnter(6),
+                modifier = Modifier,
             ) {
                 items(home.roster, key = { it.id }) { bot -> BotCard(bot, onClick = { actions.onOpenBot(bot.id) }) }
             }
 
             if (home.myBots.isNotEmpty()) {
-                CtSectionHeader(title = "My bots", actionLabel = "New", onAction = actions.onNewBot, modifier = gutter.ctEnter(7))
+                CtSectionHeader(title = "My bots", actionLabel = "New", onAction = actions.onNewBot, modifier = gutter)
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = CtSpacing.gutter),
                     horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-                    modifier = Modifier.ctEnter(7),
+                    modifier = Modifier,
                 ) {
                     items(home.myBots, key = { it.id }) { mine ->
                         val bot = mine.asRosterBot()

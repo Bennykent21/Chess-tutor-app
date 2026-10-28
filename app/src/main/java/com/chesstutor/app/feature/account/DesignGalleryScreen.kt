@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,15 +44,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.board.BoardColors
+import com.chesstutor.app.board.BoardHost
+import com.chesstutor.app.board.FreePlaySession
 import com.chesstutor.app.board.BoardMarks
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.BoardView
 import com.chesstutor.app.board.PieceSet
+import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.Square
 import com.chesstutor.app.design.AppTheme
 import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.design.CtBadge
+import com.chesstutor.app.design.CtBoardScreen
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
@@ -93,6 +99,12 @@ fun DesignGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     var sound by remember { mutableStateOf(true) }
     var reduceMotion by remember { mutableStateOf(false) }
     var sheetOpen by remember { mutableStateOf(false) }
+    var boardDemo by remember { mutableStateOf(false) }
+
+    if (boardDemo) {
+        BoardScreenDemo(onClose = { boardDemo = false }, modifier = modifier)
+        return
+    }
 
     CtScreenBackground(modifier) {
         Column(
@@ -142,6 +154,7 @@ fun DesignGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 CtButton(text = "Ghost", style = CtButtonStyle.Ghost, onClick = {}, modifier = Modifier.fillMaxWidth())
                 CtButton(text = "Disabled", enabled = false, onClick = {}, modifier = Modifier.fillMaxWidth())
                 CtButton(text = "Open a sheet", style = CtButtonStyle.Secondary, onClick = { sheetOpen = true }, modifier = Modifier.fillMaxWidth())
+                CtButton(text = "Open a board screen", style = CtButtonStyle.Secondary, onClick = { boardDemo = true }, modifier = Modifier.fillMaxWidth())
 
                 CtSectionHeader(title = "Chips and badges")
                 Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
@@ -242,6 +255,56 @@ fun DesignGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 CtButton(text = "Rematch", style = CtButtonStyle.Secondary, onClick = { sheetOpen = false }, modifier = Modifier.weight(1f))
                 CtButton(text = "Other bots", style = CtButtonStyle.Secondary, onClick = { sheetOpen = false }, modifier = Modifier.weight(1f))
             }
+        }
+    }
+}
+
+/** What the coach says after each move in the demo: long and short, so the area below the board changes size. */
+private val DEMO_LINES = listOf(
+    "Make any move. The board stays exactly where it is, however long this message gets.",
+    "Good. Here is a much longer message, to show that the text below the board can grow and shrink while the board above it never moves at all.",
+    "Short one.",
+)
+
+/**
+ * The board screen layout with a real board (Phase 7C2d): the status row and the coach's
+ * words change length after every move, and the board stays put (D39).
+ */
+@Composable
+private fun BoardScreenDemo(onClose: () -> Unit, modifier: Modifier = Modifier) {
+    val session = remember { FreePlaySession() }
+    val state by session.state.collectAsState()
+    var finished by remember { mutableStateOf(false) }
+    BackHandler(onBack = onClose)
+    CtBoardScreen(
+        title = "Board screen",
+        onBack = onClose,
+        modifier = modifier,
+        status = {
+            Column {
+                Text(if (state.position.sideToMove == PieceColor.WHITE) "White to move" else "Black to move", style = CtType.Title)
+                Text("${state.moves.size} moves played", style = CtType.Caption)
+            }
+        },
+        board = { BoardHost(session = session, theme = BoardTheme(BoardColors.DEFAULT, PieceSet.DEFAULT)) },
+        overlay = {
+            CtSheet(visible = finished, onDismiss = { finished = false }) {
+                Text("Nicely done", style = CtType.Headline, modifier = Modifier.align(Alignment.CenterHorizontally))
+                CtButton(text = "Back to the gallery", onClick = onClose, modifier = Modifier.fillMaxWidth())
+            }
+        },
+    ) {
+        Spacer(Modifier.height(CtSpacing.lg))
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+            CtMascotArt(mascot = Mascot.PIP, height = 60.dp, modifier = Modifier.width(56.dp))
+            CtSpeechBubble(modifier = Modifier.weight(1f)) {
+                Text(DEMO_LINES[state.moves.size % DEMO_LINES.size], style = CtType.Body.copy(color = CtColors.Text))
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(bottom = CtSpacing.lg)) {
+            CtButton(text = "Undo", style = CtButtonStyle.Secondary, enabled = state.moves.isNotEmpty(), onClick = session::undo, modifier = Modifier.weight(1f))
+            CtButton(text = "Finish", onClick = { finished = true }, modifier = Modifier.weight(1f))
         }
     }
 }
