@@ -61,6 +61,7 @@ import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
+import com.chesstutor.app.design.CtCoachStrip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtComingSoon
 import com.chesstutor.app.design.CtDropdownChip
@@ -85,6 +86,7 @@ import com.chesstutor.app.design.CtToggleRow
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.Mascot
+import com.chesstutor.app.domain.MascotMood
 
 /**
  * Every design-system piece on one page, in the current theme, to judge the look on a real
@@ -191,15 +193,26 @@ fun DesignGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     CtToggleRow(title = "Reduce motion", checked = reduceMotion, onCheckedChange = { reduceMotion = it }, divider = false)
                 }
 
-                CtSectionHeader(title = "Coach")
+                CtSectionHeader(title = "Coaches")
+                Mascot.entries.forEach { coach ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        MascotMood.entries.forEach { mood ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                CtMascotArt(mascot = coach, mood = mood, height = 72.dp, modifier = Modifier.size(72.dp))
+                                Text(mood.description, style = CtType.Caption)
+                            }
+                        }
+                    }
+                }
+                CtCoachStrip(mascot = Mascot.SAGE, label = "You play White", text = "Find the move that wins the queen.", mood = MascotMood.THINKING)
                 Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                     CtMascotArt(mascot = Mascot.PIP, height = 60.dp, modifier = Modifier.width(56.dp))
                     CtSpeechBubble(modifier = Modifier.weight(1f)) {
-                        Text("Knights jump in an L: two squares one way, then one to the side.", style = CtType.Body.copy(color = CtColors.Text))
+                        Text("Knights jump in an L: two squares one way, then one to the side.", style = CtType.Chat)
                     }
                 }
                 CtSpeechBubble(tail = CtTail.Top) {
-                    Text("Watch closely...", style = CtType.Body.copy(color = CtColors.Text))
+                    Text("Watch closely...", style = CtType.Chat)
                 }
 
                 CtSectionHeader(title = "Numbers and progress")
@@ -287,6 +300,10 @@ private fun BoardScreenDemo(onClose: () -> Unit, modifier: Modifier = Modifier) 
             }
         },
         board = { BoardHost(session = session, theme = BoardTheme(BoardColors.DEFAULT, PieceSet.DEFAULT)) },
+        controls = {
+            CtButton(text = "Undo", style = CtButtonStyle.Secondary, enabled = state.moves.isNotEmpty(), onClick = session::undo, modifier = Modifier.weight(1f))
+            CtButton(text = "Finish", onClick = { finished = true }, modifier = Modifier.weight(1f))
+        },
         overlay = {
             CtSheet(visible = finished, onDismiss = { finished = false }) {
                 Text("Nicely done", style = CtType.Headline, modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -294,17 +311,15 @@ private fun BoardScreenDemo(onClose: () -> Unit, modifier: Modifier = Modifier) 
             }
         },
     ) {
-        Spacer(Modifier.height(CtSpacing.lg))
-        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-            CtMascotArt(mascot = Mascot.PIP, height = 60.dp, modifier = Modifier.width(56.dp))
+        // The coach's words scroll if a message is ever too long; the buttons below never move.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
+            modifier = Modifier.padding(top = CtSpacing.lg).verticalScroll(rememberScrollState()),
+        ) {
+            CtMascotArt(mascot = Mascot.PIP, height = 52.dp, modifier = Modifier.width(48.dp))
             CtSpeechBubble(modifier = Modifier.weight(1f)) {
-                Text(DEMO_LINES[state.moves.size % DEMO_LINES.size], style = CtType.Body.copy(color = CtColors.Text))
+                Text(DEMO_LINES[state.moves.size % DEMO_LINES.size], style = CtType.Chat)
             }
-        }
-        Spacer(Modifier.weight(1f))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(bottom = CtSpacing.lg)) {
-            CtButton(text = "Undo", style = CtButtonStyle.Secondary, enabled = state.moves.isNotEmpty(), onClick = session::undo, modifier = Modifier.weight(1f))
-            CtButton(text = "Finish", onClick = { finished = true }, modifier = Modifier.weight(1f))
         }
     }
 }

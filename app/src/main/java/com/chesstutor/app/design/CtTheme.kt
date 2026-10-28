@@ -232,6 +232,7 @@ class CtTypeScale(colors: CtColorScheme) {
     val titleSmall = inter(FontWeight.SemiBold, 16, 22, colors.text)
     val body = inter(FontWeight.Normal, 16, 23, colors.text2)
     val bodySmall = inter(FontWeight.Normal, 14, 20, colors.text2)
+    val chat = inter(FontWeight.Normal, 15, 21, colors.text)
     val label = inter(FontWeight.SemiBold, 14, 18, colors.text)
     val caption = inter(FontWeight.Normal, 13, 18, colors.text2)
     val navLabel = inter(FontWeight.Medium, 12, 16, colors.text2)
@@ -258,6 +259,8 @@ object CtType {
     val TitleSmall: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.titleSmall
     val Body: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.body
     val BodySmall: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.bodySmall
+    /** What a coach or a bot says in a speech bubble, 15 sp: a little smaller than body so more fits. */
+    val Chat: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.chat
     val Label: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.label
     val Caption: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.caption
     /** Bottom navigation labels, 12 sp. */

@@ -42,9 +42,10 @@ class CtBoardScreenTest {
                         Text(if (long) "A status that keeps going and going, far longer than one line could ever hold, and then some more words besides." else "White to move")
                     },
                     board = { Box(Modifier.fillMaxSize()) },
+                    controls = { Text("Undo") },
                     overlay = { CtSheet(visible = sheet, onDismiss = { sheet = false }) { Text("Solved") } },
                 ) {
-                    repeat(if (long) 12 else 1) { Text("Coach line $it") }
+                    repeat(if (long) 40 else 1) { Text("Coach line $it") }
                 }
             }
         }
@@ -69,6 +70,17 @@ class CtBoardScreenTest {
         compose.waitForIdle()
         assertEquals(before, board())
         assertEquals(CtBoardScreenSpec.StatusRowHeight, compose.onNodeWithTag(CtBoardScreenTags.STATUS).getBoundsInRoot().let { it.bottom - it.top })
+    }
+
+    @Test
+    fun theControlsStayOnScreenHoweverMuchTextIsBelowTheBoard() {
+        showScreen()
+        long = true
+        compose.waitForIdle()
+        val controls = compose.onNodeWithTag(CtBoardScreenTags.CONTROLS).getBoundsInRoot()
+        assertEquals(CtBoardScreenSpec.ControlsHeight, controls.bottom - controls.top)
+        assertEquals("the controls end at the bottom of the screen", 860.dp, controls.bottom)
+        compose.onNodeWithText("Undo").assertIsDisplayed()
     }
 
     @Test

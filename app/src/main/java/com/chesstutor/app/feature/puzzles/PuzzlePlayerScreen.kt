@@ -56,6 +56,7 @@ import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
+import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.domain.puzzle.PuzzleLevels
 import com.chesstutor.app.domain.puzzle.PuzzleMode
 
@@ -124,7 +125,13 @@ private fun Playing(
         PlayerPhase.SETUP -> "Watch your opponent's move…"
         else -> state.prompt
     }
-    CtCoachStrip(mascot = settings.mascot, text = coachText, label = "You play $side", modifier = Modifier.fillMaxWidth())
+    val mood = when {
+        state.phase == PlayerPhase.SOLVED -> MascotMood.PROUD
+        state.phase == PlayerPhase.REVEALED -> MascotMood.KIND
+        state.hintSquare != null -> MascotMood.THINKING
+        else -> MascotMood.READY
+    }
+    CtCoachStrip(mascot = settings.mascot, text = coachText, label = "You play $side", mood = mood, modifier = Modifier.fillMaxWidth())
 
     val rings = listOfNotNull(
         state.hintSquare?.let { SquareRing(it, MarkKind.HINT) },
