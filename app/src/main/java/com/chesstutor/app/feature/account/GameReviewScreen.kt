@@ -30,6 +30,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -277,8 +279,8 @@ private fun PlayersAndCounts(review: GameReview, white: String, black: String) {
 
 /** The summary's rows, best first, as Chess.com lists them. */
 private val SUMMARY_ORDER = listOf(
-    MoveQuality.BRILLIANT, MoveQuality.GREAT, MoveQuality.BEST, MoveQuality.GOOD, MoveQuality.BOOK,
-    MoveQuality.INACCURACY, MoveQuality.MISTAKE, MoveQuality.BLUNDER,
+    MoveQuality.BRILLIANT, MoveQuality.GREAT, MoveQuality.BEST, MoveQuality.EXCELLENT, MoveQuality.GOOD, MoveQuality.BOOK,
+    MoveQuality.FORCED, MoveQuality.INACCURACY, MoveQuality.MISS, MoveQuality.MISTAKE, MoveQuality.BLUNDER,
 )
 
 /** A count's colour: the quality's own, except Book's neutral chip colour, which would not read as text. */
@@ -534,7 +536,7 @@ private fun reviewComment(game: GameSummary, state: ReviewState, ply: Int?, move
 /** The coach's face for a move: proud of the best moves, kind after a slip. */
 private fun moodFor(move: ReviewedMove?): MascotMood = when (move?.quality) {
     MoveQuality.BRILLIANT, MoveQuality.GREAT, MoveQuality.BEST -> MascotMood.PROUD
-    MoveQuality.INACCURACY, MoveQuality.MISTAKE, MoveQuality.BLUNDER -> MascotMood.KIND
+    MoveQuality.INACCURACY, MoveQuality.MISS, MoveQuality.MISTAKE, MoveQuality.BLUNDER -> MascotMood.KIND
     else -> MascotMood.READY
 }
 
@@ -640,7 +642,10 @@ internal fun QualityIcon(quality: MoveQuality, size: Int = 24, modifier: Modifie
         when (quality) {
             MoveQuality.BOOK -> Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
             MoveQuality.BEST -> Icon(Icons.Rounded.Star, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.65f).dp))
-            MoveQuality.GOOD -> Icon(Icons.Rounded.ThumbUp, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.55f).dp))
+            MoveQuality.EXCELLENT -> Icon(Icons.Rounded.ThumbUp, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.55f).dp))
+            MoveQuality.GOOD -> Icon(Icons.Rounded.Check, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
+            MoveQuality.FORCED -> Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
+            MoveQuality.MISS -> Icon(Icons.Rounded.Close, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
             else -> Text(quality.symbol, style = CtType.Label.copy(color = tint))
         }
     }
@@ -649,7 +654,10 @@ internal fun QualityIcon(quality: MoveQuality, size: Int = 24, modifier: Modifie
 internal fun badgeText(quality: MoveQuality): String = when (quality) {
     MoveQuality.BOOK -> "≡"
     MoveQuality.BEST -> "★"
+    MoveQuality.EXCELLENT -> "✓✓"
     MoveQuality.GOOD -> "✓"
+    MoveQuality.FORCED -> "→"
+    MoveQuality.MISS -> "✕"
     else -> quality.symbol
 }
 

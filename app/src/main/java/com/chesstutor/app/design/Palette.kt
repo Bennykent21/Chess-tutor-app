@@ -225,15 +225,18 @@ enum class GradeColor(
     val lightText: Long,
     val darkFill: Long,
     val darkInk: Long,
-    /** Best, good and book carry an icon, not a symbol: their ink only needs 3:1. */
+    /** Best, excellent, good, book, forced and miss carry an icon, not a symbol: their ink only needs 3:1. */
     val iconOnly: Boolean = false,
 ) {
     BRILLIANT(0xFF1C8AA3, 0xFF13110E, 0xFF166E82, 0xFF4CC3D9, 0xFF13110E),
     GREAT(0xFF4769CC, 0xFFFFFFFF, 0xFF395EC8, 0xFF8AA4F0, 0xFF13110E),
     BEST(0xFF2E8650, 0xFFFFFFFF, 0xFF277144, 0xFF6CC08E, 0xFF13110E, iconOnly = true),
+    EXCELLENT(0xFF4C9A62, 0xFFFFFFFF, 0xFF356E45, 0xFF86C99B, 0xFF13110E, iconOnly = true),
     GOOD(0xFF6A8D71, 0xFF13110E, 0xFF506A55, 0xFF93AE98, 0xFF13110E, iconOnly = true),
     BOOK(0xFF8A7356, 0xFFFFFFFF, 0xFF746148, 0xFFB59E80, 0xFF13110E, iconOnly = true),
+    FORCED(0xFF7F7F7F, 0xFFFFFFFF, 0xFF626262, 0xFFB3B3B3, 0xFF13110E, iconOnly = true),
     INACCURACY(0xFFB07A0C, 0xFF13110E, 0xFF855C09, 0xFFE8B44A, 0xFF13110E),
+    MISS(0xFFC2416E, 0xFFFFFFFF, 0xFFAD3962, 0xFFF07AA0, 0xFF13110E, iconOnly = true),
     MISTAKE(0xFFC9601A, 0xFF13110E, 0xFFA04D15, 0xFFEE8B4A, 0xFF13110E),
     BLUNDER(0xFFBF3728, 0xFFFFFFFF, 0xFFB93527, 0xFFEC6A5C, 0xFF13110E),
     ;
