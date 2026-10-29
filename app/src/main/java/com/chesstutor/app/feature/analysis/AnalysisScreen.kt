@@ -71,7 +71,8 @@ import com.chesstutor.app.engine.EngineLine
 import com.chesstutor.app.engine.EngineService
 import com.chesstutor.app.engine.EngineStatus
 import com.chesstutor.app.feature.account.QualityIcon
-import com.chesstutor.app.feature.account.badgeText
+import com.chesstutor.app.feature.account.qualityBadge
+import com.chesstutor.app.feature.account.qualityIcon
 import com.chesstutor.app.feature.account.qualityColor
 import com.chesstutor.app.feature.account.qualityTextColor
 import com.chesstutor.app.feature.home.EXPLORE_STRENGTHS
@@ -202,9 +203,9 @@ fun AnalysisScreen(
     val shown = verdict ?: judged[current]
     val quality = shown?.move?.quality
     val badge = shown?.let { j ->
-        state.lastMove?.let { SquareBadge(it.to, qualityColor(j.move.quality).toArgb().toLong() and 0xFFFFFFFFL, badgeText(j.move.quality), qualityTextColor(j.move.quality).toArgb().toLong() and 0xFFFFFFFFL) }
+        state.lastMove?.let { qualityBadge(it.to, j.move.quality) }
     }
-    val marks = judged.mapValues { (_, j) -> MoveMark(badgeText(j.move.quality), qualityColor(j.move.quality), j.move.quality.label) }
+    val marks = judged.mapValues { (_, j) -> MoveMark(j.move.quality.symbol, qualityColor(j.move.quality), j.move.quality.label, icon = qualityIcon(j.move.quality)) }
 
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {

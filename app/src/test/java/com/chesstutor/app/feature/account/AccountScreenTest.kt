@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -342,28 +344,38 @@ class AccountScreenTest {
         val game = games.game("bot_1")!!
         var reviewed = false
         var deleted = false
+        var course: String? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 GameDetailScreen(
                     game = game,
                     settings = AppSettings(),
-                    actions = GameDetailActions(onReview = { reviewed = true }, onDelete = { deleted = true }),
-                    analysis = AnalysisSummary("bot_1", plies = 6, whiteAccuracy = 92.34, blackAccuracy = 71.0, lite = false, analysedAt = 1),
+                    actions = GameDetailActions(onReview = { reviewed = true }, onDelete = { deleted = true }, onOpenCourse = { course = it }),
+                    courseId = "openings-italian",
+                    now = game.dateMillis,
                 )
             }
         }
         compose.onNodeWithText("You won").assertExists()
-        compose.onNodeWithText("By checkmate · You played White · 3 moves").assertExists()
-        compose.onNodeWithText("Every move was in the opening book.").assertExists()
-        compose.onNodeWithText("1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5").assertExists()
+        compose.onNodeWithText("Checkmate, 3 moves, today").assertExists()
+        compose.onNodeWithText("Italian Game").assertExists()
+        compose.onNodeWithText("Giuoco Piano").assertExists()
+        compose.onNodeWithText("Accuracy", substring = true).assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_game.png")
 
-        compose.onNodeWithText("You 92.3% · Pip 71.0%").assertExists()
-        compose.onNodeWithText("Open the review").performClick()
+        // The board opens on the final position; stepping back moves the strip with it.
+        compose.onNodeWithContentDescription("Next move").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Previous move").performClick()
+        compose.onNodeWithContentDescription("Next move").assertIsEnabled()
+        compose.onNodeWithText("Nf3").performClick()
+        compose.onNodeWithText("Italian Game").performClick()
+        assertEquals("openings-italian", course)
+        compose.onNodeWithText("Review").performClick()
         assertTrue(reviewed)
-        compose.onNodeWithText("Delete").performClick()
+        compose.onNodeWithContentDescription("More options").performClick()
+        compose.onNodeWithText("Delete game").performClick()
         compose.onNodeWithText("Delete this game?").assertExists()
-        compose.onAllNodesWithText("Delete").onLast().performClick()
+        compose.onNodeWithText("Delete").performClick()
         assertTrue(deleted)
     }
 
@@ -379,7 +391,7 @@ class AccountScreenTest {
             record("x", "Pip", "0-1", "black", GameSource.ARENA, "e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 e1f1 g8f6", date = 1),
             tree,
         )
-        assertEquals("Your opponent left the book on move 4.", bookLine(strange))
+        assertTrue(openingDetail(strange)!!.endsWith("out of book on move 4"))
         assertEquals("You lost", resultTitle(strange.copy(outcome = com.chesstutor.app.domain.account.GameOutcome.LOSS)))
     }
 }

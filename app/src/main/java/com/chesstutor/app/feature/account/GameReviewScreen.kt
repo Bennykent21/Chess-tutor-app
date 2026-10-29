@@ -76,6 +76,8 @@ import com.chesstutor.app.board.EngineLinesPanel
 import com.chesstutor.app.board.MarkKind
 import com.chesstutor.app.board.NotationToken
 import com.chesstutor.app.board.SquareBadge
+import com.chesstutor.app.core.Square
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.chesstutor.app.board.moveListOf
 import com.chesstutor.app.board.toggleArrow
 import com.chesstutor.app.core.Move
@@ -207,7 +209,7 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
                     Spacer(Modifier.width(CtSpacing.md))
                     Column(Modifier.weight(1f)) {
                         Text(game.openingName ?: "Opening not named", style = CtType.Label)
-                        Text(bookLine(game), style = CtType.Caption)
+                        openingDetail(game)?.let { Text(it, style = CtType.Caption) }
                     }
                 }
             }
@@ -377,7 +379,7 @@ private fun ReviewBoard(
     val evalMate = cached?.mate ?: lines.firstOrNull()?.mateInMoves
     val tint = move?.let { qualityColor(it.quality) }
     val badge = move?.let { m ->
-        runCatching { Move.fromUci(m.uci) }.getOrNull()?.let { SquareBadge(it.to, qualityColor(m.quality).toArgb().toLong() and 0xFFFFFFFFL, badgeText(m.quality), qualityTextColor(m.quality).toArgb().toLong() and 0xFFFFFFFFL) }
+        runCatching { Move.fromUci(m.uci) }.getOrNull()?.let { qualityBadge(it.to, m.quality) }
     }
 
     fun goToPly(target: Int) {
@@ -548,7 +550,7 @@ internal object GamePositions {
 
 /** The game's moves in one scrolling row that keeps the current move in view (like the big sites). */
 @Composable
-private fun MoveStrip(entries: List<com.chesstutor.app.board.MoveListEntry>, review: GameReview?, current: Int?, onSelect: (Int) -> Unit) {
+internal fun MoveStrip(entries: List<com.chesstutor.app.board.MoveListEntry>, review: GameReview?, current: Int?, onSelect: (Int) -> Unit) {
     val listState = rememberLazyListState()
     LaunchedEffect(current) {
         current?.takeIf { it > 0 }?.let { listState.animateScrollToItem((it - 2).coerceAtLeast(0)) }
@@ -639,27 +641,36 @@ internal fun QualityIcon(quality: MoveQuality, size: Int = 24, modifier: Modifie
         contentAlignment = Alignment.Center,
     ) {
         val tint = qualityTextColor(quality)
-        when (quality) {
-            MoveQuality.BOOK -> Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
-            MoveQuality.BEST -> Icon(Icons.Rounded.Star, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.65f).dp))
-            MoveQuality.EXCELLENT -> Icon(Icons.Rounded.ThumbUp, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.55f).dp))
-            MoveQuality.GOOD -> Icon(Icons.Rounded.Check, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
-            MoveQuality.FORCED -> Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
-            MoveQuality.MISS -> Icon(Icons.Rounded.Close, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
-            else -> Text(quality.symbol, style = CtType.Label.copy(color = tint))
+        val icon = qualityIcon(quality)
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
+        } else {
+            Text(quality.symbol, style = CtType.Label.copy(color = tint))
         }
     }
 }
 
-internal fun badgeText(quality: MoveQuality): String = when (quality) {
-    MoveQuality.BOOK -> "≡"
-    MoveQuality.BEST -> "★"
-    MoveQuality.EXCELLENT -> "✓✓"
-    MoveQuality.GOOD -> "✓"
-    MoveQuality.FORCED -> "→"
-    MoveQuality.MISS -> "✕"
-    else -> quality.symbol
+/** A grade's drawn icon, the same on the board, in lists and in the review; null for the symbol grades (!!, !, ?!, ?, ??). */
+internal fun qualityIcon(quality: MoveQuality): ImageVector? = when (quality) {
+    MoveQuality.BOOK -> Icons.AutoMirrored.Rounded.MenuBook
+    MoveQuality.BEST -> Icons.Rounded.Star
+    MoveQuality.EXCELLENT -> Icons.Rounded.ThumbUp
+    MoveQuality.GOOD -> Icons.Rounded.Check
+    MoveQuality.FORCED -> Icons.AutoMirrored.Rounded.ArrowForward
+    MoveQuality.MISS -> Icons.Rounded.Close
+    else -> null
 }
+
+/** The grade's badge on the square a move landed on: its colour with its icon or symbol. */
+@Composable
+@ReadOnlyComposable
+internal fun qualityBadge(square: Square, quality: MoveQuality): SquareBadge = SquareBadge(
+    square = square,
+    color = qualityColor(quality).toArgb().toLong() and 0xFFFFFFFFL,
+    text = quality.symbol,
+    textColor = qualityTextColor(quality).toArgb().toLong() and 0xFFFFFFFFL,
+    icon = qualityIcon(quality),
+)
 
 private fun MoveQuality.grade(): GradeColor = GradeColor.valueOf(name)
 

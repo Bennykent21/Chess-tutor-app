@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.design.CtDivider
@@ -74,7 +75,7 @@ fun GameListRow(
 
 /** W, L or ½ on the result's colour. */
 @Composable
-private fun ResultSquare(outcome: GameOutcome) {
+internal fun ResultSquare(outcome: GameOutcome, size: Dp = 32.dp) {
     val fill = when (outcome) {
         GameOutcome.WIN -> CtColors.Success
         GameOutcome.LOSS -> CtColors.Error
@@ -93,8 +94,8 @@ private fun ResultSquare(outcome: GameOutcome) {
     }
     Box(
         modifier = Modifier
-            .size(32.dp)
-            .clip(RoundedCornerShape(9.dp))
+            .size(size)
+            .clip(RoundedCornerShape(size * 0.28f))
             .background(fill)
             .semantics { contentDescription = spoken },
         contentAlignment = Alignment.Center,

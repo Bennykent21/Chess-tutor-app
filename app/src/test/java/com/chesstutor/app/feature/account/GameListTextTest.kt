@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.ThumbUp
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameOutcome
@@ -28,5 +32,13 @@ class GameListTextTest {
         assertEquals(0, activeFilters(GameFilter()))
         assertEquals(0, activeFilters(GameFilter(query = "  ")))
         assertEquals(3, activeFilters(GameFilter(outcome = GameOutcome.WIN, color = PieceColor.BLACK, query = "juno")))
+    }
+
+    @Test
+    fun eachGradeHasOneIconEverywhere() {
+        assertEquals(Icons.Rounded.ThumbUp, qualityIcon(com.chesstutor.app.domain.account.MoveQuality.EXCELLENT))
+        assertEquals(Icons.Rounded.Star, qualityIcon(com.chesstutor.app.domain.account.MoveQuality.BEST))
+        assertEquals(Icons.Rounded.Check, qualityIcon(com.chesstutor.app.domain.account.MoveQuality.GOOD))
+        assertEquals("symbol grades keep their notation", null, qualityIcon(com.chesstutor.app.domain.account.MoveQuality.BLUNDER))
     }
 }

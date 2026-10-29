@@ -43,6 +43,7 @@ import com.chesstutor.app.feature.account.AccountScreen
 import com.chesstutor.app.feature.account.AccountViewModel
 import com.chesstutor.app.feature.account.GameDetailActions
 import com.chesstutor.app.feature.account.GameDetailScreen
+import com.chesstutor.app.domain.learn.OpeningCourses
 import com.chesstutor.app.feature.account.GameReviewScreen
 import com.chesstutor.app.feature.account.ReviewActions
 import com.chesstutor.app.feature.account.SettingsActions
@@ -782,10 +783,12 @@ private fun AppShell(
                     val account = accountViewModel(navController, entry)
                     val games by account.games.collectAsStateWithLifecycle()
                     val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
+                    val openingCourses by account.openingCourses.collectAsStateWithLifecycle()
+                    val game = games.game(gameId)
                     GameDetailScreen(
-                        game = games.game(gameId),
-                        analysis = games.analysed[gameId],
+                        game = game,
                         settings = state.appSettings,
+                        courseId = game?.openingFamily?.let { OpeningCourses.courseFor(it, openingCourses)?.id },
                         actions = GameDetailActions(
                             onReview = {
                                 account.openReview(gameId)
@@ -796,7 +799,11 @@ private fun AppShell(
                                 account.deleteGame(gameId)
                                 navController.popBackStack()
                             },
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onOpenCourse = { id ->
+                                navController.navigateToTab(TopTab.LEARN)
+                                navController.navigate(AppRoutes.course(id)) { launchSingleTop = true }
+                            },
                         )
                     )
                 }
