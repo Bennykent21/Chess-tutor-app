@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.ui.semantics.semantics
+import com.chesstutor.app.design.CtDivider
+import com.chesstutor.app.design.CtListRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -82,32 +85,26 @@ fun LicencesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtTopBar(title = open?.title ?: "Open-source licences", onBack = { if (open != null) open = null else onBack() })
-            Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            CtTopBar(title = open?.title ?: "Licences", onBack = { if (open != null) open = null else onBack() })
+            Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
                 val shown = open
                 if (shown != null) {
                     Text(text, style = CtType.Caption)
                 } else {
-                    Text(
-                        "Chess Tutor is free software under the GNU GPL v3; its source code is on GitHub. It is built on the work of these people and projects. Tap a licence to read it.",
-                        style = CtType.Body,
-                    )
+                    Text("Chess Tutor is free software under the GNU GPL v3.", style = CtType.BodySmall)
                     CtSectionHeader(title = "Thanks to")
-                    CREDITS.forEach { credit ->
-                        CtCard(modifier = Modifier.fillMaxWidth()) {
-                            Text(credit.name, style = CtType.Label)
-                            Text(credit.by, style = CtType.Caption)
-                            Text(credit.licence.title, style = CtType.Caption)
+                    CREDITS.forEachIndexed { i, credit ->
+                        Column(Modifier.fillMaxWidth().padding(vertical = CtSpacing.sm).semantics(mergeDescendants = true) {}) {
+                            Text(credit.name, style = CtType.TitleSmall)
+                            Text("${credit.by} · ${credit.licence.title}", style = CtType.Caption)
                         }
+                        if (i < CREDITS.lastIndex) CtDivider()
                     }
                     CtSectionHeader(title = "Licence texts")
-                    Licence.entries.filter { it.file != null }.distinctBy { it.file }.forEach { licence ->
-                        CtButton(text = licence.title, style = CtButtonStyle.Secondary, onClick = { open = licence }, modifier = Modifier.fillMaxWidth())
+                    val texts = Licence.entries.filter { it.file != null }.distinctBy { it.file }
+                    texts.forEachIndexed { i, licence ->
+                        CtListRow(title = licence.title, icon = null, onClick = { open = licence }, divider = i < texts.lastIndex)
                     }
-                    Text(
-                        "CC0 works are public domain and need no licence text. The Java library support is under the GNU GPL v2 with the Classpath Exception, published with OpenJDK.",
-                        style = CtType.Caption,
-                    )
                 }
                 Spacer(Modifier.height(CtSpacing.lg))
             }

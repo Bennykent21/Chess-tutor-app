@@ -72,7 +72,7 @@ class LessonPlayerScreenTest {
         compose.onNodeWithText("Video coming soon").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_watch.png")
 
-        compose.onNodeWithText("Start the lesson").performScrollTo().performClick()
+        compose.onNodeWithText("Start").performClick()
         step()
         compose.onNodeWithText("When a piece attacks the king", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_learn.png")
@@ -116,7 +116,7 @@ class LessonPlayerScreenTest {
         step()
         compose.onNodeWithText("Finish").performClick()
         step()
-        compose.onNodeWithText("Lesson complete!").assertExists()
+        compose.onNodeWithText("Lesson complete").assertExists()
         compose.onNodeWithText("+20 XP").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_done.png")
         compose.onNodeWithText("Practise in Opening Battle").assertDoesNotExist()
