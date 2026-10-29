@@ -44,10 +44,11 @@ class OpeningTrainerScreensTest {
         )
         var opened: String? = null
         compose.setContent { CtTheme(reduceMotion = true) { OpeningTrainerScreen(state, onOpen = { opened = it }, onBack = {}) } }
-        compose.onNodeWithText("As White").assertExists()
-        compose.onNodeWithText("2 of 7 lines learned").assertExists()
+        // It opens on Black, where the Sicilian has a line due.
+        compose.onNodeWithText("2 of 7").assertExists()
         compose.onNodeWithText("1 due").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_trainer.png")
+        compose.onNodeWithText("As White").performClick()
         compose.onNodeWithText("Italian Game").performClick()
         assertEquals("italian", opened)
     }
