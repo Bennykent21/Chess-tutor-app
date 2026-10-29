@@ -64,7 +64,9 @@ class CtThemeTest {
         listOf(type.titleSmall, type.body, type.bodySmall, type.label, type.caption, type.navLabel, type.button).forEach {
             assertEquals(InterFontFamily, it.fontFamily)
         }
-        (headings + type.body + type.label + type.caption).forEach { assertEquals("tnum", it.fontFeatureSettings) }
+        (listOf(type.number, type.bigNumber, type.body, type.label, type.caption)).forEach { assertEquals("tnum", it.fontFeatureSettings) }
+        // Words are not tabular: in Grotesk "tnum" widens the comma ("Hi , Kenny").
+        listOf(type.display, type.headline, type.topBar, type.title).forEach { assertEquals(null, it.fontFeatureSettings) }
         assertEquals(
             listOf(30, 22, 20, 19, 16, 13, 12, 48).map { it.sp },
             listOf(type.display, type.headline, type.topBar, type.title, type.body, type.caption, type.navLabel, type.bigNumber).map { it.fontSize },

@@ -203,13 +203,17 @@ val GroteskFontFamily = FontFamily(
 /** Tabular figures, so ratings, clocks and counts do not shift as digits change. */
 private const val TABULAR = "tnum"
 
-private fun grotesk(size: Int, line: Int, color: Color) = TextStyle(
+/**
+ * Grotesk headings and numbers. Only numbers take tabular figures: in this face "tnum" also
+ * makes the comma and full stop as wide as a digit, which opens a gap in "Hi, Kenny".
+ */
+private fun grotesk(size: Int, line: Int, color: Color, tabular: Boolean = false) = TextStyle(
     fontFamily = GroteskFontFamily,
     fontWeight = FontWeight.SemiBold,
     fontSize = size.sp,
     lineHeight = line.sp,
     letterSpacing = (-0.02).em,
-    fontFeatureSettings = TABULAR,
+    fontFeatureSettings = if (tabular) TABULAR else null,
     color = color,
 )
 
@@ -236,8 +240,8 @@ class CtTypeScale(colors: CtColorScheme) {
     val label = inter(FontWeight.SemiBold, 14, 18, colors.text)
     val caption = inter(FontWeight.Normal, 13, 18, colors.text2)
     val navLabel = inter(FontWeight.Medium, 12, 16, colors.text2)
-    val number = grotesk(22, 26, colors.text)
-    val bigNumber = grotesk(48, 52, colors.text)
+    val number = grotesk(22, 26, colors.text, tabular = true)
+    val bigNumber = grotesk(48, 52, colors.text, tabular = true)
     val button = inter(FontWeight.SemiBold, 16, 20, colors.onPrimary)
 }
 
