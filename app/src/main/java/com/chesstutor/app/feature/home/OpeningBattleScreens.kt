@@ -1,5 +1,10 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import com.chesstutor.app.design.CtDivider
+import com.chesstutor.app.design.CtGroupLabel
+import com.chesstutor.app.design.CtSearchField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -31,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import com.chesstutor.app.domain.bot.OpeningChoice
 import androidx.compose.ui.semantics.stateDescription
@@ -187,21 +193,17 @@ fun OpeningPickerScreen(
     var openFamily by rememberSaveable { mutableStateOf<String?>(null) }
     CtScreenBackground {
         Column(Modifier.fillMaxSize()) {
-            val subtitle = when {
-                selection != null -> "${selection.selected.size} picked"
-                else -> tree?.let { "${it.openings.size} named lines" }
-            }
             CtTopBar(
                 title = title,
-                subtitle = subtitle,
                 onBack = onBack,
-                trailing = if (selection != null) { { CtChip(text = "Done", color = CtColors.Gold, selected = true, onClick = onBack) } } else null,
+                trailing = if (selection != null && selection.selected.isNotEmpty()) {
+                    { Text("Clear", style = CtType.Label.copy(color = CtColors.Accent), modifier = Modifier.ctPressable(onClickLabel = "Clear the openings") { selection.onChange(emptySet()) }.padding(CtSpacing.md)) }
+                } else null,
             )
-            CtTextField(
+            CtSearchField(
                 value = query,
                 onValueChange = { query = it },
-                label = "Search",
-                placeholder = "Najdorf, London, Gambit…",
+                placeholder = "Search openings",
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter),
             )
             Spacer(Modifier.height(CtSpacing.sm))
@@ -213,28 +215,25 @@ fun OpeningPickerScreen(
             // While searching, show the matching lines straight away.
             LaunchedEffect(query) { if (query.isNotBlank() && families.size == 1) openFamily = families.first().name }
             LazyColumn(
+                modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = CtSpacing.gutter, vertical = CtSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
             ) {
                 if (selection != null && query.isBlank()) {
                     item(key = "tools") {
                         Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                                CtChip(text = "Select all", color = CtColors.Teal, onClick = { selection.onChange(tree.families.map { it.name }.toSet()) })
-                                CtChip(text = "Clear", color = CtColors.Coral, onClick = { selection.onChange(emptySet()) })
-                            }
                             if (selection.popular.isNotEmpty()) {
-                                Text("Popular", style = CtType.Label)
+                                CtGroupLabel("Popular")
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                                    CtChip(text = "Select all", onClick = { selection.onChange(tree.families.map { it.name }.toSet()) })
                                     selection.popular.forEach { choice ->
                                         val on = selection.selected.containsAll(choice.names)
-                                        CtChip(text = choice.label, selected = on, color = CtColors.Gold, onClick = {
+                                        CtChip(text = choice.label, selected = on, onClick = {
                                             selection.onChange(if (on) selection.selected - choice.names.toSet() else selection.selected + choice.names)
                                         })
                                     }
                                 }
                             }
-                            Text("All openings", style = CtType.Label)
+                            CtGroupLabel("All openings")
                         }
                     }
                 }
@@ -248,8 +247,8 @@ fun OpeningPickerScreen(
                     val expanded = openFamily == family.name
                     val familyTicked = selection?.selected?.contains(family.name) == true
                     item(key = "f:${family.name}") {
-                        CtCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(CtSpacing.md)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.fillMaxWidth()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp)) {
                                 if (selection != null) {
                                     TickBox(ticked = familyTicked, label = "All of ${family.name}") {
                                         selection.onChange(if (familyTicked) selection.selected - family.name else selection.selected + family.name)
@@ -271,6 +270,7 @@ fun OpeningPickerScreen(
                                     Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, contentDescription = null, tint = CtColors.Text2)
                                 }
                             }
+                            CtDivider()
                         }
                     }
                     if (expanded) {
@@ -280,7 +280,7 @@ fun OpeningPickerScreen(
                             else group.lines.filter { it.name.contains(q, ignoreCase = true) }
                             if (lines.isEmpty()) return@forEach
                             item(key = "g:${family.name}:${group.name}") {
-                                Text(group.name, style = CtType.Label.copy(color = CtColors.Gold), modifier = Modifier.padding(start = CtSpacing.md, top = CtSpacing.sm))
+                                Text(group.name, style = CtType.Label.copy(color = CtColors.Accent), modifier = Modifier.padding(start = CtSpacing.md, top = CtSpacing.sm))
                             }
                             items(lines, key = { "l:${it.moves.joinToString("")}" }) { line ->
                                 if (selection == null) {
@@ -298,9 +298,17 @@ fun OpeningPickerScreen(
                     }
                 }
             }
+            if (selection != null) {
+                CtButton(
+                    text = if (selection.selected.isEmpty()) "Done" else "Done, ${selection.selected.size} chosen",
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.lg),
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun TickBox(ticked: Boolean, label: String, onToggle: () -> Unit) {
