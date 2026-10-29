@@ -12,7 +12,6 @@ enum class TopTab(val graphRoute: String, val startRoute: String, val label: Str
 
 object AppRoutes {
     const val ENGINE_HEALTH = "account/engine"
-    const val DESIGN_GALLERY = "account/design"
     const val BOARD_SETTINGS = "account/board"
     /** The Settings page (plan 6.4), replacing the old settings sheet. */
     const val SETTINGS = "account/settings"
@@ -105,10 +104,8 @@ object AppRoutes {
     const val EXPLORE = "home/explore"
 
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
-    /** Full screen (no bottom bar), like every activity that hosts a board. */
-    const val BOARD_LAB = "board/lab"
 
-    private val accountPages = setOf(ENGINE_HEALTH, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
+    private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
     /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
     /** Home's browsing pages keep the bottom bar too. */

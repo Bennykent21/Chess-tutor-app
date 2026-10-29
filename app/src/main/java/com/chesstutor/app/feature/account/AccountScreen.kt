@@ -205,22 +205,26 @@ fun AccountScreen(
 @Composable
 private fun ProfileRow(state: AppUiState, stats: PuzzleStats, modifier: Modifier = Modifier) {
     val linked = state.linkedProfile
+    val name = state.appSettings.playerName.trim()
+    val title = name.ifEmpty { linked?.let { "@${it.username}" } ?: "You" }
+    val detail = linked?.let {
+        val where = "${it.platform.displayName}, ${it.selectedTimeControl.displayName.lowercase(Locale.UK)}"
+        if (name.isEmpty()) where else "@${it.username} · $where"
+    }
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Box(
             modifier = Modifier.size(52.dp).clip(CtShapes.Pill).background(CtColors.Surface),
             contentAlignment = Alignment.Center,
         ) {
-            if (linked != null) {
-                Text(linked.username.take(1).uppercase(Locale.UK), style = CtType.Headline)
+            if (name.isNotEmpty() || linked != null) {
+                Text((name.ifEmpty { linked?.username.orEmpty() }).take(1).uppercase(Locale.UK), style = CtType.Headline)
             } else {
                 Icon(Icons.Rounded.Person, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(26.dp))
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
-            Text(linked?.let { "@${it.username}" } ?: "You", style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (linked != null) {
-                Text("${linked.platform.displayName}, ${linked.selectedTimeControl.displayName.lowercase(Locale.UK)}", style = CtType.Caption)
-            }
+            Text(title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (detail != null) Text(detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (stats.dayStreak > 0) StreakChip(stats.dayStreak)
     }

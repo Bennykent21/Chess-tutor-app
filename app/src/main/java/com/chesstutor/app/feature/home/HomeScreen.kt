@@ -76,8 +76,10 @@ data class HomeActions(
     val onContinueLearning: () -> Unit,
     val onDailyPuzzle: () -> Unit,
     val onOpenEngineHealth: () -> Unit,
-    /** The welcome card's answer (D30: it replaced onboarding). */
+    /** The first run's answer (D30: it replaced onboarding). */
     val onStartingLevel: (StartingLevel) -> Unit = {},
+    /** The first run's name (D46). */
+    val onName: (String) -> Unit = {},
     /** Explore (D32): any position, every move judged. */
     val onExplore: () -> Unit = {},
     /** Opens one lesson in Learn's player (the Continue card). */
@@ -102,7 +104,18 @@ fun HomeScreen(
     actions: HomeActions,
     modifier: Modifier = Modifier,
 ) {
-    val name = state.linkedProfile?.username
+    if (needsWelcome(state.assessmentState)) {
+        FirstRunScreen(
+            mascot = state.appSettings.mascot,
+            pieceSet = state.appSettings.boardTheme.pieceSet,
+            onName = actions.onName,
+            onStartingLevel = actions.onStartingLevel,
+            modifier = modifier,
+            initialName = state.appSettings.playerName,
+        )
+        return
+    }
+    val name = greetingName(state.appSettings, state.linkedProfile?.username)
     CtScreenBackground(modifier) {
         Column(
             modifier = Modifier
@@ -117,9 +130,6 @@ fun HomeScreen(
                 }
             }
             val gutter = Modifier.padding(horizontal = CtSpacing.gutter)
-            if (needsWelcome(state.assessmentState)) {
-                WelcomeCard(state.appSettings.mascot, actions.onStartingLevel, gutter.fillMaxWidth())
-            }
             ContinueCard(state, home, actions, gutter)
             QuickMatch(rating = state.effectiveUserRating, onClick = actions.onQuickMatch, modifier = gutter)
             Row(gutter.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
@@ -263,34 +273,3 @@ private fun TileText(title: String, detail: String) {
     }
 }
 
-/**
- * The first-run welcome (D30, instead of onboarding): one question, three answers. New
- * players go to Learn's basics; online players go to Account to link their account.
- */
-@Composable
-private fun WelcomeCard(mascot: Mascot, onChoose: (StartingLevel) -> Unit, modifier: Modifier) {
-    CtCard(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CtMascotArt(mascot = mascot, height = 52.dp, modifier = Modifier.width(52.dp))
-            Spacer(Modifier.width(CtSpacing.md))
-            Column(Modifier.weight(1f)) {
-                Text("Welcome!", style = CtType.Headline)
-                Text("Where should we start?", style = CtType.BodySmall)
-            }
-        }
-        Spacer(Modifier.height(CtSpacing.sm))
-        StartingLevel.entries.forEachIndexed { i, level ->
-            CtListRow(
-                title = level.label,
-                subtitle = level.detail,
-                icon = when (level) {
-                    StartingLevel.NEW -> Icons.Rounded.School
-                    StartingLevel.RULES -> Icons.Rounded.SportsEsports
-                    StartingLevel.PLAYER -> Icons.Rounded.Link
-                },
-                onClick = { onChoose(level) },
-                divider = i < StartingLevel.entries.lastIndex,
-            )
-        }
-    }
-}

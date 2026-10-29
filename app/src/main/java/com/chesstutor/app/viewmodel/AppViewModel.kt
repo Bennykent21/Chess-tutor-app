@@ -1,5 +1,6 @@
 package com.chesstutor.app.viewmodel
 
+import com.chesstutor.app.data.settings.AppSettingsCodec
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -273,6 +274,8 @@ class AppViewModel(
     fun setAppTheme(theme: AppTheme) = updateSettings { it.copy(appTheme = theme) }
 
     fun setAppearance(appearance: Appearance) = updateSettings { it.copy(appearance = appearance) }
+
+    fun setPlayerName(name: String) = updateSettings { it.copy(playerName = name.trim().take(AppSettingsCodec.MAX_PLAYER_NAME)) }
 
     fun setOnlineEngine(enabled: Boolean) = updateSettings { it.copy(onlineEngine = enabled) }
 

@@ -1,5 +1,12 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.design.CtDivider
+import com.chesstutor.app.design.CtSectionHeader
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Check
+import com.chesstutor.app.design.CtActionPage
 import com.chesstutor.app.data.diagnostics.PerfSnapshot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -66,89 +73,60 @@ fun EngineHealthScreen(
             "Bots and analysis are weaker until it works. Run the check for details."
     }
 
-    CtScreenBackground(modifier) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-        ) {
-            CtTopBar(title = "Engine health", onBack = onBack)
-            Column(
-                modifier = Modifier.padding(horizontal = CtSpacing.gutter),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
+    CtActionPage(
+        title = "Engine",
+        onBack = onBack,
+        modifier = modifier,
+        bottom = { CtButton(text = if (isRunning) "Checking…" else "Run check", onClick = onRunCheck, enabled = !isRunning, modifier = Modifier.weight(1f)) },
+    ) {
+        Row(Modifier.padding(top = CtSpacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(
+                modifier = Modifier.size(48.dp).clip(CtShapes.Pill).background(if (healthy) CtColors.Success else CtColors.Error),
+                contentAlignment = Alignment.Center,
             ) {
-                CtCard(modifier = Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CtIconBubble(
-                            icon = when {
-                                healthy -> Icons.Rounded.CheckCircle
-                                status.nativeState == NativeEngineState.STARTING -> Icons.Rounded.HourglassTop
-                                else -> Icons.Rounded.Warning
-                            },
-                            tint = if (healthy) CtColors.Lime else CtColors.Coral,
-                            size = 52.dp,
-                        )
-                        Spacer(Modifier.width(CtSpacing.md))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = headline, style = CtType.Title)
-                            Text(text = detail, style = CtType.BodySmall)
-                        }
-                    }
-                    val problem = status.problem
-                    if (problem != null) {
-                        Spacer(Modifier.height(CtSpacing.md))
-                        Text(text = problem, style = CtType.Caption.copy(color = CtColors.Coral))
-                    }
-                }
-
-                CtButton(
-                    text = if (isRunning) "Checking..." else "Run engine check",
-                    icon = Icons.Rounded.Memory,
-                    onClick = onRunCheck,
-                    enabled = !isRunning,
-                    modifier = Modifier.fillMaxWidth(),
+                Icon(
+                    imageVector = when {
+                        healthy -> Icons.Rounded.Check
+                        status.nativeState == NativeEngineState.STARTING -> Icons.Rounded.HourglassTop
+                        else -> Icons.Rounded.Warning
+                    },
+                    contentDescription = null,
+                    tint = if (healthy) CtColors.OnSuccess else CtColors.OnError,
                 )
-
-                if (!report.isNullOrBlank()) {
-                    Text(
-                        text = report,
-                        style = CtType.Caption.copy(color = CtColors.Text, fontFamily = JetBrainsMonoFontFamily),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(CtShapes.CardSmall)
-                            .background(CtColors.BgDeep)
-                            .padding(CtSpacing.md),
-                    )
-                }
-
-                Text(
-                    text = "The check runs a one-second search from the starting position. A healthy " +
-                        "result names Stockfish 19, reports its network file, and shows the speed in " +
-                        "nodes per second as Stockfish measured it.",
-                    style = CtType.Caption,
-                )
-
-                SpeedCard(perf)
-                Spacer(Modifier.height(CtSpacing.lg))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(text = headline, style = CtType.Headline)
+                Text(text = detail, style = CtType.Caption)
             }
         }
+        status.problem?.let { Text(text = it, style = CtType.Caption.copy(color = CtColors.Error), modifier = Modifier.padding(top = CtSpacing.md)) }
+        if (!report.isNullOrBlank()) {
+            Text(
+                text = report,
+                style = CtType.Caption.copy(color = CtColors.Text, fontFamily = JetBrainsMonoFontFamily),
+                modifier = Modifier
+                    .padding(top = CtSpacing.md)
+                    .fillMaxWidth()
+                    .clip(CtShapes.CardSmall)
+                    .background(CtColors.Surface)
+                    .padding(CtSpacing.md),
+            )
+        }
+        SpeedCard(perf)
     }
 }
 
 /** "Speed on this phone": start-up, loading, the last analysis and import, measured here (plan Phase 6D). */
 @Composable
 private fun SpeedCard(perf: PerfSnapshot) {
-    CtCard(modifier = Modifier.fillMaxWidth()) {
-        Text("Speed on this phone", style = CtType.TitleSmall)
-        Text("Measured since the app started. Nothing is sent anywhere.", style = CtType.Caption)
-        Spacer(Modifier.height(CtSpacing.sm))
-        speedLines(perf).forEach { (label, value) ->
-            // Both sides get a share of the width, so a long value wraps instead of crushing its label.
-            Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.xxs), horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                Text(label, style = CtType.BodySmall, modifier = Modifier.weight(0.4f))
-                Text(value, style = CtType.BodySmall.copy(color = CtColors.Text), textAlign = TextAlign.End, modifier = Modifier.weight(0.6f))
-            }
+    CtSectionHeader(title = "Speed on this phone")
+    speedLines(perf).forEachIndexed { i, (label, value) ->
+        // Both sides get a share of the width, so a long value wraps instead of crushing its label.
+        Row(Modifier.fillMaxWidth().padding(vertical = CtSpacing.sm), horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            Text(label, style = CtType.BodySmall, modifier = Modifier.weight(0.4f))
+            Text(value, style = CtType.BodySmall.copy(color = CtColors.Text), textAlign = TextAlign.End, modifier = Modifier.weight(0.6f))
         }
+        if (i < speedLines(perf).lastIndex) CtDivider()
     }
 }
 

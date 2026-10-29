@@ -61,6 +61,8 @@ data class AppSettings(
     val appTheme: AppTheme = AppTheme.DEFAULT,
     /** Light, dark, or the phone's setting (D36). */
     val appearance: Appearance = Appearance.DEFAULT,
+    /** What the app calls the player (D46); empty until they give a name. */
+    val playerName: String = "",
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
 
@@ -94,6 +96,7 @@ object AppSettingsCodec {
     const val ONLINE_ENGINE = "online_engine"
     const val APP_THEME = "app_theme"
     const val APPEARANCE = "appearance"
+    const val PLAYER_NAME = "player_name"
 
     /** Marks that settings formerly kept elsewhere were copied in (see [SettingsStore]). */
     const val LEGACY_IMPORTED = "legacy_imported_v1"
@@ -124,6 +127,7 @@ object AppSettingsCodec {
             onlineEngine = bool(ONLINE_ENGINE, defaults.onlineEngine),
             appTheme = AppTheme.fromName(values[APP_THEME] as? String),
             appearance = Appearance.fromName(values[APPEARANCE] as? String),
+            playerName = (values[PLAYER_NAME] as? String).orEmpty().trim().take(MAX_PLAYER_NAME),
         )
     }
 
@@ -145,7 +149,10 @@ object AppSettingsCodec {
         ONLINE_ENGINE to settings.onlineEngine,
         APP_THEME to settings.appTheme.name,
         APPEARANCE to settings.appearance.name,
+        PLAYER_NAME to settings.playerName,
     )
+
+    const val MAX_PLAYER_NAME = 24
 }
 
 /** Where [AppSettings] live. The app uses DataStore; tests and previews use memory. */

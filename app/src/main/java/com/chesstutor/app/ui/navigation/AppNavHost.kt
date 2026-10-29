@@ -1,5 +1,6 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.navigation.needsWelcome
 import com.chesstutor.app.feature.puzzles.PuzzleLevelsScreen
 import android.os.SystemClock
 import com.chesstutor.app.data.diagnostics.PerfLog
@@ -52,10 +53,8 @@ import com.chesstutor.app.domain.PgnFormatter
 import com.chesstutor.app.feature.account.TrainingSources
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.di.AppContainer
-import com.chesstutor.app.feature.account.BoardLabScreen
 import com.chesstutor.app.feature.account.BoardSettingsActions
 import com.chesstutor.app.feature.account.BoardSettingsScreen
-import com.chesstutor.app.feature.account.DesignGalleryScreen
 import com.chesstutor.app.feature.account.EngineHealthScreen
 import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.feature.home.BattleSetupScreen
@@ -163,7 +162,8 @@ private fun AppShell(
         modifier = modifier.fillMaxSize(),
         containerColor = CtColors.BgDeep,
         bottomBar = {
-            if (AppRoutes.showsBottomBar(currentRoute)) {
+            // The first run is a full screen of its own (D46).
+            if (AppRoutes.showsBottomBar(currentRoute) && !needsWelcome(state.assessmentState)) {
                 CtBottomBar(
                     selected = AppRoutes.tabFor(currentRoute),
                     onSelect = { tab -> navController.navigateToTab(tab) }
@@ -228,6 +228,7 @@ private fun AppShell(
                                 navController.navigateToTab(TopTab.PUZZLES)
                                 navController.navigate(AppRoutes.puzzleRelated(listOf(theme))) { launchSingleTop = true }
                             },
+                            onName = viewModel::setPlayerName,
                             onStartingLevel = { level ->
                                 viewModel.chooseStartingLevel(level.rating)
                                 when (level) {
@@ -748,8 +749,8 @@ private fun AppShell(
                             onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
                             onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
                             onOpenLicences = { navController.navigate(AppRoutes.LICENCES) },
-                            onOpenDesignGallery = { navController.navigate(AppRoutes.DESIGN_GALLERY) },
                             onReviewDepth = viewModel::setReviewDepth,
+                            onName = viewModel::setPlayerName,
                             onOnlineEngine = viewModel::setOnlineEngine,
                             onAppTheme = viewModel::setAppTheme,
                             onAppearance = viewModel::setAppearance,
@@ -858,9 +859,6 @@ private fun AppShell(
                 composable(AppRoutes.LICENCES) {
                     LicencesScreen(onBack = { navController.popBackStack() })
                 }
-                composable(AppRoutes.DESIGN_GALLERY) {
-                    DesignGalleryScreen(onBack = { navController.popBackStack() })
-                }
                 composable(AppRoutes.BOARD_SETTINGS) {
                     BoardSettingsScreen(
                         settings = state.appSettings,
@@ -872,16 +870,6 @@ private fun AppShell(
                             onAutoQueen = viewModel::setAutoQueen,
                             onOrientation = viewModel::setBoardOrientation,
                         ),
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-                composable(AppRoutes.BOARD_LAB) {
-                    val context = LocalContext.current
-                    val engine = remember(context) { AppContainer.provideEngineService(context) }
-                    BoardLabScreen(
-                        settings = state.appSettings,
-                        engine = engine,
-                        onFeedback = viewModel::playBoardFeedback,
                         onBack = { navController.popBackStack() }
                     )
                 }

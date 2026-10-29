@@ -115,7 +115,7 @@ class HomeScreensTest {
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 HomeScreen(
-                    state = AppUiState(),
+                    state = AppUiState(assessmentState = "COMPLETE"),
                     home = home,
                     actions = noActions.copy(onOpenBot = { opened = it }, onResume = { resumed = true }, onOpenBots = { bots = true }),
                 )
@@ -147,7 +147,7 @@ class HomeScreensTest {
         )
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                HomeScreen(state = AppUiState(), home = home, actions = noActions.copy(onOpenLesson = { lesson = it }, onPractiseTheme = { theme = it }))
+                HomeScreen(state = AppUiState(assessmentState = "COMPLETE"), home = home, actions = noActions.copy(onOpenLesson = { lesson = it }, onPractiseTheme = { theme = it }))
             }
         }
         compose.onNodeWithText("Italian Game").assertExists()

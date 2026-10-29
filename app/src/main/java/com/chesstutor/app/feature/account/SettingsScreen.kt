@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.data.settings.AppSettingsCodec
+import com.chesstutor.app.design.CtButton
+import com.chesstutor.app.design.CtTextField
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -89,7 +92,8 @@ data class SettingsActions(
     val onAppTheme: (AppTheme) -> Unit = {},
     val onAppearance: (Appearance) -> Unit = {},
     /** The design gallery, shown while the Phase 7 redesign is under way. */
-    val onOpenDesignGallery: () -> Unit = {},
+    /** The name the app calls the player (D46). */
+    val onName: (String) -> Unit = {},
     /** Every saved game as one PGN text, for "Export my games". */
     val exportPgn: suspend () -> String = { "" },
     /** The crash log on this phone ("" when there were no crashes), and clearing it. */
@@ -125,6 +129,7 @@ fun SettingsScreen(
     var exportMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmErase by rememberSaveable { mutableStateOf(false) }
     var coachSheet by rememberSaveable { mutableStateOf(false) }
+    var nameSheet by rememberSaveable { mutableStateOf(false) }
     // Re-read after a share or clear, so the counts stay true.
     var dataVersion by remember { mutableIntStateOf(0) }
     var crashText by remember { mutableStateOf("") }
@@ -192,6 +197,12 @@ fun SettingsScreen(
                     subtitle = "${board.displayName}, ${pieces.displayName} pieces",
                     onClick = actions.onOpenBoardSettings,
                     leading = { MiniBoard(board) },
+                )
+                CtListRow(
+                    title = "Name",
+                    icon = null,
+                    subtitle = state.appSettings.playerName.ifBlank { "Not set" },
+                    onClick = { nameSheet = true },
                 )
                 CtListRow(
                     title = "Coach",
@@ -295,12 +306,6 @@ fun SettingsScreen(
                     subtitle = "Stockfish, Maia, puzzles, pieces, sounds, fonts and libraries",
                     icon = Icons.Rounded.Description,
                     onClick = actions.onOpenLicences,
-                )
-                CtListRow(
-                    title = "Design gallery",
-                    subtitle = "Every part of the new design, for the redesign",
-                    icon = Icons.Rounded.Palette,
-                    onClick = actions.onOpenDesignGallery,
                     divider = actions.supportUrl.isNotBlank(),
                 )
                 // Only in builds that carry a support link (plan section 9).
@@ -318,6 +323,11 @@ fun SettingsScreen(
         }
         CtSheet(visible = coachSheet, onDismiss = { coachSheet = false }) {
             CoachPicker(selected = state.appSettings.mascot, onSelect = { actions.onMascot(it); coachSheet = false })
+        }
+        CtSheet(visible = nameSheet, onDismiss = { nameSheet = false }) {
+            var draft by rememberSaveable(nameSheet) { mutableStateOf(state.appSettings.playerName) }
+            CtTextField(value = draft, onValueChange = { draft = it.take(AppSettingsCodec.MAX_PLAYER_NAME) }, label = "Name", placeholder = "What should the coach call you?")
+            CtButton(text = "Save", onClick = { actions.onName(draft); nameSheet = false }, modifier = Modifier.fillMaxWidth())
         }
     }
     if (confirmErase) {

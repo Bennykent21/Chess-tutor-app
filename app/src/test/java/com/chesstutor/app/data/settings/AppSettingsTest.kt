@@ -35,8 +35,16 @@ class AppSettingsTest {
             mascotId = Mascot.SAGE.id,
             appTheme = AppTheme.SLATE,
             appearance = Appearance.DARK,
+            playerName = "Kenny",
         )
         assertEquals(custom, AppSettingsCodec.decode(AppSettingsCodec.encode(custom)))
+    }
+
+    @Test
+    fun aStoredNameIsTrimmedAndKeptShort() {
+        val long = "  " + "x".repeat(40) + "  "
+        assertEquals(AppSettingsCodec.MAX_PLAYER_NAME, AppSettingsCodec.decode(mapOf(AppSettingsCodec.PLAYER_NAME to long)).playerName.length)
+        assertEquals("", AppSettingsCodec.decode(emptyMap()).playerName)
     }
 
     @Test
