@@ -25,11 +25,14 @@ object ReviewCommentary {
         val san = move.san
         val headline = when (move.quality) {
             MoveQuality.BOOK -> "$san is a book move"
+            MoveQuality.FORCED -> "$san is forced"
             MoveQuality.BRILLIANT -> "$san is brilliant!"
             MoveQuality.GREAT -> "$san is a great move"
             MoveQuality.BEST -> "$san is best"
+            MoveQuality.EXCELLENT -> "$san is excellent"
             MoveQuality.GOOD -> "$san is good"
             MoveQuality.INACCURACY -> "$san is an inaccuracy"
+            MoveQuality.MISS -> "$san is a miss"
             MoveQuality.MISTAKE -> "$san is a mistake"
             MoveQuality.BLUNDER -> "$san is a blunder"
         }
@@ -44,7 +47,10 @@ object ReviewCommentary {
                 move.uci != move.bestMove && move.bestSan != null -> "As strong as the engine's first choice, ${move.bestSan}."
                 else -> "The engine's first choice."
             }
+            MoveQuality.FORCED -> "The only legal move."
+            MoveQuality.EXCELLENT -> move.bestSan?.let { "Nearly as strong as $it." } ?: "Nearly as strong as the engine's first choice."
             MoveQuality.GOOD -> move.bestSan?.let { "A solid move. $it was a touch more precise." } ?: "A solid move."
+            MoveQuality.MISS -> move.bestSan?.let { "Your opponent slipped, and $it would have made them pay." } ?: "Your opponent slipped, and this let them off."
             else -> errorDetail(move, after, positionAfter)
         }
         return MoveComment(headline, detail)

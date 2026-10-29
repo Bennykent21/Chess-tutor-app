@@ -36,7 +36,7 @@ object SpecialMoves {
      * played from a position that was neither lost nor already won.
      */
     fun isBrilliant(before: Position, move: Move, after: Position, base: MoveQuality, winBefore: Double, winAfter: Double): Boolean {
-        if (base != MoveQuality.BEST && base != MoveQuality.GOOD) return false
+        if (base != MoveQuality.BEST && base != MoveQuality.EXCELLENT && base != MoveQuality.GOOD) return false
         if (winBefore - winAfter > BRILLIANT_MAX_LOSS) return false
         if (winBefore >= ALREADY_WON || winAfter < STILL_GOOD) return false
         return sacrificed(before, move, after) >= SACRIFICE_CP
