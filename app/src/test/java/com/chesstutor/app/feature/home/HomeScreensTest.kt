@@ -333,7 +333,7 @@ class HomeScreensTest {
         draft = draft.copy(board = draft.board.place(com.chesstutor.app.core.Square.fromAlgebraic("e5"), draft.brush))
         compose.onNodeWithText("The side not to move is in check. Change who moves first.").assertExists()
         compose.onNodeWithText("Black to move").performClick()
-        compose.onNode(hasText("Play from here")).performScrollTo().performClick()
+        compose.onNode(hasText("Play")).performClick()
         assertEquals(true, started)
         assertEquals("4k3/8/8/4Q3/8/8/8/4K3 b - - 0 1", draft.board.toFen())
     }

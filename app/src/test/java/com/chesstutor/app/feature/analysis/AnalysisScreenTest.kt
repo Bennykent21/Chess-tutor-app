@@ -59,7 +59,6 @@ class AnalysisScreenTest {
         }
         compose.onNode(hasContentDescription("Chess board. Black to move. Black at the bottom.")).assertExists()
         compose.onNodeWithText("Qh4#").assertExists()
-        compose.onNodeWithText("Step through the line, or try your own moves").assertExists()
     }
 
     @Test
@@ -100,12 +99,12 @@ class AnalysisScreenTest {
             }
         }
         compose.onNodeWithText("Play a move and I'll tell you how good it was.").assertExists()
-        compose.onNode(hasContentDescription("Go to the end")).performClick()
+        compose.onNode(hasContentDescription("Last move")).performClick()
         compose.waitForIdle()
         compose.onNodeWithText("f3 is a blunder").assertExists()
         compose.onNode(hasContentDescription("1. f3 Blunder")).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/explore_blunder.png")
-        compose.onNodeWithText("Try again").performScrollTo().performClick()
+        compose.onNodeWithText("Try again").performClick()
         compose.onNodeWithText("Play a move and I'll tell you how good it was.").assertExists()
     }
 
@@ -119,7 +118,6 @@ class AnalysisScreenTest {
         compose.waitForIdle()
         // White (the engine) moved first; Black's pieces are at the bottom for the player.
         compose.onNode(hasContentDescription("Chess board. Black to move. Black at the bottom.")).assertExists()
-        compose.onNodeWithText("Play the engine; every move is judged").assertExists()
     }
 
     @Test

@@ -1,5 +1,11 @@
 package com.chesstutor.app.board
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -77,63 +83,70 @@ fun toggleRing(rings: List<SquareRing>, ring: SquareRing): List<SquareRing> =
 // ------------------------------------------------------------------ move list with variations
 
 /**
- * The analysis move list (plan section 4.2): the main line, with variations in brackets in
- * a lighter style. Tap any move to jump there; the current move is gold. A game review passes
- * [marks] to show each move's quality ("?!", "??") in its colour.
+ * The analysis move list (plan section 4.2): one sideways strip of the main line with side
+ * lines in brackets, that scrolls itself to keep the current move in view (move lists are
+ * always a strip). Tap any move to jump there. A review passes [marks] to show each move's
+ * quality in its colour.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AnalysisMoveList(view: AnalysisView, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, marks: Map<Int, MoveMark> = emptyMap()) {
-    FlowRow(
+    val listState = rememberLazyListState()
+    val currentIndex = view.tokens.indexOfFirst { it is NotationToken.MoveToken && it.nodeId == view.currentId }
+    LaunchedEffect(currentIndex) {
+        if (currentIndex >= 0) listState.animateScrollToItem((currentIndex - 2).coerceAtLeast(0))
+    }
+    LazyRow(
+        state = listState,
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .clip(CtShapes.CardSmall)
-            .background(CtColors.Surface)
-            .padding(CtSpacing.sm),
+            .background(CtColors.Surface),
+        contentPadding = PaddingValues(horizontal = CtSpacing.sm, vertical = CtSpacing.xs),
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.xxs),
-        verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         if (view.tokens.isEmpty()) {
-            Text("No moves yet. Play a move on the board.", style = CtType.BodySmall, modifier = Modifier.padding(CtSpacing.xs))
+            item { Text("No moves yet", style = CtType.BodySmall, modifier = Modifier.padding(CtSpacing.xs)) }
         }
-        view.tokens.forEach { token ->
+        itemsIndexed(view.tokens) { _, token ->
             when (token) {
-                is NotationToken.VariationStart -> Text("(", style = CtType.BodySmall, modifier = Modifier.align(Alignment.CenterVertically))
-                is NotationToken.VariationEnd -> Text(")", style = CtType.BodySmall, modifier = Modifier.align(Alignment.CenterVertically))
-                is NotationToken.MoveToken -> {
-                    val current = token.nodeId == view.currentId
-                    val mainLine = token.depth == 0
-                    val mark = marks[token.nodeId]
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .clip(CtShapes.Chip)
-                            .background(if (current) CtColors.Gold else CtColors.Surface)
-                            .ctPressable(role = Role.Button, onClickLabel = "Go to this move") { onSelect(token.nodeId) }
-                            .semantics(mergeDescendants = true) {
-                                contentDescription = listOfNotNull(token.numberLabel, token.san, mark?.spoken, if (mainLine) null else "side line").joinToString(" ")
-                                if (current) stateDescription = "Current move"
-                            }
-                            .padding(horizontal = CtSpacing.xs, vertical = CtSpacing.xxs),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val numberColor = if (current) CtColors.OnGold else CtColors.Text3
-                        val moveColor = when {
-                            current -> CtColors.OnGold
-                            mainLine -> CtColors.Text
-                            else -> CtColors.Text2
-                        }
-                        token.numberLabel?.let { Text("$it ", style = CtType.Caption.copy(color = numberColor)) }
-                        Text(token.san, style = (if (mainLine) CtType.Label else CtType.BodySmall).copy(color = moveColor))
-                        mark?.let { m ->
-                            val tint = if (current) CtColors.OnGold else m.color
-                            when {
-                                m.icon != null -> Icon(m.icon, contentDescription = null, tint = tint, modifier = Modifier.padding(start = CtSpacing.xxs).size(14.dp))
-                                m.symbol.isNotEmpty() -> Text(m.symbol, style = CtType.Label.copy(color = tint))
-                            }
-                        }
-                    }
-                }
+                is NotationToken.VariationStart -> Text("(", style = CtType.BodySmall)
+                is NotationToken.VariationEnd -> Text(")", style = CtType.BodySmall)
+                is NotationToken.MoveToken -> MoveTokenChip(token, current = token.nodeId == view.currentId, mark = marks[token.nodeId], onSelect = onSelect)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoveTokenChip(token: NotationToken.MoveToken, current: Boolean, mark: MoveMark?, onSelect: (Int) -> Unit) {
+    val mainLine = token.depth == 0
+    Row(
+        modifier = Modifier
+            .clip(CtShapes.Chip)
+            .background(if (current) CtColors.Primary else CtColors.Surface)
+            .ctPressable(role = Role.Button, onClickLabel = "Go to this move") { onSelect(token.nodeId) }
+            .semantics(mergeDescendants = true) {
+                contentDescription = listOfNotNull(token.numberLabel, token.san, mark?.spoken, if (mainLine) null else "side line").joinToString(" ")
+                if (current) stateDescription = "Current move"
+            }
+            .padding(horizontal = CtSpacing.xs, vertical = CtSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val numberColor = if (current) CtColors.OnPrimary else CtColors.Text2
+        val moveColor = when {
+            current -> CtColors.OnPrimary
+            mainLine -> CtColors.Text
+            else -> CtColors.Text2
+        }
+        token.numberLabel?.let { Text("$it ", style = CtType.Caption.copy(color = numberColor)) }
+        Text(token.san, style = (if (mainLine) CtType.Label else CtType.BodySmall).copy(color = moveColor))
+        mark?.let { m ->
+            val tint = if (current) CtColors.OnPrimary else m.color
+            when {
+                m.icon != null -> Icon(m.icon, contentDescription = null, tint = tint, modifier = Modifier.padding(start = CtSpacing.xxs).size(14.dp))
+                m.symbol.isNotEmpty() -> Text(m.symbol, style = CtType.Label.copy(color = tint))
             }
         }
     }
