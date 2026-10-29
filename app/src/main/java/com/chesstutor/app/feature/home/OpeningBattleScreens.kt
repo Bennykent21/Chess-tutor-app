@@ -1,5 +1,12 @@
 package com.chesstutor.app.feature.home
 
+import com.chesstutor.app.design.CtShapes
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import com.chesstutor.app.design.CtSegmented
+import com.chesstutor.app.design.CtListRow
+import com.chesstutor.app.design.CtActionPage
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.heightIn
 import com.chesstutor.app.design.CtDivider
@@ -76,8 +83,7 @@ internal fun movesText(line: Opening): String =
         listOfNotNull(entry.numberLabel, entry.san).joinToString(" ")
     }
 
-/** Opening Battle's setup page (plan 6.1): side, opening, mode, the bot's replies, opponent. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Opening Battle's setup page (plan 6.1, mock-up round 17): opening, side, mode, the bot's replies, opponent. */
 @Composable
 fun BattleSetupScreen(
     draft: BattleDraft,
@@ -86,81 +92,39 @@ fun BattleSetupScreen(
     onStart: () -> Unit,
     onBack: () -> Unit,
 ) {
-    CtScreenBackground {
-        Column(Modifier.fillMaxSize()) {
-            CtTopBar(title = "Opening battle", subtitle = "Play or drill one opening", onBack = onBack)
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = CtSpacing.gutter),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
-            ) {
-                CtSectionHeader(title = "You play")
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    SideChoice.entries.forEach { choice ->
-                        CtChip(text = choice.label, selected = draft.side == choice, color = CtColors.Gold, onClick = { onChange { it.copy(side = choice) } })
-                    }
+    val line = draft.line
+    CtActionPage(
+        title = "Opening battle",
+        onBack = onBack,
+        bottom = { CtButton(text = "Start", enabled = line != null, onClick = onStart, modifier = Modifier.weight(1f)) },
+    ) {
+        CtListRow(
+            title = line?.family ?: "Choose an opening",
+            subtitle = line?.let { it.variation.ifEmpty { movesText(it) } },
+            icon = null,
+            onClick = onPickOpening,
+            divider = false,
+            leading = {
+                Box(Modifier.size(40.dp).clip(CtShapes.Pill).background(CtColors.Surface), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Flag, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(22.dp))
                 }
-
-                CtSectionHeader(title = "Opening")
-                val line = draft.line
-                CtCard(onClick = onPickOpening, onClickLabel = "Choose an opening", modifier = Modifier.fillMaxWidth()) {
-                    if (line == null) {
-                        Text("Choose an opening", style = CtType.TitleSmall)
-                        Text("Browse every named line, from the Sicilian to the Grob.", style = CtType.BodySmall)
-                    } else {
-                        Text(line.name, style = CtType.TitleSmall)
-                        Text(movesText(line), style = CtType.BodySmall)
-                        Spacer(Modifier.height(CtSpacing.xs))
-                        Text("Tap to change", style = CtType.Caption.copy(color = CtColors.Teal))
-                    }
-                }
-
-                CtSectionHeader(title = "Mode")
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    BattleMode.entries.forEach { mode ->
-                        CtChip(text = mode.label, selected = draft.mode == mode, color = CtColors.Violet, onClick = { onChange { it.copy(mode = mode) } })
-                    }
-                }
-                Text(draft.mode.description, style = CtType.BodySmall)
-
-                if (draft.mode != BattleMode.SURPRISE) {
-                    CtSectionHeader(title = "The bot replies")
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                        CtChip(text = "Exactly this line", selected = draft.exactReplies, color = CtColors.Teal, onClick = { onChange { it.copy(exactReplies = true) } })
-                        CtChip(
-                            text = "Any ${line?.family ?: "line of the opening"}",
-                            selected = !draft.exactReplies,
-                            color = CtColors.Teal,
-                            onClick = { onChange { it.copy(exactReplies = false) } },
-                        )
-                    }
-                }
-
-                CtSectionHeader(title = "Opponent")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    BattleDraft.OPPONENTS.mapNotNull(BotRoster::byId).forEach { bot ->
-                        CtChip(
-                            text = "${bot.name} ${bot.rating}",
-                            selected = draft.opponentId == bot.id,
-                            color = botAccent(bot.rating),
-                            onClick = { onChange { it.copy(opponentId = bot.id) } },
-                        )
-                    }
-                }
-                Spacer(Modifier.height(CtSpacing.sm))
-                CtButton(
-                    text = "Start",
-                    icon = Icons.Rounded.PlayArrow,
-                    enabled = line != null,
-                    onClick = onStart,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (line == null) Text("Choose an opening to start.", style = CtType.Caption)
-                Spacer(Modifier.height(CtSpacing.lg))
-            }
+            },
+        )
+        CtGroupLabel("You play")
+        CtSegmented(SideChoice.entries, draft.side, { it.label }, { choice -> onChange { it.copy(side = choice) } })
+        CtGroupLabel("Mode")
+        CtSegmented(BattleMode.entries, draft.mode, { it.label }, { mode -> onChange { it.copy(mode = mode) } })
+        if (draft.mode != BattleMode.SURPRISE) {
+            CtGroupLabel("The bot replies")
+            CtSegmented(
+                options = listOf(true, false),
+                selected = draft.exactReplies,
+                label = { exact -> if (exact) "This line" else "Any ${line?.family ?: "line"}" },
+                onSelect = { exact -> onChange { it.copy(exactReplies = exact) } },
+            )
         }
+        CtGroupLabel("Opponent")
+        BotPickerRow(BattleDraft.OPPONENTS.mapNotNull(BotRoster::byId), draft.opponentId) { id -> onChange { it.copy(opponentId = id) } }
     }
 }
 

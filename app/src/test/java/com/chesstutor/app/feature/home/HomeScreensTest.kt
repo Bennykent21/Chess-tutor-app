@@ -302,12 +302,13 @@ class HomeScreensTest {
                 BattleSetupScreen(draft = draft, onChange = { draft = it(draft) }, onPickOpening = {}, onStart = { started = true }, onBack = {})
             }
         }
-        compose.onNodeWithText("Choose an opening to start.").assertExists()
+        compose.onNodeWithText("Choose an opening").assertExists()
+        compose.onNodeWithText("Start").assertIsNotEnabled()
         draft = draft.copy(line = tree.openings.first { it.name == "Sicilian Defense: Najdorf Variation" })
         compose.onNodeWithText("Drill it").performClick()
         compose.onNodeWithText("Any Sicilian Defense").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BattleSetup.png")
-        compose.onNode(hasText("Start")).performScrollTo().performClick()
+        compose.onNode(hasText("Start")).performClick()
         assertEquals(true, started)
         assertEquals(com.chesstutor.app.domain.opening.BattleMode.DRILL, draft.mode)
     }
