@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
@@ -124,7 +125,13 @@ fun AnalysisMoveList(view: AnalysisView, onSelect: (Int) -> Unit, modifier: Modi
                         }
                         token.numberLabel?.let { Text("$it ", style = CtType.Caption.copy(color = numberColor)) }
                         Text(token.san, style = (if (mainLine) CtType.Label else CtType.BodySmall).copy(color = moveColor))
-                        mark?.takeIf { it.symbol.isNotEmpty() }?.let { Text(it.symbol, style = CtType.Label.copy(color = if (current) CtColors.OnGold else it.color)) }
+                        mark?.let { m ->
+                            val tint = if (current) CtColors.OnGold else m.color
+                            when {
+                                m.icon != null -> Icon(m.icon, contentDescription = null, tint = tint, modifier = Modifier.padding(start = CtSpacing.xxs).size(14.dp))
+                                m.symbol.isNotEmpty() -> Text(m.symbol, style = CtType.Label.copy(color = tint))
+                            }
+                        }
                     }
                 }
             }
@@ -239,5 +246,5 @@ private fun ToolButton(icon: ImageVector, label: String, enabled: Boolean, onCli
     }
 }
 
-/** A move's quality in a review's move list: its symbol ("?!"), colour and spoken name. */
-data class MoveMark(val symbol: String, val color: Color, val spoken: String)
+/** A move's quality in a review's move list: its symbol ("?!") or icon, colour and spoken name. */
+data class MoveMark(val symbol: String, val color: Color, val spoken: String, val icon: ImageVector? = null)

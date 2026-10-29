@@ -16,7 +16,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
@@ -48,7 +51,14 @@ data class BoardMarks(
 )
 
 /** A round label drawn on the top-right corner of [square]: [text] on [color] (ARGB). */
-data class SquareBadge(val square: Square, val color: Long, val text: String, val textColor: Long = 0xFFFFFFFFL)
+data class SquareBadge(
+    val square: Square,
+    val color: Long,
+    val text: String,
+    val textColor: Long = 0xFFFFFFFFL,
+    /** Drawn instead of [text], so the badge shows the same icon as the grade everywhere else. */
+    val icon: ImageVector? = null,
+)
 
 /** What an arrow or ring means, which sets its colour. */
 enum class MarkKind { BEST, HINT, USER, ALTERNATIVE, MISTAKE }
@@ -114,6 +124,7 @@ internal fun BoardCanvas(
     val painters = rememberPiecePainters(theme.pieceSet)
     val textMeasurer = rememberTextMeasurer()
     val badgeStyle = CtType.Label
+    val badgeIcon = marks.badge?.icon?.let { rememberVectorPainter(it) }
     val coordinateStyle = CtType.Caption
     val description = boardDescription(position, whiteAtBottom)
 
@@ -135,12 +146,12 @@ internal fun BoardCanvas(
         drawPieces(position, painters, whiteAtBottom, cell, motion)
         marks.rings.forEach { drawRing(it, whiteAtBottom, cell) }
         marks.arrows.forEach { drawArrow(it, whiteAtBottom, cell) }
-        marks.badge?.let { drawBadge(it, whiteAtBottom, cell, textMeasurer, badgeStyle) }
+        marks.badge?.let { drawBadge(it, whiteAtBottom, cell, textMeasurer, badgeStyle, badgeIcon) }
     }
 }
 
 /** A move's quality badge, half over the corner of its square like a sticker. */
-private fun DrawScope.drawBadge(badge: SquareBadge, whiteAtBottom: Boolean, cell: Float, textMeasurer: TextMeasurer, textStyle: TextStyle) {
+private fun DrawScope.drawBadge(badge: SquareBadge, whiteAtBottom: Boolean, cell: Float, textMeasurer: TextMeasurer, textStyle: TextStyle, icon: Painter?) {
     val radius = cell * 0.2f
     val topLeft = cellTopLeft(badge.square, whiteAtBottom, cell)
     val center = Offset(
@@ -149,7 +160,12 @@ private fun DrawScope.drawBadge(badge: SquareBadge, whiteAtBottom: Boolean, cell
     )
     drawCircle(Color(BoardMarkColors.BADGE_SHADOW), radius = radius * 1.08f, center = center + Offset(0f, radius * 0.1f))
     drawCircle(Color(badge.color), radius = radius, center = center)
-    if (badge.text.isNotEmpty()) {
+    if (icon != null) {
+        val side = radius * 1.2f
+        translate(center.x - side / 2f, center.y - side / 2f) {
+            with(icon) { draw(Size(side, side), colorFilter = ColorFilter.tint(Color(badge.textColor))) }
+        }
+    } else if (badge.text.isNotEmpty()) {
         val style = textStyle.copy(fontSize = (radius * 0.95f).toSp(), lineHeight = (radius * 1.1f).toSp(), fontWeight = FontWeight.Black, color = Color(badge.textColor))
         val layout = textMeasurer.measure(badge.text, style)
         drawText(layout, topLeft = center - Offset(layout.size.width / 2f, layout.size.height / 2f))
