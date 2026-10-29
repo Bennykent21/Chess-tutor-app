@@ -657,12 +657,12 @@ private fun AppShell(
                         patternsFor = puzzles::patternsFor,
                         actions = PuzzleModeActions(
                             onRush = { minutes -> play { puzzles.startRush(minutes) } },
-                            onDaily = { play { puzzles.startDaily() } },
                             onThemed = { goal, pattern, difficulty -> play { puzzles.startThemed(goal, pattern, difficulty) } },
                             onCustom = { band, pattern, count, timed -> play { puzzles.startCustom(band, pattern, count, timed) } },
                             onMistakes = { play { puzzles.startMistakes() } }
                         ),
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        pieceSet = state.appSettings.boardTheme.pieceSet,
                     )
                 }
                 composable(AppRoutes.MISTAKE_REVIEW) {

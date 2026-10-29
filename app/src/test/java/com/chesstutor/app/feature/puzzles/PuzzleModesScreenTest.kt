@@ -1,7 +1,7 @@
 package com.chesstutor.app.feature.puzzles
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -21,7 +21,7 @@ import org.robolectric.annotation.GraphicsMode
 
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w400dp-h2400dp-xxhdpi")
+@Config(qualifiers = "w400dp-h900dp-xxhdpi")
 class PuzzleModesScreenTest {
 
     @get:Rule
@@ -42,7 +42,6 @@ class PuzzleModesScreenTest {
                     patternsFor = { patterns.getValue(it) },
                     actions = PuzzleModeActions(
                         onRush = { started += "rush $it" },
-                        onDaily = { started += "daily" },
                         onThemed = { goal, pattern, difficulty -> started += "theme $goal $pattern $difficulty" },
                         onCustom = { band, pattern, count, timed -> started += "custom $band $pattern $count $timed" },
                         onMistakes = { started += "mistakes" },
@@ -51,29 +50,31 @@ class PuzzleModesScreenTest {
                 )
             }
         }
-        compose.onRoot().captureRoboImage()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_modes.png")
 
-        compose.onNodeWithText("3 min").performClick()
-        compose.onNodeWithText("Survival: three strikes").performClick()
-        compose.onNodeWithText("Solve today's puzzle").performClick()
+        compose.onNodeWithContentDescription("3-minute rush").performClick()
+        compose.onNodeWithContentDescription("Survival, three strikes").performClick()
 
         compose.onNodeWithText("Checkmate").performClick()
-        // The custom card lists the same pattern; the first one is in the theme card.
-        compose.onAllNodesWithText("Back-rank mate")[0].performClick()
+        compose.onNodeWithText("Back-rank mate").performClick()
         compose.onNodeWithText("Harder").performClick()
-        compose.onNodeWithText("Start 10 puzzles").performScrollTo().performClick()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_modes_goal.png")
+        compose.onNodeWithText("Start 10 puzzles").performClick()
+        compose.waitForIdle()
 
-        compose.onNodeWithText("1600 to 2000").performScrollTo().performClick()
-        compose.onNodeWithText("20").performScrollTo().performClick()
-        compose.onNodeWithText("Timer").performScrollTo().performClick()
-        compose.onNodeWithText("Start").performScrollTo().performClick()
-        compose.onNodeWithText("Review my mistakes").performScrollTo().performClick()
+        compose.onNodeWithText("Custom run").performScrollTo().performClick()
+        compose.onNodeWithText("1600 to 2000").performClick()
+        compose.onNodeWithText("20").performClick()
+        compose.onNodeWithText("Timer").performClick()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_modes_custom.png")
+        compose.onNodeWithText("Start 20 puzzles").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Puzzles you missed").performScrollTo().performClick()
 
         assertEquals(
             listOf(
                 "rush 3",
                 "rush null",
-                "daily",
                 "theme ${PuzzleGoal.CHECKMATE} backRankMate ${Difficulty.HARDER}",
                 "custom ${RatingBand.STRONG} null 20 true",
                 "mistakes",
