@@ -76,6 +76,7 @@ class GameReviewScreenTest {
         }
         compose.onNodeWithText("The turning point was 3... Nf6. g6 would have kept you in the game.").assertExists()
         compose.onNodeWithText("Key moments").assertExists()
+        compose.onNodeWithText("Players").assertDoesNotExist()
         compose.onNodeWithText("Start review").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_review.png")
 

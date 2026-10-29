@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasAnyAncestor
@@ -191,11 +193,12 @@ class HomeScreensTest {
                 BotSetupScreen(BotRoster.byId("marlo")!!, onPlay = { side, rules -> chosen = side to rules }, onBack = {})
             }
         }
-        compose.onNodeWithText("Gives a pawn away for a wild game.").assertExists()
-        compose.onNodeWithText("Black").performClick()
+        compose.onNodeWithText("Have a pawn, on me. It gets wild from here.").assertExists()
+        // The first "Black" is the side to play; the second labels its openings as Black.
+        compose.onAllNodesWithText("Black")[0].performClick()
         compose.onNodeWithText("10 min").performClick()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BotSetup.png")
-        compose.onNode(hasText("Play Marlo")).performScrollTo().performClick()
+        compose.onNode(hasText("Play")).performClick()
         assertEquals(SideChoice.BLACK, chosen?.first)
         assertEquals(TimeControl.RAPID_10, chosen?.second?.timeControl)
     }
@@ -260,10 +263,10 @@ class HomeScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("Give your bot a name to save it.").assertExists()
+        compose.onNodeWithText("Save bot").assertIsNotEnabled()
         compose.onNodeWithText("Endgame grinder").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.domain.bot.BotStyle.GRINDER, draft.style)
-        compose.onNode(hasText("As Black")).performScrollTo().performClick()
+        compose.onNode(hasText("Black")).performScrollTo().performClick()
         assertEquals(com.chesstutor.app.core.PieceColor.BLACK, chose)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BotBuilder.png")
         assertEquals(false, saved)
@@ -280,7 +283,7 @@ class HomeScreensTest {
         }
         compose.onNodeWithText("Sicilian Defense").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/OpeningPicker.png")
-        compose.onNode(hasText("Search")).assertExists()
+        compose.onNode(hasText("Search openings")).assertExists()
         // Searching narrows the list to the one family and opens it at the matching lines.
         compose.onNode(hasSetTextAction()).performTextInput("Najdorf")
         compose.onAllNodes(hasText("Najdorf Variation", substring = true))[0].assertExists()
@@ -350,7 +353,7 @@ class HomeScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("1 picked").assertExists()
+        compose.onNodeWithText("Done, 1 chosen").assertExists()
         compose.onAllNodes(hasText("Caro-Kann Defense"))[0].performClick()
         assertEquals(true, "Caro-Kann Defense" in picked)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/RepertoirePicker.png")

@@ -1,5 +1,11 @@
 package com.chesstutor.app.design
 
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.rounded.Search
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -59,6 +65,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -931,6 +939,112 @@ fun CtConfirmDialog(
             TextButton(onClick = onDismiss) { Text(text = "Cancel", style = CtType.Button.copy(color = CtColors.Text)) }
         },
     )
+}
+
+/** A search box: a magnifier and a placeholder, no label above (game filters, opening lists). */
+@Composable
+fun CtSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(CtSpacing.touchTarget)
+            .clip(CtShapes.Control)
+            .background(CtColors.Surface)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(Icons.Rounded.Search, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(18.dp))
+        Box(Modifier.weight(1f)) {
+            if (value.isEmpty()) Text(placeholder, style = CtType.Body.copy(color = CtColors.Text2), maxLines = 1)
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = CtType.Body.copy(color = CtColors.Text),
+                cursorBrush = SolidColor(CtColors.Text),
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = placeholder },
+            )
+        }
+    }
+}
+
+/** One entry of a [CtOverflowMenu]; [destructive] ones (Delete) are written in the error colour. */
+data class CtMenuItem(val label: String, val destructive: Boolean = false, val onClick: () -> Unit)
+
+/** The three-dot button at the top right and its menu, for actions that are not the page's main one. */
+@Composable
+fun CtOverflowMenu(items: List<CtMenuItem>, modifier: Modifier = Modifier) {
+    var open by remember { mutableStateOf(false) }
+    Box(modifier) {
+        Box(
+            modifier = Modifier
+                .size(CtSpacing.touchTarget)
+                .clip(CtShapes.Pill)
+                .ctPressable(onClickLabel = "More options") { open = true },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Rounded.MoreVert, contentDescription = "More options", tint = CtColors.Text)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = CtColors.Raised) {
+            items.forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(item.label, style = CtType.Body.copy(color = if (item.destructive) CtColors.Error else CtColors.Text)) },
+                    onClick = {
+                        open = false
+                        item.onClick()
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** The small grey name over a group of choices ("You play", "Clock"). */
+@Composable
+fun CtGroupLabel(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = CtType.Label.copy(color = CtColors.Text2), modifier = modifier.padding(top = CtSpacing.lg, bottom = CtSpacing.sm))
+}
+
+/**
+ * A settings-style page whose content scrolls under a top bar while its one main action
+ * stays fixed at the bottom ("Play", "Save bot", "Start").
+ */
+@Composable
+fun CtActionPage(
+    title: String,
+    onBack: (() -> Unit)?,
+    bottom: @Composable RowScope.() -> Unit,
+    modifier: Modifier = Modifier,
+    actions: @Composable (RowScope.() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    CtScreenBackground(modifier) {
+        Column(Modifier.fillMaxSize()) {
+            CtTopBar(title = title, onBack = onBack, trailing = actions)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = CtSpacing.gutter, end = CtSpacing.gutter, bottom = CtSpacing.lg),
+                content = content,
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                content = bottom,
+            )
+        }
+    }
 }
 
 /** A one-line text input with its label above. */

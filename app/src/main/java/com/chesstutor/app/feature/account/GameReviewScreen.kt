@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.design.GradeColor
 import com.chesstutor.app.design.CtSpeechBubble
@@ -166,7 +167,7 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
     val black = if (game.userColor == PieceColor.BLACK) "You" else game.opponent
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 96.dp)) {
-        CtTopBar(title = "Game review", subtitle = "vs ${game.opponent}, ${resultTitle(game)}", onBack = actions.onBack)
+        CtTopBar(title = "Game review", onBack = actions.onBack)
         Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
             AnalysisStatus(state, review, actions)
             // While the analysis runs, the graph growing across the width is the progress.
@@ -200,16 +201,6 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
                                 actions.onPractise(moment)
                             },
                         )
-                    }
-                }
-            }
-            CtCard(modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CtIconBubble(icon = Icons.AutoMirrored.Rounded.MenuBook, tint = CtColors.Teal, size = 36.dp)
-                    Spacer(Modifier.width(CtSpacing.md))
-                    Column(Modifier.weight(1f)) {
-                        Text(game.openingName ?: "Opening not named", style = CtType.Label)
-                        openingDetail(game)?.let { Text(it, style = CtType.Caption) }
                     }
                 }
             }
@@ -252,18 +243,12 @@ private fun PlayersAndCounts(review: GameReview, white: String, black: String) {
     val w = review.report(PieceColor.WHITE)
     val b = review.report(PieceColor.BLACK)
     CtCard(modifier = Modifier.fillMaxWidth()) {
+        // Each player's name and accuracy in one box, over their column of counts.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Players", style = CtType.Label, modifier = Modifier.weight(1f))
-            PlayerName(white, Modifier.width(COLUMN))
+            Spacer(Modifier.weight(1f))
+            AccuracyBox(white, w.accuracy, light = true, modifier = Modifier.width(COLUMN))
             Spacer(Modifier.width(GAP))
-            PlayerName(black, Modifier.width(COLUMN))
-        }
-        Spacer(Modifier.height(CtSpacing.sm))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Accuracy", style = CtType.Label, modifier = Modifier.weight(1f))
-            AccuracyBox(w.accuracy, light = true, modifier = Modifier.width(COLUMN))
-            Spacer(Modifier.width(GAP))
-            AccuracyBox(b.accuracy, light = false, modifier = Modifier.width(COLUMN))
+            AccuracyBox(black, b.accuracy, light = false, modifier = Modifier.width(COLUMN))
         }
         Spacer(Modifier.height(CtSpacing.md))
         SUMMARY_ORDER.forEach { q ->
@@ -294,21 +279,21 @@ private fun countColor(quality: MoveQuality): Color = if (quality == MoveQuality
 private val COLUMN = 88.dp
 private val GAP = 36.dp
 
+/** A player's name over their accuracy: White's box light, Black's dark, like the pieces. */
 @Composable
-private fun PlayerName(name: String, modifier: Modifier) {
-    Text(name, style = CtType.Label, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = modifier)
-}
-
-@Composable
-private fun AccuracyBox(accuracy: Double?, light: Boolean, modifier: Modifier) {
-    Box(
-        modifier = modifier.clip(CtShapes.Chip).background(if (light) CtColors.Text else CtColors.BgDeep).padding(vertical = CtSpacing.sm),
-        contentAlignment = Alignment.Center,
+private fun AccuracyBox(name: String, accuracy: Double?, light: Boolean, modifier: Modifier) {
+    val ink = if (light) CtColors.Text else CtColors.Bg
+    Column(
+        modifier = modifier
+            .clip(CtShapes.CardSmall)
+            .background(if (light) CtColors.Raised else CtColors.Text)
+            .then(if (light) Modifier.border(1.dp, CtColors.Line, CtShapes.CardSmall) else Modifier)
+            .semantics(mergeDescendants = true) {}
+            .padding(vertical = CtSpacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            accuracy?.let { String.format(Locale.UK, "%.1f", it) } ?: "–",
-            style = CtType.Number.copy(color = if (light) CtColors.BgDeep else CtColors.Text),
-        )
+        Text(name, style = CtType.Caption.copy(color = ink.copy(alpha = 0.75f)), maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(accuracy?.let { String.format(Locale.UK, "%.1f", it) } ?: "–", style = CtType.Number.copy(color = ink))
     }
 }
 
@@ -696,9 +681,12 @@ internal fun accuracyText(accuracy: Double?): String =
 
 @Composable
 private fun KeyMoment(move: ReviewedMove, added: Boolean, onShow: () -> Unit, onPractise: () -> Unit) {
-    CtCard(onClick = onShow, onClickLabel = "Show this move", contentPadding = PaddingValues(CtSpacing.md), modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            QualityIcon(move.quality, size = 28)
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().ctPressable(onClickLabel = "Show this move", onClick = onShow).padding(vertical = CtSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            QualityIcon(move.quality, size = 30)
             Spacer(Modifier.width(CtSpacing.md))
             Column(Modifier.weight(1f)) {
                 Text("${move.numberLabel} ${move.san}", style = CtType.Label, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -706,12 +694,11 @@ private fun KeyMoment(move: ReviewedMove, added: Boolean, onShow: () -> Unit, on
             }
             CtChip(
                 text = if (added) "Added" else "Practise",
-                color = CtColors.Teal,
-                icon = Icons.Rounded.School,
                 selected = added,
                 onClick = { if (!added) onPractise() },
             )
         }
+        CtDivider()
     }
 }
 
