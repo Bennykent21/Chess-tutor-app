@@ -60,15 +60,23 @@ check_arm64_paths() {
     echo "warning: no qemu-aarch64, so the arm64 binary was not run" >&2
     return 0
   fi
-  old_arch="$("$qemu" -cpu cortex-a53 "$bin" compiler 2>&1 | awk -F: '/Compilation architecture/ { gsub(/[[:space:]]/, "", $2); print $2; exit }')"
-  new_arch="$("$qemu" -cpu cortex-a76 "$bin" compiler 2>&1 | awk -F: '/Compilation architecture/ { gsub(/[[:space:]]/, "", $2); print $2; exit }')"
-  echo "paths taken: old CPU $old_arch, modern CPU $new_arch"
+  run_on() { "$qemu" -cpu "$@" 2>&1 || echo "exit code $?"; }
+  arch_of() { printf '%s\n' "$1" | awk -F: '/Compilation architecture/ { gsub(/[[:space:]]/, "", $2); print $2; exit }'; }
+  nodes_of() { printf '%s\n' "$1" | awk '/^Nodes searched/ { print $NF }'; }
+  local out_old out_new
+  out_old="$(run_on cortex-a53 "$bin" compiler)"
+  out_new="$(run_on cortex-a76 "$bin" compiler)"
+  old_arch="$(arch_of "$out_old")"
+  new_arch="$(arch_of "$out_new")"
+  echo "paths taken: old CPU '$old_arch', modern CPU '$new_arch'"
   if [ "$old_arch" != "armv8" ] || [ "$new_arch" != "armv8-dotprod" ]; then
     echo "error: expected armv8 and armv8-dotprod" >&2
+    printf '%s\n' "$out_old" | tail -n 20
+    "$qemu" -strace -cpu cortex-a53 "$bin" compiler 2>&1 | tail -n 40 || true
     return 1
   fi
-  old="$("$qemu" -cpu cortex-a53 "$bin" bench 16 1 10 2>&1 | awk '/^Nodes searched/ { print $NF }')"
-  new="$("$qemu" -cpu cortex-a76 "$bin" bench 16 1 10 2>&1 | awk '/^Nodes searched/ { print $NF }')"
+  old="$(nodes_of "$(run_on cortex-a53 "$bin" bench 16 1 10)")"
+  new="$(nodes_of "$(run_on cortex-a76 "$bin" bench 16 1 10)")"
   echo "bench nodes: plain $old, dot product $new"
   if [ -z "$old" ] || [ "$old" != "$new" ]; then
     echo "error: the two paths disagree (plain '$old', dot product '$new')" >&2
