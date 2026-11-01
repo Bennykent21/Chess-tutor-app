@@ -137,11 +137,19 @@ build_abi() {
   esac
 
   echo "::group::Build Stockfish for $abi ($arch, API $ANDROID_API)"
+  # The universal build links statically, and Android's C library then refuses to start an arm64
+  # program whose thread-local data is aligned below 64 bytes. One aligned variable fixes that.
+  local tls_align=""
+  if [ "$abi" = "arm64-v8a" ]; then
+    tls_align="$WORK/tls_align.o"
+    echo 'static __thread char tls_align[64] __attribute__((aligned(64), used));' \
+      | "${triple}${ANDROID_API}-clang" -x c -fno-emulated-tls -c - -o "$tls_align"
+  fi
   make -C "$SRC" objclean
   make -C "$SRC" -j"$(nproc)" build \
     ARCH="$arch" COMP=ndk \
     COMPCXX="${triple}${ANDROID_API}-clang++" \
-    EXTRALDFLAGS="-Wl,-z,max-page-size=$PAGE_SIZE -Wl,-z,common-page-size=$PAGE_SIZE"
+    EXTRALDFLAGS="-Wl,-z,max-page-size=$PAGE_SIZE -Wl,-z,common-page-size=$PAGE_SIZE $tls_align"
   llvm-strip "$SRC/stockfish"
   echo "::endgroup::"
 
