@@ -107,6 +107,28 @@ class ImportMoreTest {
         return games
     }
 
+    /** The month's newer games used to use up the limit, and its older ones were never reached. */
+    @Test
+    fun aPartlyImportedMonthStillGivesItsOlderGames() {
+        val month = listOf("old" to "2026-10-02", "new1" to "2026-10-20", "new2" to "2026-10-21")
+        val json = JSONObject().put("games", JSONArray(month.map { (id, day) -> gameJson(id, day) })).toString()
+
+        val games = RatingApiClient().parseChessComArchiveJson(json, "kenny", maxGames = 1, beforeMillis = millis("2026-10-10"))
+
+        assertEquals(listOf("chesscom_old"), games.map { it.id })
+    }
+
+    /** Only six games exist, so a count against 100 alone would leave the bar at 6%. */
+    @Test
+    fun theProgressBarFillsEvenWhenTheAccountHasFewerGamesThanAskedFor() = runBlocking {
+        val shown = mutableListOf<Float>()
+
+        fakeChessCom().fetchRecentGames(RatingPlatform.CHESS_COM, "kenny", maxGames = 100, onProgress = { shown += it.shownFraction })
+
+        assertEquals("the bar never falls back", shown.sorted(), shown)
+        assertEquals(1f, shown.last(), 0f)
+    }
+
     @Test
     fun importMoreBringsTheGamesBeforeTheOldestSavedOne() = runBlocking {
         val requests = mutableListOf<String>()

@@ -140,6 +140,7 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         private const val PERIOD = "period"
         private const val PHASE = "phase"
         private const val DONE = "done"
+        private const val FRACTION = "fraction"
 
         fun input(request: ImportRequest): Data = workDataOf(
             KIND to request.kind.name,
@@ -188,6 +189,7 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             .putString(PERIOD, progress.currentPeriod)
             .putString(PHASE, progress.phase)
             .putInt(FAILED, progress.failedPeriods)
+            .putFloat(FRACTION, progress.fraction ?: -1f)
             .build()
 
         fun progressOf(data: Data, request: ImportRequest): ImportProgress = ImportProgress(
@@ -196,6 +198,7 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             currentPeriod = data.getString(PERIOD) ?: request.platform.displayName,
             phase = data.getString(PHASE) ?: "Starting…",
             failedPeriods = data.getInt(FAILED, 0),
+            fraction = data.getFloat(FRACTION, -1f).takeIf { it >= 0f },
         )
 
         private fun output(finished: ImportStatus.Finished): Data = Data.Builder()

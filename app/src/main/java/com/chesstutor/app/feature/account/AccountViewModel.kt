@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import kotlinx.coroutines.flow.conflate
 import com.chesstutor.app.data.diagnostics.PerfLog
 import com.chesstutor.app.data.diagnostics.AnalysisTiming
 import androidx.lifecycle.ViewModel
@@ -138,7 +139,8 @@ class AccountViewModel(
     private val cache = HashMap<String, GameSummary>()
 
     val games: StateFlow<GamesState> = combine(
-        combine(repository.observeGames(), tree.filterNotNull()) { records, openings -> summarise(records, openings) }.flowOn(worker),
+        // An import saves many batches: keep up with the latest, not every one of them.
+        combine(repository.observeGames().conflate(), tree.filterNotNull()) { records, openings -> summarise(records, openings) }.flowOn(worker),
         analysis.observeSummaries(),
     ) { list, analysed -> GamesState(loading = false, games = list, analysed = analysed) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GamesState())

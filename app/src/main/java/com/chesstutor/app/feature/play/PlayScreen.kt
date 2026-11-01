@@ -1,8 +1,8 @@
 package com.chesstutor.app.feature.play
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.board.BoardView
 import com.chesstutor.app.board.BoardMarks
@@ -177,7 +177,12 @@ fun PlayScreen(
                     BoardView(
                         position = past,
                         theme = settings.boardTheme,
-                        modifier = modifier,
+                        // A tap on the board comes back to the game, as does its latest move in the strip.
+                        modifier = modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClickLabel = "Back to the game",
+                        ) { viewedPly = null },
                         whiteAtBottom = whiteBottom,
                         showCoordinates = settings.showCoordinates,
                         showLegalDots = false,
@@ -268,20 +273,11 @@ fun PlayScreen(
                     captured = { takenBy(setup.playerColor) },
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-                val at = shownPly ?: latestPly
-                StepButton(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Previous move", enabled = at > 0) { viewedPly = at - 1 }
-                BoardMoveList(
-                    entries = remember(board.version) { moveListOf(board.start, board.moves) },
-                    currentPly = at,
-                    modifier = Modifier.weight(1f),
-                    onSelect = { ply -> viewedPly = ply.takeIf { it < latestPly } },
-                )
-                StepButton(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next move", enabled = shownPly != null) { viewedPly = (at + 1).takeIf { it < latestPly } }
-            }
-            if (shownPly != null) {
-                CtButton(text = "Back to the game", style = CtButtonStyle.Secondary, onClick = { viewedPly = null }, modifier = Modifier.fillMaxWidth())
-            }
+            BoardMoveList(
+                entries = remember(board.version) { moveListOf(board.start, board.moves) },
+                currentPly = shownPly ?: latestPly,
+                onSelect = { ply -> viewedPly = ply.takeIf { it < latestPly } },
+            )
             openingLine(state)?.let { Text(it, style = CtType.Caption) }
             state.battleTitle?.let { battle ->
                 CtCoachStrip(
@@ -312,22 +308,6 @@ fun PlayScreen(
  * chat fades in over its name, with a tail pointing at its face, and never changes the strip's
  * height (D41). Tap the line to close it.
  */
-/** A small arrow beside the move strip, to look back through the game. */
-@Composable
-private fun StepButton(icon: ImageVector, description: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CtShapes.Chip)
-            .background(CtColors.Surface)
-            .ctPressable(enabled = enabled, onClickLabel = description, onClick = onClick)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = if (enabled) CtColors.Text else CtColors.Track)
-    }
-}
-
 @Composable
 private fun PlayerStrip(
     name: String,
