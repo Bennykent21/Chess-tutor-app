@@ -31,12 +31,12 @@ class ExploreJudgeTest {
         val before = PlyEval(0, centipawns = 30, mate = null, bestMove = "e2e4")
         val fine = ExploreJudge.judge(start, "e2e4", before, PlyEval(1, centipawns = 30, mate = null, bestMove = "e7e5"))!!
         assertEquals(MoveQuality.BEST, fine.move.quality)
-        assertEquals("e4 is best", fine.comment.headline)
+        assertEquals("Pawn to e4 is best", fine.comment.headline)
 
         val bad = ExploreJudge.judge(start, "f2f3", before, PlyEval(1, centipawns = -450, mate = null, bestMove = "e7e5"))!!
         assertEquals(MoveQuality.BLUNDER, bad.move.quality)
         assertEquals("e4", bad.move.bestSan)
-        assertTrue(bad.comment.headline, bad.comment.headline.startsWith("f3 is a blunder"))
+        assertTrue(bad.comment.headline, bad.comment.headline.startsWith("Pawn to f3 is a blunder"))
         assertNull("not a legal move", ExploreJudge.judge(start, "e2e5", before, before))
     }
 }

@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -247,6 +249,36 @@ class HomeScreensTest {
         assertEquals(true, rematch)
     }
 
+    /** Beta review: look back through a game without undoing anything. */
+    @Test
+    fun theMovesCanBeSteppedThroughWithoutUndoing() {
+        val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(OpeningTree::fromStream)
+        val engine = FakeEngine()
+        val game = BotGame(
+            GameSetup(BotRoster.byId("wayne")!!.profile, PieceColor.WHITE, GameRules()),
+            BotBrain(engine, Random(3)), engine, { tree }, InMemoryGameRepository(), scope, clock = { scheduler.currentTime },
+        )
+        game.start()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                PlayScreen(game, AppSettings(), onFeedback = {}, onRematch = {}, onAnalyse = { _, _ -> }, onBack = {})
+            }
+        }
+        step()
+        game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e2e4" })
+        step(5_000)
+        val moves = game.session.state.value.moves.size
+        assertTrue("both sides have moved", moves >= 2)
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        val bounds = board.fetchSemanticsNode().boundsInRoot
+        compose.onNodeWithContentDescription("Previous move").performClick()
+        compose.onNodeWithText("Back to the game").assertExists()
+        assertEquals("nothing was undone", moves, game.session.state.value.moves.size)
+        assertEquals("the board stayed put", bounds, board.fetchSemanticsNode().boundsInRoot)
+        compose.onNodeWithText("Back to the game").performClick()
+        compose.onNodeWithText("Back to the game").assertDoesNotExist()
+    }
+
     @Test
     fun theBuilderEditsTheDraft() {
         var draft by mutableStateOf(com.chesstutor.app.domain.bot.BotDraft())
@@ -337,6 +369,30 @@ class HomeScreensTest {
         compose.onNode(hasText("Play")).performClick()
         assertEquals(true, started)
         assertEquals("4k3/8/8/4Q3/8/8/8/4K3 b - - 0 1", draft.board.toFen())
+    }
+
+    /** Regression (phone review 29 Oct): every tap placed the first piece again on the first board. */
+    @Test
+    fun tappingThePaletteThenTheBoardPlacesThatPieceEachTime() {
+        var draft by mutableStateOf(PositionDraft(board = com.chesstutor.app.domain.game.SetupBoard.KINGS_ONLY))
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                PositionSetupScreen(draft = draft, theme = AppSettings().boardTheme, opponents = BotRoster.bots.take(4), onChange = { draft = it(draft) }, onStart = {}, onBack = {})
+            }
+        }
+        val board = compose.onNode(androidx.compose.ui.test.hasContentDescription("Chess board", substring = true))
+        // Squares from White's side: file a..h left to right, rank 8 at the top.
+        fun tap(square: String) = board.performTouchInput {
+            val cell = width / 8f
+            click(androidx.compose.ui.geometry.Offset(("abcdefgh".indexOf(square[0]) + 0.5f) * cell, (8 - square[1].digitToInt() + 0.5f) * cell))
+        }
+        compose.onNodeWithContentDescription("black rook").performClick()
+        tap("a4")
+        tap("h4")
+        compose.onNodeWithContentDescription("white knight").performClick()
+        tap("c3")
+        compose.waitForIdle()
+        assertEquals("4k3/8/8/8/r6r/2N5/8/4K3 w - - 0 1", draft.board.toFen())
     }
 
     @Test

@@ -227,7 +227,7 @@ class RatingLinkCoordinator(
                 else -> null
             }
             val partial = if (done.failedPeriods > 0) " · some games couldn't be downloaded, tap Import to retry" else ""
-            val incomplete = if (done.incomplete > 0) " (${done.incomplete} incomplete PGN${if (done.incomplete == 1) "" else "s"})" else ""
+            val incomplete = if (done.incomplete > 0) " (${done.incomplete} could only be read in part)" else ""
             val name = "'@${request.username}'"
             val success = when (request.kind) {
                 ImportKind.LINK -> "Connected ${request.platform.displayName} $name" +

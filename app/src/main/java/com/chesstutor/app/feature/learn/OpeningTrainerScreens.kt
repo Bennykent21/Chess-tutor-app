@@ -76,10 +76,8 @@ fun OpeningTrainerScreen(state: TrainerState, onOpen: (openingId: String) -> Uni
             }
         },
     ) {
-        if (state.loading) {
-            CtEmptyState(icon = Icons.Rounded.Lightbulb, title = "Opening the book", body = "Reading the opening database…")
-            return@CtActionPage
-        }
+        // Read when the app starts, so this is at most a blink: nothing to announce.
+        if (state.loading) return@CtActionPage
         CtSegmented(
             options = listOf(PieceColor.WHITE, PieceColor.BLACK),
             selected = side,
@@ -141,6 +139,8 @@ fun OpeningDrillScreen(
     onPickLine: (lineId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens the Learn course that explains this opening, when there is one. */
+    onLearn: (() -> Unit)? = null,
 ) {
     if (drill == null) {
         CtScreenBackground(modifier) {
@@ -207,6 +207,7 @@ fun OpeningDrillScreen(
             modifier = Modifier.horizontalScroll(rememberScrollState()).padding(top = CtSpacing.md),
             horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
         ) {
+            onLearn?.let { CtChip(text = "Learn the ideas", icon = Icons.Rounded.Lightbulb, onClick = it) }
             drill.lines.forEach { line ->
                 CtChip(text = line.variation, selected = line.id == drill.line.id, onClick = { onPickLine(line.id) })
             }

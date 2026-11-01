@@ -1,5 +1,11 @@
 package com.chesstutor.app.feature.play
 
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import com.chesstutor.app.domain.account.GameReviewer
+import com.chesstutor.app.board.BoardView
+import com.chesstutor.app.board.BoardMarks
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -134,6 +140,11 @@ fun PlayScreen(
     var resultClosed by rememberSaveable(game) { mutableStateOf(false) }
     if (!over && resultClosed) resultClosed = false
     var confirmResign by rememberSaveable { mutableStateOf(false) }
+    // Looking back through the game (a move number), or null on the live position. Nothing is undone.
+    var viewedPly by rememberSaveable(game) { mutableStateOf<Int?>(null) }
+    val latestPly = board.moves.size
+    val shownPly = viewedPly?.takeIf { it < latestPly }
+    val positions = remember(board.version) { GameReviewer.positions(board.start.toFen(), board.moves.map { it.uci }) }
 
     val title = when {
         watch != null -> "Bot vs bot"
@@ -161,17 +172,30 @@ fun PlayScreen(
                     BoardEvalBar(centipawns = state.evalCp, mateIn = state.evalMate, whiteAtBottom = whiteBottom, modifier = modifier)
                 } else null,
             ) { modifier ->
-                BoardHost(
-                    session = game.session,
-                    theme = settings.boardTheme,
-                    modifier = modifier,
-                    whiteAtBottom = whiteBottom,
-                    showCoordinates = settings.showCoordinates,
-                    showLegalDots = settings.showLegalDots,
-                    autoQueen = settings.autoQueen,
-                    arrows = listOfNotNull(state.hint),
-                    onFeedback = onFeedback,
-                )
+                val past = shownPly?.let(positions::getOrNull)
+                if (past != null) {
+                    BoardView(
+                        position = past,
+                        theme = settings.boardTheme,
+                        modifier = modifier,
+                        whiteAtBottom = whiteBottom,
+                        showCoordinates = settings.showCoordinates,
+                        showLegalDots = false,
+                        marks = BoardMarks(lastMove = board.moves.getOrNull(shownPly - 1)?.let { it.from to it.to }),
+                    )
+                } else {
+                    BoardHost(
+                        session = game.session,
+                        theme = settings.boardTheme,
+                        modifier = modifier,
+                        whiteAtBottom = whiteBottom,
+                        showCoordinates = settings.showCoordinates,
+                        showLegalDots = settings.showLegalDots,
+                        autoQueen = settings.autoQueen,
+                        arrows = listOfNotNull(state.hint),
+                        onFeedback = onFeedback,
+                    )
+                }
             }
         },
         controls = {
@@ -244,7 +268,20 @@ fun PlayScreen(
                     captured = { takenBy(setup.playerColor) },
                 )
             }
-            BoardMoveList(entries = remember(board.version) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+                val at = shownPly ?: latestPly
+                StepButton(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Previous move", enabled = at > 0) { viewedPly = at - 1 }
+                BoardMoveList(
+                    entries = remember(board.version) { moveListOf(board.start, board.moves) },
+                    currentPly = at,
+                    modifier = Modifier.weight(1f),
+                    onSelect = { ply -> viewedPly = ply.takeIf { it < latestPly } },
+                )
+                StepButton(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next move", enabled = shownPly != null) { viewedPly = (at + 1).takeIf { it < latestPly } }
+            }
+            if (shownPly != null) {
+                CtButton(text = "Back to the game", style = CtButtonStyle.Secondary, onClick = { viewedPly = null }, modifier = Modifier.fillMaxWidth())
+            }
             openingLine(state)?.let { Text(it, style = CtType.Caption) }
             state.battleTitle?.let { battle ->
                 CtCoachStrip(
@@ -275,6 +312,22 @@ fun PlayScreen(
  * chat fades in over its name, with a tail pointing at its face, and never changes the strip's
  * height (D41). Tap the line to close it.
  */
+/** A small arrow beside the move strip, to look back through the game. */
+@Composable
+private fun StepButton(icon: ImageVector, description: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CtShapes.Chip)
+            .background(CtColors.Surface)
+            .ctPressable(enabled = enabled, onClickLabel = description, onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = if (enabled) CtColors.Text else CtColors.Track)
+    }
+}
+
 @Composable
 private fun PlayerStrip(
     name: String,

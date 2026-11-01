@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.rounded.PlayArrow
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtActionPage
@@ -300,7 +301,12 @@ private fun DonePage(
     ) {
         Column(Modifier.fillMaxWidth().padding(top = CtSpacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
             CtMascotArt(mascot = settings.mascot, mood = MascotMood.PROUD, height = 140.dp, modifier = Modifier.size(140.dp))
-            Text("Lesson complete", style = CtType.Display, modifier = Modifier.padding(top = CtSpacing.md))
+            Text(
+                text = settings.playerName.ifBlank { null }?.let { "Well done, $it" } ?: "Lesson complete",
+                style = CtType.Display,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = CtSpacing.md),
+            )
             when {
                 completion == null -> Text("Saving…", style = CtType.Caption)
                 completion.xp > 0 -> Text("+${completion.xp} XP", style = CtType.BigNumber.copy(color = CtColors.Accent))

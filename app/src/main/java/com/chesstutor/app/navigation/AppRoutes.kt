@@ -23,9 +23,13 @@ object AppRoutes {
     fun game(id: String): String = "account/game/${encode(id)}"
     /** A game's review on the board, full screen (no bottom bar); [analyse] starts Stockfish on arrival. */
     const val ANALYSE_ARG = "analyse"
-    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}?$ANALYSE_ARG={$ANALYSE_ARG}"
-    fun review(id: String, analyse: Boolean = false): String =
-        "account/review/${encode(id)}" + if (analyse) "?$ANALYSE_ARG=true" else ""
+    /** The review was opened from a game just played, so Back returns to Home (beta review). */
+    const val FROM_PLAY_ARG = "fromPlay"
+    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}?$ANALYSE_ARG={$ANALYSE_ARG}&$FROM_PLAY_ARG={$FROM_PLAY_ARG}"
+    fun review(id: String, analyse: Boolean = false, fromPlay: Boolean = false): String {
+        val options = listOfNotNull("$ANALYSE_ARG=true".takeIf { analyse }, "$FROM_PLAY_ARG=true".takeIf { fromPlay })
+        return "account/review/${encode(id)}" + if (options.isEmpty()) "" else options.joinToString("&", prefix = "?")
+    }
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"

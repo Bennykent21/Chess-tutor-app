@@ -1,5 +1,12 @@
 package com.chesstutor.app.data.network
 
+import com.chesstutor.app.R
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.ForegroundInfo
+import androidx.core.app.NotificationCompat
+import android.os.Build
+import android.app.NotificationManager
+import android.app.NotificationChannel
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -47,6 +54,8 @@ class WorkImportRunner(context: Context, scope: CoroutineScope) : ImportRunner {
             .setInputData(ImportWorker.input(request))
             .addTag(ImportWorker.tagOf(request))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            // The player is waiting: start now, not when the system next gets round to it.
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
         work.enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, job)
     }
@@ -91,6 +100,20 @@ class WorkImportRunner(context: Context, scope: CoroutineScope) : ImportRunner {
 /** The background import itself: downloads and saves the games, reporting progress as it goes. */
 class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
+    /** Below Android 12 an expedited job runs as a foreground service, which needs this notification. */
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        val manager = applicationContext.getSystemService(NotificationManager::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.createNotificationChannel(NotificationChannel(CHANNEL, "Game imports", NotificationManager.IMPORTANCE_LOW))
+        }
+        val notification = NotificationCompat.Builder(applicationContext, CHANNEL)
+            .setContentTitle("Importing your games")
+            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+            .setOngoing(true)
+            .build()
+        return ForegroundInfo(NOTIFICATION_ID, notification)
+    }
+
     override suspend fun doWork(): Result {
         val request = requestOf(inputData) ?: return Result.failure()
         val finished = runImport(request, RatingApiClient(), AppContainer.provideGameRepository(applicationContext)) { progress ->
@@ -100,6 +123,8 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     }
 
     companion object {
+        private const val CHANNEL = "game-imports"
+        private const val NOTIFICATION_ID = 4001
         private const val KIND = "kind"
         private const val PLATFORM = "platform"
         private const val USERNAME = "username"

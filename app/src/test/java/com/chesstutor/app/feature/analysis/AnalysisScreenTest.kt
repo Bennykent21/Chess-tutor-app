@@ -101,7 +101,7 @@ class AnalysisScreenTest {
         compose.onNodeWithText("Play a move and I'll tell you how good it was.").assertExists()
         compose.onNode(hasContentDescription("Last move")).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("f3 is a blunder").assertExists()
+        compose.onNodeWithText("Pawn to f3 is a blunder").assertExists()
         compose.onNode(hasContentDescription("1. f3 Blunder")).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/explore_blunder.png")
         compose.onNodeWithText("Try again").performClick()
