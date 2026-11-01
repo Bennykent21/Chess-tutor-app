@@ -50,7 +50,7 @@ verify_binary() {
 # check_arm64_paths <file>: runs the binary on an emulated old CPU and a modern one. Each must
 # work, and both must search exactly the same nodes: the faster path cannot change a verdict.
 check_arm64_paths() {
-  local bin="$1" qemu old new
+  local bin="$1" qemu old new old_arch new_arch
   qemu="$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)"
   if [ -z "$qemu" ]; then
     if [ -n "${CI:-}" ]; then
@@ -60,8 +60,13 @@ check_arm64_paths() {
     echo "warning: no qemu-aarch64, so the arm64 binary was not run" >&2
     return 0
   fi
-  echo "plain path:       $(printf 'compiler\nquit\n' | "$qemu" -cpu cortex-a53 "$bin" | grep -i -m1 'compilation settings\|architecture' || true)"
-  echo "dot product path: $(printf 'compiler\nquit\n' | "$qemu" -cpu cortex-a76 "$bin" | grep -i -m1 'compilation settings\|architecture' || true)"
+  old_arch="$("$qemu" -cpu cortex-a53 "$bin" compiler 2>&1 | awk -F: '/Compilation architecture/ { gsub(/[[:space:]]/, "", $2); print $2; exit }')"
+  new_arch="$("$qemu" -cpu cortex-a76 "$bin" compiler 2>&1 | awk -F: '/Compilation architecture/ { gsub(/[[:space:]]/, "", $2); print $2; exit }')"
+  echo "paths taken: old CPU $old_arch, modern CPU $new_arch"
+  if [ "$old_arch" != "armv8" ] || [ "$new_arch" != "armv8-dotprod" ]; then
+    echo "error: expected armv8 and armv8-dotprod" >&2
+    return 1
+  fi
   old="$("$qemu" -cpu cortex-a53 "$bin" bench 16 1 10 2>&1 | awk '/^Nodes searched/ { print $NF }')"
   new="$("$qemu" -cpu cortex-a76 "$bin" bench 16 1 10 2>&1 | awk '/^Nodes searched/ { print $NF }')"
   echo "bench nodes: plain $old, dot product $new"
