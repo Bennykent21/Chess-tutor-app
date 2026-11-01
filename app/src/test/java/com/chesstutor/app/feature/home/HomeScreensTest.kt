@@ -249,9 +249,9 @@ class HomeScreensTest {
         assertEquals(true, rematch)
     }
 
-    /** Beta review: look back through a game without undoing anything. */
+    /** Beta review: tap a move in the strip to look back, without undoing anything. */
     @Test
-    fun theMovesCanBeSteppedThroughWithoutUndoing() {
+    fun aMoveInTheStripShowsThatPositionWithoutUndoing() {
         val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(OpeningTree::fromStream)
         val engine = FakeEngine()
         val game = BotGame(
@@ -271,12 +271,13 @@ class HomeScreensTest {
         assertTrue("both sides have moved", moves >= 2)
         val board = compose.onNodeWithContentDescription("Chess board", substring = true)
         val bounds = board.fetchSemanticsNode().boundsInRoot
-        compose.onNodeWithContentDescription("Previous move").performClick()
-        compose.onNodeWithText("Back to the game").assertExists()
+        compose.onNodeWithContentDescription("White, e4").performClick()
+        compose.onNodeWithContentDescription("White, e4, current move").assertExists()
         assertEquals("nothing was undone", moves, game.session.state.value.moves.size)
         assertEquals("the board stayed put", bounds, board.fetchSemanticsNode().boundsInRoot)
-        compose.onNodeWithText("Back to the game").performClick()
-        compose.onNodeWithText("Back to the game").assertDoesNotExist()
+        // A tap on the board comes back to the game.
+        board.performClick()
+        compose.onNodeWithContentDescription("White, e4, current move").assertDoesNotExist()
     }
 
     @Test

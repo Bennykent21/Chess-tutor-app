@@ -20,8 +20,14 @@ data class ImportProgress(
     val incompleteCount: Int = 0,
     val phase: String = "Connecting...",
     /** Months (Chess.com) or streams (Lichess) that could not be downloaded even after retrying. */
-    val failedPeriods: Int = 0
-)
+    val failedPeriods: Int = 0,
+    /** How far along the import really is, 0 to 1, when the count of games alone would mislead. */
+    val fraction: Float? = null,
+) {
+    /** What the progress bar shows. */
+    val shownFraction: Float
+        get() = fraction ?: if (targetCount > 0) importedCount.toFloat() / targetCount else 0f
+}
 
 data class GameRecord(
     val id: String,
