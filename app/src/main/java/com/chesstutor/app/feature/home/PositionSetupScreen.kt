@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -179,6 +180,9 @@ private fun FenSheet(visible: Boolean, board: SetupBoard, onBoard: (SetupBoard) 
 private fun EditorBoard(board: SetupBoard, theme: BoardTheme, onTap: (com.chesstutor.app.core.Square) -> Unit) {
     // The editor may hold positions the rules engine rejects (no kings yet); draw what is there.
     val position = remember(board) { Position(board.squares.toTypedArray(), board.sideToMove) }
+    // The tap handler lives as long as the board; it must place with the latest board and piece,
+    // not the ones from the first frame (they made every tap place the first piece again).
+    val currentOnTap by rememberUpdatedState(onTap)
     BoardCanvas(
         position = position,
         theme = theme,
@@ -186,7 +190,7 @@ private fun EditorBoard(board: SetupBoard, theme: BoardTheme, onTap: (com.chesst
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures { offset ->
-                    BoardGeometry.squareAt(offset.x, offset.y, size.width.toFloat(), whiteAtBottom = true)?.let(onTap)
+                    BoardGeometry.squareAt(offset.x, offset.y, size.width.toFloat(), whiteAtBottom = true)?.let { currentOnTap(it) }
                 }
             },
         whiteAtBottom = true,

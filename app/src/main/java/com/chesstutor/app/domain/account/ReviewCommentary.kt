@@ -8,7 +8,7 @@ import com.chesstutor.app.core.SanFormatter
 import java.util.Locale
 import kotlin.math.abs
 
-/** What the coach says about one move: a headline ("Nf6 is a blunder") and a sentence or two. */
+/** What the coach says about one move: a headline ("Knight to f6 is a blunder") and a sentence or two. */
 data class MoveComment(val headline: String, val detail: String)
 
 /**
@@ -23,18 +23,21 @@ object ReviewCommentary {
      */
     fun comment(move: ReviewedMove, after: PlyEval?, positionAfter: Position?, openingName: String? = null): MoveComment {
         val san = move.san
+        // The coach names the pieces; the notation itself is under the board (beta review).
+        val said = SpokenMove.of(san)
+        val best = move.bestSan?.let(SpokenMove::inSentence)
         val headline = when (move.quality) {
-            MoveQuality.BOOK -> "$san is a book move"
-            MoveQuality.FORCED -> "$san is forced"
-            MoveQuality.BRILLIANT -> "$san is brilliant!"
-            MoveQuality.GREAT -> "$san is a great move"
-            MoveQuality.BEST -> "$san is best"
-            MoveQuality.EXCELLENT -> "$san is excellent"
-            MoveQuality.GOOD -> "$san is good"
-            MoveQuality.INACCURACY -> "$san is an inaccuracy"
-            MoveQuality.MISS -> "$san is a miss"
-            MoveQuality.MISTAKE -> "$san is a mistake"
-            MoveQuality.BLUNDER -> "$san is a blunder"
+            MoveQuality.BOOK -> "$said is a book move"
+            MoveQuality.FORCED -> "$said is forced"
+            MoveQuality.BRILLIANT -> "$said is brilliant!"
+            MoveQuality.GREAT -> "$said is a great move"
+            MoveQuality.BEST -> "$said is best"
+            MoveQuality.EXCELLENT -> "$said is excellent"
+            MoveQuality.GOOD -> "$said is good"
+            MoveQuality.INACCURACY -> "$said is an inaccuracy"
+            MoveQuality.MISS -> "$said is a miss"
+            MoveQuality.MISTAKE -> "$said is a mistake"
+            MoveQuality.BLUNDER -> "$said is a blunder"
         }
         val detail = when (move.quality) {
             MoveQuality.BOOK -> openingName?.let { "A known move in the ${it.substringBefore(':')}." } ?: "A known opening move."
@@ -44,13 +47,13 @@ object ReviewCommentary {
                 san.endsWith("#") -> "Checkmate!"
                 san.endsWith("+") -> "A strong check, and the engine's first choice."
                 "x" in san -> "Taking was exactly right."
-                move.uci != move.bestMove && move.bestSan != null -> "As strong as the engine's first choice, ${move.bestSan}."
+                move.uci != move.bestMove && best != null -> "As strong as the engine's first choice, $best."
                 else -> "The engine's first choice."
             }
             MoveQuality.FORCED -> "The only legal move."
-            MoveQuality.EXCELLENT -> move.bestSan?.let { "Nearly as strong as $it." } ?: "Nearly as strong as the engine's first choice."
-            MoveQuality.GOOD -> move.bestSan?.let { "A solid move. $it was a touch more precise." } ?: "A solid move."
-            MoveQuality.MISS -> move.bestSan?.let { "Your opponent slipped, and $it would have made them pay." } ?: "Your opponent slipped, and this let them off."
+            MoveQuality.EXCELLENT -> best?.let { "Nearly as strong as $it." } ?: "Nearly as strong as the engine's first choice."
+            MoveQuality.GOOD -> move.bestSan?.let { "A solid move. ${SpokenMove.of(it)} was a touch more precise." } ?: "A solid move."
+            MoveQuality.MISS -> best?.let { "Your opponent slipped, and $it would have made them pay." } ?: "Your opponent slipped, and this let them off."
             else -> errorDetail(move, after, positionAfter)
         }
         return MoveComment(headline, detail)
@@ -64,12 +67,12 @@ object ReviewCommentary {
         val reply = replyOf(after, positionAfter)
         when {
             move.winBefore >= 100.0 -> parts += "You had a forced mate here."
-            opponentMates -> parts += "It allows mate in ${abs(mate!!)}" + (reply?.let { ", starting with ${it.san}." } ?: ".")
-            reply?.captured != null -> parts += "It lets ${reply.san} win your ${reply.captured}."
+            opponentMates -> parts += "It allows mate in ${abs(mate!!)}" + (reply?.let { ", starting with ${SpokenMove.inSentence(it.san)}." } ?: ".")
+            reply?.captured != null -> parts += "It lets ${SpokenMove.inSentence(reply.san)} win your ${reply.captured}."
             move.winBefore >= WINNING && move.winAfter <= UNCLEAR -> parts += "Your advantage slips away."
-            reply != null -> parts += "${reply.san} is the strong answer."
+            reply != null -> parts += "${SpokenMove.of(reply.san)} is the strong answer."
         }
-        move.bestSan?.let { parts += "Best was $it." }
+        move.bestSan?.let { parts += "Best was ${SpokenMove.inSentence(it)}." }
         return parts.joinToString(" ")
     }
 
@@ -103,21 +106,26 @@ object ReviewCommentary {
         }
     }
 
-    /** The coach's one-line verdict on the game, from the player's side. */
-    fun summary(review: GameReview, player: PieceColor, outcome: GameOutcome): String {
+    /** The coach's one-line verdict on the game, from the player's side, by [name] once given. */
+    fun summary(review: GameReview, player: PieceColor, outcome: GameOutcome, name: String = ""): String {
+        val verdict = verdict(review, player, outcome)
+        return if (name.isBlank()) verdict else "$name, ${verdict.replaceFirstChar(Char::lowercaseChar)}"
+    }
+
+    private fun verdict(review: GameReview, player: PieceColor, outcome: GameOutcome): String {
         val mine = review.moves.filter { it.mover == player }
         if (mine.isEmpty()) return "Analyse the game and I'll tell you how it went."
         val slips = mine.count { it.quality == MoveQuality.MISTAKE || it.quality == MoveQuality.BLUNDER }
         val worst = review.keyMoments(player, limit = 1).firstOrNull()
-        val turning = worst?.let { "${it.numberLabel} ${it.san}" }
-        val best = worst?.bestSan
+        val turning = worst?.let { "move ${it.moveNumber}, ${SpokenMove.inSentence(it.san)}" }
+        val best = worst?.bestSan?.let(SpokenMove::inSentence)
         return when (outcome) {
             GameOutcome.WIN -> when {
                 slips == 0 -> "A clean win: not a single mistake or blunder. Well played!"
                 else -> "You won, with $slips slip${if (slips == 1) "" else "s"} on the way. The biggest was $turning" + (best?.let { "; $it was the move." } ?: ".")
             }
             GameOutcome.LOSS -> when {
-                turning != null -> "The turning point was $turning" + (best?.let { ". $it would have kept you in the game." } ?: ".")
+                turning != null -> "The turning point was $turning" + (best?.let { ". ${it.replaceFirstChar(Char::uppercaseChar)} would have kept you in the game." } ?: ".")
                 else -> "No big blunder from you: this one slipped away through small inaccuracies."
             }
             GameOutcome.DRAW -> when {

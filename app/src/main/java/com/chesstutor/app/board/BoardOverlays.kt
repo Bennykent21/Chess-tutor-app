@@ -230,9 +230,10 @@ fun BoardMoveList(
     val scroll = rememberScrollState()
     val reduceMotion = LocalReduceMotion.current
     LaunchedEffect(currentPly, entries.size) {
-        // Keep the newest move in view; stepping back through history leaves the scroll alone.
-        if (entries.isNotEmpty() && currentPly == entries.last().ply) {
-            if (reduceMotion) scroll.scrollTo(scroll.maxValue) else scroll.animateScrollTo(scroll.maxValue)
+        // Keep the current move in view, also while stepping back through the game.
+        if (entries.isNotEmpty()) {
+            val target = if (currentPly == entries.last().ply) scroll.maxValue else scroll.maxValue * currentPly / entries.size
+            if (reduceMotion) scroll.scrollTo(target) else scroll.animateScrollTo(target)
         }
     }
     Row(

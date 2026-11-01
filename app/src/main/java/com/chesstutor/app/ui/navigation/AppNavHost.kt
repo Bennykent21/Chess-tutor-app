@@ -158,6 +158,12 @@ private fun AppShell(
         )
     }
 
+    val appContext = LocalContext.current.applicationContext
+    LaunchedEffect(Unit) {
+        AppContainer.provideLessonLoader(appContext).load()
+        AppContainer.provideOpeningLoader(appContext).load()
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = CtColors.BgDeep,
@@ -437,8 +443,10 @@ private fun AppShell(
                         onRematch = homeModel::rematch,
                         onAnalyse = { fen, moves -> navController.navigate(AppRoutes.analysis(fen, moves)) },
                         onReview = { gameId ->
+                            // Leave the finished game first, so Home is not left showing it.
+                            leave()
                             navController.navigateToTab(TopTab.ACCOUNT)
-                            navController.navigate(AppRoutes.review(gameId, analyse = true)) { launchSingleTop = true }
+                            navController.navigate(AppRoutes.review(gameId, analyse = true, fromPlay = true)) { launchSingleTop = true }
                         },
                         onBack = { leave() }
                     )
@@ -478,6 +486,8 @@ private fun AppShell(
                 composable(AppRoutes.TRAINER_DRILL) { entry ->
                     val model = trainerViewModel(navController, entry)
                     val drill by model.drill.collectAsStateWithLifecycle()
+                    val lessons by learnViewModel(navController, entry).learn.collectAsStateWithLifecycle()
+                    val courseId = drill?.let { OpeningCourses.courseFor(it.opening.family, lessons.library.courses)?.id }
                     val leave = {
                         model.close()
                         navController.popBackStack()
@@ -491,7 +501,8 @@ private fun AppShell(
                         onAgain = model::again,
                         onNext = model::next,
                         onPickLine = { lineId -> drill?.let { model.startLine(it.opening.id, lineId) } },
-                        onBack = { leave() }
+                        onBack = { leave() },
+                        onLearn = courseId?.let { id -> { navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } } },
                     )
                 }
                 composable(
@@ -816,11 +827,21 @@ private fun AppShell(
                             type = NavType.BoolType
                             defaultValue = false
                         },
+                        navArgument(AppRoutes.FROM_PLAY_ARG) {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        },
                     )
                 ) { entry ->
                     val account = accountViewModel(navController, entry)
                     val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
                     val analyseNow = entry.arguments?.getBoolean(AppRoutes.ANALYSE_ARG) == true
+                    val fromPlay = entry.arguments?.getBoolean(AppRoutes.FROM_PLAY_ARG) == true
+                    val leaveReview = {
+                        navController.popBackStack()
+                        if (fromPlay) navController.navigateToTab(TopTab.HOME)
+                    }
+                    BackHandler(enabled = fromPlay) { leaveReview() }
                     LaunchedEffect(gameId) {
                         account.openReview(gameId)
                         // A finished analysis is not redone, so this only starts new ones.
@@ -841,7 +862,7 @@ private fun AppShell(
                                 review.game?.let { game -> account.practise(game, move, onSaved = viewModel::refreshReviews) }
                             },
                             onFeedback = viewModel::playBoardFeedback,
-                            onBack = { navController.popBackStack() },
+                            onBack = { leaveReview() },
                             onExplore = { fen, line -> navController.navigate(AppRoutes.analysis(fen, line)) },
                         )
                     )

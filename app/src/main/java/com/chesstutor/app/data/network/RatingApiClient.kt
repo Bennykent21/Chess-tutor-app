@@ -1,5 +1,6 @@
 package com.chesstutor.app.data.network
 
+import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
@@ -618,7 +619,8 @@ class RatingApiClient(
             val endTimeSec = g.optLong("end_time", System.currentTimeMillis() / 1000L)
             val urlId = g.optString("url", "").substringAfterLast("/").ifBlank { "$endTimeSec" }
 
-            val outcome = convertSanStreamToUciWithStatus(extractMovesFromPgn(pgn))
+            // Odds games and the like start from their own position, named in the PGN.
+            val outcome = convertSanStreamToUciWithStatus(extractMovesFromPgn(pgn), GameLibrary.startFenOf(pgn))
             if (outcome.uciMoves.isNotBlank()) {
                 records += GameRecord(
                     id = "chesscom_$urlId",
@@ -690,10 +692,11 @@ class RatingApiClient(
     /**
      * Tokenizes a SAN move stream (handling NAGs `$1`, move numbers `1.` / `1...`,
      * annotations `!`/`?`, and `0-0`/`0-0-0` castling), converts to UCI, and flags
-     * `incomplete = true` if any token fails to match before the game result token.
+     * `incomplete = true` if any token fails to match before the game result token. [startFen]
+     * is the position the game was set up from, or null for the normal start.
      */
-    fun convertSanStreamToUciWithStatus(sanStream: String): SanParseOutcome {
-        val pos = ChessPosition()
+    fun convertSanStreamToUciWithStatus(sanStream: String, startFen: String? = null): SanParseOutcome {
+        val pos = startFen?.let { fen -> runCatching { ChessPosition(fen) }.getOrNull() } ?: ChessPosition()
         val uciList = mutableListOf<String>()
         var incomplete = false
 

@@ -149,7 +149,7 @@ fun GameReviewScreen(
         }
         var boardPly by rememberSaveable { mutableStateOf(startPly ?: -1) }
         if (boardPly < 0) {
-            ReviewSummary(game, state, settings.mascot, actions, onStart = { ply -> boardPly = ply })
+            ReviewSummary(game, state, settings.mascot, settings.playerName, actions, onStart = { ply -> boardPly = ply })
         } else {
             ReviewBoard(game, state, settings, engine, actions, startPly = boardPly, onSummary = { boardPly = -1 })
         }
@@ -159,7 +159,7 @@ fun GameReviewScreen(
 // ------------------------------------------------------------------ summary
 
 @Composable
-private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot: Mascot, actions: ReviewActions, onStart: (Int) -> Unit) {
+private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot: Mascot, playerName: String, actions: ReviewActions, onStart: (Int) -> Unit) {
     val review = state.review
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     val practised = remember(game.id) { mutableStateListOf<Int>() }
@@ -175,7 +175,7 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
                 CoachSays(mascot) {
                     Text(
                         if (state.job?.running == true && !review.complete) "I'm going through your game move by move. The graph fills in as I go."
-                        else ReviewCommentary.summary(review, game.userColor, game.outcome),
+                        else ReviewCommentary.summary(review, game.userColor, game.outcome, playerName),
                         style = CtType.Body.copy(color = CtColors.Text),
                     )
                 }

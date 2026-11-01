@@ -74,7 +74,7 @@ class GameReviewScreenTest {
                 GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(onPractise = { practised = it }))
             }
         }
-        compose.onNodeWithText("The turning point was 3... Nf6. g6 would have kept you in the game.").assertExists()
+        compose.onNodeWithText("The turning point was move 3, knight to f6. Pawn to g6 would have kept you in the game.").assertExists()
         compose.onNodeWithText("Key moments").assertExists()
         compose.onNodeWithText("Players").assertDoesNotExist()
         compose.onNodeWithText("Start review").assertExists()
@@ -92,15 +92,15 @@ class GameReviewScreenTest {
                 GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(), startPly = 6)
             }
         }
-        compose.onNodeWithText("Nf6 is a blunder").assertExists()
-        compose.onNodeWithText("It allows mate in 1, starting with Qxf7#. Best was g6.").assertExists()
+        compose.onNodeWithText("Knight to f6 is a blunder").assertExists()
+        compose.onNodeWithText("It allows mate in 1, starting with queen takes f7. Best was pawn to g6.").assertExists()
         // The evaluation shows in the verdict row and on the eval bar.
         compose.onAllNodesWithText("M1").assertCountEquals(2)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_review_blunder.png")
 
         val boardBefore = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
         compose.onNodeWithContentDescription("Next move").performClick()
-        compose.onNodeWithText("Qxf7# is best").assertExists()
+        compose.onNodeWithText("Queen takes f7 is best").assertExists()
         compose.onNodeWithText("Checkmate!").assertExists()
         // D39: a new verdict and a new comment never move the board.
         assertEquals(boardBefore, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
@@ -119,7 +119,7 @@ class GameReviewScreenTest {
         compose.onNodeWithText("Show best").performClick()
         compose.onNodeWithText("A side line").assertExists()
         compose.onNodeWithText("Back to the game").performClick()
-        compose.onNodeWithText("Nf6 is a blunder").assertExists()
+        compose.onNodeWithText("Knight to f6 is a blunder").assertExists()
     }
 
     @Test
@@ -163,7 +163,7 @@ class GameReviewScreenTest {
         compose.mainClock.advanceTimeBy(10_000)
         compose.waitForIdle()
         // e5, Bc4, Nc6 and Qh5 pass; 3...Nf6 (a blunder) stops it.
-        compose.onNodeWithText("Nf6 is a blunder").assertExists()
+        compose.onNodeWithText("Knight to f6 is a blunder").assertExists()
     }
 
     @Test
