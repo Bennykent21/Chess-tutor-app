@@ -47,6 +47,30 @@ verify_binary() {
   echo "$abi: $((size / 1024 / 1024)) MB, 16 KB aligned, needs: $needed"
 }
 
+# check_arm64_paths <file>: runs the binary on an emulated old CPU and a modern one. Each must
+# work, and both must search exactly the same nodes: the faster path cannot change a verdict.
+check_arm64_paths() {
+  local bin="$1" qemu old new
+  qemu="$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)"
+  if [ -z "$qemu" ]; then
+    if [ -n "${CI:-}" ]; then
+      echo "error: qemu-user-static is needed to check the arm64 binary" >&2
+      return 1
+    fi
+    echo "warning: no qemu-aarch64, so the arm64 binary was not run" >&2
+    return 0
+  fi
+  echo "plain path:       $(printf 'compiler\nquit\n' | "$qemu" -cpu cortex-a53 "$bin" | grep -i -m1 'compilation settings\|architecture' || true)"
+  echo "dot product path: $(printf 'compiler\nquit\n' | "$qemu" -cpu cortex-a76 "$bin" | grep -i -m1 'compilation settings\|architecture' || true)"
+  old="$("$qemu" -cpu cortex-a53 "$bin" bench 16 1 10 2>&1 | awk '/^Nodes searched/ { print $NF }')"
+  new="$("$qemu" -cpu cortex-a76 "$bin" bench 16 1 10 2>&1 | awk '/^Nodes searched/ { print $NF }')"
+  echo "bench nodes: plain $old, dot product $new"
+  if [ -z "$old" ] || [ "$old" != "$new" ]; then
+    echo "error: the two paths disagree (plain '$old', dot product '$new')" >&2
+    return 1
+  fi
+}
+
 if [ "${1:-}" = "--verify" ]; then
   # tools/build_stockfish_android.sh --verify <file> <abi> <network-bytes>
   verify_binary "$2" "$3" "$4"
@@ -92,7 +116,9 @@ echo "Network: $(basename "$NET_FILE") ($((NET_BYTES / 1024 / 1024)) MB)"
 build_abi() {
   local abi="$1" arch triple
   case "$abi" in
-    arm64-v8a) arch="armv8"; triple="aarch64-linux-android" ;;
+    # One binary and one network, with a plain and a dot-product build of the engine inside.
+    # It picks at start-up: dot product makes the network much faster on phones that have it.
+    arm64-v8a) arch="arm64-universal"; triple="aarch64-linux-android" ;;
     x86_64) arch="x86-64-sse41-popcnt"; triple="x86_64-linux-android" ;;
     *) echo "error: unsupported ABI $abi" >&2; exit 1 ;;
   esac
@@ -107,6 +133,7 @@ build_abi() {
   echo "::endgroup::"
 
   verify_binary "$SRC/stockfish" "$abi" "$NET_BYTES"
+  if [ "$abi" = "arm64-v8a" ]; then check_arm64_paths "$SRC/stockfish"; fi
 
   mkdir -p "$OUT_DIR/$abi"
   cp "$SRC/stockfish" "$OUT_DIR/$abi/libstockfish.so"
