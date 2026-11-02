@@ -54,12 +54,20 @@ class CtBoardScreenTest {
     private fun board(): DpRect = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
 
     @Test
-    fun theBoardSitsRightAboveItsTwoRowsAtFullWidth() {
+    fun theBoardSitsOneSquareAboveItsLowestPlaceAtFullWidth() {
         showScreen()
         val bounds = board()
-        assertEquals("nothing is left unused below", 860.dp - CtBoardScreenSpec.ControlsHeight - CtBoardScreenSpec.UnderHeight, bounds.bottom)
+        assertEquals(860.dp - CtBoardScreenSpec.ControlsHeight - CtBoardScreenSpec.UnderHeight - 400.dp / 8, bounds.bottom)
         assertEquals(400.dp, bounds.right - bounds.left)
         assertEquals(400.dp, bounds.bottom - bounds.top)
+    }
+
+    @Test
+    fun aShortPhoneKeepsRoomForTheCoachBeforeLiftingTheBoard() {
+        // 640 - 56 - 344 - 48 - 72 leaves 120, all of it needed above the board.
+        assertEquals(CtBoardScreenSpec.MinZone, CtBoardScreenSpec.zoneHeight(640.dp, 344.dp))
+        // 780 - 56 - 360 - 48 - 72 leaves 244, less one square of 45.
+        assertEquals(199.dp, CtBoardScreenSpec.zoneHeight(780.dp, 360.dp))
     }
 
     @Test

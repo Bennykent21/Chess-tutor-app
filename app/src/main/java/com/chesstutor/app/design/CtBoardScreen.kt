@@ -28,7 +28,7 @@ object CtBoardScreenSpec {
     val TopBarHeight = 56.dp
     /** The least room kept above the board for the coach or the bot, on short phones. */
     val MinZone = 120.dp
-    /** The row right under the board: the move list, a player or a progress bar. Never grows. */
+    /** The least height of the row under the board: the move list, a player or a progress bar. */
     val UnderHeight = 48.dp
     /** The bottom slot for a screen's buttons (Undo, Hint, Resign...). Always shown in full. */
     val ControlsHeight = 72.dp
@@ -38,9 +38,14 @@ object CtBoardScreenSpec {
     fun boardSize(maxWidth: Dp, maxHeight: Dp): Dp =
         max(MinBoard, min(maxWidth, maxHeight - TopBarHeight - MinZone - UnderHeight - ControlsHeight))
 
-    /** All the height left over goes above the board, so nothing is left unused below it. */
-    fun zoneHeight(maxHeight: Dp, board: Dp): Dp =
-        max(0.dp, maxHeight - TopBarHeight - board - UnderHeight - ControlsHeight)
+    /**
+     * The height left over goes above the board, less one square: the board sits a square above
+     * the lowest it could, as far as that leaves [MinZone]. The row under it shares that square.
+     */
+    fun zoneHeight(maxHeight: Dp, board: Dp): Dp {
+        val spare = max(0.dp, maxHeight - TopBarHeight - board - UnderHeight - ControlsHeight)
+        return max(spare - board / 8, min(spare, MinZone))
+    }
 }
 
 /** Test tags, so tests can check where the board sits (D39). */
@@ -54,9 +59,9 @@ object CtBoardScreenTags {
 /**
  * The one layout of every board screen: games, puzzles, lessons, drills, review and analysis
  * (D39, D49). From the top: a top bar, the [zone] where the coach or the bot talks, the square
- * [board], the fixed row [under] it and the [controls] in a fixed slot at the bottom. The board
- * sits as low as those two rows allow and the zone takes the rest, so it is at the same height on
- * every board screen of a phone and nothing above it can move it. The zone stacks up from the
+ * [board], the row [under] it and the [controls] in a fixed slot at the bottom. The board sits one
+ * square above the lowest those two rows allow and the zone takes the rest, so it is at the same
+ * height on every board screen of a phone and nothing above it can move it. The zone stacks up from the
  * board: long text fills it upward and scrolls inside (see [CtTutor]), and anything that spills
  * out of it covers the top bar but never the board, which is drawn after it. Sheets and passing
  * messages go in [overlay], which covers instead of pushing.
@@ -100,7 +105,7 @@ fun CtBoardScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(CtBoardScreenSpec.UnderHeight)
+                    .weight(1f)
                     .padding(horizontal = CtSpacing.lg)
                     .testTag(CtBoardScreenTags.UNDER),
                 contentAlignment = Alignment.Center,
