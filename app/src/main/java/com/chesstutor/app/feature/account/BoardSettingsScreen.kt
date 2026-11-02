@@ -130,7 +130,6 @@ fun BoardSettingsScreen(
                         title = "White always at the bottom",
                         checked = settings.boardOrientation == BoardOrientation.WHITE_ALWAYS_BOTTOM,
                         onCheckedChange = { on -> actions.onOrientation(if (on) BoardOrientation.WHITE_ALWAYS_BOTTOM else BoardOrientation.FOLLOW_SIDE) },
-                        divider = false,
                     )
                 }
             }

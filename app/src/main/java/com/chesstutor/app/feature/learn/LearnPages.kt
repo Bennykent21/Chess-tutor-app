@@ -50,7 +50,6 @@ import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtDropdownChip
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtListRow
@@ -207,7 +206,6 @@ private fun CourseRow(course: Course, progress: Map<String, LessonProgress>, boa
             LevelBars(course.level)
             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2)
         }
-        if (!last) CtDivider()
     }
 }
 
@@ -291,7 +289,7 @@ fun CourseScreen(
                     )
                 }
                 onPractise?.let { CtListRow(title = "Practise in Opening Battle", icon = Icons.Rounded.Flag, onClick = it) }
-                onRelatedPuzzles?.let { CtListRow(title = "Related puzzles", icon = Icons.Rounded.Extension, onClick = it, divider = false) }
+                onRelatedPuzzles?.let { CtListRow(title = "Related puzzles", icon = Icons.Rounded.Extension, onClick = it) }
                 Spacer(Modifier.height(CtSpacing.xl))
             }
         }

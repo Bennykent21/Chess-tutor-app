@@ -1,5 +1,19 @@
 package com.chesstutor.app.feature.home
 
+import com.chesstutor.app.design.ctEnter
+import com.chesstutor.app.design.CtShapes
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,8 +39,6 @@ import com.chesstutor.app.design.CtMenuItem
 import com.chesstutor.app.design.CtOverflowMenu
 import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtSpacing
-import com.chesstutor.app.design.CtSpeechBubble
-import com.chesstutor.app.design.CtTail
 import com.chesstutor.app.design.CtToggleRow
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.bot.RosterBot
@@ -69,12 +81,10 @@ fun BotSetupScreen(
         },
     ) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            BotAvatar(bot.profile.face, bot.rating, size = 104.dp)
-            Text(bot.name, style = CtType.Display, modifier = Modifier.padding(top = CtSpacing.sm))
+            BotPortrait(bot.profile.face)
+            Text(bot.name, style = CtType.Display, modifier = Modifier.padding(top = CtSpacing.md))
             Text("${bot.rating} · ${bot.profile.style.label}", style = CtType.BodySmall)
-            CtSpeechBubble(tail = CtTail.Top, modifier = Modifier.padding(top = CtSpacing.md)) {
-                Text(bot.tagline, style = CtType.Chat.copy(color = CtColors.Text), textAlign = TextAlign.Center)
-            }
+            Text(bot.tagline, style = CtType.Chat.copy(color = CtColors.Text), textAlign = TextAlign.Center, modifier = Modifier.padding(top = CtSpacing.sm))
         }
         CtGroupLabel("You play")
         CtSegmented(options = SideChoice.entries, selected = side, label = { it.label }, onSelect = { side = it })
@@ -83,7 +93,7 @@ fun BotSetupScreen(
         Column(Modifier.padding(top = CtSpacing.sm)) {
             CtToggleRow(title = "Takebacks", checked = takebacks, onCheckedChange = { takebacks = it })
             CtToggleRow(title = "Hints", checked = hints, onCheckedChange = { hints = it })
-            CtToggleRow(title = "Evaluation bar", checked = evalBar, onCheckedChange = { evalBar = it }, divider = false)
+            CtToggleRow(title = "Evaluation bar", checked = evalBar, onCheckedChange = { evalBar = it })
         }
         Repertoire(bot)
     }
@@ -99,6 +109,34 @@ fun BotSetupScreen(
             },
             onDismiss = { confirmDelete = false },
         )
+    }
+}
+
+/**
+ * The bot's sharp face on a plain panel, with a soft shadow behind it from Android 12 (the
+ * developer did not want the blurred bot here).
+ */
+@Composable
+private fun BotPortrait(face: String) {
+    val art = botArt(face)
+    Box(
+        modifier = Modifier.fillMaxWidth().height(280.dp).clip(CtShapes.Card).background(CtColors.Surface).ctEnter(),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        if (art != null) {
+            val portrait = Modifier.size(264.dp)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Image(
+                    painterResource(art),
+                    contentDescription = null,
+                    colorFilter = ColorFilter.tint(CtColors.Text.copy(alpha = 0.22f)),
+                    modifier = portrait.offset(y = 8.dp).blur(16.dp, BlurredEdgeTreatment.Unbounded),
+                )
+            }
+            Image(painterResource(art), contentDescription = null, modifier = portrait)
+        } else {
+            BotAvatar(face, rating = 0, size = 120.dp, modifier = Modifier.align(Alignment.Center))
+        }
     }
 }
 

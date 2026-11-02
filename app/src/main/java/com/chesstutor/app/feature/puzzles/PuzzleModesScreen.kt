@@ -108,14 +108,13 @@ fun PuzzleModesScreen(
                             title = goal.title,
                             icon = null,
                             onClick = { goalName = goal.name },
-                            divider = i < PuzzleGoal.entries.lastIndex,
                             leading = { GoalPiece(goal, pieceSet) },
                         )
                     }
 
                     CtSectionHeader(title = "More")
                     CtListRow(title = "Custom run", icon = Icons.Rounded.Tune, onClick = { customOpen = true })
-                    CtListRow(title = "Puzzles you missed", icon = Icons.Rounded.History, onClick = actions.onMistakes, divider = false)
+                    CtListRow(title = "Puzzles you missed", icon = Icons.Rounded.History, onClick = actions.onMistakes)
                 }
             }
             val goal = goalName?.let(PuzzleGoal::valueOf)
@@ -241,7 +240,7 @@ private fun CustomSheet(
         Group("Puzzles") {
             CtSegmented(options = COUNTS, selected = count, label = { "$it" }, onSelect = { count = it })
         }
-        CtToggleRow("Timer", timed, { timed = it }, divider = false)
+        CtToggleRow("Timer", timed, { timed = it })
         CtButton("Start $count puzzles", onClick = { onStart(band, pattern, count, timed) }, modifier = Modifier.fillMaxWidth())
     }
 }

@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.chesstutor.app.R
@@ -57,7 +56,6 @@ class CtColorScheme(val palette: CtPalette) {
     val error = Color(palette.error)
     val onError = Color(palette.onError)
     val switchOff = Color(palette.switchOff)
-    val outlinedCards = palette.outlinedCards
 
     /** The same roles for Material components (dialogs, menus, switches, text fields). */
     val material: ColorScheme = if (isDark) {
@@ -156,7 +154,6 @@ object CtGradients {
 }
 
 /** Hairline-outlined cards (dark themes, Mono) or softly shadowed ones (other light themes). */
-val CtOutlinedCards: Boolean @Composable @ReadOnlyComposable get() = LocalCtColors.current.outlinedCards
 
 object CtSpacing {
     val xxs = 2.dp
@@ -212,7 +209,6 @@ private fun grotesk(size: Int, line: Int, color: Color, tabular: Boolean = false
     fontWeight = FontWeight.SemiBold,
     fontSize = size.sp,
     lineHeight = line.sp,
-    letterSpacing = (-0.02).em,
     fontFeatureSettings = if (tabular) TABULAR else null,
     color = color,
 )

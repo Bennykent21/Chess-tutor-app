@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtShapes
@@ -52,7 +51,7 @@ fun TrainingPage(
         } else {
             CtSectionHeader(title = title)
             themes.forEachIndexed { i, theme ->
-                ThemeRow(theme, divider = i < themes.lastIndex, onClick = { onPracticeTheme(theme.theme) })
+                ThemeRow(theme, onClick = { onPracticeTheme(theme.theme) })
             }
         }
         MistakesRow(dueReviewCount, onReviewMistakes, Modifier.padding(top = CtSpacing.lg))
@@ -60,7 +59,7 @@ fun TrainingPage(
 }
 
 @Composable
-private fun ThemeRow(theme: ThemeScore, divider: Boolean, onClick: () -> Unit) {
+private fun ThemeRow(theme: ThemeScore, onClick: () -> Unit) {
     Column {
         Column(
             modifier = Modifier
@@ -76,7 +75,6 @@ private fun ThemeRow(theme: ThemeScore, divider: Boolean, onClick: () -> Unit) {
             }
             CtProgressBar(progress = theme.rate, height = 3.dp, modifier = Modifier.fillMaxWidth())
         }
-        if (divider) CtDivider()
     }
 }
 

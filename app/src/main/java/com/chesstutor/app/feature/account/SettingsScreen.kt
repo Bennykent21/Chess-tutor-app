@@ -254,7 +254,7 @@ fun SettingsScreen(
                 )
                 CtToggleRow(title = "Sound", checked = state.appSettings.soundEnabled, onCheckedChange = actions.onSound)
                 CtToggleRow(title = "Vibration", checked = state.appSettings.hapticsEnabled, onCheckedChange = actions.onHaptics)
-                CtToggleRow(title = "Reduce motion", checked = state.appSettings.reduceMotion, onCheckedChange = actions.onReduceMotion, divider = false)
+                CtToggleRow(title = "Reduce motion", checked = state.appSettings.reduceMotion, onCheckedChange = actions.onReduceMotion)
 
                 CtSectionHeader(title = "Bot chat")
                 Spacer(Modifier.height(CtSpacing.sm))
@@ -293,7 +293,6 @@ fun SettingsScreen(
                     icon = Icons.Rounded.Memory,
                     iconTint = if (state.engineStatus.isDegraded) CtColors.Error else CtColors.Accent,
                     onClick = actions.onOpenEngineHealth,
-                    divider = false,
                     trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
                 )
 
@@ -328,7 +327,6 @@ fun SettingsScreen(
                     icon = Icons.Rounded.DeleteForever,
                     iconTint = CtColors.Error,
                     onClick = { confirmErase = true },
-                    divider = false,
                 )
 
                 CtSectionHeader(title = "About")
@@ -347,7 +345,6 @@ fun SettingsScreen(
                     subtitle = "Stockfish, Maia, puzzles, pieces, sounds, fonts and libraries",
                     icon = Icons.Rounded.Description,
                     onClick = actions.onOpenLicences,
-                    divider = actions.supportUrl.isNotBlank(),
                 )
                 // Only in builds that carry a support link (plan section 9).
                 if (actions.supportUrl.isNotBlank()) {
@@ -356,7 +353,6 @@ fun SettingsScreen(
                         subtitle = "Chess Tutor is free. If it helps you, you can chip in.",
                         icon = Icons.Rounded.Favorite,
                         onClick = { runCatching { uriHandler.openUri(actions.supportUrl) } },
-                        divider = false,
                     )
                 }
                 Spacer(Modifier.height(CtSpacing.xl))

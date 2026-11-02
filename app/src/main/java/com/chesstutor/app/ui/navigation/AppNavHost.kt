@@ -1,10 +1,11 @@
 package com.chesstutor.app.ui.navigation
 
+import androidx.compose.animation.scaleIn
 import com.chesstutor.app.data.network.RatingApiClient
 import com.chesstutor.app.data.settings.PlayerPicture
 import com.chesstutor.app.data.settings.PlayerPhoto
 import java.time.LocalDate
-import com.chesstutor.app.feature.home.DailyPreview
+import com.chesstutor.app.domain.puzzle.DailyPreview
 import com.chesstutor.app.domain.puzzle.PuzzleModes
 import com.chesstutor.app.navigation.needsWelcome
 import com.chesstutor.app.feature.puzzles.PuzzleLevelsScreen
@@ -189,9 +190,9 @@ private fun AppShell(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            enterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(220)) },
+            enterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(220)) + scaleIn(tween(260), initialScale = 0.98f) },
             exitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) },
-            popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(220)) },
+            popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(220)) + scaleIn(tween(260), initialScale = 0.98f) },
             popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) }
         ) {
             navigation(startDestination = TopTab.HOME.startRoute, route = TopTab.HOME.graphRoute) {
@@ -607,7 +608,7 @@ private fun AppShell(
                         onReviewMistakes = { navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true } },
                         onOpenLevels = { navController.navigate(AppRoutes.PUZZLE_LEVELS) { launchSingleTop = true } },
                         onDailyPuzzle = { navController.navigate(AppRoutes.PUZZLE_DAILY) { launchSingleTop = true } },
-                        boardColors = state.appSettings.boardTheme.colors,
+                        boardTheme = state.appSettings.boardTheme,
                     )
                 }
                 composable(AppRoutes.PUZZLE_LEVELS) { entry ->

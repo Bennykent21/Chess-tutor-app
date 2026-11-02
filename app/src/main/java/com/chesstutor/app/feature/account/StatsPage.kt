@@ -25,7 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtSectionHeader
@@ -72,7 +71,6 @@ fun StatsPage(
                     row = row,
                     weak = row.label in weak,
                     learn = courseId != null,
-                    divider = i < report.byOpening.lastIndex,
                     onClick = { if (courseId != null) onOpenCourse(courseId) else onShowGames(row.filter) },
                 )
             }
@@ -80,7 +78,7 @@ fun StatsPage(
         if (report.byColor.isNotEmpty()) {
             CtSectionHeader(title = "By colour")
             report.byColor.forEachIndexed { i, row ->
-                ColourRow(row, divider = i < report.byColor.lastIndex, onClick = { onShowGames(row.filter) })
+                ColourRow(row, onClick = { onShowGames(row.filter) })
             }
         }
     }
@@ -103,7 +101,7 @@ private fun TotalTile(value: String, label: String, modifier: Modifier = Modifie
 
 /** Name and score, a thin bar, the number of games; the weakest are coloured, not labelled. */
 @Composable
-private fun OpeningRow(row: WdlRow, weak: Boolean, learn: Boolean, divider: Boolean, onClick: () -> Unit) {
+private fun OpeningRow(row: WdlRow, weak: Boolean, learn: Boolean, onClick: () -> Unit) {
     val tint = if (weak) CtColors.Error else CtColors.Accent
     Column {
         Row(
@@ -126,12 +124,11 @@ private fun OpeningRow(row: WdlRow, weak: Boolean, learn: Boolean, divider: Bool
             }
             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(20.dp))
         }
-        if (divider) CtDivider()
     }
 }
 
 @Composable
-private fun ColourRow(row: WdlRow, divider: Boolean, onClick: () -> Unit) {
+private fun ColourRow(row: WdlRow, onClick: () -> Unit) {
     Column {
         Row(
             modifier = Modifier
@@ -146,7 +143,6 @@ private fun ColourRow(row: WdlRow, divider: Boolean, onClick: () -> Unit) {
             CtProgressBar(progress = row.wdl.score, modifier = Modifier.width(120.dp))
             Text(percent(row.wdl.score), style = CtType.Label, textAlign = TextAlign.End, modifier = Modifier.width(44.dp))
         }
-        if (divider) CtDivider()
     }
 }
 
