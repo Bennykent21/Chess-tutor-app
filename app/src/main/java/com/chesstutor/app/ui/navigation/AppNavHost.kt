@@ -1,6 +1,7 @@
 package com.chesstutor.app.ui.navigation
 
-import androidx.compose.animation.scaleIn
+import com.chesstutor.app.design.CtMotion
+import androidx.compose.animation.slideInVertically
 import com.chesstutor.app.data.network.RatingApiClient
 import com.chesstutor.app.data.settings.PlayerPicture
 import com.chesstutor.app.data.settings.PlayerPhoto
@@ -190,9 +191,9 @@ private fun AppShell(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            enterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(220)) + scaleIn(tween(260), initialScale = 0.98f) },
+            enterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(260)) + slideInVertically(tween(340, easing = CtMotion.EaseOut)) { it / 16 } },
             exitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) },
-            popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(220)) + scaleIn(tween(260), initialScale = 0.98f) },
+            popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(260)) + slideInVertically(tween(340, easing = CtMotion.EaseOut)) { it / 16 } },
             popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) }
         ) {
             navigation(startDestination = TopTab.HOME.startRoute, route = TopTab.HOME.graphRoute) {

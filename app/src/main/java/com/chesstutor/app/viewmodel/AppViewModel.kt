@@ -272,7 +272,7 @@ class AppViewModel(
 
     fun setReviewDepth(depth: ReviewDepth) = updateSettings { it.copy(reviewDepth = depth) }
 
-    fun setAppTheme(theme: AppTheme) = updateSettings { it.copy(appTheme = theme) }
+    fun setAppTheme(theme: AppTheme) = updateSettings { it.withTheme(theme) }
 
     fun setAppearance(appearance: Appearance) = updateSettings { it.copy(appearance = appearance) }
 

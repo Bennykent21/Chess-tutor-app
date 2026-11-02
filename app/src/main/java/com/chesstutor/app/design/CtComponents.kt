@@ -162,6 +162,7 @@ fun CtHeroCard(
         kicker = kicker,
         subtitle = detail,
         progress = progress,
+        alive = true,
         titleStyle = CtType.Headline,
         onClick = onClick,
         onClickLabel = onClickLabel,

@@ -1,5 +1,15 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.LaunchedEffect
@@ -32,9 +42,11 @@ object CtMotion {
     const val THEME_MS = 240
     const val SHEET_MS = 280
 
-    const val PRESSED_SCALE = 0.97f
-    const val ENTER_MS = 320
-    const val ENTER_STAGGER_MS = 45L
+    const val PRESSED_SCALE = 0.95f
+    const val ENTER_MS = 480
+    const val ENTER_STAGGER_MS = 80L
+    const val SHEEN_DELAY_MS = 500L
+    const val SHEEN_MS = 900
 }
 
 /**
@@ -52,12 +64,39 @@ fun Modifier.ctEnter(order: Int = 0): Modifier = composed {
     }
     graphicsLayer {
         alpha = shown.value
-        translationY = (1f - shown.value) * 14.dp.toPx()
+        translationY = (1f - shown.value) * 28.dp.toPx()
+    }
+}
+
+/** A slow swell up to [to] and back, for something that should feel alive. Still with "Reduce motion". */
+fun Modifier.ctBreathe(to: Float, periodMs: Int): Modifier = composed {
+    if (LocalReduceMotion.current) return@composed Modifier
+    val swell = rememberInfiniteTransition(label = "ctBreathe")
+    val scale by swell.animateFloat(1f, to, infiniteRepeatable(tween(periodMs, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "ctBreatheScale")
+    Modifier.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+}
+
+/** One band of light across the surface soon after it appears. Nothing with "Reduce motion". */
+fun Modifier.ctSheen(): Modifier = composed {
+    if (LocalReduceMotion.current) return@composed Modifier
+    val across = remember { Animatable(-0.4f) }
+    LaunchedEffect(Unit) {
+        delay(CtMotion.SHEEN_DELAY_MS)
+        across.animateTo(1.4f, tween(CtMotion.SHEEN_MS, easing = CtMotion.EaseOut))
+    }
+    Modifier.drawWithContent {
+        drawContent()
+        val band = 90.dp.toPx()
+        val x = across.value * size.width
+        drawRect(Brush.linearGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.32f), Color.Transparent), Offset(x - band, 0f), Offset(x + band, size.height)))
     }
 }
 
 /**
- * Clickable that settles to 97% while pressed (140 ms ease-out). Uses the standard clickable,
+ * Clickable that dips to 95% while pressed and springs back. Uses the standard clickable,
  * so TalkBack announces it and keyboard and switch access work. With "Reduce motion" on it
  * does not scale.
  */
@@ -72,7 +111,7 @@ fun Modifier.ctPressable(
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed && enabled && !reduceMotion) CtMotion.PRESSED_SCALE else 1f,
-        animationSpec = tween(CtMotion.PRESS_MS, easing = CtMotion.EaseOut),
+        animationSpec = spring(dampingRatio = 0.55f, stiffness = 700f),
         label = "ctPressScale",
     )
     this

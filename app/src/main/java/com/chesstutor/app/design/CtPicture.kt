@@ -1,5 +1,10 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +60,8 @@ fun CtPictureTile(
     progress: Float? = null,
     fade: CtFade = CtFade.Strong,
     compact: Boolean = false,
+    /** The picture swells slowly, for the one big tile on a page. */
+    alive: Boolean = false,
     titleStyle: TextStyle = if (compact) CtType.Label else CtType.TitleSmall,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
@@ -63,7 +70,7 @@ fun CtPictureTile(
 ) {
     val base = modifier.clip(if (compact) CtShapes.CardSmall else CtShapes.Card).background(CtColors.Surface)
     Box(if (onClick != null) base.ctPressable(onClickLabel = onClickLabel, onClick = onClick) else base) {
-        Box(Modifier.matchParentSize().clearAndSetSemantics {}, content = picture)
+        Box(Modifier.matchParentSize().then(if (alive) Modifier.ctBreathe(1.1f, 9_000) else Modifier).clearAndSetSemantics {}, content = picture)
         Box(Modifier.matchParentSize().background(fade.brush))
         Row(
             modifier = Modifier
@@ -88,20 +95,37 @@ fun CtPictureTile(
     }
 }
 
-/** The round play mark on a picture. The whole tile is the tap target; this only marks it. */
+/**
+ * The light on a glossy surface: bright along the top, a soft rim, and a little weight at the
+ * foot, so it reads as gloss on black and on white alike.
+ */
+fun Modifier.ctGloss(shape: Shape): Modifier = drawWithContent {
+    drawContent()
+    val outline = shape.createOutline(size, layoutDirection, this)
+    drawOutline(outline, Brush.verticalGradient(0f to PictureInk.copy(alpha = 0.24f), 0.6f to PictureInk.copy(alpha = 0f), 1f to Shade.copy(alpha = 0.1f)))
+    drawOutline(outline, Brush.verticalGradient(0f to PictureInk.copy(alpha = 0.55f), 1f to PictureInk.copy(alpha = 0.08f)), style = Stroke(1.dp.toPx()))
+}
+
+/** A round glass mark on a picture: the picture shows through it. */
+@Composable
+private fun GlassMark(size: Dp, content: @Composable BoxScope.() -> Unit) {
+    Box(
+        modifier = Modifier.size(size).clip(CtShapes.Pill).background(PictureInk.copy(alpha = 0.2f)).ctGloss(CtShapes.Pill),
+        contentAlignment = Alignment.Center,
+        content = content,
+    )
+}
+
+/** The play mark on a picture. The whole tile is the tap target; this only marks it. */
 @Composable
 fun CtPlayMark() {
-    Box(Modifier.size(36.dp).clip(CtShapes.Pill).background(PictureInk), contentAlignment = Alignment.Center) {
-        Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = Shade, modifier = Modifier.size(20.dp))
-    }
+    GlassMark(40.dp) { Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = PictureInk, modifier = Modifier.size(22.dp)) }
 }
 
 /** The tick on a picture once something is done. */
 @Composable
 fun CtTickMark() {
-    Box(Modifier.size(24.dp).clip(CtShapes.Pill).background(PictureInk), contentAlignment = Alignment.Center) {
-        Icon(Icons.Rounded.Check, contentDescription = null, tint = Shade, modifier = Modifier.size(16.dp))
-    }
+    GlassMark(28.dp) { Icon(Icons.Rounded.Check, contentDescription = null, tint = PictureInk, modifier = Modifier.size(18.dp)) }
 }
 
 /** The day streak: a real flame while it lives, and a cold outline once it is lost (D53). */
@@ -114,7 +138,7 @@ fun CtStreak(days: Int, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
     ) {
         if (lit) {
-            Image(painterResource(R.drawable.ic_flame_lit), contentDescription = null, modifier = Modifier.size(24.dp))
+            Image(painterResource(R.drawable.ic_flame_lit), contentDescription = null, modifier = Modifier.size(24.dp).ctBreathe(1.12f, 1_400))
         } else {
             Icon(painterResource(R.drawable.ic_flame_off), contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(24.dp))
         }

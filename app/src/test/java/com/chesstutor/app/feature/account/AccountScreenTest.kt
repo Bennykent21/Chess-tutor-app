@@ -242,33 +242,48 @@ class AccountScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("No account linked. Link Chess.com or Lichess on the Account page to bring in your games.").assertExists()
-        compose.onNodeWithText("Support the developer").assertDoesNotExist()
-        compose.onNodeWithText("Export my games").performScrollTo().assertExists()
-        compose.onNodeWithText("Board lab").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_settings.png")
+        compose.onNodeWithText("Export my games").assertDoesNotExist()
+        section("Linked account")
+        compose.onNodeWithText("No account linked. Link Chess.com or Lichess on the Account page", substring = true).assertExists()
+        back()
+        section("Appearance")
         compose.onNodeWithText("Board and pieces").performScrollTo().performClick()
         assertTrue(boardOpened)
+        back()
+        section("Sound and play")
         compose.onNodeWithText("Lots").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.domain.bot.ChatLevel.LOTS, chat)
+        back()
+        section("Engine")
         compose.onNodeWithText("Deep").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.data.settings.ReviewDepth.DEEP, depth)
         compose.onNodeWithText("Online engine as a backup").performScrollTo().performClick()
         assertEquals(false, online)
+        back()
+        section("About")
+        compose.onNodeWithText("Support the developer").assertDoesNotExist()
+        compose.onNodeWithText("Open-source licences").performScrollTo().performClick()
+        assertTrue(licences)
+        back()
+        section("Your data")
+        compose.onNodeWithText("Export my games").performScrollTo().assertExists()
         compose.onNodeWithText("The app crashed 1 time recently.", substring = true).performScrollTo().assertExists()
         compose.onNodeWithText("Reports of another move that works appear here.").assertExists()
         compose.onNodeWithText("Clear").performScrollTo().performClick()
         compose.waitForIdle()
         assertTrue(crashCleared)
         compose.onNodeWithText("No crashes recorded on this phone.").assertExists()
-        compose.onNodeWithText("Open-source licences").performScrollTo().performClick()
-        assertTrue(licences)
         compose.onNodeWithText("Erase everything").performScrollTo().performClick()
         compose.onNodeWithText("Erase everything?").assertExists()
         compose.onNodeWithText("Erase").performClick()
         compose.waitForIdle()
         assertTrue(erased)
     }
+
+    private fun section(title: String) = compose.onNodeWithText(title).performScrollTo().performClick()
+
+    private fun back() = compose.onNodeWithContentDescription("Back").performClick()
 
     @Test
     fun settingsPicksTheCoachInASheetAndFlipsTheEverydaySwitches() {
@@ -284,10 +299,13 @@ class AccountScreenTest {
                 )
             }
         }
+        section("Sound and play")
         compose.onNodeWithText("Sound").performScrollTo().performClick()
         assertEquals("sound starts on, so a tap turns it off", false, sound)
         compose.onNodeWithText("Reduce motion").performScrollTo().performClick()
         assertEquals(true, reduceMotion)
+        back()
+        section("Profile")
         compose.onNodeWithText("Coach").performScrollTo().performClick()
         compose.onNode(hasText("Sage") and hasClickAction()).performClick()
         compose.waitForIdle()
@@ -330,12 +348,15 @@ class AccountScreenTest {
         compose.onNodeWithContentDescription("Settings").assertExists()
 
         page = "settings"
+        section("Linked account")
         compose.onNodeWithText("@kenny on Lichess").assertExists()
         compose.onNodeWithText("Rapid 1848 · Blitz 1720 · Bullet –").assertExists()
         compose.onNodeWithText("Blitz").performClick()
         assertEquals(RatingTimeControl.BLITZ, rating)
         compose.onNodeWithText("Import 100 more games").performClick()
         assertTrue(imported)
+        back()
+        section("About")
         compose.onNodeWithText("Support the developer").assertExists()
     }
 
