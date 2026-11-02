@@ -1,5 +1,8 @@
 package com.chesstutor.app.ui.navigation
 
+import java.time.LocalDate
+import com.chesstutor.app.feature.home.DailyPreview
+import com.chesstutor.app.domain.puzzle.PuzzleModes
 import com.chesstutor.app.navigation.needsWelcome
 import com.chesstutor.app.feature.puzzles.PuzzleLevelsScreen
 import android.os.SystemClock
@@ -965,6 +968,7 @@ private fun homeViewModel(navController: NavHostController, entry: NavBackStackE
                 training = trainingSources(context).reports(),
                 loadLessons = { AppContainer.provideLessonLoader(context).load() },
                 lessonProgress = AppContainer.provideLessonProgress(context).observe(),
+                loadDaily = { PuzzleModes.daily(AppContainer.loadPuzzlePack(context), LocalDate.now())?.let(DailyPreview::of) },
             ),
         ),
     )

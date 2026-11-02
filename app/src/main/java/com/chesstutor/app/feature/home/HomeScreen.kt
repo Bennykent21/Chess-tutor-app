@@ -134,7 +134,12 @@ fun HomeScreen(
             QuickMatch(rating = state.effectiveUserRating, onClick = actions.onQuickMatch, modifier = gutter)
             Row(gutter.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                 CtTile(modifier = Modifier.weight(1f).fillMaxHeight(), onClick = actions.onDailyPuzzle, onClickLabel = "Open the daily puzzle") {
-                    Icon(Icons.Rounded.Bolt, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(28.dp))
+                    val daily = home.daily
+                    if (daily != null) {
+                        Box(Modifier.size(72.dp).clip(CtShapes.Control)) { Thumbnail(daily.fen, state.appSettings.boardTheme, daily.whiteAtBottom) }
+                    } else {
+                        Icon(Icons.Rounded.Bolt, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(28.dp))
+                    }
                     Spacer(Modifier.weight(1f))
                     TileText("Daily puzzle", if (home.dailySolved) "Solved today" else "Waiting for you")
                 }
