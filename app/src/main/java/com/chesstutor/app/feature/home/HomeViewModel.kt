@@ -490,7 +490,7 @@ internal fun nextLessonOf(library: LessonLibrary, progress: Map<String, LessonPr
         number = course.lessons.indexOf(lesson) + 1,
         total = course.lessons.size,
         started = progress[lesson.id]?.started == true,
-        fen = lesson.steps.firstOrNull()?.fen,
+        fen = lesson.pictureFen,
     )
 }
 

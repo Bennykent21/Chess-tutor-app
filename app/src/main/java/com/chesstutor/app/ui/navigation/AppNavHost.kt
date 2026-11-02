@@ -558,6 +558,7 @@ private fun AppShell(
                             }
                         },
                         practice = course?.let { lessons.practice[it.id] },
+                        boardTheme = state.appSettings.boardTheme,
                     )
                 }
                 // Home's Continue card: opens one lesson, then shows the player.

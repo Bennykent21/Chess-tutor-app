@@ -3,6 +3,7 @@ package com.chesstutor.app.design
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.Image
@@ -38,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.chesstutor.app.R
 
 /** Words on a picture are the same in every theme: the picture darkens under them. */
-private val PictureInk = Color.White
+val CtPictureInk = Color.White
 private val Shade = Color.Black
 
 /** A board is busier than a face, so it fades nearly to black behind the words. */
@@ -81,12 +82,12 @@ fun CtPictureTile(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                if (kicker != null) Text(kicker, style = CtType.Caption.copy(color = PictureInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(title, style = titleStyle.copy(color = PictureInk), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (subtitle != null) Text(subtitle, style = CtType.Caption.copy(color = PictureInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (kicker != null) Text(kicker, style = CtType.Caption.copy(color = CtPictureInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(title, style = titleStyle.copy(color = CtPictureInk), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (subtitle != null) Text(subtitle, style = CtType.Caption.copy(color = CtPictureInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (progress != null) {
-                    Box(Modifier.padding(top = CtSpacing.sm).fillMaxWidth().height(3.dp).clip(CtShapes.Pill).background(PictureInk.copy(alpha = 0.3f))) {
-                        Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().background(PictureInk))
+                    Box(Modifier.padding(top = CtSpacing.sm).fillMaxWidth().height(3.dp).clip(CtShapes.Pill).background(CtPictureInk.copy(alpha = 0.3f))) {
+                        Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().background(CtPictureInk))
                     }
                 }
             }
@@ -96,21 +97,27 @@ fun CtPictureTile(
 }
 
 /**
- * The light on a glossy surface: bright along the top, a soft rim, and a little weight at the
- * foot, so it reads as gloss on black and on white alike.
+ * The gloss on a [surface]: bright along the top with a soft rim and a little weight at the foot.
+ * White light does not show on a white surface, so there the gloss is all shade, deepening
+ * towards the foot.
  */
-fun Modifier.ctGloss(shape: Shape): Modifier = drawWithContent {
+fun Modifier.ctGloss(shape: Shape, surface: Color = Shade): Modifier = drawWithContent {
     drawContent()
     val outline = shape.createOutline(size, layoutDirection, this)
-    drawOutline(outline, Brush.verticalGradient(0f to PictureInk.copy(alpha = 0.24f), 0.6f to PictureInk.copy(alpha = 0f), 1f to Shade.copy(alpha = 0.1f)))
-    drawOutline(outline, Brush.verticalGradient(0f to PictureInk.copy(alpha = 0.55f), 1f to PictureInk.copy(alpha = 0.08f)), style = Stroke(1.dp.toPx()))
+    if (surface.luminance() > CtMotion.LIGHT_SURFACE) {
+        drawOutline(outline, Brush.verticalGradient(0.3f to Shade.copy(alpha = 0f), 1f to Shade.copy(alpha = 0.2f)))
+        drawOutline(outline, Brush.verticalGradient(0f to Shade.copy(alpha = 0.04f), 1f to Shade.copy(alpha = 0.24f)), style = Stroke(1.dp.toPx()))
+    } else {
+        drawOutline(outline, Brush.verticalGradient(0f to CtPictureInk.copy(alpha = 0.24f), 0.6f to CtPictureInk.copy(alpha = 0f), 1f to Shade.copy(alpha = 0.1f)))
+        drawOutline(outline, Brush.verticalGradient(0f to CtPictureInk.copy(alpha = 0.55f), 1f to CtPictureInk.copy(alpha = 0.08f)), style = Stroke(1.dp.toPx()))
+    }
 }
 
 /** A round glass mark on a picture: the picture shows through it. */
 @Composable
-private fun GlassMark(size: Dp, content: @Composable BoxScope.() -> Unit) {
+fun CtGlassMark(size: Dp, content: @Composable BoxScope.() -> Unit) {
     Box(
-        modifier = Modifier.size(size).clip(CtShapes.Pill).background(PictureInk.copy(alpha = 0.2f)).ctGloss(CtShapes.Pill),
+        modifier = Modifier.size(size).clip(CtShapes.Pill).background(CtPictureInk.copy(alpha = 0.2f)).ctGloss(CtShapes.Pill),
         contentAlignment = Alignment.Center,
         content = content,
     )
@@ -119,13 +126,13 @@ private fun GlassMark(size: Dp, content: @Composable BoxScope.() -> Unit) {
 /** The play mark on a picture. The whole tile is the tap target; this only marks it. */
 @Composable
 fun CtPlayMark() {
-    GlassMark(40.dp) { Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = PictureInk, modifier = Modifier.size(22.dp)) }
+    CtGlassMark(40.dp) { Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = CtPictureInk, modifier = Modifier.size(22.dp)) }
 }
 
 /** The tick on a picture once something is done. */
 @Composable
 fun CtTickMark() {
-    GlassMark(28.dp) { Icon(Icons.Rounded.Check, contentDescription = null, tint = PictureInk, modifier = Modifier.size(18.dp)) }
+    CtGlassMark(28.dp) { Icon(Icons.Rounded.Check, contentDescription = null, tint = CtPictureInk, modifier = Modifier.size(18.dp)) }
 }
 
 /** The day streak: a real flame while it lives, and a cold outline once it is lost (D53). */

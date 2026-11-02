@@ -6,10 +6,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.R
 import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.design.ctPressable
 import java.time.temporal.ChronoUnit
@@ -17,12 +21,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Handshake
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
-import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
@@ -70,12 +78,29 @@ fun GameListRow(
     }
 }
 
-/** W, L or ½ on the result's colour. */
+/** A result as a picture: a crown, a handshake or a toppled king. */
+@Composable
+internal fun outcomeIcon(outcome: GameOutcome): ImageVector = when (outcome) {
+    GameOutcome.WIN -> ImageVector.vectorResource(R.drawable.ic_result_win)
+    GameOutcome.LOSS -> ImageVector.vectorResource(R.drawable.ic_result_loss)
+    GameOutcome.DRAW -> Icons.Rounded.Handshake
+    GameOutcome.UNKNOWN -> Icons.Rounded.Remove
+}
+
+/** A result's colour on the page; a draw is neutral. */
+@Composable
+@ReadOnlyComposable
+internal fun outcomeColor(outcome: GameOutcome): Color = when (outcome) {
+    GameOutcome.WIN -> CtColors.Success
+    GameOutcome.LOSS -> CtColors.Error
+    else -> CtColors.Text2
+}
+
+/** The result's picture on the result's colour. */
 @Composable
 internal fun ResultSquare(outcome: GameOutcome, size: Dp = 32.dp) {
     val fill = when (outcome) {
-        GameOutcome.WIN -> CtColors.Success
-        GameOutcome.LOSS -> CtColors.Error
+        GameOutcome.WIN, GameOutcome.LOSS -> outcomeColor(outcome)
         else -> CtColors.Track
     }
     val ink = when (outcome) {
@@ -83,11 +108,11 @@ internal fun ResultSquare(outcome: GameOutcome, size: Dp = 32.dp) {
         GameOutcome.LOSS -> CtColors.OnError
         else -> CtColors.Text
     }
-    val (text, spoken) = when (outcome) {
-        GameOutcome.WIN -> "W" to "Won"
-        GameOutcome.LOSS -> "L" to "Lost"
-        GameOutcome.DRAW -> "½" to "Drawn"
-        GameOutcome.UNKNOWN -> "–" to "Unfinished"
+    val spoken = when (outcome) {
+        GameOutcome.WIN -> "Won"
+        GameOutcome.LOSS -> "Lost"
+        GameOutcome.DRAW -> "Drawn"
+        GameOutcome.UNKNOWN -> "Unfinished"
     }
     Box(
         modifier = Modifier
@@ -97,7 +122,7 @@ internal fun ResultSquare(outcome: GameOutcome, size: Dp = 32.dp) {
             .semantics { contentDescription = spoken },
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, style = CtType.Label.copy(color = ink))
+        Icon(outcomeIcon(outcome), contentDescription = null, tint = ink, modifier = Modifier.size(size * 0.66f))
     }
 }
 
@@ -121,16 +146,6 @@ internal fun relativeDay(millis: Long, now: Long, zone: ZoneId = ZoneId.systemDe
         1L -> "yesterday"
         in 2L..6L -> "$days days ago"
         else -> formatDate(millis, zone)
-    }
-}
-
-@Composable
-internal fun OutcomeBadge(outcome: GameOutcome, modifier: Modifier = Modifier) {
-    when (outcome) {
-        GameOutcome.WIN -> CtBadge(text = "Win", color = CtColors.Lime, contentColor = CtColors.OnLime, modifier = modifier)
-        GameOutcome.LOSS -> CtBadge(text = "Loss", color = CtColors.Coral, contentColor = CtColors.OnCoral, modifier = modifier)
-        GameOutcome.DRAW -> CtBadge(text = "Draw", color = CtColors.SurfaceHigh, contentColor = CtColors.Text, modifier = modifier)
-        GameOutcome.UNKNOWN -> CtBadge(text = "–", color = CtColors.SurfaceHigh, contentColor = CtColors.Text, modifier = modifier)
     }
 }
 

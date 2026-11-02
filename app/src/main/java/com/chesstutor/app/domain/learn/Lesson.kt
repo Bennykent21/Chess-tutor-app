@@ -127,7 +127,18 @@ data class Lesson(
 ) {
     val quizCount: Int get() = steps.count { it is LessonStep.Play && it.quiz }
 
+    /** The position for its picture: the last with a fair number of pieces, else the fullest. */
+    val pictureFen: String?
+        get() {
+            val fens = steps.map { it.fen }
+            return fens.lastOrNull { pieceCount(it) >= FAIR_PICTURE } ?: fens.maxByOrNull(::pieceCount)
+        }
+
+    private fun pieceCount(fen: String): Int = fen.substringBefore(' ').count(Char::isLetter)
+
     companion object {
+        /** Fewer pieces than this make a nearly empty picture. */
+        private const val FAIR_PICTURE = 12
         const val DEFAULT_XP = 20
     }
 }

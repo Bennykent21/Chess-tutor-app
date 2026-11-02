@@ -208,10 +208,51 @@ class AccountScreenTest {
         }
         compose.onNodeWithText("Themes to work on").performScrollTo()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_training.png")
-        compose.onNodeWithText("0% clean").performScrollTo().performClick()
+        compose.onNodeWithText("0%").performScrollTo().performClick()
         assertEquals("pin", practised)
         compose.onNodeWithText("Mistakes to review").performScrollTo().performClick()
         assertTrue(reviewed)
+    }
+
+    @Test
+    fun statsGraphTheRatingsAndAResultOpensItsGames() {
+        val day = 86_400_000L
+        val now = 1_760_000_000_000
+        fun rated(id: String, days: Long, rating: Int, result: String) =
+            record(id, "rookie99", result, "white", GameSource.CHESS_COM, "e2e4 c7c5", date = now - days * day, timeClass = "blitz")
+                .copy(pgn = "[WhiteElo \"$rating\"]")
+        val played = GamesState(
+            loading = false,
+            games = GameLibrary.summarise(listOf(rated("a", 60, 1400, "1-0"), rated("b", 20, 1430, "1/2-1/2"), rated("c", 1, 1466, "0-1")), tree),
+        )
+        val history = (1..4).map { i ->
+            com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry("p$i", solved = true, clean = true, ratingAfter = 1000 + i * 15, finishedAt = now - (5 - i) * day)
+        }
+        val training = com.chesstutor.app.domain.account.TrainingCalculator.report(history, { emptySet() }, 0, 0)
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                AccountScreen(state = AppUiState(), games = played, stats = stats, dueReviewCount = 0, actions = AccountActions(), initialTab = AccountTab.STATS, training = training)
+            }
+        }
+        compose.onNodeWithContentDescription("Rating graph, now 1466. Hold to read a day.").assertExists()
+        compose.onNodeWithText("Puzzles").performClick()
+        compose.onNodeWithContentDescription("Rating graph, now 1060. Hold to read a day.").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_stats_graph.png")
+
+        compose.onNode(androidx.compose.ui.test.hasContentDescription("Drawn") and hasClickAction()).performClick()
+        compose.onNodeWithText("1 of 3 games").assertExists()
+    }
+
+    @Test
+    fun aRatingTileOpensStats() {
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 0, actions = AccountActions())
+            }
+        }
+        compose.onNodeWithText("Score").assertDoesNotExist()
+        compose.onNodeWithText("Puzzle rating").performClick()
+        compose.onNodeWithText("Score").assertExists()
     }
 
     @Test

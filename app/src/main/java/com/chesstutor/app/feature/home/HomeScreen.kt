@@ -230,8 +230,8 @@ private fun PlayButton(onClick: () -> Unit, modifier: Modifier) {
             .height(60.dp)
             .clip(CtShapes.Button)
             .background(CtColors.Primary)
-            .ctGloss(CtShapes.Button)
-            .ctSheen()
+            .ctGloss(CtShapes.Button, CtColors.Primary)
+            .ctSheen(CtColors.Primary)
             .ctPressable(onClickLabel = "Choose who to play", onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm, Alignment.CenterHorizontally),
