@@ -119,7 +119,7 @@ object Palette {
         navPill = 0xFF2F281C, navIcon = 0xFFF2ECE1,
         success = 0xFF7DBE93, onSuccess = 0xFF13110E,
         error = 0xFFE08374, onError = 0xFF13110E,
-        switchOff = 0xFF4A4236, boardLight = 0xFFD4BD98, boardDark = 0xFF8F6E48,
+        switchOff = 0xFF4A4236, boardLight = 0xFFECDDC2, boardDark = 0xFFB8956A,
     )
     val BAIZE_LIGHT = CtPalette(
         theme = AppTheme.BAIZE, dark = false,
@@ -141,7 +141,7 @@ object Palette {
         navPill = 0xFF1F3328, navIcon = 0xFFC5E6D1,
         success = 0xFF7CC19B, onSuccess = 0xFF0D1210,
         error = 0xFFE08374, onError = 0xFF0D1210,
-        switchOff = 0xFF3A4740, boardLight = 0xFFCBD5C2, boardDark = 0xFF60846A,
+        switchOff = 0xFF3A4740, boardLight = 0xFFE6EBDD, boardDark = 0xFF7C9D84,
     )
     val MONO_LIGHT = CtPalette(
         theme = AppTheme.MONO, dark = false,
@@ -163,7 +163,7 @@ object Palette {
         navPill = 0xFF262626, navIcon = 0xFFF5F5F5,
         success = 0xFF6CC08E, onSuccess = 0xFF000000,
         error = 0xFFEC7A6A, onError = 0xFF000000,
-        switchOff = 0xFF3A3A3A, boardLight = 0xFFD9BF97, boardDark = 0xFF9B6D47,
+        switchOff = 0xFF3A3A3A, boardLight = 0xFFEAD3AF, boardDark = 0xFFB3825A,
     )
     // Slate takes the colours of the developer's own mock-up (dark); its light mode is derived.
     val SLATE_LIGHT = CtPalette(

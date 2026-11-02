@@ -64,6 +64,8 @@ class BoardSettingsActions(
     val onOrientation: (BoardOrientation) -> Unit,
 )
 
+private const val SWATCHES_PER_ROW = 6
+
 private val PREVIEW_POSITION = Position.fromFen("r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4")
 private val PREVIEW_SELECTED = Square.fromAlgebraic("f3")
 private val PREVIEW_MARKS = BoardMarks(
@@ -113,12 +115,16 @@ fun BoardSettingsScreen(
                 }
 
                 CtSectionHeader(title = "Board")
-                Row(
-                    modifier = Modifier.fillMaxWidth().selectableGroup().padding(top = CtSpacing.sm),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                Column(
+                    modifier = Modifier.selectableGroup().padding(top = CtSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
                 ) {
-                    BoardColors.entries.forEach { colors ->
-                        ColorSwatch(colors, selected = colors == theme.colors, onSelect = { actions.onBoardColors(colors) })
+                    BoardColors.entries.chunked(SWATCHES_PER_ROW).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                            row.forEach { colors ->
+                                ColorSwatch(colors, selected = colors == theme.colors, onSelect = { actions.onBoardColors(colors) })
+                            }
+                        }
                     }
                 }
 

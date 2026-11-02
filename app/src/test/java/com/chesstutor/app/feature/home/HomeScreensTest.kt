@@ -129,11 +129,10 @@ class HomeScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home.png")
         compose.onNodeWithText("vs Juno").performClick()
         assertTrue(resumed)
-        compose.onNodeWithText("Play ${recommended.name}").performClick()
-        assertEquals(recommended.id, opened)
-        // D42: the bots live behind "Bots" in More ways to play, not on Home itself.
+        compose.onNodeWithText("${recommended.name}, ${recommended.rating}").assertExists()
+        // D42: the bots live behind Play, not on Home itself.
         compose.onNodeWithText("Meet the bots").assertDoesNotExist()
-        compose.onNodeWithText("Bots").performScrollTo().performClick()
+        compose.onNodeWithText("Play").performClick()
         assertTrue(bots)
     }
 
