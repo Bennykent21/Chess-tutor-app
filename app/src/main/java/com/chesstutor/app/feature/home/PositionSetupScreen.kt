@@ -129,24 +129,25 @@ internal fun SetupBoardScreen(
                 ),
             )
         },
-        status = {
-            CtSegmented(
-                options = PieceColor.entries,
-                selected = board.sideToMove,
-                label = { if (it == PieceColor.WHITE) "White to move" else "Black to move" },
-                onSelect = { onBoard(board.withSideToMove(it)) },
-            )
+        zone = {
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                Palette(theme, brush, onBrush)
+                CtSegmented(
+                    options = PieceColor.entries,
+                    selected = board.sideToMove,
+                    label = { if (it == PieceColor.WHITE) "White to move" else "Black to move" },
+                    onSelect = { onBoard(board.withSideToMove(it)) },
+                )
+                options()
+            }
+        },
+        under = {
+            if (problem != null) Text(problem, style = CtType.BodySmall.copy(color = CtColors.Error), maxLines = 2)
         },
         board = { EditorBoard(board, theme) { square -> onBoard(board.place(square, brush)) } },
         controls = { CtButton(text = startLabel, enabled = problem == null, onClick = onStart, modifier = Modifier.weight(1f)) },
         overlay = { FenSheet(fenOpen, board, onBoard, onDismiss = { fenOpen = false }) },
-    ) {
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            if (problem != null) Text(problem, style = CtType.BodySmall.copy(color = CtColors.Error), modifier = Modifier.padding(bottom = CtSpacing.sm))
-            Palette(theme, brush, onBrush)
-            options()
-        }
-    }
+    )
 }
 
 /** Paste a position as a FEN; the board follows as soon as it reads. */

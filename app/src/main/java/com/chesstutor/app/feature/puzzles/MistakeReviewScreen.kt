@@ -1,10 +1,10 @@
 package com.chesstutor.app.feature.puzzles
 
+import com.chesstutor.app.design.CtTutor
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Lightbulb
@@ -26,11 +26,9 @@ import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtBoardScreen
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
-import com.chesstutor.app.design.CtCoachStrip
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtScreenBackground
-import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.MascotMood
@@ -88,7 +86,18 @@ fun MistakeReviewScreen(
         title = "Mistakes review",
         onBack = actions.onBack,
         modifier = modifier,
-        status = {
+        zone = {
+            CtTutor(
+                settings.mascot,
+                mood = when {
+                    ui.done -> MascotMood.PROUD
+                    ui.wrong -> MascotMood.KIND
+                    hint != null -> MascotMood.THINKING
+                    else -> MascotMood.READY
+                },
+            ) { Text(ui.message, style = CtType.Chat) }
+        },
+        under = {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(if (ui.done) "Found it" else "Find the better move", style = CtType.TitleSmall)
@@ -118,18 +127,5 @@ fun MistakeReviewScreen(
                 CtButton(text = "Solution", style = CtButtonStyle.Secondary, onClick = actions.onShowAnswer, modifier = Modifier.weight(1f))
             }
         },
-    ) {
-        CtCoachStrip(
-            mascot = settings.mascot,
-            text = ui.message,
-            mood = when {
-                ui.done -> MascotMood.PROUD
-                ui.wrong -> MascotMood.KIND
-                hint != null -> MascotMood.THINKING
-                else -> MascotMood.READY
-            },
-            modifier = Modifier.fillMaxWidth().padding(top = CtSpacing.xs),
-        )
-    }
+    )
 }
-

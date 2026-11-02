@@ -13,7 +13,7 @@ enum class AppTheme(val label: String) {
     ;
 
     companion object {
-        val DEFAULT = PARCHMENT
+        val DEFAULT = MONO
 
         fun fromName(name: String?): AppTheme = entries.firstOrNull { it.name == name } ?: DEFAULT
     }

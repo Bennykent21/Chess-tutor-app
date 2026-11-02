@@ -1,38 +1,29 @@
 package com.chesstutor.app.feature.analysis
 
+import com.chesstutor.app.domain.MascotMood
+import com.chesstutor.app.design.CtControl
+import com.chesstutor.app.design.CtTutor
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
-import androidx.compose.material.icons.rounded.FirstPage
-import androidx.compose.material.icons.automirrored.rounded.LastPage
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtGroupLabel
 import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtSheet
-import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtOverflowMenu
 import com.chesstutor.app.design.CtMenuItem
 import com.chesstutor.app.design.CtBoardScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Undo
-import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,7 +42,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.chesstutor.app.board.AnalysisMoveList
 import com.chesstutor.app.board.AnalysisSession
-import com.chesstutor.app.board.AnalysisToolbar
 import com.chesstutor.app.board.BoardArrow
 import com.chesstutor.app.board.BoardEvalBar
 import com.chesstutor.app.board.BoardFeedback
@@ -61,7 +51,6 @@ import com.chesstutor.app.board.BoardWithEvalBar
 import com.chesstutor.app.board.EngineLinesPanel
 import com.chesstutor.app.board.MarkKind
 import com.chesstutor.app.board.MoveMark
-import com.chesstutor.app.board.SquareBadge
 import com.chesstutor.app.board.SquareRing
 import com.chesstutor.app.board.toggleArrow
 import com.chesstutor.app.board.toggleRing
@@ -71,9 +60,6 @@ import com.chesstutor.app.core.Position
 import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
-import com.chesstutor.app.design.CtButtonStyle
-import com.chesstutor.app.design.CtCard
-import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtScreenBackground
@@ -90,7 +76,6 @@ import com.chesstutor.app.feature.account.QualityIcon
 import com.chesstutor.app.feature.account.qualityBadge
 import com.chesstutor.app.feature.account.qualityIcon
 import com.chesstutor.app.feature.account.qualityColor
-import com.chesstutor.app.feature.account.qualityTextColor
 import com.chesstutor.app.feature.home.EXPLORE_STRENGTHS
 
 /** A quick first look, then a deeper one, so lines appear fast and then firm up. */
@@ -241,7 +226,27 @@ fun AnalysisScreen(
         onBack = onBack,
         modifier = modifier,
         actions = { CtOverflowMenu(menu) },
-        status = { Verdict(verdict = shown, hasMove = state.lastMove != null, thinking = thinking, evalCp = best?.centipawns, evalMate = best?.mateInMoves) },
+        zone = {
+            if (engineStatus.isDegraded) {
+                CtBadge(text = "Lite engine: Stockfish is not answering", icon = Icons.Rounded.Warning)
+            }
+            CtTutor(settings.mascot, mood = if (quality?.isError == true) MascotMood.KIND else MascotMood.READY) {
+                Verdict(verdict = shown, hasMove = state.lastMove != null, thinking = thinking, evalCp = best?.centipawns, evalMate = best?.mateInMoves)
+            }
+            if (showLines) {
+                EngineLinesPanel(
+                    position = state.position,
+                    lines = lines,
+                    engineName = if (engineStatus.isDegraded) "Lite engine" else "Stockfish",
+                    onPlayLine = { line ->
+                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
+                            ?.takeIf { move -> state.legalMoves.any { it.uci == move.uci } }
+                            ?.let { onFeedback(board.onMove(it)) }
+                    },
+                )
+            }
+        },
+        under = { AnalysisMoveList(view = view, onSelect = session::goTo, marks = marks) },
         board = {
             BoardWithEvalBar(
                 evalBar = { barModifier -> BoardEvalBar(best?.centipawns, best?.mateInMoves, whiteAtBottom, barModifier) },
@@ -272,16 +277,9 @@ fun AnalysisScreen(
             }
         },
         controls = {
-            if (tryAgain != null) {
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Previous move", onClick = session::back, enabled = view.canGoBack)
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Next move", onClick = session::forward, enabled = view.canGoForward)
-                CtButton(text = "Try again", style = CtButtonStyle.Secondary, onClick = tryAgain, modifier = Modifier.weight(1f))
-            } else {
-                CtIconButton(icon = Icons.Rounded.FirstPage, contentDescription = "First move", onClick = session::toStart, enabled = view.canGoBack)
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Previous move", onClick = session::back, enabled = view.canGoBack)
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Next move", onClick = session::forward, enabled = view.canGoForward)
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.LastPage, contentDescription = "Last move", onClick = session::toEnd, enabled = view.canGoForward)
-            }
+            CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back", description = "Previous move", onClick = session::back, enabled = view.canGoBack)
+            CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next", description = "Next move", onClick = session::forward, enabled = view.canGoForward)
+            if (tryAgain != null) CtControl(Icons.AutoMirrored.Rounded.Undo, "Try again", onClick = tryAgain)
         },
         overlay = {
             CtSheet(visible = engineSheet, onDismiss = { engineSheet = false }) {
@@ -300,29 +298,10 @@ fun AnalysisScreen(
                 CtButton(text = "Done", onClick = { engineSheet = false }, modifier = Modifier.fillMaxWidth())
             }
         },
-    ) {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            if (engineStatus.isDegraded) {
-                CtBadge(text = "Lite engine: Stockfish is not answering", icon = Icons.Rounded.Warning)
-            }
-            AnalysisMoveList(view = view, onSelect = session::goTo, marks = marks)
-            if (showLines) {
-                EngineLinesPanel(
-                    position = state.position,
-                    lines = lines,
-                    engineName = if (engineStatus.isDegraded) "Lite engine" else "Stockfish",
-                    onPlayLine = { line ->
-                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
-                            ?.takeIf { move -> state.legalMoves.any { it.uci == move.uci } }
-                            ?.let { onFeedback(board.onMove(it)) }
-                    },
-                )
-            }
-        }
-    }
+    )
 }
 
-/** The verdict on the move just played (or what to do next), in the fixed row above the board. */
+/** The verdict on the move just played (or what to do next), in the coach's bubble above the board. */
 @Composable
 private fun Verdict(verdict: JudgedMove?, hasMove: Boolean, thinking: Boolean, evalCp: Int?, evalMate: Int?) {
     Row(
@@ -335,8 +314,8 @@ private fun Verdict(verdict: JudgedMove?, hasMove: Boolean, thinking: Boolean, e
             when {
                 thinking -> Text("The engine is thinking…", style = CtType.TitleSmall)
                 verdict != null -> {
-                    Text(verdict.comment.headline, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(verdict.comment.detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(verdict.comment.headline, style = CtType.TitleSmall)
+                    Text(verdict.comment.detail, style = CtType.Caption)
                 }
                 hasMove -> Text("Checking that move…", style = CtType.TitleSmall)
                 else -> Text("Play a move and I'll tell you how good it was.", style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 2)

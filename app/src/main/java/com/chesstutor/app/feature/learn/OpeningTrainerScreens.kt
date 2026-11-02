@@ -1,5 +1,11 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.runtime.remember
+import androidx.compose.material.icons.rounded.Visibility
+import com.chesstutor.app.board.moveListOf
+import com.chesstutor.app.board.BoardMoveList
+import com.chesstutor.app.design.CtControl
+import com.chesstutor.app.design.CtTutor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -43,8 +49,6 @@ import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtDivider
-import com.chesstutor.app.design.CtEmptyState
-import com.chesstutor.app.design.CtMascotArt
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSegmented
@@ -171,15 +175,22 @@ fun OpeningDrillScreen(
         title = drill.opening.title,
         onBack = onBack,
         modifier = modifier,
-        status = {
-            Row(
-                modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-            ) {
-                CtMascotArt(mascot = settings.mascot, mood = mood, height = 44.dp, modifier = Modifier.size(44.dp))
-                Text(message, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        zone = {
+            CtTutor(settings.mascot, mood = mood, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                Text(message, style = CtType.Chat)
             }
+            CtProgressBar(progress = if (total == 0) 0f else made.toFloat() / total, height = 3.dp, modifier = Modifier.fillMaxWidth())
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+            ) {
+                drill.lines.forEach { line ->
+                    CtChip(text = line.variation, selected = line.id == drill.line.id, onClick = { onPickLine(line.id) })
+                }
+            }
+        },
+        under = {
+            BoardMoveList(entries = remember(board.version) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
         },
         board = {
             BoardHost(
@@ -195,24 +206,14 @@ fun OpeningDrillScreen(
         },
         controls = {
             if (result == null) {
-                CtButton(text = "Show me", style = CtButtonStyle.Secondary, enabled = !session.replyDue && answer == null && movable != null, onClick = onShowAnswer, modifier = Modifier.weight(1f))
+                CtControl(Icons.Rounded.Visibility, "Show me", enabled = !session.replyDue && answer == null && movable != null, onClick = onShowAnswer)
+                onLearn?.let { CtControl(Icons.Rounded.Lightbulb, "Learn the ideas", onClick = it) }
             } else {
                 CtButton(text = "Again", style = CtButtonStyle.Secondary, onClick = onAgain, modifier = Modifier.weight(1f))
                 CtButton(text = "Next line", onClick = onNext, modifier = Modifier.weight(1f))
             }
         },
-    ) {
-        CtProgressBar(progress = if (total == 0) 0f else made.toFloat() / total, height = 3.dp, modifier = Modifier.fillMaxWidth())
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()).padding(top = CtSpacing.md),
-            horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-        ) {
-            onLearn?.let { CtChip(text = "Learn the ideas", icon = Icons.Rounded.Lightbulb, onClick = it) }
-            drill.lines.forEach { line ->
-                CtChip(text = line.variation, selected = line.id == drill.line.id, onClick = { onPickLine(line.id) })
-            }
-        }
-    }
+    )
 }
 
 /** "It comes back tomorrow", "in 3 days". */

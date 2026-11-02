@@ -99,7 +99,7 @@ class AnalysisScreenTest {
             }
         }
         compose.onNodeWithText("Play a move and I'll tell you how good it was.").assertExists()
-        compose.onNode(hasContentDescription("Last move")).performClick()
+        compose.onNode(hasContentDescription("Next move")).performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Pawn to f3 is a blunder").assertExists()
         compose.onNode(hasContentDescription("1. f3 Blunder")).assertExists()

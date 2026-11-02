@@ -1,10 +1,11 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.foundation.layout.ColumnScope
+import com.chesstutor.app.design.CtTutor
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.rounded.PlayArrow
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtActionPage
-import com.chesstutor.app.design.CtSpeechBubble
 import com.chesstutor.app.design.CtMascotArt
 import com.chesstutor.app.design.CtBoardScreen
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -16,23 +17,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Lightbulb
-import androidx.compose.material.icons.rounded.OndemandVideo
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -56,9 +51,7 @@ import com.chesstutor.app.core.Square
 import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
-import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtIconBubble
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
@@ -67,7 +60,6 @@ import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.domain.learn.LessonPhase
 import com.chesstutor.app.domain.learn.LessonStep
-import com.chesstutor.app.domain.learn.LessonXp
 import com.chesstutor.app.domain.learn.MarkTone
 import com.chesstutor.app.domain.learn.phase
 
@@ -133,10 +125,9 @@ private fun StepProgress(state: LessonPlayerState) {
 
 /** The coach below the board: its mood, a tailed bubble, and a tick or a cross after a move. */
 @Composable
-private fun LessonCoach(state: LessonPlayerState, settings: AppSettings, label: String?, mood: MascotMood) {
-    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs), modifier = Modifier.semantics(mergeDescendants = true) {}) {
-        CtMascotArt(mascot = settings.mascot, mood = mood, height = 60.dp, modifier = Modifier.size(60.dp))
-        CtSpeechBubble(modifier = Modifier.weight(1f)) {
+private fun ColumnScope.LessonCoach(state: LessonPlayerState, settings: AppSettings, label: String?, mood: MascotMood) {
+    CtTutor(settings.mascot, mood = mood) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             when (state.feedbackTone) {
                 FeedbackTone.GOOD -> ToneBadge(Icons.Rounded.Check, CtColors.Success, CtColors.OnSuccess, "Correct")
                 FeedbackTone.BAD -> ToneBadge(Icons.Rounded.Close, CtColors.Error, CtColors.OnError, "Not quite")
@@ -199,7 +190,8 @@ private fun BoardStep(
         title = state.lessonTitle,
         onBack = onBack,
         modifier = modifier,
-        status = { StepProgress(state) },
+        zone = { LessonCoach(state, settings, label, mood) },
+        under = { StepProgress(state) },
         board = {
             BoardHost(
                 session = player.board,
@@ -241,11 +233,7 @@ private fun BoardStep(
                 )
             }
         },
-    ) {
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(top = CtSpacing.lg)) {
-            LessonCoach(state, settings, label, mood)
-        }
-    }
+    )
 }
 
 /** The lesson's first page: the video slot (a placeholder until lesson videos exist), its title and one line. */

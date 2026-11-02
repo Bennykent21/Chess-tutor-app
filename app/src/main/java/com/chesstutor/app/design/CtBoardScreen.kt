@@ -17,72 +17,78 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.min
 
-/** Fixed sizes of the board screen layout (design language section 6). */
+/** Fixed sizes of the board screen layout (mock-up round 18). */
 object CtBoardScreenSpec {
     val TopBarHeight = 56.dp
-    /** Puzzle status, lesson progress, the opponent's strip or a review verdict. Never grows. */
-    val StatusRowHeight = 64.dp
-    /** Room always kept below the board on short or wide screens: the player strip and the controls slot. */
-    val MinBelow = 160.dp
+    /** The least room kept above the board for the coach or the bot, on short phones. */
+    val MinZone = 120.dp
+    /** The row right under the board: the move list, a player or a progress bar. Never grows. */
+    val UnderHeight = 48.dp
     /** The bottom slot for a screen's buttons (Undo, Hint, Resign...). Always shown in full. */
     val ControlsHeight = 72.dp
     val MinBoard = 200.dp
 
-    /** The board's side: the full width, unless the screen is too short to leave [MinBelow] under it. */
+    /** The board's side: the full width, unless the screen is too short to leave [MinZone] above it. */
     fun boardSize(maxWidth: Dp, maxHeight: Dp): Dp =
-        max(MinBoard, min(maxWidth, maxHeight - TopBarHeight - StatusRowHeight - MinBelow))
+        max(MinBoard, min(maxWidth, maxHeight - TopBarHeight - MinZone - UnderHeight - ControlsHeight))
+
+    /** All the height left over goes above the board, so nothing is left unused below it. */
+    fun zoneHeight(maxHeight: Dp, board: Dp): Dp =
+        max(0.dp, maxHeight - TopBarHeight - board - UnderHeight - ControlsHeight)
 }
 
 /** Test tags, so tests can check where the board sits (D39). */
 object CtBoardScreenTags {
-    const val STATUS = "ct-board-status"
+    const val ZONE = "ct-board-zone"
     const val BOARD = "ct-board"
+    const val UNDER = "ct-board-under"
     const val CONTROLS = "ct-board-controls"
 }
 
 /**
  * The one layout of every board screen: games, puzzles, lessons, drills, review and analysis
- * (D39, D41). From the top: a top bar, a fixed 64 dp [status] row, the square [board],
- * everything [below] it (player strip, move list, coach or bot bubble) and the [controls] in a
- * fixed slot at the bottom. Nothing above the board can change height, so the board never moves
- * while it is in use, and it sits at the same height on every board screen. Long content below
- * the board is clipped to its area (make it scroll there) and can never push the controls off
- * the screen. Sheets and passing messages go in [overlay], which covers instead of pushing.
+ * (D39, D49). From the top: a top bar, the [zone] where the coach or the bot talks, the square
+ * [board], the fixed row [under] it and the [controls] in a fixed slot at the bottom. The board
+ * sits as low as those two rows allow and the zone takes the rest, so it is at the same height on
+ * every board screen of a phone and nothing above it can move it. The zone stacks up from the
+ * board: long text fills it upward and scrolls inside (see [CtTutor]), and anything that spills
+ * out of it covers the top bar but never the board, which is drawn after it. Sheets and passing
+ * messages go in [overlay], which covers instead of pushing.
  */
 @Composable
 fun CtBoardScreen(
     title: String,
     onBack: (() -> Unit)?,
     board: @Composable BoxScope.() -> Unit,
+    zone: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
     actions: @Composable (RowScope.() -> Unit)? = null,
-    status: @Composable BoxScope.() -> Unit = {},
+    under: @Composable BoxScope.() -> Unit = {},
     controls: (@Composable RowScope.() -> Unit)? = null,
     overlay: @Composable BoxScope.() -> Unit = {},
-    below: @Composable ColumnScope.() -> Unit,
 ) {
     BoxWithConstraints(modifier.fillMaxSize().background(CtColors.Bg)) {
-        // The same size on every board screen, with or without controls, so all boards line up.
+        // The same sizes on every board screen, with or without controls, so all boards line up.
         val side = CtBoardScreenSpec.boardSize(maxWidth, maxHeight)
+        val zoneHeight = CtBoardScreenSpec.zoneHeight(maxHeight, side)
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().height(CtBoardScreenSpec.TopBarHeight), contentAlignment = Alignment.CenterStart) {
                 CtTopBar(title = title, onBack = onBack, trailing = actions)
             }
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(CtBoardScreenSpec.StatusRowHeight)
-                    .padding(horizontal = CtSpacing.gutter)
-                    .testTag(CtBoardScreenTags.STATUS),
-                contentAlignment = Alignment.CenterStart,
-                content = status,
+                    .height(zoneHeight)
+                    .padding(start = CtSpacing.lg, end = CtSpacing.lg, bottom = CtSpacing.sm)
+                    .testTag(CtBoardScreenTags.ZONE),
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.sm, Alignment.Bottom),
+                content = zone,
             )
             Box(
                 modifier = Modifier
@@ -91,26 +97,25 @@ fun CtBoardScreen(
                     .testTag(CtBoardScreenTags.BOARD),
                 content = board,
             )
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .clipToBounds()
-                    .padding(horizontal = CtSpacing.gutter),
-                content = below,
+                    .height(CtBoardScreenSpec.UnderHeight)
+                    .padding(horizontal = CtSpacing.lg)
+                    .testTag(CtBoardScreenTags.UNDER),
+                contentAlignment = Alignment.Center,
+                content = under,
             )
-            if (controls != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(CtBoardScreenSpec.ControlsHeight)
-                        .testTag(CtBoardScreenTags.CONTROLS)
-                        .padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = controls,
-                )
-            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CtBoardScreenSpec.ControlsHeight)
+                    .testTag(CtBoardScreenTags.CONTROLS)
+                    .padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                content = { controls?.invoke(this) },
+            )
         }
         overlay()
     }
