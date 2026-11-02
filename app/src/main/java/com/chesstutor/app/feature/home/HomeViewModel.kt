@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.home
 
+import com.chesstutor.app.domain.puzzle.PuzzleSession
+import com.chesstutor.app.domain.puzzle.Puzzle
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
@@ -112,13 +114,25 @@ data class HomeUiState(
     val nextLesson: NextLesson? = null,
     /** The "Recommended" card: mistakes to fix, a weak puzzle theme or a bot. */
     val nextStep: NextStep? = null,
+    /** Today's puzzle for its tile; null until the pack has loaded. */
+    val daily: DailyPreview? = null,
 )
+
+/** The position today's puzzle opens on, from the side that solves it. */
+data class DailyPreview(val fen: String, val whiteAtBottom: Boolean) {
+    companion object {
+        /** Null for a puzzle that cannot be set up. */
+        fun of(puzzle: Puzzle): DailyPreview? =
+            PuzzleSession.start(puzzle)?.let { DailyPreview(it.fen, whiteAtBottom = it.solverColor == 'w') }
+    }
+}
 
 /** What Home reads from Learn, Puzzles and Account for its Continue and Recommended cards. */
 class HomeLearning(
     val training: Flow<TrainingReport> = flowOf(TrainingSources.EMPTY_REPORT),
     val loadLessons: suspend () -> LessonLibrary = { LessonLibrary.EMPTY },
     val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
+    val loadDaily: suspend () -> DailyPreview? = { null },
 )
 
 /**
@@ -151,6 +165,12 @@ class HomeViewModel(
     ) { library, progress, report -> nextLessonOf(library, progress) to report }
         // The Training report counts every puzzle played: keep that off the main thread.
         .flowOn(worker)
+
+    /** Starts empty, so the rest of Home never waits for the puzzle pack. */
+    private val daily: Flow<DailyPreview?> = flow {
+        emit(null)
+        emit(runCatching { learning.loadDaily() }.getOrNull())
+    }.flowOn(worker)
     private val snapshot = MutableStateFlow(store.load())
 
     /** Loaded eagerly, so a saved game against one of them can be resumed at once. */
@@ -172,7 +192,7 @@ class HomeViewModel(
                 nextLesson = lesson,
                 nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
+        }.combine(daily) { state, preview -> state.copy(daily = preview) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
             BotRoster.byId(s.botId)?.let { s.toResumeCard(it) }
         }))
 
