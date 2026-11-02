@@ -73,26 +73,55 @@ fun CtPictureTile(
     Box(if (onClick != null) base.ctPressable(onClickLabel = onClickLabel, onClick = onClick) else base) {
         Box(Modifier.matchParentSize().then(if (alive) Modifier.ctBreathe(1.1f, 9_000) else Modifier).clearAndSetSemantics {}, content = picture)
         Box(Modifier.matchParentSize().background(fade.brush))
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .padding(horizontal = if (compact) 10.dp else 14.dp, vertical = if (compact) CtSpacing.sm else CtSpacing.md),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Column(Modifier.weight(1f)) {
-                if (kicker != null) Text(kicker, style = CtType.Caption.copy(color = CtPictureInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(title, style = titleStyle.copy(color = CtPictureInk), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (subtitle != null) Text(subtitle, style = CtType.Caption.copy(color = CtPictureInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (progress != null) {
-                    Box(Modifier.padding(top = CtSpacing.sm).fillMaxWidth().height(3.dp).clip(CtShapes.Pill).background(CtPictureInk.copy(alpha = 0.3f))) {
-                        Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().background(CtPictureInk))
-                    }
+        TileWords(
+            title = title,
+            kicker = kicker,
+            subtitle = subtitle,
+            progress = progress,
+            compact = compact,
+            titleStyle = titleStyle,
+            ink = CtPictureInk,
+            softInk = CtPictureInk,
+            track = CtPictureInk.copy(alpha = 0.3f),
+            trailing = trailing,
+            modifier = Modifier.align(Alignment.BottomStart),
+        )
+    }
+}
+
+/** The words along the foot of a tile: what it is, its title, one line, a thin bar and a mark. */
+@Composable
+internal fun TileWords(
+    title: String,
+    kicker: String?,
+    subtitle: String?,
+    progress: Float?,
+    compact: Boolean,
+    titleStyle: TextStyle,
+    ink: Color,
+    softInk: Color,
+    track: Color,
+    trailing: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = if (compact) 10.dp else 14.dp, vertical = if (compact) CtSpacing.sm else CtSpacing.md),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            if (kicker != null) Text(kicker, style = CtType.Caption.copy(color = softInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, style = titleStyle.copy(color = ink), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (subtitle != null) Text(subtitle, style = CtType.Caption.copy(color = softInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (progress != null) {
+                Box(Modifier.padding(top = CtSpacing.sm).fillMaxWidth().height(3.dp).clip(CtShapes.Pill).background(track)) {
+                    Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().background(ink))
                 }
             }
-            trailing?.invoke()
         }
+        trailing?.invoke()
     }
 }
 

@@ -244,6 +244,23 @@ class AccountScreenTest {
     }
 
     @Test
+    fun theHeroShowsTheEarnedPieceAndItsLadder() {
+        val state = AppUiState(
+            linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = 1526, blitzRating = null, bulletRating = null, selectedTimeControl = RatingTimeControl.RAPID),
+        )
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                AccountScreen(state = state, games = games, stats = stats, dueReviewCount = 0, actions = AccountActions())
+            }
+        }
+        compose.onNodeWithText("Rook").assertExists()
+        compose.onNodeWithText("274 to Queen").performClick()
+        compose.onNodeWithText("Your piece").assertExists()
+        compose.onNodeWithText("King").assertExists()
+        compose.onNodeWithText("2200").assertExists()
+    }
+
+    @Test
     fun aRatingTileOpensStats() {
         compose.setContent {
             CtTheme(reduceMotion = true) {

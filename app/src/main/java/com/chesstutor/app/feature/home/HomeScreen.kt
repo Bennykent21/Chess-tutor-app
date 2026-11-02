@@ -3,8 +3,9 @@ package com.chesstutor.app.feature.home
 import androidx.compose.material.icons.rounded.PlayArrow
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.design.ctSheen
+import com.chesstutor.app.design.CtArtTile
+import com.chesstutor.app.design.CtScene
 import com.chesstutor.app.design.ctGloss
-import com.chesstutor.app.board.BoardScenes
 import com.chesstutor.app.board.BoardPicture
 import com.chesstutor.app.design.ctEnter
 import com.chesstutor.app.design.CtTickMark
@@ -35,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
-import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtHeroCard
@@ -155,10 +155,10 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     val tile = Modifier.size(132.dp, 96.dp)
-                    home.nextStep?.let { step -> NextStepTile(step, boardTheme, actions, tile) }
-                    CtPictureTile(title = "Opening battle", modifier = tile, compact = true, onClick = actions.onOpeningBattle) { BoardPicture(BoardScenes.OPENING, boardTheme) }
-                    CtPictureTile(title = "From a position", modifier = tile, compact = true, onClick = actions.onFromPosition) { BoardPicture(BoardScenes.SETUP, boardTheme) }
-                    CtPictureTile(title = "Explore", modifier = tile, compact = true, onClick = actions.onExplore) { BoardPicture(BoardScenes.MIDDLEGAME, boardTheme) }
+                    home.nextStep?.let { step -> NextStepTile(step, actions, tile) }
+                    CtArtTile(title = "Opening battle", scene = CtScene.BATTLE, modifier = tile, compact = true, onClick = actions.onOpeningBattle)
+                    CtArtTile(title = "From a position", scene = CtScene.POSITION, modifier = tile, compact = true, onClick = actions.onFromPosition)
+                    CtArtTile(title = "Explore", scene = CtScene.EXPLORE, modifier = tile, compact = true, onClick = actions.onExplore)
                     PlayAFriend(tile)
                 }
             }
@@ -243,22 +243,24 @@ private fun PlayButton(onClick: () -> Unit, modifier: Modifier) {
 
 /** What to work on next, first among the ways to play: mistakes to fix or a weak theme. A bot is Quick match's job. */
 @Composable
-private fun NextStepTile(step: NextStep, theme: BoardTheme, actions: HomeActions, modifier: Modifier) {
+private fun NextStepTile(step: NextStep, actions: HomeActions, modifier: Modifier) {
     when (step) {
-        is NextStep.Mistakes -> CtPictureTile(
+        is NextStep.Mistakes -> CtArtTile(
             title = if (step.count == 1) "1 mistake to fix" else "${step.count} mistakes to fix",
+            scene = CtScene.BLUNDERS,
             modifier = modifier,
             compact = true,
             onClick = actions.onReviewMistakes,
             onClickLabel = step.reason,
-        ) { BoardPicture(BoardScenes.ATTACK, theme) }
-        is NextStep.Theme -> CtPictureTile(
+        )
+        is NextStep.Theme -> CtArtTile(
             title = "Practise ${step.score.name}",
+            scene = CtScene.TACTICS,
             modifier = modifier,
             compact = true,
             onClick = { actions.onPractiseTheme(step.score.theme) },
             onClickLabel = step.reason,
-        ) { BoardPicture(BoardScenes.MIDDLEGAME, theme) }
+        )
         is NextStep.Bot -> Unit
     }
 }

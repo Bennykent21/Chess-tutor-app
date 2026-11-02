@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:#000}</style>
+<script type="importmap">{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+  "three/examples/jsm/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "three-mesh-bvh":"https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/build/index.module.js",
+  "three-gpu-pathtracer":"https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.23/build/index.module.js"
+}}</script>
+<script type="module">
+const post = (route, body) => fetch(route, { method: 'POST', body });
+const fail = (m) => post('/log', 'ERROR ' + m).then(() => post('/done', ''));
+window.onerror = (m) => { fail(m); };
+window.onunhandledrejection = (e) => { fail(e.reason && e.reason.stack || e.reason); };
+
+const THREE = await import('three');
+const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
+const { WebGLPathTracer, PhysicalCamera } = await import('three-gpu-pathtracer');
+const params = new URLSearchParams(location.search);
+const { SHOTS } = await import('./' + (params.get('set') || 'ptshots.js') + '?v=' + Date.now());
+const only = params.get('only');
+const scale = Number(params.get('scale') || 1), spp = Number(params.get('spp') || 0), tag = params.get('tag') || '';
+
+const gltf = await new GLTFLoader().loadAsync('gltf4k/chess_set_4k.gltf');
+gltf.scene.updateMatrixWorld(true);
+const templates = {};
+for (const name of ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king']) for (const color of ['white', 'black']) {
+    const node = gltf.scene.getObjectByName(name === 'queen' || name === 'king' ? `piece_${name}_${color}` : `piece_${name}_${color}_01`);
+    const box = new THREE.Box3().setFromObject(node);
+    const copy = node.clone(true);
+    copy.position.copy(node.position).sub(new THREE.Vector3((box.min.x + box.max.x) / 2, box.min.y, (box.min.z + box.max.z) / 2));
+    const group = new THREE.Group();
+    group.add(copy);
+    templates[`${name}_${color}`] = group;
+}
+const metals = {
+    gold: { color: 0xe0ad4e, roughness: 0.2 }, silver: { color: 0xe4e8ee, roughness: 0.26 }, pewter: { color: 0x737b86, roughness: 0.3 }, bronze: { color: 0xb5764a, roughness: 0.28 },
+};
+
+const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true, alpha: true, premultipliedAlpha: false });
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.setPixelRatio(1);
+document.body.append(renderer.domElement);
+const hdrTex = await new RGBELoader().loadAsync('hdr/studio_small_09.hdr');
+hdrTex.mapping = THREE.EquirectangularReflectionMapping;
+
+function softbox(l) {
+    const light = new THREE.RectAreaLight(l.color || '#ffffff', l.power, l.w, l.h);
+    light.position.set(l.x, l.y, l.z);
+    light.lookAt(l.tx ?? 0, l.ty ?? 0.05, l.tz ?? 0);
+    return light;
+}
+
+const pt = new WebGLPathTracer(renderer);
+pt.bounces = 6;
+pt.filterGlossyFactor = 0.4;
+pt.renderToCanvas = true;
+pt.renderDelay = 0; pt.minSamples = 0; pt.fadeDuration = 0;
+pt.dynamicLowRes = false; pt.rasterizeScene = false;
+pt.tiles.set(3, 3);
+
+async function render(shot) {
+    const w = Math.round(shot.w * scale), h = Math.round(shot.h * scale);
+    renderer.setSize(w, h);
+    renderer.toneMappingExposure = shot.exposure ?? 1;
+    const scene = new THREE.Scene();
+    scene.background = shot.cutout ? null : new THREE.Color(shot.bg || '#000000');
+    scene.environment = hdrTex;
+    scene.environmentIntensity = shot.env ?? 0.05;
+    scene.environmentRotation = new THREE.Euler(0, shot.envRot ?? 0, 0);
+    for (const p of shot.pieces) {
+        const g = templates[`${p.p}_${p.c || 'white'}`].clone(true);
+        g.position.set(p.x ?? 0, p.y ?? 0, p.z ?? 0);
+        g.rotation.set(p.rx ?? 0, p.ry ?? 0, p.rz ?? 0);
+        if (p.mat) g.traverse((o) => { if (o.isMesh) o.material = new THREE.MeshStandardMaterial({ metalness: 1, normalMap: o.material.normalMap, ...metals[p.mat] }); });
+        scene.add(g);
+    }
+    if (shot.board) {
+        const b = gltf.scene.getObjectByName('board').clone(true);
+        b.position.y -= 0.0175;
+        scene.add(b);
+    }
+    if (shot.floor) {
+        const N = 80, R = 0.7, zb = -0.5, g = new THREE.PlaneGeometry(9, 1, 1, N), pos = g.attributes.position;
+        for (let i = 0; i <= N; i++) {
+            const t = i / N * 7, flat = 3 - zb, arc = R * Math.PI / 2;
+            let y, z;
+            if (t < flat) { z = 3 - t; y = 0; } else if (t < flat + arc) { const a = (t - flat) / R; z = zb - Math.sin(a) * R; y = R - Math.cos(a) * R; } else { z = zb - R; y = R + (t - flat - arc); }
+            for (let k = 0; k < 2; k++) { pos.setY(i * 2 + k, y); pos.setZ(i * 2 + k, z); }
+        }
+        g.computeVertexNormals();
+        const f = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({ color: shot.floor, roughness: shot.floorRough ?? 0.25, metalness: 0, clearcoat: shot.floorCoat ?? 0.6, clearcoatRoughness: 0.15, side: THREE.DoubleSide }));
+        f.position.y = shot.board ? -0.0175 : 0;
+        scene.add(f);
+    }
+    if (shot.wall) {
+        const f = new THREE.Mesh(new THREE.PlaneGeometry(8, 4), new THREE.MeshStandardMaterial({ color: shot.wall, roughness: 0.9 }));
+        f.position.set(0, 1, shot.wallZ ?? -1);
+        scene.add(f);
+    }
+    for (const l of shot.lights || []) {
+        if (l.spot) {
+            const sp = new THREE.SpotLight(l.color || '#ffffff', l.power, 0, l.angle ?? 0.3, l.penumbra ?? 0.9, 2);
+            sp.position.set(l.x, l.y, l.z);
+            sp.target.position.set(l.tx ?? 0, l.ty ?? 0, l.tz ?? 0);
+            scene.add(sp, sp.target);
+        } else scene.add(softbox(l));
+    }
+
+    const c = shot.cam;
+    const camera = new PhysicalCamera(c.fov ?? 22, w / h, 0.01, 12);
+    camera.position.set(c.x, c.y, c.z);
+    const focus = new THREE.Vector3(c.tx ?? 0, c.ty ?? 0.04, c.tz ?? 0);
+    camera.lookAt(focus);
+    camera.fStop = c.fStop ?? 8;
+    camera.focusDistance = c.focus ?? camera.position.distanceTo(focus);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+
+    pt.setScene(scene, camera);
+    const n = spp || shot.samples || 64;
+    pt.renderSample();
+    await new Promise((r) => setTimeout(r));
+    const t0 = performance.now(), s0 = pt.samples;
+    let last = 0;
+    while (pt.samples < n) {
+        pt.renderSample();
+        await new Promise((r) => setTimeout(r));
+        const now = performance.now();
+        if (now - last > 60000) { last = now; await post('/log', `${shot.name} ${pt.samples.toFixed(0)}/${n} after ${((now - t0) / 1000).toFixed(0)}s`); }
+    }
+    pt.renderSample();
+    await post('/save?name=' + shot.name + tag + '.png', renderer.domElement.toDataURL('image/png'));
+    await post('/log', `${shot.name} done ${w}x${h} ${n}spp, after compile ${((performance.now() - t0) / 1000).toFixed(0)}s, ${((n - s0) / ((performance.now() - t0) / 1000)).toFixed(2)} spp/s`);
+}
+
+for (const shot of SHOTS) {
+    if (only && !only.split(',').includes(shot.name)) continue;
+    await render(shot);
+}
+await post('/done', '');
+</script>
