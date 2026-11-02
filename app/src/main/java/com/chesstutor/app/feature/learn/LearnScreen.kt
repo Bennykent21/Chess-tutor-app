@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.board.BoardPicture
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,14 +37,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.board.BoardTheme
-import com.chesstutor.app.board.BoardView
 import com.chesstutor.app.board.PieceArt
 import com.chesstutor.app.core.Piece
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.PieceType
-import com.chesstutor.app.core.Position
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtHeroCard
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
@@ -109,8 +107,7 @@ fun LearnScreen(
                         onClick = { actions.onOpenLesson(lesson.id) },
                         onClickLabel = (if (started) "Continue " else "Start ") + lesson.title,
                     ) {
-                        val position = lesson.steps.firstOrNull()?.fen?.let { Position.tryFromFen(it).getOrNull() } ?: Position.initial()
-                        BoardView(position = position, theme = boardTheme, showCoordinates = false, showLegalDots = false)
+                        BoardPicture(lesson.steps.firstOrNull()?.fen, boardTheme)
                     }
                 }
 
@@ -180,7 +177,6 @@ private fun TopicRow(tile: LearnHubTile, boardTheme: BoardTheme, last: Boolean, 
             }
             if (tile.isAvailable) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2)
         }
-        if (!last) CtDivider()
     }
 }
 

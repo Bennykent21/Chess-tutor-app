@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.Config
 import java.io.File
 
@@ -59,6 +60,7 @@ import java.io.File
  * 48 dp across (plan Phase 6D). Fails with the list of problems.
  */
 @RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w400dp-h3000dp-xxhdpi")
 class AccessibilityTest {
 

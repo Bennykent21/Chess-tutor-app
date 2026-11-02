@@ -11,7 +11,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.data.model.GameSource
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.ctPressable
 import java.time.temporal.ChronoUnit
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +44,6 @@ fun GameListRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     accuracy: Double? = null,
-    divider: Boolean = true,
     now: Long = System.currentTimeMillis(),
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -69,7 +67,6 @@ fun GameListRow(
                 modifier = if (accuracy == null) Modifier.semantics { contentDescription = "Not reviewed" } else Modifier,
             )
         }
-        if (divider) CtDivider()
     }
 }
 

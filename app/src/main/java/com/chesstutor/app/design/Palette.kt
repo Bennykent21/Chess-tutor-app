@@ -76,7 +76,6 @@ data class CtPalette(
     val boardDark: Long,
 ) {
     /** Dark themes and Mono outline their cards with a hairline; the other light themes use a soft shadow. */
-    val outlinedCards: Boolean get() = dark || theme == AppTheme.MONO
 
     /** Text colour and the backgrounds it is allowed on. Tested to meet WCAG AA (4.5:1). */
     val textPairs: List<Pair<Long, List<Long>>>

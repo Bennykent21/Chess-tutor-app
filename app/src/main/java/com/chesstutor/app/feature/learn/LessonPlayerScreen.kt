@@ -316,7 +316,7 @@ private fun DonePage(
         Column(Modifier.padding(top = CtSpacing.xl)) {
             onRelatedPuzzles?.let { CtListRow(title = "Related puzzles", icon = Icons.Rounded.Extension, onClick = it) }
             onPractise?.let { CtListRow(title = "Practise in Opening Battle", icon = Icons.Rounded.Flag, onClick = it) }
-            if (next != null) CtListRow(title = "Play it again", icon = Icons.Rounded.Refresh, onClick = onReplay, divider = false)
+            if (next != null) CtListRow(title = "Play it again", icon = Icons.Rounded.Refresh, onClick = onReplay)
         }
     }
 }

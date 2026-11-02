@@ -1,6 +1,5 @@
 package com.chesstutor.app.feature.account
 
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtSectionHeader
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
@@ -126,7 +125,6 @@ private fun SpeedCard(perf: PerfSnapshot) {
             Text(label, style = CtType.BodySmall, modifier = Modifier.weight(0.4f))
             Text(value, style = CtType.BodySmall.copy(color = CtColors.Text), textAlign = TextAlign.End, modifier = Modifier.weight(0.6f))
         }
-        if (i < speedLines(perf).lastIndex) CtDivider()
     }
 }
 

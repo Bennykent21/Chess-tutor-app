@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -53,16 +54,15 @@ class PuzzlesHomeScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("Rating 1248").assertExists()
+        compose.onNodeWithText("1248").assertExists()
         compose.onNodeWithText("Best 3 of 5").assertExists()
         compose.onRoot().captureRoboImage()
 
         compose.onNodeWithText("Best 3 of 5").performClick()
         assertEquals(12, played)
-        compose.onNodeWithText("3").performClick()
+        compose.onNodeWithText("Mistakes to fix").performClick()
         assertEquals(true, mistakes)
-        // The chip above (the card's title says "Level 12" too) opens the map.
-        compose.onAllNodesWithText("Level 12").onFirst().performClick()
+        compose.onNodeWithText("All levels").performScrollTo().performClick()
         assertEquals(true, levels)
     }
 

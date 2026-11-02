@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.design.CtStreak
 import com.chesstutor.app.feature.home.PlayerAvatar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,8 +23,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SportsEsports
@@ -42,7 +41,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -218,24 +216,7 @@ private fun ProfileRow(state: AppUiState, stats: PuzzleStats, modifier: Modifier
             Text(title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (detail != null) Text(detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (stats.dayStreak > 0) StreakChip(stats.dayStreak)
-    }
-}
-
-@Composable
-private fun StreakChip(days: Int) {
-    Row(
-        modifier = Modifier
-            .height(32.dp)
-            .clip(CtShapes.Pill)
-            .background(CtColors.Surface)
-            .padding(horizontal = CtSpacing.md)
-            .clearAndSetSemantics { contentDescription = "$days-day streak" },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Icon(Icons.Rounded.LocalFireDepartment, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(16.dp))
-        Text("$days", style = CtType.Label)
+        CtStreak(stats.dayStreak)
     }
 }
 
@@ -300,7 +281,6 @@ private fun LazyListScope.overview(
                 game = game,
                 onClick = { onOpenGame(game.id) },
                 accuracy = games.analysed[game.id]?.accuracyFor(game.userColor),
-                divider = i < recent.lastIndex,
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter),
             )
         }
@@ -357,7 +337,6 @@ private fun LazyListScope.gamesList(
             game = game,
             onClick = { onOpenGame(game.id) },
             accuracy = games.analysed[game.id]?.accuracyFor(game.userColor),
-            divider = i < shown.lastIndex,
             modifier = Modifier.padding(horizontal = CtSpacing.gutter),
         )
     }

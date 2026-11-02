@@ -179,6 +179,7 @@ class HomeScreensTest {
             }
         }
         compose.onNodeWithText("My bots").assertDoesNotExist()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/Bots.png")
         compose.onNodeWithText("Build a bot").performClick()
         assertTrue(built)
         compose.onNodeWithText("Watch two").performClick()

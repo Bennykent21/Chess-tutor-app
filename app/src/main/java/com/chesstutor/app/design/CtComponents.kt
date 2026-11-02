@@ -118,16 +118,12 @@ fun CtScreenBackground(
 
 /**
  * The raised look of hero cards and sheets: a soft shadow tinted from the theme's ink on
- * light themes, a hairline on dark themes and Mono (design language section 2).
+ * every theme (design language section 2).
  */
-private fun Modifier.raisedSurface(shape: Shape, background: Brush, outlined: Boolean, line: Color, ink: Color): Modifier =
-    if (outlined) {
-        clip(shape).background(background).border(1.dp, line, shape)
-    } else {
-        shadow(elevation = 10.dp, shape = shape, ambientColor = ink.copy(alpha = 0.06f), spotColor = ink.copy(alpha = 0.22f))
-            .clip(shape)
-            .background(background)
-    }
+private fun Modifier.raisedSurface(shape: Shape, background: Brush, ink: Color): Modifier =
+    shadow(elevation = 10.dp, shape = shape, ambientColor = ink.copy(alpha = 0.06f), spotColor = ink.copy(alpha = 0.10f))
+        .clip(shape)
+        .background(background)
 
 /** Raised card. Clickable when [onClick] is set. */
 @Composable
@@ -139,15 +135,15 @@ fun CtCard(
     contentPadding: PaddingValues = PaddingValues(CtSpacing.lg),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val base = modifier.raisedSurface(CtShapes.Card, background, CtOutlinedCards, CtColors.Line, CtColors.Text)
+    val base = modifier.raisedSurface(CtShapes.Card, background, CtColors.Text)
     val clickable = if (onClick != null) base.ctPressable(onClickLabel = onClickLabel, onClick = onClick) else base
     Column(modifier = clickable.padding(contentPadding), content = content)
 }
 
 /**
- * The "continue" card at the top of Home, Learn and Puzzles: a board thumbnail, what it is,
- * the title, one line of context, a thin progress bar and a round play button. The whole card
- * is one tap target; the play button only marks it.
+ * The "continue" card at the top of Home, Learn and Puzzles: the picture fills it, with what it
+ * is, the title, one line of context and a thin progress bar on the fade. The whole card is one
+ * tap target; the play mark only marks it.
  */
 @Composable
 fun CtHeroCard(
@@ -158,39 +154,20 @@ fun CtHeroCard(
     detail: String? = null,
     progress: Float? = null,
     onClickLabel: String? = null,
-    thumbnail: @Composable BoxScope.() -> Unit,
+    picture: @Composable BoxScope.() -> Unit,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .raisedSurface(CtShapes.Card, SolidColor(CtColors.Raised), CtOutlinedCards, CtColors.Line, CtColors.Text)
-            .ctPressable(onClickLabel = onClickLabel, onClick = onClick)
-            .padding(CtSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg),
-    ) {
-        Box(modifier = Modifier.size(112.dp).clip(CtShapes.Chip), content = thumbnail)
-        Column(
-            modifier = Modifier.weight(1f).height(112.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
-                if (kicker != null) Text(text = kicker, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(text = title, style = CtType.Headline, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = detail.orEmpty(), style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Box(
-                        modifier = Modifier.size(36.dp).clip(CtShapes.Pill).background(CtColors.Primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = CtColors.OnPrimary, modifier = Modifier.size(20.dp))
-                    }
-                }
-                if (progress != null) CtProgressBar(progress = progress, height = 3.dp)
-            }
-        }
-    }
+    CtPictureTile(
+        title = title,
+        modifier = modifier.fillMaxWidth().height(196.dp),
+        kicker = kicker,
+        subtitle = detail,
+        progress = progress,
+        titleStyle = CtType.Headline,
+        onClick = onClick,
+        onClickLabel = onClickLabel,
+        trailing = { CtPlayMark() },
+        picture = picture,
+    )
 }
 
 /** A tile on the surface colour. Two side by side only when they do different jobs. */
@@ -207,29 +184,6 @@ fun CtTile(
         verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
         content = content,
     )
-}
-
-/** A small card in a horizontal row of ways to play: an icon above a short label. */
-@Composable
-fun CtModeCard(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .width(124.dp)
-            .height(96.dp)
-            .clip(CtShapes.CardSmall)
-            .background(CtColors.Surface)
-            .ctPressable(onClick = onClick)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Icon(icon, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(22.dp))
-        Text(text = label, style = CtType.Label, maxLines = 2, overflow = TextOverflow.Ellipsis)
-    }
 }
 
 /** Circle holding an icon, used on cards and rows. */
@@ -251,12 +205,6 @@ fun CtIconBubble(
     ) {
         Icon(imageVector = icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(size * 0.5f))
     }
-}
-
-/** A hairline between rows. */
-@Composable
-fun CtDivider(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(1.dp).background(CtColors.Line))
 }
 
 // ------------------------------------------------------------------ text blocks
@@ -687,7 +635,6 @@ fun <T> CtSegmented(
     modifier: Modifier = Modifier,
 ) {
     val reduceMotion = LocalReduceMotion.current
-    val outlined = CtOutlinedCards
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -707,7 +654,6 @@ fun <T> CtSegmented(
             )
             val lift = when {
                 !on -> Modifier
-                outlined -> Modifier.border(1.dp, CtColors.Line, CtShapes.Chip)
                 else -> Modifier.shadow(1.dp, CtShapes.Chip, ambientColor = CtColors.Text.copy(alpha = 0.08f), spotColor = CtColors.Text.copy(alpha = 0.16f))
             }
             Box(
@@ -885,7 +831,7 @@ fun CtProgressBar(
 
 /**
  * A tappable row: an icon (or any 40 dp [leading] picture, such as a board or a coach), a
- * title, at most one short detail and a chevron, over a hairline.
+ * title, at most one short detail and a chevron.
  */
 @Composable
 fun CtListRow(
@@ -895,7 +841,6 @@ fun CtListRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     iconTint: Color = CtColors.Accent,
-    divider: Boolean = true,
     trailing: @Composable (() -> Unit)? = null,
     leading: @Composable (() -> Unit)? = null,
 ) {
@@ -925,7 +870,6 @@ fun CtListRow(
             }
             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2)
         }
-        if (divider) CtDivider()
     }
 }
 
@@ -940,7 +884,6 @@ fun CtToggleRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    divider: Boolean = true,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -957,7 +900,6 @@ fun CtToggleRow(
             }
             CtSwitch(checked = checked)
         }
-        if (divider) CtDivider()
     }
 }
 
@@ -1276,7 +1218,6 @@ fun CtBottomBar(
 ) {
     val reduceMotion = LocalReduceMotion.current
     Column(modifier = modifier.fillMaxWidth().background(CtColors.Bg)) {
-        CtDivider()
         Row(
             modifier = Modifier
                 .fillMaxWidth()

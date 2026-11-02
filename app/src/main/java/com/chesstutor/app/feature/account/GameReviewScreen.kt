@@ -8,7 +8,6 @@ import com.chesstutor.app.design.CtMenuItem
 import com.chesstutor.app.design.CtOverflowMenu
 import com.chesstutor.app.design.CtTutor
 import com.chesstutor.app.design.CtControl
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.design.GradeColor
 import com.chesstutor.app.design.CtBoardScreen
@@ -704,7 +703,6 @@ private fun KeyMoment(move: ReviewedMove, added: Boolean, onShow: () -> Unit, on
                 onClick = { if (!added) onPractise() },
             )
         }
-        CtDivider()
     }
 }
 

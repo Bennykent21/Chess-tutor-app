@@ -120,7 +120,7 @@ fun BotBuilderScreen(
 
         CtSectionHeader(title = "Openings")
         CtListRow(title = "White", icon = null, subtitle = openingSummary(draft.white), onClick = { onChooseOpenings(PieceColor.WHITE) })
-        CtListRow(title = "Black", icon = null, subtitle = openingSummary(draft.black), onClick = { onChooseOpenings(PieceColor.BLACK) }, divider = false)
+        CtListRow(title = "Black", icon = null, subtitle = openingSummary(draft.black), onClick = { onChooseOpenings(PieceColor.BLACK) })
 
         CtSectionHeader(title = "Rules")
         CtGroupLabel("Clock")
@@ -128,7 +128,7 @@ fun BotBuilderScreen(
         Column(Modifier.padding(top = CtSpacing.sm)) {
             CtToggleRow(title = "Takebacks", checked = draft.rules.takebacks, onCheckedChange = { v -> onChange { it.copy(rules = it.rules.copy(takebacks = v)) } })
             CtToggleRow(title = "Hints", checked = draft.rules.hints, onCheckedChange = { v -> onChange { it.copy(rules = it.rules.copy(hints = v)) } })
-            CtToggleRow(title = "Evaluation bar", checked = draft.rules.evalBar, onCheckedChange = { v -> onChange { it.copy(rules = it.rules.copy(evalBar = v)) } }, divider = false)
+            CtToggleRow(title = "Evaluation bar", checked = draft.rules.evalBar, onCheckedChange = { v -> onChange { it.copy(rules = it.rules.copy(evalBar = v)) } })
         }
         CtGroupLabel("Resigns")
         CtSegmented(ResignPolicy.entries, draft.resign, ::resignLabel, { r -> onChange { it.copy(resign = r) } })

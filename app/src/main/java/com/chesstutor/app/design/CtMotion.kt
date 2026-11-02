@@ -1,5 +1,9 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
@@ -29,6 +33,27 @@ object CtMotion {
     const val SHEET_MS = 280
 
     const val PRESSED_SCALE = 0.97f
+    const val ENTER_MS = 320
+    const val ENTER_STAGGER_MS = 45L
+}
+
+/**
+ * Eases in when first shown, rising a little; a higher [order] comes in slightly later, so a page
+ * builds from the top. With "Reduce motion" on it simply appears.
+ */
+fun Modifier.ctEnter(order: Int = 0): Modifier = composed {
+    val reduceMotion = LocalReduceMotion.current
+    val shown = remember { Animatable(if (reduceMotion) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        if (!reduceMotion) {
+            delay(order * CtMotion.ENTER_STAGGER_MS)
+            shown.animateTo(1f, tween(CtMotion.ENTER_MS, easing = CtMotion.EaseOut))
+        }
+    }
+    graphicsLayer {
+        alpha = shown.value
+        translationY = (1f - shown.value) * 14.dp.toPx()
+    }
 }
 
 /**

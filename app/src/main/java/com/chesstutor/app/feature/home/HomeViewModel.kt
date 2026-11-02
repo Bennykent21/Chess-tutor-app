@@ -1,11 +1,10 @@
 package com.chesstutor.app.feature.home
 
+import com.chesstutor.app.domain.puzzle.DailyPreview
 import java.time.ZoneId
 import java.time.Instant
 import com.chesstutor.app.domain.puzzle.PuzzleModes
 import com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry
-import com.chesstutor.app.domain.puzzle.PuzzleSession
-import com.chesstutor.app.domain.puzzle.Puzzle
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
@@ -121,15 +120,6 @@ data class HomeUiState(
     /** Today's puzzle for its tile; null until the pack has loaded. */
     val daily: DailyPreview? = null,
 )
-
-/** The position today's puzzle opens on, from the side that solves it. */
-data class DailyPreview(val puzzleId: String, val fen: String, val whiteAtBottom: Boolean) {
-    companion object {
-        /** Null for a puzzle that cannot be set up. */
-        fun of(puzzle: Puzzle): DailyPreview? =
-            PuzzleSession.start(puzzle)?.let { DailyPreview(puzzle.id, it.fen, whiteAtBottom = it.solverColor == 'w') }
-    }
-}
 
 /** What Home reads from Learn, Puzzles and Account for its Continue and Recommended cards. */
 class HomeLearning(
