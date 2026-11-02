@@ -142,6 +142,25 @@ class RatingApiClient(
         }
     }
 
+    /**
+     * The picture on a Chess.com profile, or a success with null when the player has none.
+     * Lichess has no profile pictures.
+     */
+    suspend fun fetchChessComPicture(username: String): Result<ByteArray?> = withContext(Dispatchers.IO) {
+        runCatching {
+            val profile = Request.Builder()
+                .url("https://api.chess.com/pub/player/${username.trim().lowercase()}")
+                .header("User-Agent", USER_AGENT)
+                .get()
+                .build()
+            val picture = fetchWithRetry(profile, "your Chess.com profile") { resp ->
+                JSONObject(resp.body?.string().orEmpty()).optString("avatar")
+            }.takeIf { it.startsWith("https://") } ?: return@runCatching null
+            val image = Request.Builder().url(picture).header("User-Agent", USER_AGENT).get().build()
+            fetchWithRetry(image, "your Chess.com picture") { resp -> resp.body?.bytes() }
+        }
+    }
+
     suspend fun fetchLichessStats(
         username: String,
         preferredTimeControl: RatingTimeControl = RatingTimeControl.RAPID

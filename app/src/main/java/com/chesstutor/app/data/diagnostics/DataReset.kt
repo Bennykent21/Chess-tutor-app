@@ -5,6 +5,7 @@ import android.content.Intent
 import com.chesstutor.app.data.local.AppDatabase
 import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
 import com.chesstutor.app.data.settings.AppSettings
+import com.chesstutor.app.data.settings.PlayerPhoto
 import com.chesstutor.app.data.settings.SettingsStore
 import com.chesstutor.app.feature.play.SharedPrefsActiveGameStore
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ object DataReset {
     suspend fun eraseEverything(context: Context, db: AppDatabase, settings: SettingsStore) = withContext(Dispatchers.IO) {
         db.clearAllTables()
         settings.update { AppSettings() }
+        PlayerPhoto.delete(context)
         SharedPrefsActiveGameStore(context).clear()
         // Otherwise the puzzle history would copy the pre-Room progress back in on the next start.
         SharedPrefsPuzzleProgressStore(context).clearLegacy()
