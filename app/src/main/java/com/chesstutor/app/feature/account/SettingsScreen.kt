@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.account
 
+import androidx.activity.result.PickVisualMediaRequest
+import com.chesstutor.app.data.model.RatingPlatform
+import com.chesstutor.app.feature.home.PlayerAvatar
+import com.chesstutor.app.data.settings.PlayerPicture
 import com.chesstutor.app.data.settings.AppSettingsCodec
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtTextField
@@ -94,6 +98,10 @@ data class SettingsActions(
     /** The design gallery, shown while the Phase 7 redesign is under way. */
     /** The name the app calls the player (D46). */
     val onName: (String) -> Unit = {},
+    /** The player's picture (D52), saving a photo from its bytes, and the linked Chess.com picture. */
+    val onPicture: (PlayerPicture) -> Unit = {},
+    val savePhoto: suspend (ByteArray) -> Boolean = { false },
+    val chessComPicture: suspend (String) -> Result<ByteArray?> = { Result.success(null) },
     /** Every saved game as one PGN text, for "Export my games". */
     val exportPgn: suspend () -> String = { "" },
     /** The crash log on this phone ("" when there were no crashes), and clearing it. */
@@ -130,6 +138,30 @@ fun SettingsScreen(
     var confirmErase by rememberSaveable { mutableStateOf(false) }
     var coachSheet by rememberSaveable { mutableStateOf(false) }
     var nameSheet by rememberSaveable { mutableStateOf(false) }
+    var pictureSheet by rememberSaveable { mutableStateOf(false) }
+    var pictureBusy by remember { mutableStateOf(false) }
+    var pictureMessage by remember { mutableStateOf<String?>(null) }
+    fun usePhoto(image: ByteArray?, failure: String) {
+        scope.launch {
+            if (image != null && actions.savePhoto(image)) {
+                actions.onPicture(PlayerPicture.Photo(System.currentTimeMillis()))
+                pictureSheet = false
+            } else {
+                pictureMessage = failure
+            }
+            pictureBusy = false
+        }
+    }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            pictureBusy = true
+            pictureMessage = null
+            scope.launch {
+                val image = withContext(Dispatchers.IO) { runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() }
+                usePhoto(image, "That picture could not be read. Try another one.")
+            }
+        }
+    }
     // Re-read after a share or clear, so the counts stay true.
     var dataVersion by remember { mutableIntStateOf(0) }
     var crashText by remember { mutableStateOf("") }
@@ -203,6 +235,15 @@ fun SettingsScreen(
                     icon = null,
                     subtitle = state.appSettings.playerName.ifBlank { "Not set" },
                     onClick = { nameSheet = true },
+                )
+                CtListRow(
+                    title = "Picture",
+                    icon = null,
+                    onClick = {
+                        pictureMessage = null
+                        pictureSheet = true
+                    },
+                    leading = { PlayerAvatar(state.appSettings.picture, state.appSettings.playerName.ifBlank { state.linkedProfile?.username.orEmpty() }) },
                 )
                 CtListRow(
                     title = "Coach",
@@ -323,6 +364,32 @@ fun SettingsScreen(
         }
         CtSheet(visible = coachSheet, onDismiss = { coachSheet = false }) {
             CoachPicker(selected = state.appSettings.mascot, onSelect = { actions.onMascot(it); coachSheet = false })
+        }
+        CtSheet(visible = pictureSheet, onDismiss = { pictureSheet = false }) {
+            val linked = state.linkedProfile?.takeIf { it.platform == RatingPlatform.CHESS_COM }
+            PlayerPictureChoices(
+                current = state.appSettings.picture,
+                name = state.appSettings.playerName.ifBlank { state.linkedProfile?.username.orEmpty() },
+                chessComUser = linked?.username,
+                busy = pictureBusy,
+                message = pictureMessage,
+                onPhone = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                onChessCom = {
+                    pictureBusy = true
+                    pictureMessage = null
+                    scope.launch {
+                        val result = actions.chessComPicture(linked?.username.orEmpty())
+                        usePhoto(
+                            image = result.getOrNull(),
+                            failure = if (result.isSuccess) "This Chess.com account has no picture." else "Couldn't reach Chess.com. Check your internet and try again.",
+                        )
+                    }
+                },
+                onChoose = { choice ->
+                    actions.onPicture(choice)
+                    pictureSheet = false
+                },
+            )
         }
         CtSheet(visible = nameSheet, onDismiss = { nameSheet = false }) {
             var draft by rememberSaveable(nameSheet) { mutableStateOf(state.appSettings.playerName) }

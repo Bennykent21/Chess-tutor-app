@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.feature.home.PlayerAvatar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -201,7 +202,7 @@ fun AccountScreen(
 
 // ------------------------------------------------------------------ header
 
-/** Initial (or a person), "@name" with where the rating comes from, and the day streak. */
+/** The player's picture, "@name" with where the rating comes from, and the day streak. */
 @Composable
 private fun ProfileRow(state: AppUiState, stats: PuzzleStats, modifier: Modifier = Modifier) {
     val linked = state.linkedProfile
@@ -212,16 +213,7 @@ private fun ProfileRow(state: AppUiState, stats: PuzzleStats, modifier: Modifier
         if (name.isEmpty()) where else "@${it.username} · $where"
     }
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Box(
-            modifier = Modifier.size(52.dp).clip(CtShapes.Pill).background(CtColors.Surface),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (name.isNotEmpty() || linked != null) {
-                Text((name.ifEmpty { linked?.username.orEmpty() }).take(1).uppercase(Locale.UK), style = CtType.Headline)
-            } else {
-                Icon(Icons.Rounded.Person, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(26.dp))
-            }
-        }
+        PlayerAvatar(state.appSettings.picture, name.ifEmpty { linked?.username.orEmpty() }, size = 52.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
             Text(title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (detail != null) Text(detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)

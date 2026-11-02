@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.play
 
+import com.chesstutor.app.feature.home.PlayerAvatar
 import com.chesstutor.app.design.CtControl
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
@@ -200,7 +201,7 @@ fun PlayScreen(
                     detail = if (setup.playerColor == PieceColor.WHITE) "White" else "Black",
                     clock = clockOf(setup.playerColor),
                     running = state.phase == GamePhase.PLAYER_TURN,
-                    avatar = null,
+                    avatar = { PlayerAvatar(settings.picture, settings.playerName) },
                     captured = { takenBy(setup.playerColor) },
                 )
             }

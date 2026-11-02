@@ -1,5 +1,8 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.data.network.RatingApiClient
+import com.chesstutor.app.data.settings.PlayerPicture
+import com.chesstutor.app.data.settings.PlayerPhoto
 import java.time.LocalDate
 import com.chesstutor.app.feature.home.DailyPreview
 import com.chesstutor.app.domain.puzzle.PuzzleModes
@@ -765,6 +768,12 @@ private fun AppShell(
                             onOpenLicences = { navController.navigate(AppRoutes.LICENCES) },
                             onReviewDepth = viewModel::setReviewDepth,
                             onName = viewModel::setPlayerName,
+                            onPicture = { picture ->
+                                if (picture !is PlayerPicture.Photo) PlayerPhoto.delete(context)
+                                viewModel.setPlayerPicture(picture)
+                            },
+                            savePhoto = { image -> PlayerPhoto.save(context, image) },
+                            chessComPicture = { username -> RatingApiClient().fetchChessComPicture(username) },
                             onOnlineEngine = viewModel::setOnlineEngine,
                             onAppTheme = viewModel::setAppTheme,
                             onAppearance = viewModel::setAppearance,

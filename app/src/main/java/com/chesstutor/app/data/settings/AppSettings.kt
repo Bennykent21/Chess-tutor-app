@@ -63,8 +63,12 @@ data class AppSettings(
     val appearance: Appearance = Appearance.DEFAULT,
     /** What the app calls the player (D46); empty until they give a name. */
     val playerName: String = "",
+    /** The player's picture as [PlayerPicture.encoded] (D52); empty until they choose one. */
+    val playerPicture: String = "",
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
+
+    val picture: PlayerPicture get() = PlayerPicture.decode(playerPicture)
 
     val boardTheme: BoardTheme get() = BoardTheme(BoardColors.fromId(boardThemeId), PieceSet.fromId(pieceSetId))
 
@@ -97,6 +101,7 @@ object AppSettingsCodec {
     const val APP_THEME = "app_theme"
     const val APPEARANCE = "appearance"
     const val PLAYER_NAME = "player_name"
+    const val PLAYER_PICTURE = "player_picture"
 
     /** Marks that settings formerly kept elsewhere were copied in (see [SettingsStore]). */
     const val LEGACY_IMPORTED = "legacy_imported_v1"
@@ -128,6 +133,7 @@ object AppSettingsCodec {
             appTheme = AppTheme.fromName(values[APP_THEME] as? String),
             appearance = Appearance.fromName(values[APPEARANCE] as? String),
             playerName = (values[PLAYER_NAME] as? String).orEmpty().trim().take(MAX_PLAYER_NAME),
+            playerPicture = (values[PLAYER_PICTURE] as? String).orEmpty(),
         )
     }
 
@@ -150,6 +156,7 @@ object AppSettingsCodec {
         APP_THEME to settings.appTheme.name,
         APPEARANCE to settings.appearance.name,
         PLAYER_NAME to settings.playerName,
+        PLAYER_PICTURE to settings.playerPicture,
     )
 
     const val MAX_PLAYER_NAME = 24

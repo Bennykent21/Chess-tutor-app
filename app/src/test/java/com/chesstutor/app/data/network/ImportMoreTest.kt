@@ -129,6 +129,31 @@ class ImportMoreTest {
         assertEquals(1f, shown.last(), 0f)
     }
 
+    /** A "Chess.com" answering [routes] by the end of the URL, and an empty body otherwise. */
+    private fun answering(routes: Map<String, ByteArray>): RatingApiClient = RatingApiClient(
+        OkHttpClient.Builder().addInterceptor { chain ->
+            val url = chain.request().url.toString()
+            val body = routes.entries.firstOrNull { url.endsWith(it.key) }?.value ?: ByteArray(0)
+            Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK")
+                .body(body.toResponseBody("application/octet-stream".toMediaType())).build()
+        }.build(),
+    )
+
+    @Test
+    fun theChessComPictureIsFetchedFromTheProfile() = runBlocking {
+        val profile = """{"avatar":"https://images.chesscomfiles.com/me.jpeg","username":"kenny"}""".toByteArray()
+        val client = answering(mapOf("/player/kenny" to profile, "/me.jpeg" to byteArrayOf(1, 2, 3)))
+
+        assertEquals(listOf<Byte>(1, 2, 3), client.fetchChessComPicture("Kenny").getOrThrow()?.toList())
+    }
+
+    @Test
+    fun anAccountWithoutAPictureGivesNone() = runBlocking {
+        val client = answering(mapOf("/player/kenny" to """{"username":"kenny"}""".toByteArray()))
+
+        assertEquals(null, client.fetchChessComPicture("kenny").getOrThrow())
+    }
+
     @Test
     fun importMoreBringsTheGamesBeforeTheOldestSavedOne() = runBlocking {
         val requests = mutableListOf<String>()
