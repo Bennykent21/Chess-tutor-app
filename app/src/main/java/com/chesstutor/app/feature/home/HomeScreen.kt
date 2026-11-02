@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -136,7 +139,10 @@ fun HomeScreen(
                 CtTile(modifier = Modifier.weight(1f).fillMaxHeight(), onClick = actions.onDailyPuzzle, onClickLabel = "Open the daily puzzle") {
                     val daily = home.daily
                     if (daily != null) {
-                        Box(Modifier.size(72.dp).clip(CtShapes.Control)) { Thumbnail(daily.fen, state.appSettings.boardTheme, daily.whiteAtBottom) }
+                        Box {
+                            Box(Modifier.size(72.dp).clip(CtShapes.Control)) { Thumbnail(daily.fen, state.appSettings.boardTheme, daily.whiteAtBottom) }
+                            if (home.dailySolved) SolvedMark(Modifier.align(Alignment.BottomEnd).offset(6.dp, 6.dp))
+                        }
                     } else {
                         Icon(Icons.Rounded.Bolt, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(28.dp))
                     }
@@ -213,6 +219,17 @@ private fun ContinueCard(state: AppUiState, home: HomeUiState, actions: HomeActi
             modifier = modifier,
         ) { Thumbnail(null, boardTheme) }
     }
+}
+
+/** The tick on the daily puzzle's picture once it is solved; the tile's text says the same. */
+@Composable
+private fun SolvedMark(modifier: Modifier) {
+    Icon(
+        Icons.Rounded.Check,
+        contentDescription = null,
+        tint = CtColors.OnAccent,
+        modifier = modifier.size(24.dp).background(CtColors.Accent, CircleShape).padding(3.dp),
+    )
 }
 
 /** A small, square board picture: no coordinates, nothing to tap. */

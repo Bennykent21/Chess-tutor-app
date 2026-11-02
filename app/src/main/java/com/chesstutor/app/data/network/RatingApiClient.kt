@@ -76,6 +76,7 @@ class RatingApiClient(
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .dns(FallbackDns())
         .build(),
     private val moshi: Moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
@@ -100,7 +101,7 @@ class RatingApiClient(
                 .get()
                 .build()
 
-            client.newCall(request).execute().use { response ->
+            retryImportRequest("your Chess.com profile") { client.newCall(request).execute() }.use { response ->
                 if (response.code == 404) {
                     return@withContext Result.failure(NoSuchElementException("Chess.com player '$username' not found."))
                 }
@@ -157,7 +158,7 @@ class RatingApiClient(
                 .get()
                 .build()
 
-            client.newCall(request).execute().use { response ->
+            retryImportRequest("your Lichess profile") { client.newCall(request).execute() }.use { response ->
                 if (response.code == 404) {
                     return@withContext Result.failure(NoSuchElementException("Lichess user '$username' not found."))
                 }
