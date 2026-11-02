@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,7 +55,6 @@ import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
-import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtSectionHeader
@@ -68,6 +68,8 @@ import com.chesstutor.app.domain.account.Badge
 import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.account.GameOutcome
+import com.chesstutor.app.domain.account.PerformanceCalculator
+import com.chesstutor.app.domain.account.RatingTrend
 import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.domain.account.TrainingCalculator
 import com.chesstutor.app.domain.account.TrainingReport
@@ -134,6 +136,10 @@ fun AccountScreen(
     var filtersOpen by rememberSaveable { mutableStateOf(false) }
     var badgeId by rememberSaveable { mutableStateOf<String?>(null) }
     val courseIdFor = remember(openingCourses) { { family: String -> OpeningCourses.courseFor(family, openingCourses)?.id } }
+    val followed = state.linkedProfile?.selectedTimeControl
+    val gameTrend = remember(games.games, followed) { PerformanceCalculator.ratingTrend(games.games, followed?.let { TimeClass.of(it.name) }) }
+    val puzzleTrend = remember(training) { RatingTrend(timeClass = null, points = training.ratingHistory) }
+    val now = remember { System.currentTimeMillis() }
     LaunchedEffect(Unit) { actions.onShown() }
 
     CtScreenBackground(modifier) {
@@ -146,7 +152,16 @@ fun AccountScreen(
                     CtScreenTitle(title = "Account") { SettingsButton(onClick = actions.onOpenSettings) }
                 }
                 item(key = "profile") { ProfileRow(state, stats, Modifier.padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.md)) }
-                item(key = "numbers") { Numbers(state, stats, Modifier.padding(horizontal = CtSpacing.gutter)) }
+                item(key = "numbers") {
+                    Numbers(
+                        state = state,
+                        stats = stats,
+                        gameChange = gameTrend.changeSince(now),
+                        puzzleChange = puzzleTrend.changeSince(now),
+                        onOpenStats = { tabName = AccountTab.STATS.name },
+                        modifier = Modifier.padding(horizontal = CtSpacing.gutter),
+                    )
+                }
                 if (showsLinkCard(state)) {
                     item(key = "linked") { LinkAccountCard(state = state, actions = actions, modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg)) }
                 }
@@ -166,6 +181,10 @@ fun AccountScreen(
                     AccountTab.STATS -> item(key = "stats") {
                         StatsPage(
                             games = games,
+                            gameTrend = gameTrend,
+                            puzzleTrend = puzzleTrend,
+                            now = now,
+                            boardTheme = state.appSettings.boardTheme,
                             courseIdFor = courseIdFor,
                             onOpenCourse = actions.onOpenCourse,
                             onShowGames = { shown ->
@@ -179,6 +198,7 @@ fun AccountScreen(
                         TrainingPage(
                             training = training,
                             dueReviewCount = dueReviewCount,
+                            boardTheme = state.appSettings.boardTheme,
                             onReviewMistakes = actions.onReviewMistakes,
                             onPracticeTheme = actions.onPracticeTheme,
                             modifier = page,
@@ -217,41 +237,6 @@ private fun ProfileRow(state: AppUiState, stats: PuzzleStats, modifier: Modifier
             if (detail != null) Text(detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         CtStreak(stats.dayStreak)
-    }
-}
-
-/** Rating and puzzle rating as big numbers, then the level with its XP bar. */
-@Composable
-private fun Numbers(state: AppUiState, stats: PuzzleStats, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-            NumberTile("${state.effectiveUserRating}", "Rating", Modifier.weight(1f))
-            NumberTile("${stats.rating}", "Puzzle rating", Modifier.weight(1f))
-        }
-        Row(
-            modifier = Modifier.semantics(mergeDescendants = true) {},
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-        ) {
-            Text("Level ${stats.playerLevel.level}", style = CtType.Label)
-            CtProgressBar(progress = stats.playerLevel.progress, height = 3.dp, modifier = Modifier.weight(1f))
-            Text("${String.format(Locale.UK, "%,d", stats.totalXp)} XP", style = CtType.Caption)
-        }
-    }
-}
-
-@Composable
-private fun NumberTile(value: String, label: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(CtShapes.Card)
-            .background(CtColors.Surface)
-            .semantics(mergeDescendants = true) {}
-            .padding(horizontal = CtSpacing.lg, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs),
-    ) {
-        Text(value, style = CtType.Display, maxLines = 1)
-        Text(label, style = CtType.Caption, maxLines = 1)
     }
 }
 
@@ -390,7 +375,7 @@ private fun GameFilterSheet(visible: Boolean, games: GamesState, filter: GameFil
             if (sources.size > 1) {
                 FilterGroup("Source", listOf(null) + sources, filter.source, { it?.label ?: "Any" }) { onFilter(filter.copy(source = it)) }
             }
-            FilterGroup("Result", listOf(null, GameOutcome.WIN, GameOutcome.DRAW, GameOutcome.LOSS), filter.outcome, ::outcomeLabel) { onFilter(filter.copy(outcome = it)) }
+            FilterGroup("Result", listOf(null, GameOutcome.WIN, GameOutcome.DRAW, GameOutcome.LOSS), filter.outcome, ::outcomeLabel, icon = { it?.let { outcome -> outcomeIcon(outcome) } }) { onFilter(filter.copy(outcome = it)) }
             FilterGroup("Colour", listOf(null, PieceColor.WHITE, PieceColor.BLACK), filter.color, ::colourLabel) { onFilter(filter.copy(color = it)) }
             if (timeClasses.size > 1) {
                 FilterGroup("Time", listOf(null) + timeClasses, filter.timeClass, { it?.label ?: "Any" }) { onFilter(filter.copy(timeClass = it)) }
@@ -419,12 +404,19 @@ private fun colourLabel(color: PieceColor?): String = when (color) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun <T> FilterGroup(title: String, options: List<T>, selected: T, label: (T) -> String, onPick: (T) -> Unit) {
+private fun <T> FilterGroup(
+    title: String,
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    icon: @Composable (T) -> ImageVector? = { null },
+    onPick: (T) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         Text(title, style = CtType.Label.copy(color = CtColors.Text2))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
             options.forEach { option ->
-                CtChip(text = label(option), selected = option == selected, onClick = { onPick(option) })
+                CtChip(text = label(option), selected = option == selected, icon = icon(option), onClick = { onPick(option) })
             }
         }
     }

@@ -77,9 +77,50 @@ class PerformanceTest {
         )
         assertEquals(1500, games[0].playerRating)
         assertNull(games[3].playerRating)
-        val report = PerformanceCalculator.report(games, emptyMap())
-        assertEquals(TimeClass.BLITZ, report.ratingTimeClass)
-        assertEquals(listOf(1480, 1500), report.ratingTrend.map { it.rating })
+        val trend = PerformanceCalculator.ratingTrend(games)
+        assertEquals(TimeClass.BLITZ, trend.timeClass)
+        assertEquals(listOf(1480, 1500), trend.points.map { it.rating })
+    }
+
+    @Test
+    fun ratingTrendFollowsTheClockThePlayerChoseWhenItHasGames() {
+        val games = listOf(
+            game("a", "1-0", rating = 1500, date = 3, timeClass = "blitz"),
+            game("b", "1-0", rating = 1480, date = 1, timeClass = "blitz"),
+            game("c", "1-0", rating = 1700, date = 2, timeClass = "rapid"),
+        )
+        assertEquals(listOf(1700), PerformanceCalculator.ratingTrend(games, TimeClass.RAPID).points.map { it.rating })
+        assertEquals("no bullet games, so the most played clock", TimeClass.BLITZ, PerformanceCalculator.ratingTrend(games, TimeClass.BULLET).timeClass)
+    }
+
+    @Test
+    fun ratingChangeComparesWithThirtyDaysAgo() {
+        val day = 86_400_000L
+        fun trend(vararg points: Pair<Long, Int>) = RatingTrend(null, points.map { (d, r) -> RatingPoint(d * day, r) })
+        assertEquals("the last point at or before the window", 30, trend(10L to 1400, 20L to 1450, 40L to 1470, 60L to 1480).changeSince(60 * day))
+        assertEquals("younger than the window: since the first point", -20, trend(50L to 1500, 60L to 1480).changeSince(60 * day))
+        assertNull("one point has nothing to compare with", trend(60L to 1480).changeSince(60 * day))
+    }
+
+    @Test
+    fun thinningKeepsTheEndsAndTheLimit() {
+        val points = List(1000) { RatingPoint(it.toLong(), it) }
+        val thin = RatingTrend(null, points).thinned(150)
+        assertEquals(150, thin.size)
+        assertEquals(points.first(), thin.first())
+        assertEquals(points.last(), thin.last())
+        assertEquals("oldest first", thin.sortedBy { it.dateMillis }, thin)
+        assertEquals("a short trend is left alone", points.take(5), RatingTrend(null, points.take(5)).thinned(150))
+    }
+
+    @Test
+    fun anOpeningsPictureIsItsShortestNamedLine() {
+        val ruy = game("a", "1-0", moves = "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6")
+        val family = ruy.openingFamily!!
+        val fen = PerformanceCalculator.openingFen(listOf(ruy), family)!!
+        assertEquals("the line's own last move was played", Position.tryFromFen(fen).isSuccess, true)
+        assertTrue(fen.startsWith("r"))
+        assertNull(PerformanceCalculator.openingFen(listOf(ruy), "No such opening"))
     }
 
     @Test

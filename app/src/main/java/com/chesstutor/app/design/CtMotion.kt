@@ -1,6 +1,7 @@
 package com.chesstutor.app.design
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawWithContent
@@ -47,6 +48,11 @@ object CtMotion {
     const val ENTER_STAGGER_MS = 80L
     const val SHEEN_DELAY_MS = 500L
     const val SHEEN_MS = 900
+    /** A graph or ring drawing itself in. */
+    const val DRAW_MS = 800
+
+    /** Above this luminance a surface is too light for white light to show on it. */
+    const val LIGHT_SURFACE = 0.5f
 }
 
 /**
@@ -79,9 +85,13 @@ fun Modifier.ctBreathe(to: Float, periodMs: Int): Modifier = composed {
     }
 }
 
-/** One band of light across the surface soon after it appears. Nothing with "Reduce motion". */
-fun Modifier.ctSheen(): Modifier = composed {
+/**
+ * One band across the [surface] soon after it appears: light on a dark surface, shade on a white
+ * one, where light would not show. Nothing with "Reduce motion".
+ */
+fun Modifier.ctSheen(surface: Color): Modifier = composed {
     if (LocalReduceMotion.current) return@composed Modifier
+    val band = if (surface.luminance() > CtMotion.LIGHT_SURFACE) Color.Black.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.32f)
     val across = remember { Animatable(-0.4f) }
     LaunchedEffect(Unit) {
         delay(CtMotion.SHEEN_DELAY_MS)
@@ -89,9 +99,9 @@ fun Modifier.ctSheen(): Modifier = composed {
     }
     Modifier.drawWithContent {
         drawContent()
-        val band = 90.dp.toPx()
+        val reach = 90.dp.toPx()
         val x = across.value * size.width
-        drawRect(Brush.linearGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.32f), Color.Transparent), Offset(x - band, 0f), Offset(x + band, size.height)))
+        drawRect(Brush.linearGradient(listOf(Color.Transparent, band, Color.Transparent), Offset(x - reach, 0f), Offset(x + reach, size.height)))
     }
 }
 

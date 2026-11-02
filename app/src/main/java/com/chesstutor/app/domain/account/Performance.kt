@@ -1,6 +1,7 @@
 package com.chesstutor.app.domain.account
 
 import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.Position
 
 /** Wins, draws and losses for a group of games. */
 data class Wdl(val wins: Int = 0, val draws: Int = 0, val losses: Int = 0) {
@@ -35,6 +36,29 @@ data class PhaseStats(val phase: GamePhase, val accuracy: Double?, val moves: In
 /** One point of the rating trend. */
 data class RatingPoint(val dateMillis: Long, val rating: Int)
 
+/** One rating over time, oldest first. [timeClass] says which clock; null for puzzles. */
+data class RatingTrend(val timeClass: TimeClass?, val points: List<RatingPoint>) {
+    /** The rise or fall over the last [CHANGE_DAYS] days, or null with nothing to compare. */
+    fun changeSince(now: Long): Int? {
+        if (points.size < 2) return null
+        val start = now - CHANGE_DAYS * DAY_MILLIS
+        val base = points.lastOrNull { it.dateMillis <= start } ?: points.first()
+        return points.last().rating - base.rating
+    }
+
+    /** At most [limit] points, evenly picked and always with the first and last, for a graph. */
+    fun thinned(limit: Int): List<RatingPoint> {
+        if (points.size <= limit) return points
+        val step = points.lastIndex.toDouble() / (limit - 1)
+        return List(limit) { i -> points[(i * step).toInt()] }.dropLast(1) + points.last()
+    }
+
+    companion object {
+        const val CHANGE_DAYS = 30
+        private const val DAY_MILLIS = 86_400_000L
+    }
+}
+
 /** Everything on the Performance page (plan 6.4), from the player's games. */
 data class PerformanceReport(
     val overall: Wdl,
@@ -45,9 +69,6 @@ data class PerformanceReport(
     val analysedGames: Int,
     val phases: List<PhaseStats>,
     val mistakes: Map<MistakeKind, Int>,
-    /** The time class with the most rated games, and the player's rating in it over time. */
-    val ratingTimeClass: TimeClass?,
-    val ratingTrend: List<RatingPoint>,
 ) {
     val isEmpty: Boolean get() = overall.games == 0
 }
@@ -91,12 +112,6 @@ object PerformanceCalculator {
         }
         val mistakes = mine.mapNotNull(::kindOf).groupingBy { it }.eachCount()
 
-        val rated = games.filter { it.playerRating != null }
-        val ratingClass = rated.groupingBy { it.timeClass }.eachCount().maxByOrNull { it.value }?.key
-        val trend = rated.filter { it.timeClass == ratingClass }
-            .sortedBy { it.dateMillis }
-            .map { RatingPoint(it.dateMillis, it.playerRating!!) }
-
         return PerformanceReport(
             overall = wdl(finished),
             byColor = byColor,
@@ -105,9 +120,24 @@ object PerformanceCalculator {
             analysedGames = analysed.size,
             phases = phases,
             mistakes = mistakes,
-            ratingTimeClass = ratingClass,
-            ratingTrend = trend,
         )
+    }
+
+    /** The player's rating over time in the [preferred] clock, else the one with the most rated games. */
+    fun ratingTrend(games: List<GameSummary>, preferred: TimeClass? = null): RatingTrend {
+        val rated = games.filter { it.playerRating != null }
+        val timeClass = preferred?.takeIf { clock -> rated.any { it.timeClass == clock } }
+            ?: rated.groupingBy { it.timeClass }.eachCount().maxByOrNull { it.value }?.key
+        val points = rated.filter { it.timeClass == timeClass }
+            .sortedBy { it.dateMillis }
+            .map { RatingPoint(it.dateMillis, it.playerRating!!) }
+        return RatingTrend(timeClass, points)
+    }
+
+    /** The position after the shortest named line of an opening [family] in [games], for its picture. */
+    fun openingFen(games: List<GameSummary>, family: String): String? {
+        val line = games.mapNotNull { it.opening }.filter { it.family == family }.minByOrNull { it.moves.size } ?: return null
+        return GameReviewer.positions(Position.initial().toFen(), line.moves).lastOrNull()?.toFen()
     }
 
     /**
