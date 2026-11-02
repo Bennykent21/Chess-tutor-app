@@ -8,7 +8,7 @@ data class CustomBot(val profile: BotProfile, val rules: GameRules, val createdA
     val id: String get() = profile.id
 
     /** Shown like a roster bot: on cards, its page and in games. */
-    fun asRosterBot(): RosterBot = RosterBot(profile, animal = profile.face, tagline = "Your own bot.")
+    fun asRosterBot(): RosterBot = RosterBot(profile, animal = profile.face, tagline = "You built me. Let's see if I learned anything.")
 
     companion object {
         /** Custom bot ids start with this, so they never clash with the roster. */

@@ -54,18 +54,28 @@ enum class BoardColors(
     }
 }
 
-/** Translucent marks drawn over squares. Shared by every theme so meaning never changes. */
+/**
+ * Translucent marks drawn over squares (design language section 2). Shared by every app and
+ * board theme so meaning never changes: brass for the last move and the selection, a dark ink
+ * for legal moves, red for check and mistakes, the move-grade colours for engine arrows.
+ */
 object BoardMarkColors {
-    const val LAST_MOVE = 0x66FFC53DL
-    const val SELECTED = 0x8C2EE6D6L
-    const val LEGAL_DOT = 0x52101830L
-    const val CHECK = 0xCCFF6F6FL
-    const val ARROW_BEST = 0xC72EE6D6L
-    const val ARROW_HINT = 0xC7FFC53DL
-    const val ARROW_USER = 0xC7A8E63AL
-    const val ARROW_ALTERNATIVE = 0x99A487FFL
-    /** A wrong move in a puzzle, flashed on its target square. */
-    const val MISTAKE = 0xE6FF6F6FL
+    /** Brass at 48%. */
+    const val LAST_MOVE = 0x7AD6AA4AL
+    /** Brass at 66%. */
+    const val SELECTED = 0xA8D6AA4AL
+    /** Dark ink at 26%: dots on empty squares, rings on captures. */
+    const val LEGAL_DOT = 0x42281C0AL
+    const val CHECK = 0xD9D9473BL
+    /** The engine's best move: the "Best" grade green. */
+    const val ARROW_BEST = 0xC72E8650L
+    const val ARROW_HINT = 0xC7D6AA4AL
+    /** Arrows the player draws: the "Brilliant" grade teal. */
+    const val ARROW_USER = 0xC71C8AA3L
+    /** Another good move: the "Great" grade blue. */
+    const val ARROW_ALTERNATIVE = 0x994769CCL
+    /** A wrong move in a puzzle, flashed on its target square: the "Blunder" red. */
+    const val MISTAKE = 0xE6BF3728L
     /** Under a review's quality badge, so it stands out on any square. */
     const val BADGE_SHADOW = 0x66000000L
 }

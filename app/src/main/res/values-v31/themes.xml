@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The Android 12+ splash (D46): icon A on the Parchment page colour, light or dark. -->
+    <style name="Theme.ChessTutor" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowSplashScreenBackground">#FFF4EFE6</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#FF1C1814</item>
+    </style>
+</resources>

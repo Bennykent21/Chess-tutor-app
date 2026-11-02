@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.lerp
@@ -16,10 +16,14 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -27,7 +31,7 @@ import com.chesstutor.app.core.Piece
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.Square
-import com.chesstutor.app.design.CtShapes
+import com.chesstutor.app.design.CtMotion
 import com.chesstutor.app.design.CtType
 
 /** Square marks an activity asks for. Empty by default: a plain board. */
@@ -47,7 +51,14 @@ data class BoardMarks(
 )
 
 /** A round label drawn on the top-right corner of [square]: [text] on [color] (ARGB). */
-data class SquareBadge(val square: Square, val color: Long, val text: String, val textColor: Long = 0xFFFFFFFFL)
+data class SquareBadge(
+    val square: Square,
+    val color: Long,
+    val text: String,
+    val textColor: Long = 0xFFFFFFFFL,
+    /** Drawn instead of [text], so the badge shows the same icon as the grade everywhere else. */
+    val icon: ImageVector? = null,
+)
 
 /** What an arrow or ring means, which sets its colour. */
 enum class MarkKind { BEST, HINT, USER, ALTERNATIVE, MISTAKE }
@@ -112,30 +123,35 @@ internal fun BoardCanvas(
 ) {
     val painters = rememberPiecePainters(theme.pieceSet)
     val textMeasurer = rememberTextMeasurer()
+    val badgeStyle = CtType.Label
+    val badgeIcon = marks.badge?.icon?.let { rememberVectorPainter(it) }
+    val coordinateStyle = CtType.Caption
     val description = boardDescription(position, whiteAtBottom)
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(CtShapes.Chip)
+            // Square corners: the playing board runs edge to edge (design language section 4).
+            // Thumbnails get their rounded corners from the card that holds them.
+            .clipToBounds()
             .semantics { contentDescription = description },
     ) {
         val cell = size.minDimension / 8f
         drawSquares(theme.colors, marks, whiteAtBottom, cell)
         if (theme.colors.sheen) drawSheen()
-        if (showCoordinates) drawCoordinates(theme.colors, whiteAtBottom, cell, textMeasurer)
+        if (showCoordinates) drawCoordinates(theme.colors, whiteAtBottom, cell, textMeasurer, coordinateStyle)
         if (showLegalDots) drawLegalTargets(position, marks.legalTargets, whiteAtBottom, cell)
         motion.dragged?.let { drawHoverOutline(it, whiteAtBottom, cell) }
         drawPieces(position, painters, whiteAtBottom, cell, motion)
         marks.rings.forEach { drawRing(it, whiteAtBottom, cell) }
         marks.arrows.forEach { drawArrow(it, whiteAtBottom, cell) }
-        marks.badge?.let { drawBadge(it, whiteAtBottom, cell, textMeasurer) }
+        marks.badge?.let { drawBadge(it, whiteAtBottom, cell, textMeasurer, badgeStyle, badgeIcon) }
     }
 }
 
 /** A move's quality badge, half over the corner of its square like a sticker. */
-private fun DrawScope.drawBadge(badge: SquareBadge, whiteAtBottom: Boolean, cell: Float, textMeasurer: TextMeasurer) {
+private fun DrawScope.drawBadge(badge: SquareBadge, whiteAtBottom: Boolean, cell: Float, textMeasurer: TextMeasurer, textStyle: TextStyle, icon: Painter?) {
     val radius = cell * 0.2f
     val topLeft = cellTopLeft(badge.square, whiteAtBottom, cell)
     val center = Offset(
@@ -144,8 +160,13 @@ private fun DrawScope.drawBadge(badge: SquareBadge, whiteAtBottom: Boolean, cell
     )
     drawCircle(Color(BoardMarkColors.BADGE_SHADOW), radius = radius * 1.08f, center = center + Offset(0f, radius * 0.1f))
     drawCircle(Color(badge.color), radius = radius, center = center)
-    if (badge.text.isNotEmpty()) {
-        val style = CtType.Label.copy(fontSize = (radius * 0.95f).toSp(), lineHeight = (radius * 1.1f).toSp(), fontWeight = FontWeight.Black, color = Color(badge.textColor))
+    if (icon != null) {
+        val side = radius * 1.2f
+        translate(center.x - side / 2f, center.y - side / 2f) {
+            with(icon) { draw(Size(side, side), colorFilter = ColorFilter.tint(Color(badge.textColor))) }
+        }
+    } else if (badge.text.isNotEmpty()) {
+        val style = textStyle.copy(fontSize = (radius * 0.95f).toSp(), lineHeight = (radius * 1.1f).toSp(), fontWeight = FontWeight.Black, color = Color(badge.textColor))
         val layout = textMeasurer.measure(badge.text, style)
         drawText(layout, topLeft = center - Offset(layout.size.width / 2f, layout.size.height / 2f))
     }
@@ -249,9 +270,9 @@ private fun DrawScope.drawSheen() {
     )
 }
 
-private fun DrawScope.drawCoordinates(colors: BoardColors, whiteAtBottom: Boolean, cell: Float, textMeasurer: TextMeasurer) {
+private fun DrawScope.drawCoordinates(colors: BoardColors, whiteAtBottom: Boolean, cell: Float, textMeasurer: TextMeasurer, textStyle: TextStyle) {
     // Coordinates scale with the board rather than the type scale, so they always fit a square.
-    val baseStyle = CtType.Caption.copy(fontSize = (cell * 0.2f).toSp(), lineHeight = (cell * 0.24f).toSp(), fontWeight = FontWeight.Bold)
+    val baseStyle = textStyle.copy(fontSize = (cell * 0.2f).toSp(), lineHeight = (cell * 0.24f).toSp(), fontWeight = FontWeight.Bold)
     val inset = cell * 0.06f
     for (index in 0 until 64) {
         val square = Square(index)
@@ -297,7 +318,9 @@ private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painte
 
     if (sliding) {
         motion.captured?.let { (square, piece) ->
-            painters[piece]?.let { drawPiece(it, cellTopLeft(square, whiteAtBottom, cell), cell, alpha = 1f - motion.slideProgress) }
+            // The captured piece is gone a little before the slide lands (180 of 220 ms).
+            val fade = (motion.slideProgress * CtMotion.PIECE_SLIDE_MS / CtMotion.FADE_MS).coerceIn(0f, 1f)
+            painters[piece]?.let { drawPiece(it, cellTopLeft(square, whiteAtBottom, cell), cell, alpha = 1f - fade) }
         }
     }
     for (index in 0 until 64) {

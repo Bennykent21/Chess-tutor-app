@@ -30,6 +30,18 @@ class MascotTest {
             assertTrue(it.displayName.isNotBlank())
             assertTrue(it.tagline.isNotBlank())
         }
-        assertEquals(Mascot.entries.size, Mascot.entries.map { it.art }.toSet().size)
+        assertEquals(Mascot.entries.size, Mascot.entries.map { it.art() }.toSet().size)
+    }
+
+    @Test
+    fun everyCoachHasItsOwnDrawingForEveryMood() {
+        val drawings = Mascot.entries.flatMap { coach -> MascotMood.entries.map { coach.art(it) } }
+        assertEquals("3 coaches x 4 moods, no drawing shared", Mascot.entries.size * MascotMood.entries.size, drawings.toSet().size)
+        assertEquals(MascotMood.READY.let { mood -> Mascot.SAGE.art(mood) }, Mascot.SAGE.art())
+    }
+
+    @Test
+    fun everyMoodSaysHowTheCoachLooks() {
+        MascotMood.entries.forEach { assertTrue(it.description.isNotBlank()) }
     }
 }

@@ -1,5 +1,7 @@
 package com.chesstutor.app.viewmodel
 
+import com.chesstutor.app.data.settings.PlayerPicture
+import com.chesstutor.app.data.settings.AppSettingsCodec
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -7,6 +9,7 @@ import com.chesstutor.app.audio.ChessSoundManager
 import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardFeedback
 import com.chesstutor.app.board.PieceSet
+import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.LearningProfile
@@ -24,6 +27,8 @@ import com.chesstutor.app.data.settings.BoardOrientation
 import com.chesstutor.app.data.settings.InMemorySettingsStore
 import com.chesstutor.app.data.settings.ReviewDepth
 import com.chesstutor.app.data.settings.SettingsStore
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.ChatLevel
 import com.chesstutor.app.engine.ChessEngineManager
@@ -31,6 +36,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import com.chesstutor.app.data.network.ImportRunner
 import com.chesstutor.app.data.network.InProcessImportRunner
+import com.chesstutor.app.data.network.RatingApiClient
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -58,6 +64,8 @@ class AppViewModel(
     private val settingsStore: SettingsStore = InMemorySettingsStore(),
     /** Runs the long imports; the app passes WorkManager's, tests a fake. Null: in this view model's scope. */
     importer: ((CoroutineScope) -> ImportRunner)? = null,
+    /** Talks to Chess.com and Lichess; tests pass one with a fake network. */
+    ratingApiClient: RatingApiClient = RatingApiClient(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AppUiState())
@@ -68,7 +76,8 @@ class AppViewModel(
         ratingRepository,
         viewModelScope,
         gameRepository,
-        importer = importer?.invoke(viewModelScope) ?: InProcessImportRunner(viewModelScope, gameRepository),
+        ratingApiClient,
+        importer = importer?.invoke(viewModelScope) ?: InProcessImportRunner(viewModelScope, gameRepository, ratingApiClient),
     )
     private var lastAutoSyncAt = 0L
 
@@ -165,16 +174,15 @@ class AppViewModel(
         lastAutoSyncAt = now
         viewModelScope.launch {
             // Read the saved games and settings themselves: at start-up the screen state may not have them yet.
-            val source = if (profile.platform == RatingPlatform.LICHESS) GameSource.LICHESS else GameSource.CHESS_COM
-            val mine = gameRepository.observeGames().first().filter { it.source == source }
+            val mine = savedGamesFrom(profile.platform)
             val newest = mine.maxOfOrNull { it.dateMillis }
             // An import the app was closed during carries on from the oldest game it reached.
             val target = settingsStore.settings.first().importTarget
             val oldest = mine.minOfOrNull { it.dateMillis }
-            val backfill = if (target != null && oldest != null && mine.size < target.maxGames) {
-                RatingLinkCoordinator.Backfill(oldest, target.maxGames - mine.size)
+            val backfill = if (target != null && oldest != null && mine.size < target) {
+                RatingLinkCoordinator.Backfill(oldest, target - mine.size)
             } else {
-                if (target != null && mine.size >= target.maxGames) setImportTarget(null)
+                if (target != null && mine.size >= target) setImportTarget(null)
                 null
             }
             ratingLinkCoordinator.autoSync(newest?.plus(1), _state::update, backfill)
@@ -190,8 +198,14 @@ class AppViewModel(
         setImportTarget(null)
     }
 
-    /** Remembers how many games the player asked for, so an import cut short carries on later. */
-    private fun setImportTarget(target: ImportDepth?) = updateSettings { it.copy(importTarget = target) }
+    /** Remembers how many games the player wants in total, so an import cut short carries on later. */
+    private fun setImportTarget(target: Int?) = updateSettings { it.copy(importTarget = target) }
+
+    /** The saved games imported from [platform]. */
+    private suspend fun savedGamesFrom(platform: RatingPlatform): List<GameRecord> {
+        val source = if (platform == RatingPlatform.LICHESS) GameSource.LICHESS else GameSource.CHESS_COM
+        return gameRepository.observeGames().first().filter { it.source == source }
+    }
 
     fun linkRatingAccount(
         platform: RatingPlatform,
@@ -199,13 +213,24 @@ class AppViewModel(
         timeControl: RatingTimeControl = RatingTimeControl.RAPID,
         importDepth: ImportDepth = _state.value.selectedImportDepth,
     ) {
-        setImportTarget(importDepth)
+        setImportTarget(importDepth.maxGames)
         ratingLinkCoordinator.linkAccount(platform, username, timeControl, _state::update, importDepth)
     }
 
+    /** "Import more": new games, then [importDepth] games older than the oldest one saved. */
     fun refreshLinkedRating(importDepth: ImportDepth = _state.value.selectedImportDepth) {
-        setImportTarget(importDepth)
-        ratingLinkCoordinator.refreshProfile(_state.value.linkedProfile?.username, _state::update, importDepth)
+        val profile = _state.value.linkedProfile ?: return
+        viewModelScope.launch {
+            val mine = savedGamesFrom(profile.platform)
+            setImportTarget(mine.size + importDepth.maxGames)
+            ratingLinkCoordinator.refreshProfile(
+                profile.username,
+                _state::update,
+                importDepth,
+                beforeMillis = mine.minOfOrNull { it.dateMillis },
+                sinceMillis = mine.maxOfOrNull { it.dateMillis }?.plus(1),
+            )
+        }
     }
 
     fun setRatingTimeControl(timeControl: RatingTimeControl) {
@@ -246,6 +271,14 @@ class AppViewModel(
     fun setMascot(mascot: Mascot) = updateSettings { it.copy(mascotId = mascot.id) }
 
     fun setReviewDepth(depth: ReviewDepth) = updateSettings { it.copy(reviewDepth = depth) }
+
+    fun setAppTheme(theme: AppTheme) = updateSettings { it.copy(appTheme = theme) }
+
+    fun setAppearance(appearance: Appearance) = updateSettings { it.copy(appearance = appearance) }
+
+    fun setPlayerName(name: String) = updateSettings { it.copy(playerName = name.trim().take(AppSettingsCodec.MAX_PLAYER_NAME)) }
+
+    fun setPlayerPicture(picture: PlayerPicture) = updateSettings { it.copy(playerPicture = picture.encoded) }
 
     fun setOnlineEngine(enabled: Boolean) = updateSettings { it.copy(onlineEngine = enabled) }
 

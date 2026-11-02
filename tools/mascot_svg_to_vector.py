@@ -1,10 +1,14 @@
-"""Converts the three mascot SVGs in design/mascot/ (simple shapes only) to Android VectorDrawables.
+"""Converts the coach SVGs in design/mascot/ (simple shapes only) to Android VectorDrawables.
 
 Usage: python3 tools/mascot_svg_to_vector.py design/mascot app/src/main/res/drawable
 
+Each coach (Pip, Rookie, Sage) has one SVG per mood (ready, thinking, kind, proud), named
+<coach>_<mood>.svg, and becomes mascot_<coach>_<mood>.xml.
+
 Handles: path, circle, ellipse, rect (rx, rotate transform), line, objectBoundingBox
-linear gradients (converted exactly to user space), a userSpaceOnUse checker <pattern>
-(expanded into explicit squares) and <g clip-path>.
+linear gradients (converted exactly to user space), a userSpaceOnUse checker <pattern> on a
+rect or a path (expanded into explicit squares, clipped to a path's outline), opacity,
+fill-opacity, stroke-linecap, stroke-linejoin and <g clip-path>.
 """
 import re
 import sys
@@ -91,19 +95,22 @@ def path_xml(el, defs, ind, path_override=None):
     fill = el.get("fill", "none" if el.tag == NS + "line" else "#000")
     stroke = el.get("stroke")
     opacity = el.get("opacity")
+    fill_alpha = float(opacity or 1) * float(el.get("fill-opacity", 1))
     attrs = [f'android:pathData="{d}"']
     grad = None
     if fill.startswith("url("):
         grad = defs[fill[5:-1]]
     elif fill != "none":
         attrs.append(f'android:fillColor="{color(fill)}"')
-        if opacity:
-            attrs.append(f'android:fillAlpha="{num(opacity)}"')
+        if fill_alpha != 1:
+            attrs.append(f'android:fillAlpha="{num(fill_alpha)}"')
     if stroke:
         attrs.append(f'android:strokeColor="{color(stroke)}"')
         attrs.append(f'android:strokeWidth="{num(el.get("stroke-width", 1))}"')
         if el.get("stroke-linecap"):
             attrs.append(f'android:strokeLineCap="{el.get("stroke-linecap")}"')
+        if el.get("stroke-linejoin"):
+            attrs.append(f'android:strokeLineJoin="{el.get("stroke-linejoin")}"')
         if opacity:
             attrs.append(f'android:strokeAlpha="{num(opacity)}"')
     head = f"{ind}<path\n" + "\n".join(f"{ind}    {a}" for a in attrs)
@@ -180,9 +187,18 @@ def convert(src, out, name, source_dir="design/mascot"):
             return
         fill = el.get("fill", "")
         if fill.startswith("url(") and defs[fill[5:-1]].tag == NS + "pattern":
-            _, area = shape_path(el)
+            outline, area = shape_path(el)
+            # A path has no box of its own: cover the box around its points and clip to it.
+            clipped = area is None
+            if clipped:
+                nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", outline)]
+                xs, ys = nums[0::2], nums[1::2]
+                area = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
+                lines.append(f"{ind}<group>")
+                lines.append(f'{ind}  <clip-path android:pathData="{outline}" />')
+                ind += "  "
             base, fg, squares = pattern_squares(defs[fill[5:-1]], area)
-            lines.append(f'{ind}<path android:pathData="{shape_path(el)[0]}" android:fillColor="{color(base)}" />')
+            lines.append(f'{ind}<path android:pathData="{outline}" android:fillColor="{color(base)}" />')
             # One path per row of squares keeps each path short (lint's VectorPath check).
             rows = {}
             for sq in squares:
@@ -190,6 +206,8 @@ def convert(src, out, name, source_dir="design/mascot"):
             for row in rows.values():
                 lines.append(f'{ind}<path android:fillColor="{color(fg)}"')
                 lines.append(f'{ind}    android:pathData="{"".join(row)}" />')
+            if clipped:
+                lines.append(f"{ind[:-2]}</group>")
             return
         tr = el.get("transform")
         if tr:
@@ -209,10 +227,13 @@ def convert(src, out, name, source_dir="design/mascot"):
         f.write("\n".join(lines) + "\n")
 
 
+COACHES = {"pip": "Pip", "rookie": "Rookie", "sage": "Sage"}
+MOODS = ["ready", "thinking", "kind", "proud"]
+
 if __name__ == "__main__":
     src_dir, out_dir = sys.argv[1], sys.argv[2]
-    for src, out, name in [("pip.svg", "mascot_pip.xml", "Pip"),
-                           ("rook.svg", "mascot_rookie.xml", "Rookie"),
-                           ("turtle.svg", "mascot_sage.xml", "Sage")]:
-        convert(f"{src_dir}/{src}", f"{out_dir}/{out}", name)
-        print("wrote", out)
+    for coach, name in COACHES.items():
+        for mood in MOODS:
+            out = f"mascot_{coach}_{mood}.xml"
+            convert(f"{src_dir}/{coach}_{mood}.svg", f"{out_dir}/{out}", f"{name}, {mood}")
+            print("wrote", out)

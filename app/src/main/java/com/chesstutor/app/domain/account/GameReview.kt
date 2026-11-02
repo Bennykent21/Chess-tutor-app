@@ -86,17 +86,23 @@ enum class GamePhase(val label: String) {
 /** How good a move was (plan 6.4), judged by how much of the mover's winning chances it threw away. */
 enum class MoveQuality(val label: String, val symbol: String) {
     BOOK("Book", ""),
+    /** The only legal move. */
+    FORCED("Forced", ""),
     /** A good sacrifice (see [SpecialMoves]). */
     BRILLIANT("Brilliant", "!!"),
     /** The only good move: everything else was much worse (see [SpecialMoves]). */
     GREAT("Great", "!"),
     BEST("Best", ""),
+    /** Nearly as good as the best move. */
+    EXCELLENT("Excellent", ""),
     GOOD("Good", ""),
     INACCURACY("Inaccuracy", "?!"),
+    /** The opponent's mistake gave a chance, and this move let it go (see [isMiss]). */
+    MISS("Miss", ""),
     MISTAKE("Mistake", "?"),
     BLUNDER("Blunder", "??");
 
-    val isError: Boolean get() = this == INACCURACY || this == MISTAKE || this == BLUNDER
+    val isError: Boolean get() = this == INACCURACY || this == MISS || this == MISTAKE || this == BLUNDER
 
     /** Best, Great or Brilliant: nothing better to show. */
     val isTop: Boolean get() = this == BEST || this == GREAT || this == BRILLIANT
@@ -104,15 +110,30 @@ enum class MoveQuality(val label: String, val symbol: String) {
     companion object {
         /**
          * Thresholds on lost winning chances (percentage points), close to Chess.com's
-         * expected-points bands: up to 5 is still good, then inaccuracy, mistake, blunder.
+         * expected-points bands: up to 2.5 is excellent, up to 5 still good, then
+         * inaccuracy, mistake, blunder.
          */
         fun of(loss: Double, playedBest: Boolean): MoveQuality = when {
             playedBest || loss <= 1.0 -> BEST
+            loss <= 2.5 -> EXCELLENT
             loss <= 5.0 -> GOOD
             loss <= 10.0 -> INACCURACY
             loss <= 20.0 -> MISTAKE
             else -> BLUNDER
         }
+
+        /**
+         * A miss: the opponent's last move was a mistake or blunder that raised the mover's
+         * chances from [chanceBeforeGift], and this move ([base] an error, [winAfter] the chances
+         * after it) gave the gift back without leaving the mover clearly worse than before it.
+         * A move that also loses more than [MISS_MARGIN] below that stays a plain error.
+         */
+        fun isMiss(base: MoveQuality, opponentLast: MoveQuality?, chanceBeforeGift: Double, winAfter: Double): Boolean =
+            base.isError &&
+                (opponentLast == MISTAKE || opponentLast == BLUNDER) &&
+                winAfter >= chanceBeforeGift - MISS_MARGIN
+
+        const val MISS_MARGIN = 5.0
     }
 }
 
@@ -174,7 +195,7 @@ data class GameReview(
 
     /** The player's worst moves (mistakes and blunders), biggest first, at most [limit], then in game order. */
     fun keyMoments(player: PieceColor, limit: Int = 3): List<ReviewedMove> =
-        moves.filter { it.mover == player && (it.quality == MoveQuality.MISTAKE || it.quality == MoveQuality.BLUNDER) }
+        moves.filter { it.mover == player && (it.quality == MoveQuality.MISS || it.quality == MoveQuality.MISTAKE || it.quality == MoveQuality.BLUNDER) }
             .sortedByDescending { it.loss }
             .take(limit)
             .sortedBy { it.ply }
@@ -228,10 +249,14 @@ object GameReviewer {
             val loss = (winBefore - winAfter).coerceAtLeast(0.0)
             val book = i < bookPlies
             val base = MoveQuality.of(loss, playedBest = best?.uci == played.uci)
+            // The opponent's last move, and the mover's chances before it.
+            val opponentLast = reviewed.lastOrNull()?.takeIf { it.mover != mover }
             val quality = when {
                 book -> MoveQuality.BOOK
+                legal.size == 1 -> MoveQuality.FORCED
                 SpecialMoves.isBrilliant(position, played, positions[i + 1], base, winBefore, winAfter) -> MoveQuality.BRILLIANT
                 SpecialMoves.isGreat(position, played, base, winBefore, before.secondWinFor(mover), winAfter, previous = moves.getOrNull(i - 1)) -> MoveQuality.GREAT
+                opponentLast != null && MoveQuality.isMiss(base, opponentLast.quality, 100.0 - opponentLast.winBefore, winAfter) -> MoveQuality.MISS
                 else -> base
             }
             reviewed += ReviewedMove(

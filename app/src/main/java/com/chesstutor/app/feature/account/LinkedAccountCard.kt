@@ -134,12 +134,14 @@ private fun RatingChips(selected: RatingTimeControl, onSelect: (RatingTimeContro
     }
 }
 
+/** How many games to import; once linked, [more] counts older games ("500 more"). */
 @Composable
-private fun DepthChips(depth: ImportDepth, onDepth: (ImportDepth) -> Unit) {
-    Text("Games to import", style = CtType.Label)
+private fun DepthChips(depth: ImportDepth, onDepth: (ImportDepth) -> Unit, more: Boolean = false) {
+    Text(if (more) "Import older games" else "Games to import", style = CtType.Label)
+    if (more) Text("Goes back from the oldest game you have here. New games arrive by themselves.", style = CtType.Caption)
     Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         ImportDepth.entries.forEach { d ->
-            CtChip(text = d.label, color = CtColors.Violet, selected = d == depth, onClick = { onDepth(d) })
+            CtChip(text = if (more) d.moreLabel else d.label, color = CtColors.Violet, selected = d == depth, onClick = { onDepth(d) })
         }
     }
 }
@@ -160,9 +162,9 @@ private fun Linked(profile: LinkedChessProfile, state: AppUiState, actions: Acco
     if (state.isLinkingLoading) {
         ImportRunning(state.importProgress, onCancel = actions.onCancelImport)
     } else {
-        DepthChips(state.selectedImportDepth, actions.onImportDepth)
+        DepthChips(state.selectedImportDepth, actions.onImportDepth, more = true)
         CtButton(
-            text = "Import ${state.selectedImportDepth.label.lowercase()} games",
+            text = "Import ${state.selectedImportDepth.moreLabel} games",
             icon = Icons.Rounded.CloudDownload,
             style = CtButtonStyle.Secondary,
             onClick = actions.onImportMore,
@@ -209,7 +211,7 @@ private fun ImportRunning(progress: ImportProgress?, onCancel: () -> Unit) {
         },
         style = CtType.Caption,
     )
-    CtProgressBar(progress = if (p.targetCount > 0) p.importedCount.toFloat() / p.targetCount else 0f, height = 8.dp)
+    CtProgressBar(progress = p.shownFraction, height = 8.dp)
     Text("${p.importedCount} of up to ${p.targetCount} games · they appear in Games as they arrive", style = CtType.Caption)
     Text("A big import takes a few minutes. If the app closes part-way, it carries on next time you open it.", style = CtType.Caption)
     Spacer(Modifier.height(CtSpacing.xs))

@@ -45,7 +45,7 @@ class AppViewModelTest {
     fun readsTheProfileAndMistakesThenSavesTheWelcomeAnswer() = runTest(dispatcher) {
         val learning = InMemoryLearningRepository(LearningProfile(estimatedRating = 700))
         val reviews = InMemoryReviewRepository().apply { upsert(review("a")) }
-        val vm = AppViewModel(reviews, ChessEngineManager(LocalFallbackEngineClient()), learningRepository = learning)
+        val vm = AppViewModel(reviews, ChessEngineManager(LocalFallbackEngineClient(), ioDispatcher = dispatcher), learningRepository = learning)
         assertFalse("nothing read yet", vm.state.value.profileLoaded)
         advanceUntilIdle()
 
@@ -68,7 +68,7 @@ class AppViewModelTest {
     @Test
     fun settingsChangesShowAtOnceAndAreSaved() = runTest(dispatcher) {
         val store = InMemorySettingsStore()
-        val vm = AppViewModel(InMemoryReviewRepository(), ChessEngineManager(LocalFallbackEngineClient()), settingsStore = store)
+        val vm = AppViewModel(InMemoryReviewRepository(), ChessEngineManager(LocalFallbackEngineClient(), ioDispatcher = dispatcher), settingsStore = store)
         advanceUntilIdle()
         vm.setMascot(Mascot.SAGE)
         vm.setSoundEnabled(false)
@@ -84,7 +84,7 @@ class AppViewModelTest {
 
     @Test
     fun autoSyncNeedsALinkedAccount() = runTest(dispatcher) {
-        val vm = AppViewModel(InMemoryReviewRepository(), ChessEngineManager(LocalFallbackEngineClient()))
+        val vm = AppViewModel(InMemoryReviewRepository(), ChessEngineManager(LocalFallbackEngineClient(), ioDispatcher = dispatcher))
         advanceUntilIdle()
         vm.autoSyncLinkedAccount(now = 10 * AppViewModel.AUTO_SYNC_INTERVAL_MS)
         advanceUntilIdle()

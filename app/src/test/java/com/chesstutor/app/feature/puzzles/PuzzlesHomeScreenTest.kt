@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -9,7 +11,6 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chesstutor.app.design.CtTheme
-import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.puzzle.LevelProgress
 import com.chesstutor.app.domain.puzzle.PlayerLevel
 import com.chesstutor.app.domain.puzzle.PuzzleStats
@@ -36,32 +37,49 @@ class PuzzlesHomeScreenTest {
     )
 
     @Test
-    fun homeShowsStatsCoachPathAndPlaysTheCurrentLevel() {
+    fun homeShowsTheRatingTheCurrentLevelAndItsTiles() {
         var played = -1
-        // Reduce motion: the current level's endless pulse would keep the test from ever going idle.
+        var levels = false
+        var mistakes = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 PuzzlesHomeScreen(
                     state = state,
-                    mascot = Mascot.PIP,
-                    dueReviewCount = 0,
+                    dueReviewCount = 3,
                     onPlayLevel = { played = it },
                     onOpenModes = {},
-                    onReviewMistakes = {},
+                    onReviewMistakes = { mistakes = true },
+                    onOpenLevels = { levels = true },
                 )
             }
         }
-        compose.onNodeWithText("3,420").assertExists()
-        compose.onNodeWithText("Day 5 in a row. You're on fire!").assertExists()
+        compose.onNodeWithText("Rating 1248").assertExists()
+        compose.onNodeWithText("Best 3 of 5").assertExists()
+        compose.onRoot().captureRoboImage()
+
+        compose.onNodeWithText("Best 3 of 5").performClick()
+        assertEquals(12, played)
+        compose.onNodeWithText("3").performClick()
+        assertEquals(true, mistakes)
+        // The chip above (the card's title says "Level 12" too) opens the map.
+        compose.onAllNodesWithText("Level 12").onFirst().performClick()
+        assertEquals(true, levels)
+    }
+
+    @Test
+    fun theLevelsPageShowsEveryWorldAndPlaysALevel() {
+        var played = -1
+        // Reduce motion: the current level's endless pulse would keep the test from ever going idle.
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                PuzzleLevelsScreen(state = state, onPlayLevel = { played = it }, onBack = {})
+            }
+        }
+        compose.onNodeWithText("11 of 50 passed").assertExists()
         compose.onNode(
             SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Level 12")) and
                 SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "next level")
-        ).assertExists()
-        compose.onRoot().captureRoboImage()
-
-        compose.onNodeWithText("Solve puzzles").performClick()
-        assertEquals(12, played)
-        compose.onNodeWithContentDescription("Level 12").performClick()
+        ).performClick()
         assertEquals(12, played)
     }
 
@@ -69,7 +87,7 @@ class PuzzlesHomeScreenTest {
     fun aMissingPackSaysSoInsteadOfAnEmptyPath() {
         compose.setContent {
             CtTheme {
-                PuzzlesHomeScreen(state.copy(packAvailable = false), Mascot.SAGE, 0, {}, {}, {})
+                PuzzlesHomeScreen(state.copy(packAvailable = false), 0, {}, {}, {})
             }
         }
         compose.onNodeWithText("Puzzles are missing").assertExists()

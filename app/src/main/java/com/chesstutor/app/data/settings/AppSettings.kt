@@ -4,6 +4,8 @@ import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.PieceSet
 import com.chesstutor.app.data.model.ImportDepth
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.domain.Mascot
 import com.chesstutor.app.domain.bot.ChatLevel
 import kotlinx.coroutines.flow.Flow
@@ -46,14 +48,27 @@ data class AppSettings(
     val mascotId: String = Mascot.DEFAULT.id,
     /** How much bots chat during games (review R6). */
     val chatLevel: ChatLevel = ChatLevel.SOME,
-    /** How many games the player asked to import, until the import has finished (an import cut short carries on later). */
-    val importTarget: ImportDepth? = null,
+    /**
+     * How many games from the linked site the player wants saved in total, until the import has
+     * finished (an import cut short carries on later). "Import 500 more" with 257 saved is 757.
+     */
+    val importTarget: Int? = null,
     /** Game review depth (Settings > Engine). */
     val reviewDepth: ReviewDepth = ReviewDepth.NORMAL,
     /** May the free online engine stand in when Stockfish on the phone fails? (plan 4.5, D18) */
     val onlineEngine: Boolean = true,
+    /** The app's colour theme (D37). */
+    val appTheme: AppTheme = AppTheme.DEFAULT,
+    /** Light, dark, or the phone's setting (D36). */
+    val appearance: Appearance = Appearance.DEFAULT,
+    /** What the app calls the player (D46); empty until they give a name. */
+    val playerName: String = "",
+    /** The player's picture as [PlayerPicture.encoded] (D52); empty until they choose one. */
+    val playerPicture: String = "",
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
+
+    val picture: PlayerPicture get() = PlayerPicture.decode(playerPicture)
 
     val boardTheme: BoardTheme get() = BoardTheme(BoardColors.fromId(boardThemeId), PieceSet.fromId(pieceSetId))
 
@@ -83,6 +98,10 @@ object AppSettingsCodec {
     const val IMPORT_TARGET = "import_target"
     const val REVIEW_DEPTH = "review_depth"
     const val ONLINE_ENGINE = "online_engine"
+    const val APP_THEME = "app_theme"
+    const val APPEARANCE = "appearance"
+    const val PLAYER_NAME = "player_name"
+    const val PLAYER_PICTURE = "player_picture"
 
     /** Marks that settings formerly kept elsewhere were copied in (see [SettingsStore]). */
     const val LEGACY_IMPORTED = "legacy_imported_v1"
@@ -105,9 +124,16 @@ object AppSettingsCodec {
             pieceSetId = PieceSet.fromId(values[PIECE_SET] as? String).id,
             mascotId = Mascot.fromId(values[MASCOT] as? String).id,
             chatLevel = (values[BOT_CHAT] as? String)?.let { name -> ChatLevel.entries.firstOrNull { it.name == name } } ?: defaults.chatLevel,
-            importTarget = (values[IMPORT_TARGET] as? String)?.let { name -> ImportDepth.entries.firstOrNull { it.name == name } },
+            // Before Phase 7 the target was an ImportDepth name ("LAST_500").
+            importTarget = (values[IMPORT_TARGET] as? String)?.let { text ->
+                text.toIntOrNull()?.takeIf { it > 0 } ?: ImportDepth.entries.firstOrNull { it.name == text }?.maxGames
+            },
             reviewDepth = (values[REVIEW_DEPTH] as? String)?.let { name -> ReviewDepth.entries.firstOrNull { it.name == name } } ?: defaults.reviewDepth,
             onlineEngine = bool(ONLINE_ENGINE, defaults.onlineEngine),
+            appTheme = AppTheme.fromName(values[APP_THEME] as? String),
+            appearance = Appearance.fromName(values[APPEARANCE] as? String),
+            playerName = (values[PLAYER_NAME] as? String).orEmpty().trim().take(MAX_PLAYER_NAME),
+            playerPicture = (values[PLAYER_PICTURE] as? String).orEmpty(),
         )
     }
 
@@ -124,10 +150,16 @@ object AppSettingsCodec {
         PIECE_SET to settings.pieceSetId,
         MASCOT to settings.mascotId,
         BOT_CHAT to settings.chatLevel.name,
-        IMPORT_TARGET to (settings.importTarget?.name ?: ""),
+        IMPORT_TARGET to (settings.importTarget?.toString() ?: ""),
         REVIEW_DEPTH to settings.reviewDepth.name,
         ONLINE_ENGINE to settings.onlineEngine,
+        APP_THEME to settings.appTheme.name,
+        APPEARANCE to settings.appearance.name,
+        PLAYER_NAME to settings.playerName,
+        PLAYER_PICTURE to settings.playerPicture,
     )
+
+    const val MAX_PLAYER_NAME = 24
 }
 
 /** Where [AppSettings] live. The app uses DataStore; tests and previews use memory. */

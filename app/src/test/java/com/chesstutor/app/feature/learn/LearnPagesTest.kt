@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onAllNodesWithText
@@ -7,6 +10,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chesstutor.app.core.PieceColor
@@ -75,7 +79,7 @@ class LearnPagesTest {
                 )
             }
         }
-        compose.onNodeWithText("Continue").assertExists()
+        compose.onNodeWithText("Lesson ", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_hub.png")
         compose.onNodeWithText("Checkmate wins the game").performClick()
         assertEquals("basics-checkmate", opened)
@@ -95,10 +99,16 @@ class LearnPagesTest {
         }
         compose.onNodeWithText("Italian Game").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_category.png")
+        // Side is a dropdown chip: open it and pick Black.
+        compose.onNodeWithText("Both sides").performClick()
         compose.onNodeWithText("Black").performClick()
         compose.onNodeWithText("Italian Game").assertDoesNotExist()
         compose.onNodeWithText("Caro-Kann").assertExists()
         compose.onNodeWithText("Black").performClick()
+        compose.onNodeWithText("Both sides").performClick()
+        // Search waits behind its icon.
+        compose.onNode(hasSetTextAction()).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Search courses").performClick()
         compose.onNode(hasSetTextAction()).performTextInput("solid set")
         compose.onNodeWithText("London System").assertExists()
         compose.onNodeWithText("Caro-Kann").assertDoesNotExist()
@@ -118,8 +128,9 @@ class LearnPagesTest {
                 )
             }
         }
-        compose.onNodeWithText("Done · tap to play again").assertExists()
+        compose.onAllNodesWithContentDescription("Finished").onFirst().assertExists()
         compose.onNodeWithText("Resume at step 3 of 6").assertExists()
+        compose.onNodeWithText("Continue").assertExists()
         compose.onNodeWithText("Related puzzles").assertExists()
         compose.onNodeWithText("Practise in Opening Battle").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_course.png")

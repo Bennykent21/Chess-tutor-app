@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import kotlinx.coroutines.flow.conflate
 import com.chesstutor.app.data.diagnostics.PerfLog
 import com.chesstutor.app.data.diagnostics.AnalysisTiming
 import androidx.lifecycle.ViewModel
@@ -37,8 +38,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import com.chesstutor.app.domain.account.AchievementInputs
 import com.chesstutor.app.domain.account.Achievements
-import com.chesstutor.app.domain.account.ActivityItem
 import com.chesstutor.app.domain.account.Badge
+import com.chesstutor.app.domain.learn.Course
+import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.learn.LessonLibrary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -83,8 +85,8 @@ class TrainingSources(
     }
 }
 
-/** Account > Overview's badges and recent activity. */
-data class OverviewState(val badges: List<Badge> = emptyList(), val recent: List<ActivityItem> = emptyList())
+/** Account > Overview's badges. */
+data class OverviewState(val badges: List<Badge> = emptyList())
 
 /** The player's saved games, newest first, with openings named (plan section 6.4). */
 data class GamesState(
@@ -137,7 +139,8 @@ class AccountViewModel(
     private val cache = HashMap<String, GameSummary>()
 
     val games: StateFlow<GamesState> = combine(
-        combine(repository.observeGames(), tree.filterNotNull()) { records, openings -> summarise(records, openings) }.flowOn(worker),
+        // An import saves many batches: keep up with the latest, not every one of them.
+        combine(repository.observeGames().conflate(), tree.filterNotNull()) { records, openings -> summarise(records, openings) }.flowOn(worker),
         analysis.observeSummaries(),
     ) { list, analysed -> GamesState(loading = false, games = list, analysed = analysed) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GamesState())
@@ -172,6 +175,11 @@ class AccountViewModel(
     val training: StateFlow<TrainingReport> = trainingSources.reports()
         .flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrainingSources.EMPTY_REPORT)
 
+    /** The Learn courses that teach openings, so a row on Stats can open its course (D44). */
+    val openingCourses: StateFlow<List<Course>> = flow {
+        emit(runCatching { trainingSources.loadLessons() }.getOrDefault(LessonLibrary.EMPTY).coursesIn(LessonCategory.OPENINGS))
+    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** Reviews of every analysed game, kept until the game is analysed again. */
     private val reviewCache = HashMap<String, Pair<Long, GameReview>>()
 
@@ -180,7 +188,7 @@ class AccountViewModel(
         .flowOn(worker)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
-    /** Badges and recent activity for the Overview (plan 5.3 and 6.4), from what is already saved. */
+    /** Badges for the Overview (plan 5.3), from what is already saved. */
     val overview: StateFlow<OverviewState> = combine(
         games,
         reviews,
@@ -197,7 +205,7 @@ class AccountViewModel(
             lessonsFinished = progress.values.filter { it.completed }.associate { it.lessonId to it.completedAt },
             lessonTitles = library.courses.flatMap { it.lessons }.associate { it.id to it.title },
         )
-        OverviewState(Achievements.badges(inputs), Achievements.recent(inputs))
+        OverviewState(Achievements.badges(inputs))
     }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewState())
 
     init {

@@ -8,7 +8,7 @@ data class RosterBot(val profile: BotProfile, val animal: String, val tagline: S
 }
 
 /**
- * The twelve bots on Home (plan 6.1), weakest first. Original characters and names; Wayne is
+ * The twelve bots on Home (plan 6.1), weakest first; each tagline is the bot speaking (D46). Original characters and names; Wayne is
  * kept from the old Arena. Each Black repertoire answers both 1.e4 and 1.d4.
  */
 object BotRoster {
@@ -18,30 +18,30 @@ object BotRoster {
     ) = RosterBot(BotProfile(id, name, rating, style, resign = resign, whiteOpenings = white, blackOpenings = black), animal, tagline)
 
     val bots: List<RosterBot> = listOf(
-        bot("pebble", "Pebble", 250, BotStyle.BALANCED, "snail", "Just learning how the pieces move.",
+        bot("pebble", "Pebble", 250, BotStyle.BALANCED, "snail", "I'm still learning how the pieces move. Be gentle!",
             listOf("Italian Game"), listOf("Italian Game", "Queen's Gambit Declined"), ResignPolicy.NEVER),
-        bot("wayne", "Wayne", 600, BotStyle.BALANCED, "bear cub", "Friendly, but leaves pieces hanging.",
+        bot("wayne", "Wayne", 600, BotStyle.BALANCED, "bear cub", "Hi! I play for fun. Don't mind my loose pieces.",
             listOf("Italian Game"), listOf("Scandinavian Defense", "Queen's Gambit Declined")),
-        bot("juno", "Juno", 800, BotStyle.TRICKSTER, "fox", "Loves a cheeky trap.",
+        bot("juno", "Juno", 800, BotStyle.TRICKSTER, "fox", "I love a cheeky trap. Watch your f7.",
             listOf("Vienna Game"), listOf("Alekhine Defense", "Indian Defense: Budapest Gambit")),
-        bot("bramble", "Bramble", 1000, BotStyle.DEFENDER, "hedgehog", "Curls up and dares you to attack.",
+        bot("bramble", "Bramble", 1000, BotStyle.DEFENDER, "hedgehog", "I curl up tight. Come and try to break me.",
             listOf("London System"), listOf("Caro-Kann Defense", "Slav Defense")),
-        bot("ziggy", "Ziggy", 1200, BotStyle.ATTACKER, "parrot", "Goes straight for your king.",
+        bot("ziggy", "Ziggy", 1200, BotStyle.ATTACKER, "parrot", "Your king looks lonely. I'm coming for it!",
             listOf("King's Gambit"), listOf("Sicilian Defense: Dragon Variation", "King's Indian Defense")),
-        bot("marlo", "Marlo", 1400, BotStyle.GAMBITEER, "raccoon", "Gives a pawn away for a wild game.",
+        bot("marlo", "Marlo", 1400, BotStyle.GAMBITEER, "raccoon", "Have a pawn, on me. It gets wild from here.",
             listOf("Italian Game: Evans Gambit", "Danish Gambit", "Sicilian Defense: Smith-Morra Gambit"),
             listOf("Latvian Gambit", "Benko Gambit")),
-        bot("tessa", "Tessa", 1600, BotStyle.GRINDER, "otter", "Trades down and squeezes the endgame.",
+        bot("tessa", "Tessa", 1600, BotStyle.GRINDER, "otter", "Let's trade a few pieces. I'll squeeze you in the endgame.",
             listOf("Queen's Gambit"), listOf("French Defense", "Queen's Gambit Declined")),
-        bot("kofi", "Kofi", 1800, BotStyle.ATTACKER, "lion", "Sharp, fast and fearless.",
+        bot("kofi", "Kofi", 1800, BotStyle.ATTACKER, "lion", "Sharp, fast and fearless. Try to keep up.",
             listOf("Ruy Lopez", "Scotch Game"), listOf("Sicilian Defense: Najdorf Variation", "King's Indian Defense")),
-        bot("ingrid", "Ingrid", 2000, BotStyle.DEFENDER, "penguin", "Cool, careful and hard to break.",
+        bot("ingrid", "Ingrid", 2000, BotStyle.DEFENDER, "penguin", "I stay calm and wait for you to slip.",
             listOf("Catalan Opening", "English Opening"), listOf("Caro-Kann Defense", "Nimzo-Indian Defense")),
-        bot("nova", "Nova", 2200, BotStyle.TRICKSTER, "cat", "Plays the move you did not expect.",
+        bot("nova", "Nova", 2200, BotStyle.TRICKSTER, "cat", "You won't see my next move coming.",
             listOf("Bird Opening", "Vienna Game"), listOf("Pirc Defense", "Dutch Defense")),
-        bot("titan", "Titan", 2500, BotStyle.ATTACKER, "dragon", "A master-strength fire breather.",
+        bot("titan", "Titan", 2500, BotStyle.ATTACKER, "dragon", "Masters fear my fire. Do you?",
             listOf("Ruy Lopez", "Queen's Gambit Declined"), listOf("Sicilian Defense", "Grünfeld Defense")),
-        bot("bolt", "Bolt", 3000, BotStyle.BALANCED, "robot", "Stockfish at full strength. Good luck!",
+        bot("bolt", "Bolt", 3000, BotStyle.BALANCED, "robot", "I am Stockfish at full strength. Good luck.",
             emptyList(), emptyList(), ResignPolicy.NEVER),
     )
 

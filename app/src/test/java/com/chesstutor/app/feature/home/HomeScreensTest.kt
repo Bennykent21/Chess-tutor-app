@@ -1,5 +1,12 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -96,24 +103,38 @@ class HomeScreensTest {
     private val noActions = HomeActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 
     @Test
-    fun homeShowsTheRosterAndTheResumeCard() {
+    fun homeShowsTheResumeCardQuickMatchAndMoreWaysToPlay() {
         var opened: String? = null
+        var resumed = false
+        var bots = false
         val home = HomeUiState(
             resume = ResumeCard(BotRoster.byId("juno")!!, moveCount = 14, playerColor = PieceColor.WHITE),
             recommendation = PlayRecommender.recommend(emptyList(), 800),
             dayStreak = 4,
             gamesPlayed = 3,
         ).let { it.copy(nextStep = NextStep.Bot(it.recommendation!!)) }
+        val recommended = home.recommendation!!.bot
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                HomeScreen(state = AppUiState(), home = home, actions = noActions.copy(onOpenBot = { opened = it }))
+                HomeScreen(
+                    state = AppUiState(assessmentState = "COMPLETE"),
+                    home = home,
+                    actions = noActions.copy(onOpenBot = { opened = it }, onResume = { resumed = true }, onOpenBots = { bots = true }),
+                )
             }
         }
-        compose.onNodeWithText("Move 8 · you play White").assertExists()
-        compose.onNodeWithText("Your game against Juno is waiting. Shall we finish it?").assertExists()
+        compose.onNodeWithText("vs Juno").assertExists()
+        compose.onNodeWithText("Move 8, you play White").assertExists()
+        compose.onNodeWithText("Quick match").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home.png")
-        compose.onNode(hasText("Pebble")).performScrollTo().performClick()
-        assertEquals("pebble", opened)
+        compose.onNodeWithText("vs Juno").performClick()
+        assertTrue(resumed)
+        compose.onNodeWithText("Play ${recommended.name}").performClick()
+        assertEquals(recommended.id, opened)
+        // D42: the bots live behind "Bots" in More ways to play, not on Home itself.
+        compose.onNodeWithText("Meet the bots").assertDoesNotExist()
+        compose.onNodeWithText("Bots").performScrollTo().performClick()
+        assertTrue(bots)
     }
 
     @Test
@@ -128,16 +149,42 @@ class HomeScreensTest {
         )
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                HomeScreen(state = AppUiState(), home = home, actions = noActions.copy(onOpenLesson = { lesson = it }, onPractiseTheme = { theme = it }))
+                HomeScreen(state = AppUiState(assessmentState = "COMPLETE"), home = home, actions = noActions.copy(onOpenLesson = { lesson = it }, onPractiseTheme = { theme = it }))
             }
         }
-        compose.onNodeWithText("Next up: Castle early").assertExists()
-        compose.onNodeWithText("Italian Game · lesson 2 of 5").assertExists()
+        compose.onNodeWithText("Italian Game").assertExists()
+        compose.onNodeWithText("Lesson 2 of 5").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home_next.png")
-        compose.onNodeWithText("Next up: Castle early").performClick()
+        compose.onNodeWithText("Castle early").performClick()
         assertEquals("o2", lesson)
-        compose.onNodeWithText("Fork puzzles trip you up (17% clean). Practise a few.").performClick()
+        compose.onNodeWithText("Practise Fork").performClick()
         assertEquals("fork", theme)
+    }
+
+    @Test
+    fun theBotsPageListsEveryBotYourOwnAndBuildAndWatch() {
+        var opened: String? = null
+        var built = false
+        var watched = false
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BotsScreen(
+                    roster = BotRoster.bots,
+                    myBots = emptyList(),
+                    onOpenBot = { opened = it },
+                    onNewBot = { built = true },
+                    onWatch = { watched = true },
+                    onBack = {},
+                )
+            }
+        }
+        compose.onNodeWithText("My bots").assertDoesNotExist()
+        compose.onNodeWithText("Build a bot").performClick()
+        assertTrue(built)
+        compose.onNodeWithText("Watch two").performClick()
+        assertTrue(watched)
+        compose.onNodeWithText("Pebble").performScrollTo().performClick()
+        assertEquals("pebble", opened)
     }
 
     @Test
@@ -148,11 +195,12 @@ class HomeScreensTest {
                 BotSetupScreen(BotRoster.byId("marlo")!!, onPlay = { side, rules -> chosen = side to rules }, onBack = {})
             }
         }
-        compose.onNodeWithText("Gives a pawn away for a wild game.").assertExists()
-        compose.onNodeWithText("Black").performClick()
+        compose.onNodeWithText("Have a pawn, on me. It gets wild from here.").assertExists()
+        // The first "Black" is the side to play; the second labels its openings as Black.
+        compose.onAllNodesWithText("Black")[0].performClick()
         compose.onNodeWithText("10 min").performClick()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BotSetup.png")
-        compose.onNode(hasText("Play Marlo")).performScrollTo().performClick()
+        compose.onNode(hasText("Play")).performClick()
         assertEquals(SideChoice.BLACK, chosen?.first)
         assertEquals(TimeControl.RAPID_10, chosen?.second?.timeControl)
     }
@@ -176,7 +224,7 @@ class HomeScreensTest {
         step()
         game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e2e4" })
         step(5_000)
-        compose.onNodeWithText("Scandinavian Defense · in book").assertExists()
+        compose.onNodeWithText("Scandinavian Defense, in book").assertExists()
         compose.onNodeWithText("vs Wayne").assertExists()
         // Take the pawn: the captured pieces and the lead appear by the players.
         game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e4d5" })
@@ -185,16 +233,51 @@ class HomeScreensTest {
         step(5_000)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play.png")
 
+        val boardBefore = compose.onNodeWithContentDescription("Chess board", substring = true).fetchSemanticsNode().boundsInRoot
         compose.onNodeWithText("Resign").performClick()
         compose.onNodeWithText("Resign this game?").assertExists()
-        compose.onNode(hasText("Resign") and !hasText("Resign this game?")).performClick()
+        // The dialog's own Resign button (the bottom bar has one too).
+        compose.onNode(hasText("Resign") and hasAnyAncestor(isDialog())).performClick()
         step()
         compose.onNodeWithText("Wayne won").assertExists()
+        // D39: the result slides up over the screen; the board underneath stays put.
+        assertEquals(boardBefore, compose.onNodeWithContentDescription("Chess board", substring = true).fetchSemanticsNode().boundsInRoot)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play_result.png")
-        compose.onNode(hasText("Review this game")).performScrollTo().performClick()
+        compose.onNode(hasText("Review this game")).performClick()
         assertTrue("the saved game opens", reviewed!!.startsWith("bot_wayne_"))
-        compose.onNode(hasText("Rematch")).performScrollTo().performClick()
+        compose.onNode(hasText("Rematch") and hasClickAction()).performClick()
         assertEquals(true, rematch)
+    }
+
+    /** Beta review: tap a move in the strip to look back, without undoing anything. */
+    @Test
+    fun aMoveInTheStripShowsThatPositionWithoutUndoing() {
+        val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(OpeningTree::fromStream)
+        val engine = FakeEngine()
+        val game = BotGame(
+            GameSetup(BotRoster.byId("wayne")!!.profile, PieceColor.WHITE, GameRules()),
+            BotBrain(engine, Random(3)), engine, { tree }, InMemoryGameRepository(), scope, clock = { scheduler.currentTime },
+        )
+        game.start()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                PlayScreen(game, AppSettings(), onFeedback = {}, onRematch = {}, onAnalyse = { _, _ -> }, onBack = {})
+            }
+        }
+        step()
+        game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e2e4" })
+        step(5_000)
+        val moves = game.session.state.value.moves.size
+        assertTrue("both sides have moved", moves >= 2)
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        val bounds = board.fetchSemanticsNode().boundsInRoot
+        compose.onNodeWithContentDescription("White, e4").performClick()
+        compose.onNodeWithContentDescription("White, e4, current move").assertExists()
+        assertEquals("nothing was undone", moves, game.session.state.value.moves.size)
+        assertEquals("the board stayed put", bounds, board.fetchSemanticsNode().boundsInRoot)
+        // A tap on the board comes back to the game.
+        board.performClick()
+        compose.onNodeWithContentDescription("White, e4, current move").assertDoesNotExist()
     }
 
     @Test
@@ -213,10 +296,10 @@ class HomeScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("Give your bot a name to save it.").assertExists()
+        compose.onNodeWithText("Save bot").assertIsNotEnabled()
         compose.onNodeWithText("Endgame grinder").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.domain.bot.BotStyle.GRINDER, draft.style)
-        compose.onNode(hasText("As Black")).performScrollTo().performClick()
+        compose.onNode(hasText("Black")).performScrollTo().performClick()
         assertEquals(com.chesstutor.app.core.PieceColor.BLACK, chose)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BotBuilder.png")
         assertEquals(false, saved)
@@ -233,7 +316,7 @@ class HomeScreensTest {
         }
         compose.onNodeWithText("Sicilian Defense").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/OpeningPicker.png")
-        compose.onNode(hasText("Search")).assertExists()
+        compose.onNode(hasText("Search openings")).assertExists()
         // Searching narrows the list to the one family and opens it at the matching lines.
         compose.onNode(hasSetTextAction()).performTextInput("Najdorf")
         compose.onAllNodes(hasText("Najdorf Variation", substring = true))[0].assertExists()
@@ -252,12 +335,13 @@ class HomeScreensTest {
                 BattleSetupScreen(draft = draft, onChange = { draft = it(draft) }, onPickOpening = {}, onStart = { started = true }, onBack = {})
             }
         }
-        compose.onNodeWithText("Choose an opening to start.").assertExists()
+        compose.onNodeWithText("Choose an opening").assertExists()
+        compose.onNodeWithText("Start").assertIsNotEnabled()
         draft = draft.copy(line = tree.openings.first { it.name == "Sicilian Defense: Najdorf Variation" })
         compose.onNodeWithText("Drill it").performClick()
         compose.onNodeWithText("Any Sicilian Defense").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BattleSetup.png")
-        compose.onNode(hasText("Start")).performScrollTo().performClick()
+        compose.onNode(hasText("Start")).performClick()
         assertEquals(true, started)
         assertEquals(com.chesstutor.app.domain.opening.BattleMode.DRILL, draft.mode)
     }
@@ -283,9 +367,33 @@ class HomeScreensTest {
         draft = draft.copy(board = draft.board.place(com.chesstutor.app.core.Square.fromAlgebraic("e5"), draft.brush))
         compose.onNodeWithText("The side not to move is in check. Change who moves first.").assertExists()
         compose.onNodeWithText("Black to move").performClick()
-        compose.onNode(hasText("Play from here")).performScrollTo().performClick()
+        compose.onNode(hasText("Play")).performClick()
         assertEquals(true, started)
         assertEquals("4k3/8/8/4Q3/8/8/8/4K3 b - - 0 1", draft.board.toFen())
+    }
+
+    /** Regression (phone review 29 Oct): every tap placed the first piece again on the first board. */
+    @Test
+    fun tappingThePaletteThenTheBoardPlacesThatPieceEachTime() {
+        var draft by mutableStateOf(PositionDraft(board = com.chesstutor.app.domain.game.SetupBoard.KINGS_ONLY))
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                PositionSetupScreen(draft = draft, theme = AppSettings().boardTheme, opponents = BotRoster.bots.take(4), onChange = { draft = it(draft) }, onStart = {}, onBack = {})
+            }
+        }
+        val board = compose.onNode(androidx.compose.ui.test.hasContentDescription("Chess board", substring = true))
+        // Squares from White's side: file a..h left to right, rank 8 at the top.
+        fun tap(square: String) = board.performTouchInput {
+            val cell = width / 8f
+            click(androidx.compose.ui.geometry.Offset(("abcdefgh".indexOf(square[0]) + 0.5f) * cell, (8 - square[1].digitToInt() + 0.5f) * cell))
+        }
+        compose.onNodeWithContentDescription("black rook").performClick()
+        tap("a4")
+        tap("h4")
+        compose.onNodeWithContentDescription("white knight").performClick()
+        tap("c3")
+        compose.waitForIdle()
+        assertEquals("4k3/8/8/8/r6r/2N5/8/4K3 w - - 0 1", draft.board.toFen())
     }
 
     @Test
@@ -303,7 +411,7 @@ class HomeScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("1 picked").assertExists()
+        compose.onNodeWithText("Done, 1 chosen").assertExists()
         compose.onAllNodes(hasText("Caro-Kann Defense"))[0].performClick()
         assertEquals(true, "Caro-Kann Defense" in picked)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/RepertoirePicker.png")

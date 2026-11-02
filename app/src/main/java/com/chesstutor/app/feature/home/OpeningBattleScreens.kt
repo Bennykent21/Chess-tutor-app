@@ -1,5 +1,17 @@
 package com.chesstutor.app.feature.home
 
+import com.chesstutor.app.design.CtShapes
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import com.chesstutor.app.design.CtSegmented
+import com.chesstutor.app.design.CtListRow
+import com.chesstutor.app.design.CtActionPage
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import com.chesstutor.app.design.CtDivider
+import com.chesstutor.app.design.CtGroupLabel
+import com.chesstutor.app.design.CtSearchField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -31,6 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import com.chesstutor.app.domain.bot.OpeningChoice
 import androidx.compose.ui.semantics.stateDescription
@@ -70,8 +83,7 @@ internal fun movesText(line: Opening): String =
         listOfNotNull(entry.numberLabel, entry.san).joinToString(" ")
     }
 
-/** Opening Battle's setup page (plan 6.1): side, opening, mode, the bot's replies, opponent. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Opening Battle's setup page (plan 6.1, mock-up round 17): opening, side, mode, the bot's replies, opponent. */
 @Composable
 fun BattleSetupScreen(
     draft: BattleDraft,
@@ -80,81 +92,39 @@ fun BattleSetupScreen(
     onStart: () -> Unit,
     onBack: () -> Unit,
 ) {
-    CtScreenBackground {
-        Column(Modifier.fillMaxSize()) {
-            CtTopBar(title = "Opening battle", subtitle = "Play or drill one opening", onBack = onBack)
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = CtSpacing.gutter),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
-            ) {
-                CtSectionHeader(title = "You play")
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    SideChoice.entries.forEach { choice ->
-                        CtChip(text = choice.label, selected = draft.side == choice, color = CtColors.Gold, onClick = { onChange { it.copy(side = choice) } })
-                    }
+    val line = draft.line
+    CtActionPage(
+        title = "Opening battle",
+        onBack = onBack,
+        bottom = { CtButton(text = "Start", enabled = line != null, onClick = onStart, modifier = Modifier.weight(1f)) },
+    ) {
+        CtListRow(
+            title = line?.family ?: "Choose an opening",
+            subtitle = line?.let { it.variation.ifEmpty { movesText(it) } },
+            icon = null,
+            onClick = onPickOpening,
+            divider = false,
+            leading = {
+                Box(Modifier.size(40.dp).clip(CtShapes.Pill).background(CtColors.Surface), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Flag, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(22.dp))
                 }
-
-                CtSectionHeader(title = "Opening")
-                val line = draft.line
-                CtCard(onClick = onPickOpening, onClickLabel = "Choose an opening", modifier = Modifier.fillMaxWidth()) {
-                    if (line == null) {
-                        Text("Choose an opening", style = CtType.TitleSmall)
-                        Text("Browse every named line, from the Sicilian to the Grob.", style = CtType.BodySmall)
-                    } else {
-                        Text(line.name, style = CtType.TitleSmall)
-                        Text(movesText(line), style = CtType.BodySmall)
-                        Spacer(Modifier.height(CtSpacing.xs))
-                        Text("Tap to change", style = CtType.Caption.copy(color = CtColors.Teal))
-                    }
-                }
-
-                CtSectionHeader(title = "Mode")
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    BattleMode.entries.forEach { mode ->
-                        CtChip(text = mode.label, selected = draft.mode == mode, color = CtColors.Violet, onClick = { onChange { it.copy(mode = mode) } })
-                    }
-                }
-                Text(draft.mode.description, style = CtType.BodySmall)
-
-                if (draft.mode != BattleMode.SURPRISE) {
-                    CtSectionHeader(title = "The bot replies")
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                        CtChip(text = "Exactly this line", selected = draft.exactReplies, color = CtColors.Teal, onClick = { onChange { it.copy(exactReplies = true) } })
-                        CtChip(
-                            text = "Any ${line?.family ?: "line of the opening"}",
-                            selected = !draft.exactReplies,
-                            color = CtColors.Teal,
-                            onClick = { onChange { it.copy(exactReplies = false) } },
-                        )
-                    }
-                }
-
-                CtSectionHeader(title = "Opponent")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    BattleDraft.OPPONENTS.mapNotNull(BotRoster::byId).forEach { bot ->
-                        CtChip(
-                            text = "${bot.name} ${bot.rating}",
-                            selected = draft.opponentId == bot.id,
-                            color = botAccent(bot.rating),
-                            onClick = { onChange { it.copy(opponentId = bot.id) } },
-                        )
-                    }
-                }
-                Spacer(Modifier.height(CtSpacing.sm))
-                CtButton(
-                    text = "Start",
-                    icon = Icons.Rounded.PlayArrow,
-                    enabled = line != null,
-                    onClick = onStart,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (line == null) Text("Choose an opening to start.", style = CtType.Caption)
-                Spacer(Modifier.height(CtSpacing.lg))
-            }
+            },
+        )
+        CtGroupLabel("You play")
+        CtSegmented(SideChoice.entries, draft.side, { it.label }, { choice -> onChange { it.copy(side = choice) } })
+        CtGroupLabel("Mode")
+        CtSegmented(BattleMode.entries, draft.mode, { it.label }, { mode -> onChange { it.copy(mode = mode) } })
+        if (draft.mode != BattleMode.SURPRISE) {
+            CtGroupLabel("The bot replies")
+            CtSegmented(
+                options = listOf(true, false),
+                selected = draft.exactReplies,
+                label = { exact -> if (exact) "This line" else "Any ${line?.family ?: "line"}" },
+                onSelect = { exact -> onChange { it.copy(exactReplies = exact) } },
+            )
         }
+        CtGroupLabel("Opponent")
+        BotPickerRow(BattleDraft.OPPONENTS.mapNotNull(BotRoster::byId), draft.opponentId) { id -> onChange { it.copy(opponentId = id) } }
     }
 }
 
@@ -187,21 +157,17 @@ fun OpeningPickerScreen(
     var openFamily by rememberSaveable { mutableStateOf<String?>(null) }
     CtScreenBackground {
         Column(Modifier.fillMaxSize()) {
-            val subtitle = when {
-                selection != null -> "${selection.selected.size} picked"
-                else -> tree?.let { "${it.openings.size} named lines" }
-            }
             CtTopBar(
                 title = title,
-                subtitle = subtitle,
                 onBack = onBack,
-                trailing = if (selection != null) { { CtChip(text = "Done", color = CtColors.Gold, selected = true, onClick = onBack) } } else null,
+                trailing = if (selection != null && selection.selected.isNotEmpty()) {
+                    { Text("Clear", style = CtType.Label.copy(color = CtColors.Accent), modifier = Modifier.ctPressable(onClickLabel = "Clear the openings") { selection.onChange(emptySet()) }.padding(CtSpacing.md)) }
+                } else null,
             )
-            CtTextField(
+            CtSearchField(
                 value = query,
                 onValueChange = { query = it },
-                label = "Search",
-                placeholder = "Najdorf, London, Gambit…",
+                placeholder = "Search openings",
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter),
             )
             Spacer(Modifier.height(CtSpacing.sm))
@@ -213,28 +179,25 @@ fun OpeningPickerScreen(
             // While searching, show the matching lines straight away.
             LaunchedEffect(query) { if (query.isNotBlank() && families.size == 1) openFamily = families.first().name }
             LazyColumn(
+                modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = CtSpacing.gutter, vertical = CtSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
             ) {
                 if (selection != null && query.isBlank()) {
                     item(key = "tools") {
                         Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                                CtChip(text = "Select all", color = CtColors.Teal, onClick = { selection.onChange(tree.families.map { it.name }.toSet()) })
-                                CtChip(text = "Clear", color = CtColors.Coral, onClick = { selection.onChange(emptySet()) })
-                            }
                             if (selection.popular.isNotEmpty()) {
-                                Text("Popular", style = CtType.Label)
+                                CtGroupLabel("Popular")
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                                    CtChip(text = "Select all", onClick = { selection.onChange(tree.families.map { it.name }.toSet()) })
                                     selection.popular.forEach { choice ->
                                         val on = selection.selected.containsAll(choice.names)
-                                        CtChip(text = choice.label, selected = on, color = CtColors.Gold, onClick = {
+                                        CtChip(text = choice.label, selected = on, onClick = {
                                             selection.onChange(if (on) selection.selected - choice.names.toSet() else selection.selected + choice.names)
                                         })
                                     }
                                 }
                             }
-                            Text("All openings", style = CtType.Label)
+                            CtGroupLabel("All openings")
                         }
                     }
                 }
@@ -248,8 +211,8 @@ fun OpeningPickerScreen(
                     val expanded = openFamily == family.name
                     val familyTicked = selection?.selected?.contains(family.name) == true
                     item(key = "f:${family.name}") {
-                        CtCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(CtSpacing.md)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.fillMaxWidth()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp)) {
                                 if (selection != null) {
                                     TickBox(ticked = familyTicked, label = "All of ${family.name}") {
                                         selection.onChange(if (familyTicked) selection.selected - family.name else selection.selected + family.name)
@@ -271,6 +234,7 @@ fun OpeningPickerScreen(
                                     Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, contentDescription = null, tint = CtColors.Text2)
                                 }
                             }
+                            CtDivider()
                         }
                     }
                     if (expanded) {
@@ -280,7 +244,7 @@ fun OpeningPickerScreen(
                             else group.lines.filter { it.name.contains(q, ignoreCase = true) }
                             if (lines.isEmpty()) return@forEach
                             item(key = "g:${family.name}:${group.name}") {
-                                Text(group.name, style = CtType.Label.copy(color = CtColors.Gold), modifier = Modifier.padding(start = CtSpacing.md, top = CtSpacing.sm))
+                                Text(group.name, style = CtType.Label.copy(color = CtColors.Accent), modifier = Modifier.padding(start = CtSpacing.md, top = CtSpacing.sm))
                             }
                             items(lines, key = { "l:${it.moves.joinToString("")}" }) { line ->
                                 if (selection == null) {
@@ -298,9 +262,17 @@ fun OpeningPickerScreen(
                     }
                 }
             }
+            if (selection != null) {
+                CtButton(
+                    text = if (selection.selected.isEmpty()) "Done" else "Done, ${selection.selected.size} chosen",
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.lg),
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun TickBox(ticked: Boolean, label: String, onToggle: () -> Unit) {
