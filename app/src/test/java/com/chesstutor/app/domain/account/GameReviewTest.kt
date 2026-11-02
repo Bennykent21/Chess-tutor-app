@@ -30,12 +30,32 @@ class GameReviewTest {
     fun thresholdsFollowLostWinningChances() {
         assertEquals(MoveQuality.BEST, MoveQuality.of(30.0, playedBest = true))
         assertEquals(MoveQuality.BEST, MoveQuality.of(0.8, playedBest = false))
+        assertEquals(MoveQuality.EXCELLENT, MoveQuality.of(2.0, playedBest = false))
         assertEquals(MoveQuality.GOOD, MoveQuality.of(4.0, playedBest = false))
         assertEquals(MoveQuality.INACCURACY, MoveQuality.of(8.0, playedBest = false))
         assertEquals(MoveQuality.MISTAKE, MoveQuality.of(15.0, playedBest = false))
         assertEquals(MoveQuality.BLUNDER, MoveQuality.of(25.0, playedBest = false))
         assertTrue(MoveQuality.BLUNDER.isError)
         assertFalse(MoveQuality.GOOD.isError)
+    }
+
+    @Test
+    fun aMissLetsTheOpponentsSlipGoWithoutLosingMore() {
+        // The opponent's blunder lifted the mover from 50 to 90; a slip back to 52 is a miss.
+        assertTrue(MoveQuality.isMiss(MoveQuality.MISTAKE, MoveQuality.BLUNDER, chanceBeforeGift = 50.0, winAfter = 52.0))
+        assertTrue(MoveQuality.isMiss(MoveQuality.BLUNDER, MoveQuality.MISTAKE, chanceBeforeGift = 50.0, winAfter = 46.0))
+        assertFalse("worse than before the gift: a plain error", MoveQuality.isMiss(MoveQuality.BLUNDER, MoveQuality.BLUNDER, 50.0, 30.0))
+        assertFalse("no gift", MoveQuality.isMiss(MoveQuality.MISTAKE, MoveQuality.GOOD, 50.0, 52.0))
+        assertFalse("not an error", MoveQuality.isMiss(MoveQuality.GOOD, MoveQuality.BLUNDER, 50.0, 85.0))
+        assertTrue(MoveQuality.MISS.isError)
+    }
+
+    @Test
+    fun theOnlyLegalMoveIsForced() {
+        // The black queen checks the white king, which can only take it.
+        val fen = "7k/8/8/8/8/8/6q1/7K w - - 0 1"
+        val review = GameReviewer.review(fen, listOf("h1g2"), listOf(PlyEval(0, -900, null, "h1g2"), PlyEval(1, 0, null, "h8g7")))
+        assertEquals(MoveQuality.FORCED, review.move(1)!!.quality)
     }
 
     @Test

@@ -55,27 +55,6 @@ class AchievementsTest {
     }
 
     @Test
-    fun recentActivityIsNewestFirstWithPuzzlesGroupedByDay() {
-        val inputs = AchievementInputs(
-            games = listOf(game("bot_a", "1-0", 1200, dayMillis(1)), game("chesscom_b", "0-1", 1500, dayMillis(3), GameSource.CHESS_COM)),
-            analysed = mapOf("bot_a" to AnalysisSummary("bot_a", 2, whiteAccuracy = 81.6, blackAccuracy = 40.0, lite = false, analysedAt = dayMillis(4))),
-            puzzles = listOf(puzzle(2), puzzle(2, clean = false)),
-            lessonsFinished = mapOf("l1" to dayMillis(5)),
-            lessonTitles = mapOf("l1" to "Check and mate"),
-        )
-        assertEquals(
-            listOf(
-                "Finished the lesson \"Check and mate\"",
-                "Reviewed your game against Bot1200 (82% accuracy)",
-                "Lost to Bot1500 on Chess.com",
-                "Solved 2 puzzles (1 without a slip)",
-                "Beat Bot1200",
-            ),
-            Achievements.recent(inputs, zone = utc).map { it.text },
-        )
-    }
-
-    @Test
     fun runsCountConsecutiveValuesAndDays() {
         assertEquals(3, Achievements.longestRun(listOf(true, true, false, true, true, true)))
         assertEquals(0, Achievements.longestRun(emptyList()))

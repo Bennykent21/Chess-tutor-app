@@ -60,7 +60,7 @@ The app is being rebuilt in phases (see `plan.md`). The shell has four tabs, bui
 
 **Classic screens:** the pre-revamp screens (lesson and drill player, lesson list, Play, Review, puzzle trainer) open full screen through `LegacyHost`, with a back button, and keep their old behaviour until each is replaced.
 
-**Design system v2** lives in `app/src/main/java/com/chesstutor/app/design/`: colours (`Palette`, contrast-tested), type (Nunito headings, Inter body), shapes, motion that respects "Reduce motion", and the core components. Settings are stored with DataStore (`data/settings/`).
+**Design system v2** lives in `app/src/main/java/com/chesstutor/app/design/`: colours (`Palette`, contrast-tested), type (Schibsted Grotesk headings, Inter body), shapes, motion that respects "Reduce motion", and the core components. Settings are stored with DataStore (`data/settings/`).
 
 ---
 

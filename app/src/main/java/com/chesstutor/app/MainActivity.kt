@@ -13,7 +13,6 @@ import com.chesstutor.app.data.diagnostics.CrashLog
 import com.chesstutor.app.data.network.WorkImportRunner
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.ui.navigation.AppNavHost
-import com.chesstutor.app.ui.theme.ChessTutorTheme
 import com.chesstutor.app.viewmodel.AppViewModel
 import com.chesstutor.app.viewmodel.AppViewModelFactory
 
@@ -22,9 +21,10 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     CrashLog.install(applicationContext, BuildConfig.VERSION_NAME)
     super.onCreate(savedInstanceState)
+    // Bar icons start from the phone's light or dark setting; CtTheme then matches the app's mode.
     enableEdgeToEdge(
-      statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-      navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+      statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+      navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
     )
 
     setContent {
@@ -44,9 +44,7 @@ class MainActivity : ComponentActivity() {
       }
       val appViewModel: AppViewModel = viewModel(factory = factory)
 
-      ChessTutorTheme {
-        AppNavHost(viewModel = appViewModel)
-      }
+      AppNavHost(viewModel = appViewModel)
     }
   }
 }

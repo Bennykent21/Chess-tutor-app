@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SmartToy
 import androidx.compose.material3.Icon
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +44,8 @@ fun botArt(botId: String): Int? = when (botId) {
 }
 
 /** The ring colour around a bot's face: it rises with strength, from lime to coral. */
+@Composable
+@ReadOnlyComposable
 fun botAccent(rating: Int): Color = when {
     rating < 900 -> CtColors.Lime
     rating < 1500 -> CtColors.Teal

@@ -19,7 +19,7 @@ class NavigationModelTest {
     @Test
     fun bottomBarShowsOnPagesAndHidesOnFullScreenActivities() {
         TopTab.entries.forEach { assertTrue(AppRoutes.showsBottomBar(it.startRoute)) }
-        assertTrue(AppRoutes.showsBottomBar(AppRoutes.ENGINE_HEALTH))
+        assertFalse(AppRoutes.showsBottomBar(AppRoutes.ENGINE_HEALTH))
         assertFalse(AppRoutes.showsBottomBar("some/new/activity"))
     }
 
@@ -32,8 +32,8 @@ class NavigationModelTest {
 
     @Test
     fun learnPagesKeepTheBottomBarButTheLessonPlayerHidesIt() {
-        assertTrue(AppRoutes.showsBottomBar(AppRoutes.LEARN_CATEGORY_PATTERN))
-        assertTrue(AppRoutes.showsBottomBar(AppRoutes.COURSE_PATTERN))
+        assertFalse(AppRoutes.showsBottomBar(AppRoutes.LEARN_CATEGORY_PATTERN))
+        assertFalse(AppRoutes.showsBottomBar(AppRoutes.COURSE_PATTERN))
         assertFalse(AppRoutes.showsBottomBar(AppRoutes.LESSON))
         assertEquals(TopTab.LEARN, AppRoutes.tabFor(AppRoutes.COURSE_PATTERN))
         assertEquals("learn/category/tactics", AppRoutes.learnCategory("tactics"))
@@ -45,12 +45,12 @@ class NavigationModelTest {
     fun gamePagesBelongToTheAccountTab() {
         assertEquals("account/game/chesscom_123", AppRoutes.game("chesscom_123"))
         assertEquals("account/game/a%2Fb", AppRoutes.game("a/b"))
-        assertTrue(AppRoutes.showsBottomBar(AppRoutes.GAME_PATTERN))
+        assertFalse(AppRoutes.showsBottomBar(AppRoutes.GAME_PATTERN))
         assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.GAME_PATTERN))
         assertEquals("account/review/lichess_x", AppRoutes.review("lichess_x"))
         assertEquals("account/review/bot_x?analyse=true", AppRoutes.review("bot_x", analyse = true))
         assertFalse("the review is a board activity", AppRoutes.showsBottomBar(AppRoutes.REVIEW_PATTERN))
-        assertTrue(AppRoutes.showsBottomBar(AppRoutes.SETTINGS))
+        assertFalse(AppRoutes.showsBottomBar(AppRoutes.SETTINGS))
         assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.SETTINGS))
         assertFalse("the mistakes review is a board activity", AppRoutes.showsBottomBar(AppRoutes.MISTAKE_REVIEW))
     }

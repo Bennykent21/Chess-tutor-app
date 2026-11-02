@@ -17,7 +17,11 @@ import kotlinx.coroutines.launch
 /** Why games are being imported, which decides what the player is told at the end. */
 enum class ImportKind { LINK, MORE, BACKFILL }
 
-/** One import of a linked account's games (plan 6.4): up to [maxGames], older than [beforeMillis] when set. */
+/**
+ * One import of a linked account's games (plan 6.4): up to [maxGames], older than [beforeMillis]
+ * when set. "Import more" and carrying on a cut-short import set it to the oldest saved game,
+ * so the games already here do not use up [maxGames] (Phase 7 import fix).
+ */
 data class ImportRequest(
     val kind: ImportKind,
     val platform: RatingPlatform,
@@ -34,6 +38,7 @@ sealed interface ImportStatus {
 
     data class Finished(
         override val request: ImportRequest,
+        /** Games downloaded, including ones that were saved already. */
         val imported: Int,
         val incomplete: Int,
         val failedPeriods: Int,
@@ -41,6 +46,8 @@ sealed interface ImportStatus {
         val error: String?,
         /** The games came in but could not be saved. */
         val saveFailed: Boolean,
+        /** Games that were not saved before this import. */
+        val added: Int = imported,
     ) : ImportStatus {
         /** Everything asked for arrived: the saved import target can be forgotten. */
         val complete: Boolean get() = error == null && !saveFailed && failedPeriods == 0
@@ -79,6 +86,7 @@ suspend fun runImport(
 ): ImportStatus.Finished {
     var last: ImportProgress? = null
     var saveFailed = false
+    var added = 0
     val started = System.nanoTime()
     val result = client.fetchRecentGames(
         platform = request.platform,
@@ -90,7 +98,11 @@ suspend fun runImport(
         },
         onBatch = { batch: List<GameRecord> ->
             try {
-                if (batch.isNotEmpty()) games.saveGames(batch)
+                if (batch.isNotEmpty()) {
+                    val before = games.existingIds(batch.map { it.id })
+                    games.saveGames(batch)
+                    added += batch.count { it.id !in before }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -109,6 +121,7 @@ suspend fun runImport(
         failedPeriods = last?.failedPeriods ?: 0,
         error = result.exceptionOrNull()?.let { it.message?.takeIf(String::isNotBlank) ?: "Something went wrong while downloading your games." },
         saveFailed = saveFailed,
+        added = if (saveFailed) 0 else added,
     )
 }
 

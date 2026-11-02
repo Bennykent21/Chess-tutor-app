@@ -20,6 +20,10 @@ interface GameRecordDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGames(games: List<GameRecordEntity>)
 
+    /** Which of [ids] are saved already (keep each call under SQLite's 999 variables). */
+    @Query("SELECT id FROM game_records WHERE id IN (:ids)")
+    suspend fun existingIds(ids: List<String>): List<String>
+
     @Query("DELETE FROM game_records WHERE id = :id")
     suspend fun deleteGame(id: String)
 

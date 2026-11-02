@@ -3,6 +3,8 @@ package com.chesstutor.app.data.settings
 import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.PieceSet
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.domain.Mascot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -31,8 +33,37 @@ class AppSettingsTest {
             boardThemeId = "walnut",
             pieceSetId = "merida",
             mascotId = Mascot.SAGE.id,
+            appTheme = AppTheme.SLATE,
+            appearance = Appearance.DARK,
+            playerName = "Kenny",
         )
         assertEquals(custom, AppSettingsCodec.decode(AppSettingsCodec.encode(custom)))
+    }
+
+    @Test
+    fun aStoredNameIsTrimmedAndKeptShort() {
+        val long = "  " + "x".repeat(40) + "  "
+        assertEquals(AppSettingsCodec.MAX_PLAYER_NAME, AppSettingsCodec.decode(mapOf(AppSettingsCodec.PLAYER_NAME to long)).playerName.length)
+        assertEquals("", AppSettingsCodec.decode(emptyMap()).playerName)
+    }
+
+    @Test
+    fun appThemeDefaultsToMonoFollowingThePhone() {
+        val decoded = AppSettingsCodec.decode(emptyMap())
+        assertEquals(AppTheme.MONO, decoded.appTheme)
+        assertEquals(Appearance.SYSTEM, decoded.appearance)
+    }
+
+    @Test
+    fun appThemeIsStoredByNameAndUnknownNamesFallBack() {
+        val encoded = AppSettingsCodec.encode(AppSettings(appTheme = AppTheme.BAIZE, appearance = Appearance.LIGHT))
+        assertEquals("BAIZE", encoded[AppSettingsCodec.APP_THEME])
+        assertEquals("LIGHT", encoded[AppSettingsCodec.APPEARANCE])
+        listOf("", "NAVY", "baize", 3).forEach { stored ->
+            val decoded = AppSettingsCodec.decode(mapOf(AppSettingsCodec.APP_THEME to stored, AppSettingsCodec.APPEARANCE to stored))
+            assertEquals("stored value $stored", AppTheme.MONO, decoded.appTheme)
+            assertEquals("stored value $stored", Appearance.SYSTEM, decoded.appearance)
+        }
     }
 
     @Test
@@ -59,10 +90,11 @@ class AppSettingsTest {
 
     @Test
     fun anUnfinishedImportTargetIsRemembered() {
-        val encoded = AppSettingsCodec.encode(AppSettings(importTarget = com.chesstutor.app.data.model.ImportDepth.ALL))
-        assertEquals("ALL", encoded[AppSettingsCodec.IMPORT_TARGET])
-        assertEquals(com.chesstutor.app.data.model.ImportDepth.ALL, AppSettingsCodec.decode(encoded).importTarget)
+        val encoded = AppSettingsCodec.encode(AppSettings(importTarget = 757))
+        assertEquals("757", encoded[AppSettingsCodec.IMPORT_TARGET])
+        assertEquals(757, AppSettingsCodec.decode(encoded).importTarget)
         assertEquals(null, AppSettingsCodec.decode(AppSettingsCodec.encode(AppSettings())).importTarget)
+        assertEquals("a target saved before Phase 7 still reads", 1500, AppSettingsCodec.decode(mapOf(AppSettingsCodec.IMPORT_TARGET to "ALL")).importTarget)
     }
 
     @Test

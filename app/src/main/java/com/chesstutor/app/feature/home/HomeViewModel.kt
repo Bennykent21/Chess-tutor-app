@@ -1,5 +1,11 @@
 package com.chesstutor.app.feature.home
 
+import java.time.ZoneId
+import java.time.Instant
+import com.chesstutor.app.domain.puzzle.PuzzleModes
+import com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry
+import com.chesstutor.app.domain.puzzle.PuzzleSession
+import com.chesstutor.app.domain.puzzle.Puzzle
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
@@ -41,6 +47,7 @@ import com.chesstutor.app.domain.opening.OpeningBattles
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.engine.EngineService
+import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.feature.play.ActiveGameSnapshot
 import com.chesstutor.app.feature.play.ActiveGameStore
 import com.chesstutor.app.feature.play.BotGame
@@ -85,7 +92,17 @@ data class PositionDraft(
 )
 
 /** An unfinished game shown on Home's Continue card. */
-data class ResumeCard(val bot: RosterBot, val moveCount: Int, val playerColor: PieceColor)
+data class ResumeCard(
+    val bot: RosterBot,
+    val moveCount: Int,
+    val playerColor: PieceColor,
+    /** Where the game stands now, for the card's board picture. */
+    val fen: String? = null,
+)
+
+/** The resume card for a saved game: its bot, how far it got and its current position. */
+private fun ActiveGameSnapshot.toResumeCard(bot: RosterBot): ResumeCard =
+    ResumeCard(bot, moves.size, playerColor, GameReviewer.positions(startFen, moves).lastOrNull()?.toFen())
 
 /** Everything Home draws besides the player's name and rating (plan 6.1). */
 data class HomeUiState(
@@ -101,13 +118,26 @@ data class HomeUiState(
     val nextLesson: NextLesson? = null,
     /** The "Recommended" card: mistakes to fix, a weak puzzle theme or a bot. */
     val nextStep: NextStep? = null,
+    /** Today's puzzle for its tile; null until the pack has loaded. */
+    val daily: DailyPreview? = null,
 )
+
+/** The position today's puzzle opens on, from the side that solves it. */
+data class DailyPreview(val puzzleId: String, val fen: String, val whiteAtBottom: Boolean) {
+    companion object {
+        /** Null for a puzzle that cannot be set up. */
+        fun of(puzzle: Puzzle): DailyPreview? =
+            PuzzleSession.start(puzzle)?.let { DailyPreview(puzzle.id, it.fen, whiteAtBottom = it.solverColor == 'w') }
+    }
+}
 
 /** What Home reads from Learn, Puzzles and Account for its Continue and Recommended cards. */
 class HomeLearning(
     val training: Flow<TrainingReport> = flowOf(TrainingSources.EMPTY_REPORT),
     val loadLessons: suspend () -> LessonLibrary = { LessonLibrary.EMPTY },
     val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
+    val loadDaily: suspend () -> DailyPreview? = { null },
+    val puzzleHistory: Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList()),
 )
 
 /**
@@ -140,6 +170,12 @@ class HomeViewModel(
     ) { library, progress, report -> nextLessonOf(library, progress) to report }
         // The Training report counts every puzzle played: keep that off the main thread.
         .flowOn(worker)
+
+    /** Starts empty, so the rest of Home never waits for the puzzle pack. */
+    private val daily: Flow<DailyPreview?> = flow {
+        emit(null)
+        emit(runCatching { learning.loadDaily() }.getOrNull())
+    }.flowOn(worker)
     private val snapshot = MutableStateFlow(store.load())
 
     /** Loaded eagerly, so a saved game against one of them can be resumed at once. */
@@ -148,10 +184,9 @@ class HomeViewModel(
     val home: StateFlow<HomeUiState> =
         combine(games.observeGames(), puzzleStats, snapshot, playerRating, myBots) { list, stats, saved, rating, mine ->
             HomeUiState(
-                resume = saved?.let { s -> findBot(s.botId, mine)?.let { ResumeCard(it, s.moves.size, s.playerColor) } },
+                resume = saved?.let { s -> findBot(s.botId, mine)?.let { s.toResumeCard(it) } },
                 recommendation = PlayRecommender.recommend(list.botGamesNewestFirst(), rating),
                 dayStreak = stats.dayStreak,
-                dailySolved = stats.solvedToday,
                 gamesPlayed = list.count { it.id.startsWith("bot_") },
                 myBots = mine,
             )
@@ -161,8 +196,11 @@ class HomeViewModel(
                 nextLesson = lesson,
                 nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
             )
+        }.combine(daily.combine(learning.puzzleHistory) { preview, history -> preview to history }) { state, (preview, history) ->
+            val today = Instant.ofEpochMilli(clock()).atZone(ZoneId.systemDefault()).toLocalDate()
+            state.copy(daily = preview, dailySolved = PuzzleModes.solvedOn(preview?.puzzleId, history, today))
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
-            BotRoster.byId(s.botId)?.let { ResumeCard(it, s.moves.size, s.playerColor) }
+            BotRoster.byId(s.botId)?.let { s.toResumeCard(it) }
         }))
 
     /** A roster bot or one of the player's own, by id. */
@@ -462,6 +500,7 @@ internal fun nextLessonOf(library: LessonLibrary, progress: Map<String, LessonPr
         number = course.lessons.indexOf(lesson) + 1,
         total = course.lessons.size,
         started = progress[lesson.id]?.started == true,
+        fen = lesson.steps.firstOrNull()?.fen,
     )
 }
 

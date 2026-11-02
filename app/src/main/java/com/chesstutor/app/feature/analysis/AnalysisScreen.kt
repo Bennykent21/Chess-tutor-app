@@ -1,22 +1,29 @@
 package com.chesstutor.app.feature.analysis
 
+import com.chesstutor.app.domain.MascotMood
+import com.chesstutor.app.design.CtControl
+import com.chesstutor.app.design.CtTutor
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import com.chesstutor.app.design.CtShapes
+import com.chesstutor.app.design.CtGroupLabel
+import com.chesstutor.app.design.CtSegmented
+import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtOverflowMenu
+import com.chesstutor.app.design.CtMenuItem
+import com.chesstutor.app.design.CtBoardScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Undo
-import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +42,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.chesstutor.app.board.AnalysisMoveList
 import com.chesstutor.app.board.AnalysisSession
-import com.chesstutor.app.board.AnalysisToolbar
 import com.chesstutor.app.board.BoardArrow
 import com.chesstutor.app.board.BoardEvalBar
 import com.chesstutor.app.board.BoardFeedback
@@ -45,7 +51,6 @@ import com.chesstutor.app.board.BoardWithEvalBar
 import com.chesstutor.app.board.EngineLinesPanel
 import com.chesstutor.app.board.MarkKind
 import com.chesstutor.app.board.MoveMark
-import com.chesstutor.app.board.SquareBadge
 import com.chesstutor.app.board.SquareRing
 import com.chesstutor.app.board.toggleArrow
 import com.chesstutor.app.board.toggleRing
@@ -55,9 +60,6 @@ import com.chesstutor.app.core.Position
 import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtButton
-import com.chesstutor.app.design.CtButtonStyle
-import com.chesstutor.app.design.CtCard
-import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtScreenBackground
@@ -71,9 +73,9 @@ import com.chesstutor.app.engine.EngineLine
 import com.chesstutor.app.engine.EngineService
 import com.chesstutor.app.engine.EngineStatus
 import com.chesstutor.app.feature.account.QualityIcon
-import com.chesstutor.app.feature.account.badgeText
+import com.chesstutor.app.feature.account.qualityBadge
+import com.chesstutor.app.feature.account.qualityIcon
 import com.chesstutor.app.feature.account.qualityColor
-import com.chesstutor.app.feature.account.qualityTextColor
 import com.chesstutor.app.feature.home.EXPLORE_STRENGTHS
 
 /** A quick first look, then a deeper one, so lines appear fast and then firm up. */
@@ -202,61 +204,86 @@ fun AnalysisScreen(
     val shown = verdict ?: judged[current]
     val quality = shown?.move?.quality
     val badge = shown?.let { j ->
-        state.lastMove?.let { SquareBadge(it.to, qualityColor(j.move.quality).toArgb().toLong() and 0xFFFFFFFFL, badgeText(j.move.quality), qualityTextColor(j.move.quality).toArgb().toLong() and 0xFFFFFFFFL) }
+        state.lastMove?.let { qualityBadge(it.to, j.move.quality) }
     }
-    val marks = judged.mapValues { (_, j) -> MoveMark(badgeText(j.move.quality), qualityColor(j.move.quality), j.move.quality.label) }
+    val marks = judged.mapValues { (_, j) -> MoveMark(j.move.quality.symbol, qualityColor(j.move.quality), j.move.quality.label, icon = qualityIcon(j.move.quality)) }
 
-    CtScreenBackground(modifier) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtTopBar(
-                title = "Explore",
-                subtitle = when {
-                    line.isNotEmpty() -> "Step through the line, or try your own moves"
-                    opponent != null -> "Play the engine; every move is judged"
-                    else -> "Play any moves; every move is judged"
-                },
-                onBack = onBack,
-            )
-            Column(
-                modifier = Modifier.padding(horizontal = CtSpacing.gutter),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-            ) {
-                BoardWithEvalBar(
-                    evalBar = { barModifier -> BoardEvalBar(best?.centipawns, best?.mateInMoves, whiteAtBottom, barModifier) },
-                ) { boardModifier ->
-                    BoardHost(
-                        session = board,
-                        theme = settings.boardTheme,
-                        modifier = boardModifier,
-                        whiteAtBottom = whiteAtBottom,
-                        showCoordinates = settings.showCoordinates,
-                        showLegalDots = settings.showLegalDots,
-                        autoQueen = settings.autoQueen,
-                        arrows = engineArrows + mine.arrows,
-                        rings = mine.rings,
-                        onFeedback = onFeedback,
-                        drawMode = drawing,
-                        onDrawArrow = { from, to ->
-                            val now = drawn[current] ?: Drawn()
-                            drawn[current] = now.copy(arrows = toggleArrow(now.arrows, BoardArrow(from, to, MarkKind.USER)))
-                        },
-                        onDrawRing = { square ->
-                            val now = drawn[current] ?: Drawn()
-                            drawn[current] = now.copy(rings = toggleRing(now.rings, SquareRing(square)))
-                        },
-                        lastMoveColor = quality?.let { qualityColor(it).copy(alpha = 0.55f).toArgb().toLong() and 0xFFFFFFFFL },
-                        badge = badge,
-                    )
-                }
-                if (engineStatus.isDegraded) {
-                    CtBadge(text = "Lite engine: Stockfish is not answering", icon = Icons.Rounded.Warning)
-                }
-                VerdictCard(
-                    verdict = shown,
-                    hasMove = state.lastMove != null,
-                    thinking = thinking,
-                    onTryAgain = if (quality?.isError == true) session::back else null,
+    var engineSheet by remember { mutableStateOf(false) }
+    val tryAgain: (() -> Unit)? = if (quality?.isError == true) session::back else null
+    val menu = buildList {
+        add(CtMenuItem("Flip board") { whiteAtBottom = !whiteAtBottom })
+        add(CtMenuItem(if (showLines) "Hide engine lines" else "Show engine lines") { showLines = !showLines })
+        add(CtMenuItem("Play the engine") { engineSheet = true })
+        add(CtMenuItem(if (drawing) "Stop drawing" else "Draw arrows") { drawing = !drawing })
+        if (view.inVariation) {
+            add(CtMenuItem("Make main line", onClick = session::promoteCurrent))
+            add(CtMenuItem("Delete line", destructive = true, onClick = session::deleteCurrent))
+        }
+    }
+
+    CtBoardScreen(
+        title = "Explore",
+        onBack = onBack,
+        modifier = modifier,
+        actions = { CtOverflowMenu(menu) },
+        zone = {
+            if (engineStatus.isDegraded) {
+                CtBadge(text = "Lite engine: Stockfish is not answering", icon = Icons.Rounded.Warning)
+            }
+            CtTutor(settings.mascot, mood = if (quality?.isError == true) MascotMood.KIND else MascotMood.READY) {
+                Verdict(verdict = shown, hasMove = state.lastMove != null, thinking = thinking, evalCp = best?.centipawns, evalMate = best?.mateInMoves)
+            }
+            if (showLines) {
+                EngineLinesPanel(
+                    position = state.position,
+                    lines = lines,
+                    engineName = if (engineStatus.isDegraded) "Lite engine" else "Stockfish",
+                    onPlayLine = { line ->
+                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
+                            ?.takeIf { move -> state.legalMoves.any { it.uci == move.uci } }
+                            ?.let { onFeedback(board.onMove(it)) }
+                    },
                 )
+            }
+        },
+        under = { AnalysisMoveList(view = view, onSelect = session::goTo, marks = marks) },
+        board = {
+            BoardWithEvalBar(
+                evalBar = { barModifier -> BoardEvalBar(best?.centipawns, best?.mateInMoves, whiteAtBottom, barModifier) },
+            ) { boardModifier ->
+                BoardHost(
+                    session = board,
+                    theme = settings.boardTheme,
+                    modifier = boardModifier,
+                    whiteAtBottom = whiteAtBottom,
+                    showCoordinates = settings.showCoordinates,
+                    showLegalDots = settings.showLegalDots,
+                    autoQueen = settings.autoQueen,
+                    arrows = engineArrows + mine.arrows,
+                    rings = mine.rings,
+                    onFeedback = onFeedback,
+                    drawMode = drawing,
+                    onDrawArrow = { from, to ->
+                        val now = drawn[current] ?: Drawn()
+                        drawn[current] = now.copy(arrows = toggleArrow(now.arrows, BoardArrow(from, to, MarkKind.USER)))
+                    },
+                    onDrawRing = { square ->
+                        val now = drawn[current] ?: Drawn()
+                        drawn[current] = now.copy(rings = toggleRing(now.rings, SquareRing(square)))
+                    },
+                    lastMoveColor = quality?.let { qualityColor(it).copy(alpha = 0.55f).toArgb().toLong() and 0xFFFFFFFFL },
+                    badge = badge,
+                )
+            }
+        },
+        controls = {
+            CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back", description = "Previous move", onClick = session::back, enabled = view.canGoBack)
+            CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next", description = "Next move", onClick = session::forward, enabled = view.canGoForward)
+            if (tryAgain != null) CtControl(Icons.AutoMirrored.Rounded.Undo, "Try again", onClick = tryAgain)
+        },
+        overlay = {
+            CtSheet(visible = engineSheet, onDismiss = { engineSheet = false }) {
+                Text("Play the engine", style = CtType.Headline)
                 OpponentPicker(
                     opponent = opponent,
                     strength = strength,
@@ -268,93 +295,55 @@ fun AnalysisScreen(
                     },
                     onStrength = { strength = it },
                 )
-                CtChip(text = if (showLines) "Hide engine lines" else "Show engine lines", color = CtColors.Teal, selected = showLines, onClick = { showLines = !showLines })
-                if (showLines) {
-                    EngineLinesPanel(
-                        position = state.position,
-                        lines = lines,
-                        engineName = if (engineStatus.isDegraded) "Lite engine" else "Stockfish",
-                        onPlayLine = { line ->
-                            line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
-                                ?.takeIf { move -> state.legalMoves.any { it.uci == move.uci } }
-                                ?.let { onFeedback(board.onMove(it)) }
-                        },
-                    )
-                }
-                AnalysisToolbar(
-                    view = view,
-                    drawing = drawing,
-                    onStart = session::toStart,
-                    onBack = session::back,
-                    onForward = session::forward,
-                    onEnd = session::toEnd,
-                    onToggleDrawing = { drawing = !drawing },
-                )
-                AnalysisMoveList(view = view, onSelect = session::goTo, marks = marks)
-                if (view.inVariation) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                        CtButton("Make main line", onClick = session::promoteCurrent, style = CtButtonStyle.Secondary, modifier = Modifier.weight(1f))
-                        CtButton("Delete line", onClick = session::deleteCurrent, style = CtButtonStyle.Ghost, modifier = Modifier.weight(1f))
-                    }
-                }
-                CtButton(text = "Flip board", icon = Icons.Rounded.SwapVert, style = CtButtonStyle.Secondary, onClick = { whiteAtBottom = !whiteAtBottom })
-                if (drawing) {
-                    Text("Drag between squares to draw an arrow, tap a square to ring it. Draw it again to erase.", style = CtType.Caption)
-                }
-                Spacer(Modifier.height(CtSpacing.lg))
+                CtButton(text = "Done", onClick = { engineSheet = false }, modifier = Modifier.fillMaxWidth())
             }
+        },
+    )
+}
+
+/** The verdict on the move just played (or what to do next), in the coach's bubble above the board. */
+@Composable
+private fun Verdict(verdict: JudgedMove?, hasMove: Boolean, thinking: Boolean, evalCp: Int?, evalMate: Int?) {
+    Row(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+    ) {
+        if (verdict != null) QualityIcon(verdict.move.quality, size = 32)
+        Column(Modifier.weight(1f)) {
+            when {
+                thinking -> Text("The engine is thinking…", style = CtType.TitleSmall)
+                verdict != null -> {
+                    Text(verdict.comment.headline, style = CtType.TitleSmall)
+                    Text(verdict.comment.detail, style = CtType.Caption)
+                }
+                hasMove -> Text("Checking that move…", style = CtType.TitleSmall)
+                else -> Text("Play a move and I'll tell you how good it was.", style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 2)
+            }
+        }
+        val eval = evalText(evalCp, evalMate)
+        if (eval != null) {
+            Text(eval, style = CtType.Label, modifier = Modifier.clip(CtShapes.Chip).background(CtColors.Surface).padding(horizontal = 10.dp, vertical = CtSpacing.xs))
         }
     }
 }
 
-/** The coach's verdict on the move just played, or what to do next. */
-@Composable
-private fun VerdictCard(verdict: JudgedMove?, hasMove: Boolean, thinking: Boolean, onTryAgain: (() -> Unit)?) {
-    CtCard(
-        contentPadding = PaddingValues(CtSpacing.md),
-        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (verdict != null) {
-                QualityIcon(verdict.move.quality, size = 32)
-                Spacer(Modifier.width(CtSpacing.md))
-            }
-            Column(Modifier.weight(1f)) {
-                when {
-                    thinking -> Text("The engine is thinking…", style = CtType.Body)
-                    verdict != null -> {
-                        Text(verdict.comment.headline, style = CtType.Label)
-                        Text(verdict.comment.detail, style = CtType.BodySmall)
-                    }
-                    hasMove -> Text("Checking that move…", style = CtType.Body)
-                    else -> Text("Play a move and I'll tell you how good it was.", style = CtType.Body)
-                }
-            }
-        }
-        if (onTryAgain != null) {
-            Spacer(Modifier.height(CtSpacing.sm))
-            CtButton(text = "Try again", icon = Icons.AutoMirrored.Rounded.Undo, style = CtButtonStyle.Secondary, onClick = onTryAgain, modifier = Modifier.fillMaxWidth())
-        }
-    }
+/** "+0.9", "−2.3" or "M3" from White's side; null before the engine answers. */
+internal fun evalText(cp: Int?, mate: Int?): String? = when {
+    mate != null && mate != 0 -> "M${kotlin.math.abs(mate)}"
+    cp != null -> (if (cp >= 0) "+" else "−") + String.format(java.util.Locale.UK, "%.1f", kotlin.math.abs(cp) / 100.0)
+    else -> null
 }
 
 /** Who the engine plays, and how strongly. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun OpponentPicker(opponent: PieceColor?, strength: Int?, onOpponent: (PieceColor?) -> Unit, onStrength: (Int?) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-        Text("Engine plays", style = CtType.Label)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-            CtChip(text = "Nobody", color = CtColors.Gold, selected = opponent == null, onClick = { onOpponent(null) })
-            CtChip(text = "White", color = CtColors.Gold, selected = opponent == PieceColor.WHITE, onClick = { onOpponent(PieceColor.WHITE) })
-            CtChip(text = "Black", color = CtColors.Gold, selected = opponent == PieceColor.BLACK, onClick = { onOpponent(PieceColor.BLACK) })
-        }
+    Column {
+        CtGroupLabel("The engine plays")
+        CtSegmented(options = listOf(null, PieceColor.WHITE, PieceColor.BLACK), selected = opponent, label = { it?.let { c -> if (c == PieceColor.WHITE) "White" else "Black" } ?: "Nobody" }, onSelect = onOpponent)
         if (opponent != null) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-                EXPLORE_STRENGTHS.forEach { elo ->
-                    CtChip(text = elo?.toString() ?: "Full strength", color = CtColors.Violet, selected = strength == elo, onClick = { onStrength(elo) })
-                }
-            }
+            CtGroupLabel("Strength")
+            CtSegmented(options = EXPLORE_STRENGTHS, selected = strength, label = { it?.toString() ?: "Full" }, onSelect = onStrength)
         }
     }
 }

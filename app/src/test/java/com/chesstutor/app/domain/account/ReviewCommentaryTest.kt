@@ -21,11 +21,11 @@ class ReviewCommentaryTest {
 
     @Test
     fun commentsFollowTheMovesQuality() {
-        assertEquals(MoveComment("e4 is a book move", "A known move in the Italian Game."), comment(1, "Italian Game: Giuoco Piano"))
+        assertEquals(MoveComment("Pawn to e4 is a book move", "A known move in the Italian Game."), comment(1, "Italian Game: Giuoco Piano"))
         assertEquals("A known opening move.", comment(2).detail)
-        assertEquals(MoveComment("Bc4 is best", "As strong as the engine's first choice, Nf3."), comment(3))
-        assertEquals(MoveComment("Nf6 is a blunder", "It allows mate in 1, starting with Qxf7#. Best was g6."), comment(6))
-        assertEquals(MoveComment("Qxf7# is best", "Checkmate!"), comment(7))
+        assertEquals(MoveComment("Bishop to c4 is best", "As strong as the engine's first choice, knight to f3."), comment(3))
+        assertEquals(MoveComment("Knight to f6 is a blunder", "It allows mate in 1, starting with queen takes f7. Best was pawn to g6."), comment(6))
+        assertEquals(MoveComment("Queen takes f7 is best", "Checkmate!"), comment(7))
     }
 
     @Test
@@ -36,7 +36,7 @@ class ReviewCommentaryTest {
         val ev = listOf(PlyEval(0, 20, null, "e2e4"), PlyEval(1, 20, null, "e7e5"), PlyEval(2, 400, null, "e4d5"))
         val move = GameReviewer.review(start, line, ev).move(2)!!
         assertEquals(MoveQuality.BLUNDER, move.quality)
-        assertEquals("It lets exd5 win your pawn. Best was e5.", ReviewCommentary.comment(move, ev[2], pos[2]).detail)
+        assertEquals("It lets pawn takes d5 win your pawn. Best was pawn to e5.", ReviewCommentary.comment(move, ev[2], pos[2]).detail)
     }
 
     @Test
@@ -52,7 +52,7 @@ class ReviewCommentaryTest {
 
     @Test
     fun theGameVerdictSpeaksToThePlayer() {
-        assertEquals("The turning point was 3... Nf6. g6 would have kept you in the game.", ReviewCommentary.summary(review, PieceColor.BLACK, GameOutcome.LOSS))
+        assertEquals("The turning point was move 3, knight to f6. Pawn to g6 would have kept you in the game.", ReviewCommentary.summary(review, PieceColor.BLACK, GameOutcome.LOSS))
         assertEquals("A clean win: not a single mistake or blunder. Well played!", ReviewCommentary.summary(review, PieceColor.WHITE, GameOutcome.WIN))
     }
 }

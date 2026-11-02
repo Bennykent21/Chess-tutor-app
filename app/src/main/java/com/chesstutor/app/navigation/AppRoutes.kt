@@ -12,7 +12,6 @@ enum class TopTab(val graphRoute: String, val startRoute: String, val label: Str
 
 object AppRoutes {
     const val ENGINE_HEALTH = "account/engine"
-    const val DESIGN_GALLERY = "account/design"
     const val BOARD_SETTINGS = "account/board"
     /** The Settings page (plan 6.4), replacing the old settings sheet. */
     const val SETTINGS = "account/settings"
@@ -24,12 +23,18 @@ object AppRoutes {
     fun game(id: String): String = "account/game/${encode(id)}"
     /** A game's review on the board, full screen (no bottom bar); [analyse] starts Stockfish on arrival. */
     const val ANALYSE_ARG = "analyse"
-    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}?$ANALYSE_ARG={$ANALYSE_ARG}"
-    fun review(id: String, analyse: Boolean = false): String =
-        "account/review/${encode(id)}" + if (analyse) "?$ANALYSE_ARG=true" else ""
+    /** The review was opened from a game just played, so Back returns to Home (beta review). */
+    const val FROM_PLAY_ARG = "fromPlay"
+    const val REVIEW_PATTERN = "account/review/{$GAME_ID_ARG}?$ANALYSE_ARG={$ANALYSE_ARG}&$FROM_PLAY_ARG={$FROM_PLAY_ARG}"
+    fun review(id: String, analyse: Boolean = false, fromPlay: Boolean = false): String {
+        val options = listOfNotNull("$ANALYSE_ARG=true".takeIf { analyse }, "$FROM_PLAY_ARG=true".takeIf { fromPlay })
+        return "account/review/${encode(id)}" + if (options.isEmpty()) "" else options.joinToString("&", prefix = "?")
+    }
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
+    /** Every level of the five worlds (D43). */
+    const val PUZZLE_LEVELS = "puzzles/levels"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
     const val PUZZLE_DAILY = "puzzles/daily"
     /** Mistakes review: due positions from the player's own games, full screen on the board. */
@@ -97,33 +102,28 @@ object AppRoutes {
         "analysis?$ANALYSIS_FEN_ARG=${encode(fen)}&$ANALYSIS_LINE_ARG=${encode(line.joinToString(" "))}" +
             (engineSide?.let { "&$ANALYSIS_ENGINE_ARG=$it&$ANALYSIS_ELO_ARG=${engineElo ?: 0}" } ?: "")
 
+    /** Every bot, your own bots, "Build a bot" and "Watch two" (D42). */
+    const val BOTS = "home/bots"
     /** Explore's start page on Home: choose the position and who the engine plays. */
     const val EXPLORE = "home/explore"
 
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
-    /** Full screen (no bottom bar), like every activity that hosts a board. */
-    const val BOARD_LAB = "board/lab"
 
-    private val accountPages = setOf(ENGINE_HEALTH, DESIGN_GALLERY, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
-    /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
+    private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
+    private val homePages = setOf(BOTS)
+    private val puzzlePages = setOf(PUZZLE_LEVELS)
 
-    /**
-     * The bottom bar shows on tab pages and hides on full-screen activities (anything that
-     * hosts a board). Unknown routes hide it, which is the safe choice for a new full-screen
-     * activity.
-     */
-    fun showsBottomBar(route: String?): Boolean {
-        if (route == null) return true
-        if (TopTab.entries.any { it.startRoute == route }) return true
-        return route in accountPages || route in learnPages
-    }
+    /** The bottom bar shows on the four main tabs only: every other page and board gets the room. */
+    fun showsBottomBar(route: String?): Boolean = route == null || TopTab.entries.any { it.startRoute == route }
 
     /** The tab a destination belongs to, used to highlight the bottom bar. */
     fun tabFor(route: String?): TopTab? = when {
         route == null -> null
         route in accountPages -> TopTab.ACCOUNT
         route in learnPages -> TopTab.LEARN
+        route in homePages -> TopTab.HOME
+        route in puzzlePages -> TopTab.PUZZLES
         else -> TopTab.entries.firstOrNull { it.startRoute == route }
     }
 }

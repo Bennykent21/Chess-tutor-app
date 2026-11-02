@@ -61,7 +61,7 @@ class SpecialMovesTest {
         val review = GameReviewer.review(Position.STARTING_FEN, listOf("e2e4"), evals)
         assertEquals(MoveQuality.GREAT, review.moves.single().quality)
         assertTrue(MoveQuality.GREAT.isTop)
-        assertEquals("e4 is a great move", ReviewCommentary.comment(review.moves.single(), evals[1], null).headline)
+        assertEquals("Pawn to e4 is a great move", ReviewCommentary.comment(review.moves.single(), evals[1], null).headline)
         // Without the second line (an analysis from before version 12) it is just best.
         assertEquals(MoveQuality.BEST, GameReviewer.review(Position.STARTING_FEN, listOf("e2e4"), evals.map { it.copy(secondCentipawns = null) }).moves.single().quality)
     }

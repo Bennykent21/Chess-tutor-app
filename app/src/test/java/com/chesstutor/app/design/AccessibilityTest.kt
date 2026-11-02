@@ -97,7 +97,12 @@ class AccessibilityTest {
 
     private val noHome = HomeActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 
-    @Test fun home() = check("Home") { HomeScreen(state = AppUiState(), home = HomeUiState(), actions = noHome) }
+    /** Wide enough that the sideways "More ways to play" row is all on screen. */
+    @Config(qualifiers = "w600dp-h3000dp-xxhdpi")
+    @Test fun home() = check("Home") { HomeScreen(state = AppUiState(assessmentState = "COMPLETE"), home = HomeUiState(), actions = noHome) }
+
+    /** Every design-system component at once (Phase 7C2c), on a screen big enough to show all of it. */
+    @Config(qualifiers = "w600dp-h6000dp-xxhdpi")
 
     @Test fun learnHub() = check("Learn") { LearnScreen(learn = LearnState(loading = false, library = library), actions = LearnHubActions({}, {})) }
 
@@ -110,10 +115,10 @@ class AccessibilityTest {
     }
 
     @Test fun puzzlesHome() = check("Puzzles") {
-        PuzzlesHomeScreen(PuzzlesHomeState(loading = false, stats = PuzzleStats()), AppSettings().mascot, 0, onPlayLevel = {}, onOpenModes = {}, onReviewMistakes = {})
+        PuzzlesHomeScreen(PuzzlesHomeState(loading = false, stats = PuzzleStats()), 0, onPlayLevel = {}, onOpenModes = {}, onReviewMistakes = {})
     }
 
-    @Test fun puzzleModes() = check("Puzzle modes") { PuzzleModesScreen(patternsFor = { emptyList() }, actions = PuzzleModeActions({}, {}, { _, _, _ -> }, { _, _, _, _ -> }, {}), onBack = {}) }
+    @Test fun puzzleModes() = check("Puzzle modes") { PuzzleModesScreen(patternsFor = { emptyList() }, actions = PuzzleModeActions({}, { _, _, _ -> }, { _, _, _, _ -> }, {}), onBack = {}) }
 
     @Test fun account() = check("Account") {
         AccountScreen(state = AppUiState(), games = GamesState(loading = false), stats = PuzzleStats(), dueReviewCount = 0, actions = AccountActions())
@@ -121,7 +126,7 @@ class AccessibilityTest {
 
     @Test fun settings() = check("Settings") { SettingsScreen(state = AppUiState(), accountActions = AccountActions(), actions = SettingsActions(supportUrl = "")) }
 
-    @Test fun boardSettings() = check("Board settings") { BoardSettingsScreen(settings = AppSettings(), actions = BoardSettingsActions({}, {}, {}, {}, {}, {}, {}, {}, {}), onBack = {}) }
+    @Test fun boardSettings() = check("Board settings") { BoardSettingsScreen(settings = AppSettings(), actions = BoardSettingsActions({}, {}, {}, {}, {}, {}), onBack = {}) }
 
     @Test fun licences() = check("Licences") { LicencesScreen(onBack = {}) }
 

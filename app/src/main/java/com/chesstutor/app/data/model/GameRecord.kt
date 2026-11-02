@@ -6,10 +6,11 @@ enum class GameSource {
     LICHESS
 }
 
-enum class ImportDepth(val maxGames: Int, val label: String) {
-    LAST_100(100, "Last 100"),
-    LAST_500(500, "Last 500"),
-    ALL(1500, "Up to 1,500")
+/** How many games to import: [label] when linking, [moreLabel] for "Import more" (older games). */
+enum class ImportDepth(val maxGames: Int, val label: String, val moreLabel: String) {
+    LAST_100(100, "Last 100", "100 more"),
+    LAST_500(500, "Last 500", "500 more"),
+    ALL(1500, "Up to 1,500", "1,500 more")
 }
 
 data class ImportProgress(
@@ -19,8 +20,14 @@ data class ImportProgress(
     val incompleteCount: Int = 0,
     val phase: String = "Connecting...",
     /** Months (Chess.com) or streams (Lichess) that could not be downloaded even after retrying. */
-    val failedPeriods: Int = 0
-)
+    val failedPeriods: Int = 0,
+    /** How far along the import really is, 0 to 1, when the count of games alone would mislead. */
+    val fraction: Float? = null,
+) {
+    /** What the progress bar shows. */
+    val shownFraction: Float
+        get() = fraction ?: if (targetCount > 0) importedCount.toFloat() / targetCount else 0f
+}
 
 data class GameRecord(
     val id: String,

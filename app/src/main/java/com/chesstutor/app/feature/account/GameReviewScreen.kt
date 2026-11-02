@@ -1,5 +1,17 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.design.CtMascotArt
+import com.chesstutor.app.design.CtSpeechBubble
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import com.chesstutor.app.design.CtMenuItem
+import com.chesstutor.app.design.CtOverflowMenu
+import com.chesstutor.app.design.CtTutor
+import com.chesstutor.app.design.CtControl
+import com.chesstutor.app.design.CtDivider
+import com.chesstutor.app.domain.MascotMood
+import com.chesstutor.app.design.GradeColor
+import com.chesstutor.app.design.CtBoardScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,20 +34,20 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,7 +67,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import com.chesstutor.app.board.AnalysisSession
@@ -68,6 +79,8 @@ import com.chesstutor.app.board.EngineLinesPanel
 import com.chesstutor.app.board.MarkKind
 import com.chesstutor.app.board.NotationToken
 import com.chesstutor.app.board.SquareBadge
+import com.chesstutor.app.core.Square
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.chesstutor.app.board.moveListOf
 import com.chesstutor.app.board.toggleArrow
 import com.chesstutor.app.core.Move
@@ -81,8 +94,6 @@ import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtIconBubble
-import com.chesstutor.app.design.CtMascotArt
-import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtShapes
@@ -138,7 +149,7 @@ fun GameReviewScreen(
         }
         var boardPly by rememberSaveable { mutableStateOf(startPly ?: -1) }
         if (boardPly < 0) {
-            ReviewSummary(game, state, settings.mascot, actions, onStart = { ply -> boardPly = ply })
+            ReviewSummary(game, state, settings.mascot, settings.playerName, actions, onStart = { ply -> boardPly = ply })
         } else {
             ReviewBoard(game, state, settings, engine, actions, startPly = boardPly, onSummary = { boardPly = -1 })
         }
@@ -148,7 +159,7 @@ fun GameReviewScreen(
 // ------------------------------------------------------------------ summary
 
 @Composable
-private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot: Mascot, actions: ReviewActions, onStart: (Int) -> Unit) {
+private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot: Mascot, playerName: String, actions: ReviewActions, onStart: (Int) -> Unit) {
     val review = state.review
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     val practised = remember(game.id) { mutableStateListOf<Int>() }
@@ -156,7 +167,7 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
     val black = if (game.userColor == PieceColor.BLACK) "You" else game.opponent
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 96.dp)) {
-        CtTopBar(title = "Game review", subtitle = "vs ${game.opponent} · ${resultTitle(game)}", onBack = actions.onBack)
+        CtTopBar(title = "Game review", onBack = actions.onBack)
         Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
             AnalysisStatus(state, review, actions)
             // While the analysis runs, the graph growing across the width is the progress.
@@ -164,7 +175,7 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
                 CoachSays(mascot) {
                     Text(
                         if (state.job?.running == true && !review.complete) "I'm going through your game move by move. The graph fills in as I go."
-                        else ReviewCommentary.summary(review, game.userColor, game.outcome),
+                        else ReviewCommentary.summary(review, game.userColor, game.outcome, playerName),
                         style = CtType.Body.copy(color = CtColors.Text),
                     )
                 }
@@ -190,16 +201,6 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
                                 actions.onPractise(moment)
                             },
                         )
-                    }
-                }
-            }
-            CtCard(modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CtIconBubble(icon = Icons.AutoMirrored.Rounded.MenuBook, tint = CtColors.Teal, size = 36.dp)
-                    Spacer(Modifier.width(CtSpacing.md))
-                    Column(Modifier.weight(1f)) {
-                        Text(game.openingName ?: "Opening not named", style = CtType.Label)
-                        Text(bookLine(game), style = CtType.Caption)
                     }
                 }
             }
@@ -230,10 +231,10 @@ private fun GraphReadout(review: GameReview, state: ReviewState, selected: Int?,
     ) {
         if (move != null) QualityIcon(move.quality, size = 28)
         Column(Modifier.weight(1f)) {
-            Text(move?.let { "${it.numberLabel} ${it.san} · ${it.quality.label}" } ?: "Start of the game", style = CtType.Label)
-            Text("Evaluation ${ReviewCommentary.evalLabel(state.evals[ply]).ifEmpty { "–" }} · White's chances ${percent(review.graph.getOrNull(ply)?.times(100.0))}", style = CtType.Caption)
+            Text(move?.let { "${it.numberLabel} ${it.san}: ${it.quality.label.lowercase()}" } ?: "Start of the game", style = CtType.Label)
+            Text("Evaluation ${ReviewCommentary.evalLabel(state.evals[ply]).ifEmpty { "–" }}, White's chances ${percent(review.graph.getOrNull(ply)?.times(100.0))}", style = CtType.Caption)
         }
-        CtChip(text = "Show", color = CtColors.Teal, onClick = { onOpen(ply) })
+        CtChip(text = "Show", onClick = { onOpen(ply) })
     }
 }
 
@@ -242,18 +243,12 @@ private fun PlayersAndCounts(review: GameReview, white: String, black: String) {
     val w = review.report(PieceColor.WHITE)
     val b = review.report(PieceColor.BLACK)
     CtCard(modifier = Modifier.fillMaxWidth()) {
+        // Each player's name and accuracy in one box, over their column of counts.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Players", style = CtType.Label, modifier = Modifier.weight(1f))
-            PlayerName(white, Modifier.width(COLUMN))
+            Spacer(Modifier.weight(1f))
+            AccuracyBox(white, w.accuracy, light = true, modifier = Modifier.width(COLUMN))
             Spacer(Modifier.width(GAP))
-            PlayerName(black, Modifier.width(COLUMN))
-        }
-        Spacer(Modifier.height(CtSpacing.sm))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Accuracy", style = CtType.Label, modifier = Modifier.weight(1f))
-            AccuracyBox(w.accuracy, light = true, modifier = Modifier.width(COLUMN))
-            Spacer(Modifier.width(GAP))
-            AccuracyBox(b.accuracy, light = false, modifier = Modifier.width(COLUMN))
+            AccuracyBox(black, b.accuracy, light = false, modifier = Modifier.width(COLUMN))
         }
         Spacer(Modifier.height(CtSpacing.md))
         SUMMARY_ORDER.forEach { q ->
@@ -271,32 +266,34 @@ private fun PlayersAndCounts(review: GameReview, white: String, black: String) {
 
 /** The summary's rows, best first, as Chess.com lists them. */
 private val SUMMARY_ORDER = listOf(
-    MoveQuality.BRILLIANT, MoveQuality.GREAT, MoveQuality.BEST, MoveQuality.GOOD, MoveQuality.BOOK,
-    MoveQuality.INACCURACY, MoveQuality.MISTAKE, MoveQuality.BLUNDER,
+    MoveQuality.BRILLIANT, MoveQuality.GREAT, MoveQuality.BEST, MoveQuality.EXCELLENT, MoveQuality.GOOD, MoveQuality.BOOK,
+    MoveQuality.FORCED, MoveQuality.INACCURACY, MoveQuality.MISS, MoveQuality.MISTAKE, MoveQuality.BLUNDER,
 )
 
 /** A count's colour: the quality's own, except Book's neutral chip colour, which would not read as text. */
-private fun countColor(quality: MoveQuality): Color = if (quality == MoveQuality.BOOK) CtColors.Text2 else qualityColor(quality)
+@Composable
+@ReadOnlyComposable
+private fun countColor(quality: MoveQuality): Color = if (quality == MoveQuality.BOOK) CtColors.Text2 else qualityTextOnPage(quality)
 
 /** The two player columns of the summary, and the gap between them that holds the quality icons. */
 private val COLUMN = 88.dp
 private val GAP = 36.dp
 
+/** A player's name over their accuracy: White's box light, Black's dark, like the pieces. */
 @Composable
-private fun PlayerName(name: String, modifier: Modifier) {
-    Text(name, style = CtType.Label, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = modifier)
-}
-
-@Composable
-private fun AccuracyBox(accuracy: Double?, light: Boolean, modifier: Modifier) {
-    Box(
-        modifier = modifier.clip(CtShapes.Chip).background(if (light) CtColors.Text else CtColors.BgDeep).padding(vertical = CtSpacing.sm),
-        contentAlignment = Alignment.Center,
+private fun AccuracyBox(name: String, accuracy: Double?, light: Boolean, modifier: Modifier) {
+    val ink = if (light) CtColors.Text else CtColors.Bg
+    Column(
+        modifier = modifier
+            .clip(CtShapes.CardSmall)
+            .background(if (light) CtColors.Raised else CtColors.Text)
+            .then(if (light) Modifier.border(1.dp, CtColors.Line, CtShapes.CardSmall) else Modifier)
+            .semantics(mergeDescendants = true) {}
+            .padding(vertical = CtSpacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            accuracy?.let { String.format(Locale.UK, "%.1f", it) } ?: "–",
-            style = CtType.Number.copy(color = if (light) CtColors.BgDeep else CtColors.Text),
-        )
+        Text(name, style = CtType.Caption.copy(color = ink.copy(alpha = 0.75f)), maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(accuracy?.let { String.format(Locale.UK, "%.1f", it) } ?: "–", style = CtType.Number.copy(color = ink))
     }
 }
 
@@ -367,7 +364,7 @@ private fun ReviewBoard(
     val evalMate = cached?.mate ?: lines.firstOrNull()?.mateInMoves
     val tint = move?.let { qualityColor(it.quality) }
     val badge = move?.let { m ->
-        runCatching { Move.fromUci(m.uci) }.getOrNull()?.let { SquareBadge(it.to, qualityColor(m.quality).toArgb().toLong() and 0xFFFFFFFFL, badgeText(m.quality), qualityTextColor(m.quality).toArgb().toLong() and 0xFFFFFFFFL) }
+        runCatching { Move.fromUci(m.uci) }.getOrNull()?.let { qualityBadge(it.to, m.quality) }
     }
 
     fun goToPly(target: Int) {
@@ -388,38 +385,75 @@ private fun ReviewBoard(
         playing = false
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        CtTopBar(
-            title = "Game review",
-            onBack = actions.onBack,
-            trailing = { CtChip(text = "Summary", color = CtColors.Gold, onClick = onSummary) },
-        )
-        Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            // A fixed height, so the board below never moves as the comments change length.
-            CoachSays(settings.mascot, height = BUBBLE_HEIGHT) {
-                MoveCoachText(game, state, ply, move, review)
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    if (move != null && canShowBest(move)) {
-                        CtChip(text = "Show best", color = CtColors.Lime, onClick = {
-                            playing = false
-                            goToPly(move.ply - 1)
-                            runCatching { Move.fromUci(move.bestMove) }.getOrNull()
-                                ?.takeIf { best -> session.state.value.legalMoves.any { it.uci == best.uci } }
-                                ?.let { actions.onFeedback(session.onMove(it)) }
-                        })
-                    }
-                    CtChip(text = "Explore from here", color = CtColors.Violet, onClick = {
+    val (headline, detail) = reviewComment(game, state, ply, move)
+    val san = ply?.takeIf { it > 0 }?.let { p -> entries.getOrNull(p - 1)?.let { e -> listOfNotNull(e.numberLabel, e.san).joinToString(" ") } }
+    val showBest = {
+        move?.let { m ->
+            playing = false
+            goToPly(m.ply - 1)
+            runCatching { Move.fromUci(m.bestMove) }.getOrNull()
+                ?.takeIf { best -> session.state.value.legalMoves.any { it.uci == best.uci } }
+                ?.let { actions.onFeedback(session.onMove(it)) }
+        }
+        Unit
+    }
+    CtBoardScreen(
+        title = "Game review",
+        onBack = actions.onBack,
+        actions = {
+            CtOverflowMenu(
+                listOf(
+                    CtMenuItem("Summary", onClick = onSummary),
+                    CtMenuItem("Explore from here") {
                         playing = false
                         // On the game's line, what really happened next comes along to compare.
                         actions.onExplore(board.position.toFen(), ply?.let { game.moves.drop(it) }.orEmpty())
-                    })
-                    if (ply == null) {
-                        CtChip(text = "Back to the game", color = CtColors.Teal, onClick = {
-                            goToPly(backToGamePly(mainIds, view.tokens.map { (it as? NotationToken.MoveToken)?.nodeId }, view.currentId))
-                        })
+                    },
+                    CtMenuItem("Flip board") { whiteAtBottom = !whiteAtBottom },
+                    CtMenuItem(if (showLines) "Hide engine lines" else "Show engine lines") { showLines = !showLines },
+                    CtMenuItem(if (drawing) "Stop drawing" else "Draw arrows") { drawing = !drawing },
+                ),
+            )
+        },
+        zone = {
+            CtTutor(settings.mascot, mood = moodFor(move)) {
+                // The verdict on this move: its grade, what it was and the evaluation after it, then the coach's words.
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    if (move != null) QualityIcon(move.quality, size = 26)
+                    Column(Modifier.weight(1f)) {
+                        Text(headline, style = CtType.TitleSmall)
+                        if (san != null) Text(san, style = CtType.Caption, maxLines = 1)
+                    }
+                    if (move != null) {
+                        Text(
+                            ReviewCommentary.evalLabel(state.evals[ply]),
+                            style = CtType.Label,
+                            modifier = Modifier.clip(CtShapes.Chip).background(CtColors.Bg).padding(horizontal = 10.dp, vertical = CtSpacing.xs),
+                        )
                     }
                 }
+                Text(detail, style = CtType.Chat)
+                if (ply == null) {
+                    CtChip(text = "Back to the game", onClick = {
+                        goToPly(backToGamePly(mainIds, view.tokens.map { (it as? NotationToken.MoveToken)?.nodeId }, view.currentId))
+                    })
+                }
             }
+            if (showLines) {
+                EngineLinesPanel(
+                    position = board.position,
+                    lines = lines,
+                    engineName = if (cached != null) "Stockfish (saved)" else "Stockfish",
+                    onPlayLine = { line ->
+                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
+                            ?.takeIf { m -> board.legalMoves.any { it.uci == m.uci } }
+                            ?.let { actions.onFeedback(session.onMove(it)) }
+                    },
+                )
+            }
+        },
+        under = { MoveStrip(entries, review, current = ply, onSelect = ::goToPly) },
+        board = {
             BoardWithEvalBar(
                 evalBar = { barModifier -> BoardEvalBar(evalCp, evalMate, whiteAtBottom, barModifier) },
             ) { boardModifier ->
@@ -439,39 +473,38 @@ private fun ReviewBoard(
                     badge = badge,
                 )
             }
-            MoveStrip(entries, review, current = ply, onSelect = ::goToPly)
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                CtButton(text = "", icon = Icons.AutoMirrored.Rounded.ArrowBack, style = CtButtonStyle.Secondary, enabled = view.canGoBack, onClick = { playing = false; session.back() }, modifier = Modifier.weight(1f).semantics { contentDescription = "Back one move" })
-                CtButton(
-                    text = "",
-                    icon = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    style = CtButtonStyle.Secondary,
-                    enabled = playing || view.canGoForward,
-                    onClick = { playing = !playing },
-                    modifier = Modifier.weight(1f).semantics { contentDescription = if (playing) "Pause" else "Play to the next key moment" },
-                )
-                CtButton(text = "", icon = Icons.AutoMirrored.Rounded.ArrowForward, enabled = view.canGoForward, onClick = { playing = false; session.forward() }, modifier = Modifier.weight(1.6f).semantics { contentDescription = "Next move" })
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                CtChip(text = "Flip", color = CtColors.Text2, icon = Icons.Rounded.SwapVert, onClick = { whiteAtBottom = !whiteAtBottom })
-                CtChip(text = "Engine lines", color = CtColors.Teal, selected = showLines, onClick = { showLines = !showLines })
-                CtChip(text = "Draw", color = CtColors.Lime, selected = drawing, onClick = { drawing = !drawing })
-            }
-            if (showLines) {
-                EngineLinesPanel(
-                    position = board.position,
-                    lines = lines,
-                    engineName = if (cached != null) "Stockfish (saved)" else "Stockfish",
-                    onPlayLine = { line ->
-                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
-                            ?.takeIf { m -> board.legalMoves.any { it.uci == m.uci } }
-                            ?.let { actions.onFeedback(session.onMove(it)) }
-                    },
-                )
-            }
-            Spacer(Modifier.height(CtSpacing.lg))
-        }
-    }
+        },
+        controls = {
+            CtControl(
+                icon = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                label = if (playing) "Pause" else "Play",
+                description = if (playing) "Pause" else "Play to the next key moment",
+                enabled = playing || view.canGoForward,
+                onClick = { playing = !playing },
+            )
+            CtControl(
+                icon = Icons.Rounded.Star,
+                label = "Best",
+                description = "Show best",
+                enabled = move != null && canShowBest(move),
+                onClick = showBest,
+            )
+            CtControl(
+                icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                label = "Back",
+                description = "Back one move",
+                enabled = view.canGoBack,
+                onClick = { playing = false; session.back() },
+            )
+            CtControl(
+                icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                label = "Next",
+                description = "Next move",
+                enabled = view.canGoForward,
+                onClick = { playing = false; session.forward() },
+            )
+        },
+    )
 }
 
 /** The game ply to return to from a side line: the last main-line node before it in the notation. */
@@ -480,38 +513,24 @@ internal fun backToGamePly(mainIds: List<Int>, notationIds: List<Int?>, current:
     return notationIds.take(upTo + 1).filterNotNull().mapNotNull { id -> mainIds.indexOf(id).takeIf { it >= 0 } }.maxOrNull() ?: 0
 }
 
+/** The verdict and the coach's explanation for a ply, both in the bubble above the board. */
 @Composable
-private fun MoveCoachText(game: GameSummary, state: ReviewState, ply: Int?, move: ReviewedMove?, review: GameReview?) {
-    when {
-        ply == null -> {
-            Text("A side line", style = CtType.TitleSmall)
-            Text("Try any moves: the engine follows along. Go back to the game when you're done.", style = CtType.BodySmall.copy(color = CtColors.Text2))
-        }
-        ply == 0 -> {
-            Text("The starting position", style = CtType.TitleSmall)
-            Text("Step forward to hear about each move.", style = CtType.BodySmall.copy(color = CtColors.Text2))
-        }
-        move == null -> {
-            Text("Not analysed yet", style = CtType.TitleSmall)
-            Text("Run the analysis from the summary to see what each move was worth.", style = CtType.BodySmall.copy(color = CtColors.Text2))
-        }
-        else -> {
-            val positionAfter = remember(game.id, ply) {
-                GamePositions.after(game, ply)
-            }
-            val comment = ReviewCommentary.comment(move, state.evals[ply], positionAfter, game.openingName)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                QualityIcon(move.quality, size = 28)
-                Text(comment.headline, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Text(
-                    ReviewCommentary.evalLabel(state.evals[ply]),
-                    style = CtType.Label,
-                    modifier = Modifier.clip(CtShapes.Chip).background(CtColors.SurfaceHigh).padding(horizontal = CtSpacing.sm, vertical = CtSpacing.xxs),
-                )
-            }
-            Text(comment.detail, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 3, overflow = TextOverflow.Ellipsis)
-        }
+private fun reviewComment(game: GameSummary, state: ReviewState, ply: Int?, move: ReviewedMove?): Pair<String, String> = when {
+    ply == null -> "A side line" to "Try any moves: the engine follows along. Go back to the game when you're done."
+    ply == 0 -> "The starting position" to "Step forward to hear about each move."
+    move == null -> "Not analysed yet" to "Run the analysis from the summary to see what each move was worth."
+    else -> {
+        val positionAfter = remember(game.id, ply) { GamePositions.after(game, ply) }
+        val comment = ReviewCommentary.comment(move, state.evals[ply], positionAfter, game.openingName)
+        comment.headline to comment.detail
     }
+}
+
+/** The coach's face for a move: proud of the best moves, kind after a slip. */
+private fun moodFor(move: ReviewedMove?): MascotMood = when (move?.quality) {
+    MoveQuality.BRILLIANT, MoveQuality.GREAT, MoveQuality.BEST -> MascotMood.PROUD
+    MoveQuality.INACCURACY, MoveQuality.MISS, MoveQuality.MISTAKE, MoveQuality.BLUNDER -> MascotMood.KIND
+    else -> MascotMood.READY
 }
 
 /** Positions of a saved game, replayed when a comment needs one. */
@@ -522,7 +541,7 @@ internal object GamePositions {
 
 /** The game's moves in one scrolling row that keeps the current move in view (like the big sites). */
 @Composable
-private fun MoveStrip(entries: List<com.chesstutor.app.board.MoveListEntry>, review: GameReview?, current: Int?, onSelect: (Int) -> Unit) {
+internal fun MoveStrip(entries: List<com.chesstutor.app.board.MoveListEntry>, review: GameReview?, current: Int?, onSelect: (Int) -> Unit) {
     val listState = rememberLazyListState()
     LaunchedEffect(current) {
         current?.takeIf { it > 0 }?.let { listState.animateScrollToItem((it - 2).coerceAtLeast(0)) }
@@ -541,36 +560,29 @@ private fun MoveStrip(entries: List<com.chesstutor.app.board.MoveListEntry>, rev
             Row(
                 modifier = Modifier
                     .clip(CtShapes.Chip)
-                    .background(if (selected) CtColors.Gold else CtColors.Surface)
+                    .background(if (selected) CtColors.Primary else CtColors.Surface)
                     .ctPressable(onClickLabel = "Go to ${entry.san}") { onSelect(ply) }
                     .padding(horizontal = CtSpacing.xs, vertical = CtSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                entry.numberLabel?.let { Text("$it ", style = CtType.Caption.copy(color = if (selected) CtColors.OnGold else CtColors.Text3)) }
-                Text(entry.san, style = CtType.Label.copy(color = if (selected) CtColors.OnGold else CtColors.Text))
+                entry.numberLabel?.let { Text("$it ", style = CtType.Caption.copy(color = if (selected) CtColors.OnPrimary else CtColors.Text2)) }
+                Text(entry.san, style = CtType.Label.copy(color = if (selected) CtColors.OnPrimary else CtColors.Text))
                 quality?.symbol?.takeIf { it.isNotEmpty() }?.let {
-                    Text(it, style = CtType.Label.copy(color = if (selected) CtColors.OnGold else qualityColor(quality)))
+                    Text(it, style = CtType.Label.copy(color = if (selected) CtColors.OnPrimary else qualityTextOnPage(quality)))
                 }
             }
         }
     }
 }
 
-/** The coach (mascot) with a speech bubble holding [content]. */
+/** The coach in a [mood] beside a tailed speech bubble holding [content] (D41). */
 @Composable
-private fun CoachSays(mascot: Mascot, height: Dp? = null, content: @Composable () -> Unit) {
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        CtMascotArt(mascot = mascot, height = 56.dp, modifier = Modifier.width(52.dp))
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .then(if (height != null) Modifier.height(height) else Modifier)
-                .clip(CtShapes.CardSmall)
-                .background(CtColors.SurfaceRaised)
-                .border(1.dp, CtColors.Line, CtShapes.CardSmall)
-                .padding(horizontal = CtSpacing.md, vertical = CtSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
-        ) { content() }
+private fun CoachSays(mascot: Mascot, mood: MascotMood = MascotMood.READY, content: @Composable () -> Unit) {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+        CtMascotArt(mascot = mascot, mood = mood, height = 52.dp, modifier = Modifier.size(52.dp))
+        CtSpeechBubble(modifier = Modifier.weight(1f)) {
+            Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) { content() }
+        }
     }
 }
 
@@ -620,42 +632,53 @@ internal fun QualityIcon(quality: MoveQuality, size: Int = 24, modifier: Modifie
         contentAlignment = Alignment.Center,
     ) {
         val tint = qualityTextColor(quality)
-        when (quality) {
-            MoveQuality.BOOK -> Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
-            MoveQuality.BEST -> Icon(Icons.Rounded.Star, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.65f).dp))
-            MoveQuality.GOOD -> Icon(Icons.Rounded.ThumbUp, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.55f).dp))
-            else -> Text(quality.symbol, style = CtType.Label.copy(color = tint))
+        val icon = qualityIcon(quality)
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size((size * 0.6f).dp))
+        } else {
+            Text(quality.symbol, style = CtType.Label.copy(color = tint))
         }
     }
 }
 
-internal fun badgeText(quality: MoveQuality): String = when (quality) {
-    MoveQuality.BOOK -> "≡"
-    MoveQuality.BEST -> "★"
-    MoveQuality.GOOD -> "✓"
-    else -> quality.symbol
+/** A grade's drawn icon, the same on the board, in lists and in the review; null for the symbol grades (!!, !, ?!, ?, ??). */
+internal fun qualityIcon(quality: MoveQuality): ImageVector? = when (quality) {
+    MoveQuality.BOOK -> Icons.AutoMirrored.Rounded.MenuBook
+    MoveQuality.BEST -> Icons.Rounded.Star
+    MoveQuality.EXCELLENT -> Icons.Rounded.ThumbUp
+    MoveQuality.GOOD -> Icons.Rounded.Check
+    MoveQuality.FORCED -> Icons.AutoMirrored.Rounded.ArrowForward
+    MoveQuality.MISS -> Icons.Rounded.Close
+    else -> null
 }
 
-internal fun qualityColor(quality: MoveQuality): Color = when (quality) {
-    MoveQuality.BOOK -> CtColors.SurfaceHigh
-    MoveQuality.BRILLIANT -> CtColors.Sky
-    MoveQuality.GREAT -> CtColors.Violet
-    MoveQuality.BEST -> CtColors.Lime
-    MoveQuality.GOOD -> CtColors.Teal
-    MoveQuality.INACCURACY -> CtColors.Gold
-    MoveQuality.MISTAKE -> CtColors.GoldDeep
-    MoveQuality.BLUNDER -> CtColors.Coral
-}
+/** The grade's badge on the square a move landed on: its colour with its icon or symbol. */
+@Composable
+@ReadOnlyComposable
+internal fun qualityBadge(square: Square, quality: MoveQuality): SquareBadge = SquareBadge(
+    square = square,
+    color = qualityColor(quality).toArgb().toLong() and 0xFFFFFFFFL,
+    text = quality.symbol,
+    textColor = qualityTextColor(quality).toArgb().toLong() and 0xFFFFFFFFL,
+    icon = qualityIcon(quality),
+)
 
-internal fun qualityTextColor(quality: MoveQuality): Color = when (quality) {
-    MoveQuality.BRILLIANT -> CtColors.OnSky
-    MoveQuality.GREAT -> CtColors.OnViolet
-    MoveQuality.BEST -> CtColors.OnLime
-    MoveQuality.GOOD -> CtColors.OnTeal
-    MoveQuality.INACCURACY, MoveQuality.MISTAKE -> CtColors.OnGold
-    MoveQuality.BLUNDER -> CtColors.OnCoral
-    MoveQuality.BOOK -> CtColors.Text
-}
+private fun MoveQuality.grade(): GradeColor = GradeColor.valueOf(name)
+
+/** A grade's fill: badges, the board's last-move tint, the graph's dots. */
+@Composable
+@ReadOnlyComposable
+internal fun qualityColor(quality: MoveQuality): Color = Color(quality.grade().fill(CtColors.IsDark))
+
+/** The symbol or icon on a grade's fill. */
+@Composable
+@ReadOnlyComposable
+internal fun qualityTextColor(quality: MoveQuality): Color = Color(quality.grade().ink(CtColors.IsDark))
+
+/** A grade written on the page (counts, symbols in the move list), readable on every background. */
+@Composable
+@ReadOnlyComposable
+internal fun qualityTextOnPage(quality: MoveQuality): Color = Color(quality.grade().text(CtColors.IsDark))
 
 private fun percent(value: Double?): String = value?.let { "${Math.round(it)}%" } ?: "–"
 
@@ -664,9 +687,12 @@ internal fun accuracyText(accuracy: Double?): String =
 
 @Composable
 private fun KeyMoment(move: ReviewedMove, added: Boolean, onShow: () -> Unit, onPractise: () -> Unit) {
-    CtCard(onClick = onShow, onClickLabel = "Show this move", contentPadding = PaddingValues(CtSpacing.md), modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            QualityIcon(move.quality, size = 28)
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().ctPressable(onClickLabel = "Show this move", onClick = onShow).padding(vertical = CtSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            QualityIcon(move.quality, size = 30)
             Spacer(Modifier.width(CtSpacing.md))
             Column(Modifier.weight(1f)) {
                 Text("${move.numberLabel} ${move.san}", style = CtType.Label, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -674,17 +700,15 @@ private fun KeyMoment(move: ReviewedMove, added: Boolean, onShow: () -> Unit, on
             }
             CtChip(
                 text = if (added) "Added" else "Practise",
-                color = CtColors.Teal,
-                icon = Icons.Rounded.School,
                 selected = added,
                 onClick = { if (!added) onPractise() },
             )
         }
+        CtDivider()
     }
 }
 
 /** The coach bubble's height on the board page: enough for a headline, three lines and a chip. */
-private val BUBBLE_HEIGHT = 150.dp
 private const val PLAY_STEP_MS = 800L
 
 /** "Show best" is offered on every move that was not the best one (book and good moves too). */
