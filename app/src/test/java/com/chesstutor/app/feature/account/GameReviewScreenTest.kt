@@ -105,6 +105,7 @@ class GameReviewScreenTest {
         // D39: a new verdict and a new comment never move the board.
         assertEquals(boardBefore, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
 
+        compose.onNodeWithContentDescription("More options").performClick()
         compose.onNodeWithText("Summary").performClick()
         compose.onNodeWithText("Start review").assertExists()
     }
@@ -116,7 +117,7 @@ class GameReviewScreenTest {
                 GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(), startPly = 6)
             }
         }
-        compose.onNodeWithText("Show best").performClick()
+        compose.onNodeWithContentDescription("Show best").performClick()
         compose.onNodeWithText("A side line").assertExists()
         compose.onNodeWithText("Back to the game").performClick()
         compose.onNodeWithText("Knight to f6 is a blunder").assertExists()
@@ -130,6 +131,7 @@ class GameReviewScreenTest {
                 GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(onExplore = { fen, line -> explored = fen to line }), startPly = 5)
             }
         }
+        compose.onNodeWithContentDescription("More options").performClick()
         compose.onNodeWithText("Explore from here").performClick()
         assertEquals(GameReviewer.positions(Position.STARTING_FEN, moves)[5].toFen(), explored?.first)
         assertEquals(listOf("g8f6", "h5f7"), explored?.second)

@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -22,6 +24,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import com.chesstutor.app.design.CtBoardScreenTags
@@ -100,6 +103,30 @@ class PuzzlePlayerScreenTest {
     }
 
     /** Regression: after solving, Analyse must send the puzzle's start and its solution. */
+    /** Back and Next only look at what was played: nothing is undone, and Next waits until you have gone back. */
+    @Test
+    fun backAndNextLookWithoutUndoing() {
+        val player = PuzzlePlayer(
+            PuzzleRunSpec(PuzzleMode.LEVEL, "Level 3", level = 3, plannedCount = 5, nextPuzzle = { i, _ -> fools("p$i") }),
+            InMemoryPuzzleRepository(), scope, clock = { scheduler.currentTime },
+        )
+        player.start()
+        show(player)
+        step(700)
+        val moves = player.state.value.board!!.state.value.moves.size
+        assertTrue("the set-up move is on the list", moves > 0)
+        compose.onNodeWithContentDescription("Next move").assertIsNotEnabled()
+
+        compose.onNodeWithContentDescription("Back one move").performClick()
+        compose.onNodeWithContentDescription("Next move").assertIsEnabled()
+        compose.onNodeWithText("Hint").assertIsNotEnabled()
+        assertEquals("nothing was undone", moves, player.state.value.board!!.state.value.moves.size)
+
+        compose.onNodeWithContentDescription("Next move").performClick()
+        compose.onNodeWithContentDescription("Next move").assertIsNotEnabled()
+        compose.onNodeWithText("Hint").assertIsEnabled()
+    }
+
     @Test
     fun analyseSendsThePuzzleStartAndSolutionNotTheFinalPosition() {
         val player = PuzzlePlayer(
@@ -117,7 +144,8 @@ class PuzzlePlayerScreenTest {
         val start = player.state.value.board!!.state.value.position.toFen()
         player.state.value.board!!.onMove(Move.fromUci("d8h4"))
         step(100)
-        compose.onNodeWithContentDescription("Analyse").performClick()
+        compose.onNodeWithContentDescription("More options").performClick()
+        compose.onNodeWithText("Analyse").performClick()
         assertEquals(start to listOf("d8h4"), analysed)
     }
 

@@ -1,8 +1,8 @@
 package com.chesstutor.app.feature.play
 
+import com.chesstutor.app.design.CtControl
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.background
 import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.board.BoardView
 import com.chesstutor.app.board.BoardMarks
@@ -14,14 +14,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.automirrored.rounded.Undo
@@ -33,7 +30,6 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Stop
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,7 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -154,7 +149,30 @@ fun PlayScreen(
     CtBoardScreen(
         title = title,
         onBack = onBack,
-        status = {
+        zone = {
+            BoardMoveList(
+                entries = remember(board.version) { moveListOf(board.start, board.moves) },
+                currentPly = shownPly ?: latestPly,
+                onSelect = { ply -> viewedPly = ply.takeIf { it < latestPly } },
+            )
+            openingLine(state)?.let { Text(it, style = CtType.Caption) }
+            // The bot's line stands on its strip and grows upward: it may cover the move list, never the board.
+            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.BottomStart) {
+                state.battleTitle?.let { battle ->
+                    CtCoachStrip(
+                        mascot = settings.mascot,
+                        label = battle,
+                        text = battleCoachLine(battle, state.opening, state.inBook, state.drillMessage),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                ChatOverlay(
+                    chat = state.chat?.takeIf { it.speaker == state.botColor },
+                    onDismiss = game::dismissChat,
+                    maxLines = 6,
+                    modifier = Modifier.padding(start = CtSpacing.xxl).wrapContentHeight(Alignment.Bottom, unbounded = true),
+                )
+            }
             PlayerStrip(
                 name = bot.name,
                 detail = if (state.phase == GamePhase.BOT_TURN) "Thinking…" else "${bot.rating}, ${bot.style.label}",
@@ -162,9 +180,30 @@ fun PlayScreen(
                 running = state.phase == GamePhase.BOT_TURN && toMove == state.botColor,
                 avatar = { BotAvatar(bot.face, bot.rating, size = 40.dp) },
                 captured = { takenBy(state.botColor) },
-                chat = state.chat?.takeIf { it.speaker == state.botColor },
-                onDismissChat = game::dismissChat,
             )
+        },
+        under = {
+            if (watch != null) {
+                PlayerStrip(
+                    name = watch.name,
+                    detail = if (state.phase == GamePhase.PLAYER_TURN) "Thinking…" else "${watch.rating}, ${watch.style.label}",
+                    clock = clockOf(setup.playerColor),
+                    running = state.phase == GamePhase.PLAYER_TURN,
+                    avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
+                    captured = { takenBy(setup.playerColor) },
+                    chat = state.chat?.takeIf { it.speaker == setup.playerColor },
+                    onDismissChat = game::dismissChat,
+                )
+            } else {
+                PlayerStrip(
+                    name = "You",
+                    detail = if (setup.playerColor == PieceColor.WHITE) "White" else "Black",
+                    clock = clockOf(setup.playerColor),
+                    running = state.phase == GamePhase.PLAYER_TURN,
+                    avatar = null,
+                    captured = { takenBy(setup.playerColor) },
+                )
+            }
         },
         board = {
             BoardWithEvalBar(
@@ -211,22 +250,22 @@ fun PlayScreen(
                     CtButton(text = "See the result", onClick = { resultClosed = false }, modifier = Modifier.weight(1f))
                 }
                 watch != null -> {
-                    ControlButton(if (state.paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause, if (state.paused) "Resume" else "Pause", onClick = game::togglePause)
-                    ControlButton(Icons.Rounded.Stop, "Stop", onClick = onBack)
+                    CtControl(if (state.paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause, if (state.paused) "Resume" else "Pause", onClick = game::togglePause)
+                    CtControl(Icons.Rounded.Stop, "Stop", onClick = onBack)
                 }
                 else -> {
-                    ControlButton(
+                    CtControl(
                         icon = Icons.Rounded.Flag,
                         label = if (drill) "Stop" else "Resign",
                         enabled = state.phase != GamePhase.STARTING,
                         onClick = { if (drill) onBack() else confirmResign = true },
                     )
-                    if (setup.rules.takebacks) ControlButton(Icons.AutoMirrored.Rounded.Undo, "Undo", enabled = state.canTakeBack, onClick = game::takeBack)
-                    if (setup.rules.hints) ControlButton(Icons.Rounded.Lightbulb, "Hint", enabled = state.phase == GamePhase.PLAYER_TURN, onClick = game::hint)
+                    if (setup.rules.takebacks) CtControl(Icons.AutoMirrored.Rounded.Undo, "Undo", enabled = state.canTakeBack, onClick = game::takeBack)
+                    if (setup.rules.hints) CtControl(Icons.Rounded.Lightbulb, "Hint", enabled = state.phase == GamePhase.PLAYER_TURN, onClick = game::hint)
                     if (!drill) {
                         // Cycles Off, Some, Lots; the bots' chat setting (review R6).
                         val next = ChatLevel.entries[(settings.chatLevel.ordinal + 1) % ChatLevel.entries.size]
-                        ControlButton(Icons.AutoMirrored.Rounded.Chat, "Chat: ${settings.chatLevel.label}", onClick = { onChatLevel(next) })
+                        CtControl(Icons.AutoMirrored.Rounded.Chat, "Chat: ${settings.chatLevel.label}", onClick = { onChatLevel(next) })
                     }
                 }
             }
@@ -247,48 +286,7 @@ fun PlayScreen(
                 }
             }
         },
-    ) {
-        Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()).padding(top = CtSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-        ) {
-            if (watch != null) {
-                PlayerStrip(
-                    name = watch.name,
-                    detail = if (state.phase == GamePhase.PLAYER_TURN) "Thinking…" else "${watch.rating}, ${watch.style.label}",
-                    clock = clockOf(setup.playerColor),
-                    running = state.phase == GamePhase.PLAYER_TURN,
-                    avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
-                    captured = { takenBy(setup.playerColor) },
-                    chat = state.chat?.takeIf { it.speaker == setup.playerColor },
-                    onDismissChat = game::dismissChat,
-                )
-            } else {
-                PlayerStrip(
-                    name = "You",
-                    detail = if (setup.playerColor == PieceColor.WHITE) "White" else "Black",
-                    clock = clockOf(setup.playerColor),
-                    running = state.phase == GamePhase.PLAYER_TURN,
-                    avatar = null,
-                    captured = { takenBy(setup.playerColor) },
-                )
-            }
-            BoardMoveList(
-                entries = remember(board.version) { moveListOf(board.start, board.moves) },
-                currentPly = shownPly ?: latestPly,
-                onSelect = { ply -> viewedPly = ply.takeIf { it < latestPly } },
-            )
-            openingLine(state)?.let { Text(it, style = CtType.Caption) }
-            state.battleTitle?.let { battle ->
-                CtCoachStrip(
-                    mascot = settings.mascot,
-                    label = battle,
-                    text = battleCoachLine(battle, state.opening, state.inBook, state.drillMessage),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-    }
+    )
     if (confirmResign) {
         CtConfirmDialog(
             title = "Resign this game?",
@@ -342,7 +340,7 @@ private fun PlayerStrip(
 
 /** A bot's line over its own strip; fades in and out (or just appears with Reduce motion). */
 @Composable
-private fun ChatOverlay(chat: ChatLine?, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+private fun ChatOverlay(chat: ChatLine?, onDismiss: () -> Unit, modifier: Modifier = Modifier, maxLines: Int = 2) {
     // Keep the last line while it fades out.
     var last by remember { mutableStateOf(chat) }
     if (chat != null && chat != last) last = chat
@@ -351,39 +349,15 @@ private fun ChatOverlay(chat: ChatLine?, onDismiss: () -> Unit, modifier: Modifi
         val line = last ?: return@AnimatedVisibility
         CtSpeechBubble(
             tail = CtTail.Start,
-            color = CtColors.Raised,
+            color = CtColors.Surface,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(CtShapes.CardSmall)
                 .ctPressable(onClickLabel = "Close message", onClick = onDismiss)
                 .semantics { liveRegion = LiveRegionMode.Polite },
         ) {
-            Text(line.text, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(line.text, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = maxLines, overflow = TextOverflow.Ellipsis)
         }
-    }
-}
-
-/** An icon over a short word, four to a row at the bottom of a game (canvas `Play.dc.html`). */
-@Composable
-private fun androidx.compose.foundation.layout.RowScope.ControlButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-) {
-    val tint = if (enabled) CtColors.Text else CtColors.Text2
-    Column(
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxHeight()
-            .clip(CtShapes.Control)
-            .ctPressable(enabled = enabled, onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = label },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CtSpacing.xs, Alignment.CenterVertically),
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
-        Text(label, style = CtType.NavLabel.copy(color = tint), maxLines = 1)
     }
 }
 

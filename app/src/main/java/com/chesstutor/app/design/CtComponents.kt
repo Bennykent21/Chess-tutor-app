@@ -1,5 +1,7 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.Layout
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material.icons.rounded.MoreVert
@@ -267,39 +269,53 @@ fun CtTopBar(
     onBack: (() -> Unit)? = null,
     trailing: @Composable (RowScope.() -> Unit)? = null,
 ) {
-    Row(
+    Layout(
+        content = {
+            Box {
+                if (onBack != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(CtSpacing.touchTarget)
+                            .clip(CtShapes.Pill)
+                            .ctPressable(onClickLabel = "Go back", onClick = onBack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = CtColors.Text)
+                    }
+                }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = title,
+                    style = CtType.TopBar,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { heading() },
+                )
+                if (subtitle != null) {
+                    Text(text = subtitle, style = CtType.Caption, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) { trailing?.invoke(this) }
+        },
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 56.dp)
-            .padding(start = if (onBack != null) CtSpacing.sm else CtSpacing.gutter, end = CtSpacing.sm, top = CtSpacing.xs, bottom = CtSpacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (onBack != null) {
-            Box(
-                modifier = Modifier
-                    .size(CtSpacing.touchTarget)
-                    .clip(CtShapes.Pill)
-                    .ctPressable(onClickLabel = "Go back", onClick = onBack),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = CtColors.Text)
-            }
-            Spacer(Modifier.width(CtSpacing.xs))
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = CtType.TopBar,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics { heading() },
-            )
-            if (subtitle != null) {
-                Text(text = subtitle, style = CtType.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        if (trailing != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, content = trailing)
+            .padding(horizontal = CtSpacing.sm, vertical = CtSpacing.xs),
+    ) { measurables, constraints ->
+        // The title stays centred on the screen whatever sits beside it: it gets the width left
+        // between the wider side, mirrored on both.
+        val sides = constraints.copy(minWidth = 0, minHeight = 0)
+        val leading = measurables[0].measure(sides)
+        val end = measurables[2].measure(sides)
+        val side = maxOf(leading.width, end.width)
+        val centre = measurables[1].measure(sides.copy(maxWidth = (constraints.maxWidth - 2 * side).coerceAtLeast(0)))
+        val height = maxOf(leading.height, centre.height, end.height, constraints.minHeight)
+        layout(constraints.maxWidth, height) {
+            leading.placeRelative(0, (height - leading.height) / 2)
+            centre.placeRelative((constraints.maxWidth - centre.width) / 2, (height - centre.height) / 2)
+            end.placeRelative(constraints.maxWidth - end.width, (height - end.height) / 2)
         }
     }
 }
@@ -467,6 +483,34 @@ fun CtSpeechBubble(
 }
 
 // ------------------------------------------------------------------ actions
+
+/**
+ * An icon over a short word, in the row of buttons under a board. [description] is what a screen
+ * reader says, when the word alone would not be enough.
+ */
+@Composable
+fun RowScope.CtControl(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    description: String = label,
+) {
+    val tint = if (enabled) CtColors.Text else CtColors.Text2.copy(alpha = 0.5f)
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clip(CtShapes.Control)
+            .ctPressable(enabled = enabled, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = description },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CtSpacing.xs, Alignment.CenterVertically),
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        Text(label, style = CtType.NavLabel.copy(color = tint), maxLines = 1)
+    }
+}
 
 enum class CtButtonStyle { Primary, Secondary, Ghost }
 

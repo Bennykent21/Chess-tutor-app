@@ -49,14 +49,14 @@ class PaletteContrastTest {
     }
 
     @Test
-    fun parchmentIsTheDefaultAndTheAppFollowsThePhone() {
-        assertEquals(AppTheme.PARCHMENT, AppTheme.DEFAULT)
+    fun monoIsTheDefaultAndTheAppFollowsThePhone() {
+        assertEquals(AppTheme.MONO, AppTheme.DEFAULT)
         assertEquals(Appearance.SYSTEM, Appearance.DEFAULT)
         assertTrue(Appearance.SYSTEM.isDark(systemDark = true))
         assertFalse(Appearance.SYSTEM.isDark(systemDark = false))
         assertFalse(Appearance.LIGHT.isDark(systemDark = true))
         assertTrue(Appearance.DARK.isDark(systemDark = false))
-        assertEquals(AppTheme.PARCHMENT, AppTheme.fromName("nonsense"))
+        assertEquals(AppTheme.MONO, AppTheme.fromName("nonsense"))
         assertEquals(AppTheme.MONO, AppTheme.fromName("MONO"))
         assertEquals(Appearance.SYSTEM, Appearance.fromName(null))
     }

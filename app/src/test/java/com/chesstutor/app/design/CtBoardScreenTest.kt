@@ -38,15 +38,15 @@ class CtBoardScreenTest {
                 CtBoardScreen(
                     title = "Puzzle",
                     onBack = {},
-                    status = {
+                    zone = {
                         Text(if (long) "A status that keeps going and going, far longer than one line could ever hold, and then some more words besides." else "White to move")
+                        repeat(if (long) 40 else 1) { Text("Coach line $it") }
                     },
                     board = { Box(Modifier.fillMaxSize()) },
+                    under = { Text("The moves") },
                     controls = { Text("Undo") },
                     overlay = { CtSheet(visible = sheet, onDismiss = { sheet = false }) { Text("Solved") } },
-                ) {
-                    repeat(if (long) 40 else 1) { Text("Coach line $it") }
-                }
+                )
             }
         }
     }
@@ -54,26 +54,27 @@ class CtBoardScreenTest {
     private fun board(): DpRect = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
 
     @Test
-    fun theBoardSitsUnderTheFixedRowsAtFullWidth() {
+    fun theBoardSitsRightAboveItsTwoRowsAtFullWidth() {
         showScreen()
         val bounds = board()
-        assertEquals(CtBoardScreenSpec.TopBarHeight + CtBoardScreenSpec.StatusRowHeight, bounds.top)
+        assertEquals("nothing is left unused below", 860.dp - CtBoardScreenSpec.ControlsHeight - CtBoardScreenSpec.UnderHeight, bounds.bottom)
         assertEquals(400.dp, bounds.right - bounds.left)
         assertEquals(400.dp, bounds.bottom - bounds.top)
     }
 
     @Test
-    fun longerMessagesAboveAndBelowNeverMoveTheBoard() {
+    fun longerMessagesAboveNeverMoveTheBoard() {
         showScreen()
         val before = board()
+        val zone = compose.onNodeWithTag(CtBoardScreenTags.ZONE).getBoundsInRoot()
         long = true
         compose.waitForIdle()
         assertEquals(before, board())
-        assertEquals(CtBoardScreenSpec.StatusRowHeight, compose.onNodeWithTag(CtBoardScreenTags.STATUS).getBoundsInRoot().let { it.bottom - it.top })
+        assertEquals(zone, compose.onNodeWithTag(CtBoardScreenTags.ZONE).getBoundsInRoot())
     }
 
     @Test
-    fun theControlsStayOnScreenHoweverMuchTextIsBelowTheBoard() {
+    fun theControlsStayOnScreenHoweverMuchTextThereIs() {
         showScreen()
         long = true
         compose.waitForIdle()
@@ -94,11 +95,11 @@ class CtBoardScreenTest {
     }
 
     @Test
-    fun shortOrWideScreensShrinkTheBoardToKeepRoomBelow() {
+    fun shortOrWideScreensShrinkTheBoardToKeepRoomForTheCoach() {
         // A tall phone: the full width.
         assertEquals(400.dp, CtBoardScreenSpec.boardSize(400.dp, 860.dp))
-        // A short phone: 640 - 56 - 64 - 160 = 360.
-        assertEquals(360.dp, CtBoardScreenSpec.boardSize(400.dp, 640.dp))
+        // A short phone: 640 - 56 - 120 - 48 - 72 = 344.
+        assertEquals(344.dp, CtBoardScreenSpec.boardSize(400.dp, 640.dp))
         // Landscape: never smaller than the minimum.
         assertEquals(CtBoardScreenSpec.MinBoard, CtBoardScreenSpec.boardSize(800.dp, 400.dp))
     }

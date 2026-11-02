@@ -125,7 +125,11 @@ fun GameDetailScreen(
                 onDelete = { confirmDelete = true },
             )
         },
-        status = {
+        zone = {
+            OpeningRow(game, courseId, settings, onOpen = { courseId?.let(actions.onOpenCourse) })
+            if (game.record.incompleteParse) {
+                Text("Some moves could not be read from this game.", style = CtType.Caption.copy(color = CtColors.Error))
+            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 ResultSquare(game.outcome, size = 40.dp)
                 Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
@@ -133,6 +137,9 @@ fun GameDetailScreen(
                     Text(resultLine(game, now), style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
+        },
+        under = {
+            if (entries.isNotEmpty()) MoveStrip(entries, review = null, current = ply, onSelect = { ply = it })
         },
         board = {
             BoardView(
@@ -163,17 +170,7 @@ fun GameDetailScreen(
                 )
             }
         },
-    ) {
-        if (entries.isNotEmpty()) {
-            Box(Modifier.padding(vertical = CtSpacing.sm)) {
-                MoveStrip(entries, review = null, current = ply, onSelect = { ply = it })
-            }
-        }
-        OpeningRow(game, courseId, settings, onOpen = { courseId?.let(actions.onOpenCourse) })
-        if (game.record.incompleteParse) {
-            Text("Some moves could not be read from this game.", style = CtType.Caption.copy(color = CtColors.Error))
-        }
-    }
+    )
 }
 
 /** Copy PGN and Delete game, out of the way in the top bar's menu. */

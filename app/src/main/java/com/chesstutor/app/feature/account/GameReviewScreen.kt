@@ -1,10 +1,16 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.design.CtMascotArt
+import com.chesstutor.app.design.CtSpeechBubble
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import com.chesstutor.app.design.CtMenuItem
+import com.chesstutor.app.design.CtOverflowMenu
+import com.chesstutor.app.design.CtTutor
+import com.chesstutor.app.design.CtControl
 import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.design.GradeColor
-import com.chesstutor.app.design.CtSpeechBubble
-import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtBoardScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,7 +34,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Check
@@ -37,9 +42,7 @@ import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
@@ -64,7 +67,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import com.chesstutor.app.board.AnalysisSession
@@ -92,8 +94,6 @@ import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtIconBubble
-import com.chesstutor.app.design.CtMascotArt
-import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtShapes
@@ -387,27 +387,72 @@ private fun ReviewBoard(
 
     val (headline, detail) = reviewComment(game, state, ply, move)
     val san = ply?.takeIf { it > 0 }?.let { p -> entries.getOrNull(p - 1)?.let { e -> listOfNotNull(e.numberLabel, e.san).joinToString(" ") } }
+    val showBest = {
+        move?.let { m ->
+            playing = false
+            goToPly(m.ply - 1)
+            runCatching { Move.fromUci(m.bestMove) }.getOrNull()
+                ?.takeIf { best -> session.state.value.legalMoves.any { it.uci == best.uci } }
+                ?.let { actions.onFeedback(session.onMove(it)) }
+        }
+        Unit
+    }
     CtBoardScreen(
         title = "Game review",
         onBack = actions.onBack,
-        actions = { CtChip(text = "Summary", onClick = onSummary) },
-        status = {
-            // The verdict on this move: its grade, what it was, and the evaluation after it.
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                if (move != null) QualityIcon(move.quality, size = 30)
-                Column(Modifier.weight(1f)) {
-                    Text(headline, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (san != null) Text(san, style = CtType.Caption, maxLines = 1)
+        actions = {
+            CtOverflowMenu(
+                listOf(
+                    CtMenuItem("Summary", onClick = onSummary),
+                    CtMenuItem("Explore from here") {
+                        playing = false
+                        // On the game's line, what really happened next comes along to compare.
+                        actions.onExplore(board.position.toFen(), ply?.let { game.moves.drop(it) }.orEmpty())
+                    },
+                    CtMenuItem("Flip board") { whiteAtBottom = !whiteAtBottom },
+                    CtMenuItem(if (showLines) "Hide engine lines" else "Show engine lines") { showLines = !showLines },
+                    CtMenuItem(if (drawing) "Stop drawing" else "Draw arrows") { drawing = !drawing },
+                ),
+            )
+        },
+        zone = {
+            CtTutor(settings.mascot, mood = moodFor(move)) {
+                // The verdict on this move: its grade, what it was and the evaluation after it, then the coach's words.
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    if (move != null) QualityIcon(move.quality, size = 26)
+                    Column(Modifier.weight(1f)) {
+                        Text(headline, style = CtType.TitleSmall)
+                        if (san != null) Text(san, style = CtType.Caption, maxLines = 1)
+                    }
+                    if (move != null) {
+                        Text(
+                            ReviewCommentary.evalLabel(state.evals[ply]),
+                            style = CtType.Label,
+                            modifier = Modifier.clip(CtShapes.Chip).background(CtColors.Bg).padding(horizontal = 10.dp, vertical = CtSpacing.xs),
+                        )
+                    }
                 }
-                if (move != null && ply != null) {
-                    Text(
-                        ReviewCommentary.evalLabel(state.evals[ply]),
-                        style = CtType.Label,
-                        modifier = Modifier.clip(CtShapes.Chip).background(CtColors.Surface).padding(horizontal = 10.dp, vertical = CtSpacing.xs),
-                    )
+                Text(detail, style = CtType.Chat)
+                if (ply == null) {
+                    CtChip(text = "Back to the game", onClick = {
+                        goToPly(backToGamePly(mainIds, view.tokens.map { (it as? NotationToken.MoveToken)?.nodeId }, view.currentId))
+                    })
                 }
             }
+            if (showLines) {
+                EngineLinesPanel(
+                    position = board.position,
+                    lines = lines,
+                    engineName = if (cached != null) "Stockfish (saved)" else "Stockfish",
+                    onPlayLine = { line ->
+                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
+                            ?.takeIf { m -> board.legalMoves.any { it.uci == m.uci } }
+                            ?.let { actions.onFeedback(session.onMove(it)) }
+                    },
+                )
+            }
         },
+        under = { MoveStrip(entries, review, current = ply, onSelect = ::goToPly) },
         board = {
             BoardWithEvalBar(
                 evalBar = { barModifier -> BoardEvalBar(evalCp, evalMate, whiteAtBottom, barModifier) },
@@ -430,75 +475,36 @@ private fun ReviewBoard(
             }
         },
         controls = {
-            CtIconButton(
-                icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Back one move",
-                enabled = view.canGoBack,
-                onClick = { playing = false; session.back() },
-            )
-            CtIconButton(
+            CtControl(
                 icon = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                contentDescription = if (playing) "Pause" else "Play to the next key moment",
+                label = if (playing) "Pause" else "Play",
+                description = if (playing) "Pause" else "Play to the next key moment",
                 enabled = playing || view.canGoForward,
                 onClick = { playing = !playing },
             )
-            CtButton(
-                text = "Next",
-                icon = Icons.AutoMirrored.Rounded.ArrowForward,
+            CtControl(
+                icon = Icons.Rounded.Star,
+                label = "Best",
+                description = "Show best",
+                enabled = move != null && canShowBest(move),
+                onClick = showBest,
+            )
+            CtControl(
+                icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                label = "Back",
+                description = "Back one move",
+                enabled = view.canGoBack,
+                onClick = { playing = false; session.back() },
+            )
+            CtControl(
+                icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                label = "Next",
+                description = "Next move",
                 enabled = view.canGoForward,
                 onClick = { playing = false; session.forward() },
-                modifier = Modifier.weight(1f).semantics { contentDescription = "Next move" },
             )
         },
-    ) {
-        Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()).padding(top = CtSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-        ) {
-            MoveStrip(entries, review, current = ply, onSelect = ::goToPly)
-            CoachSays(settings.mascot, mood = moodFor(move)) {
-                Text(detail, style = CtType.Chat)
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    if (move != null && canShowBest(move)) {
-                        CtChip(text = "Show best", onClick = {
-                            playing = false
-                            goToPly(move.ply - 1)
-                            runCatching { Move.fromUci(move.bestMove) }.getOrNull()
-                                ?.takeIf { best -> session.state.value.legalMoves.any { it.uci == best.uci } }
-                                ?.let { actions.onFeedback(session.onMove(it)) }
-                        })
-                    }
-                    CtChip(text = "Explore from here", onClick = {
-                        playing = false
-                        // On the game's line, what really happened next comes along to compare.
-                        actions.onExplore(board.position.toFen(), ply?.let { game.moves.drop(it) }.orEmpty())
-                    })
-                    if (ply == null) {
-                        CtChip(text = "Back to the game", onClick = {
-                            goToPly(backToGamePly(mainIds, view.tokens.map { (it as? NotationToken.MoveToken)?.nodeId }, view.currentId))
-                        })
-                    }
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                CtChip(text = "Flip", icon = Icons.Rounded.SwapVert, onClick = { whiteAtBottom = !whiteAtBottom })
-                CtChip(text = "Engine lines", selected = showLines, onClick = { showLines = !showLines })
-                CtChip(text = "Draw", selected = drawing, onClick = { drawing = !drawing })
-            }
-            if (showLines) {
-                EngineLinesPanel(
-                    position = board.position,
-                    lines = lines,
-                    engineName = if (cached != null) "Stockfish (saved)" else "Stockfish",
-                    onPlayLine = { line ->
-                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
-                            ?.takeIf { m -> board.legalMoves.any { it.uci == m.uci } }
-                            ?.let { actions.onFeedback(session.onMove(it)) }
-                    },
-                )
-            }
-        }
-    }
+    )
 }
 
 /** The game ply to return to from a side line: the last main-line node before it in the notation. */
@@ -507,7 +513,7 @@ internal fun backToGamePly(mainIds: List<Int>, notationIds: List<Int?>, current:
     return notationIds.take(upTo + 1).filterNotNull().mapNotNull { id -> mainIds.indexOf(id).takeIf { it >= 0 } }.maxOrNull() ?: 0
 }
 
-/** The verdict (one line, above the board) and the coach's explanation (below it) for a ply. */
+/** The verdict and the coach's explanation for a ply, both in the bubble above the board. */
 @Composable
 private fun reviewComment(game: GameSummary, state: ReviewState, ply: Int?, move: ReviewedMove?): Pair<String, String> = when {
     ply == null -> "A side line" to "Try any moves: the engine follows along. Go back to the game when you're done."

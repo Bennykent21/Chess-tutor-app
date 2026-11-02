@@ -1,5 +1,16 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
+import com.chesstutor.app.domain.account.GameReviewer
+import com.chesstutor.app.board.moveListOf
+import com.chesstutor.app.board.BoardMoveList
+import com.chesstutor.app.board.BoardMarks
+import com.chesstutor.app.board.BoardView
+import com.chesstutor.app.design.CtTutor
+import com.chesstutor.app.design.CtControl
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -61,7 +72,6 @@ import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtStatTile
-import com.chesstutor.app.design.CtCoachStrip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtScreenBackground
@@ -147,73 +157,96 @@ private fun Playing(
         state.hintSquare != null -> MascotMood.THINKING
         else -> MascotMood.READY
     }
+    val shown by board.state.collectAsState()
+    // Looking back through the puzzle (a move number), or null on the live board. Nothing is undone.
+    var viewedPly by remember(board) { mutableStateOf<Int?>(null) }
+    val latestPly = shown.moves.size
+    val shownPly = viewedPly?.takeIf { it < latestPly }
+    val ply = shownPly ?: latestPly
+    val positions = remember(board, shown.version) { GameReviewer.positions(shown.start.toFen(), shown.moves.map { it.uci }) }
+    val towardBoard = { target: Int -> viewedPly = target.takeIf { it < latestPly } }
     CtBoardScreen(
         title = state.title,
         onBack = onBack,
         modifier = modifier,
-        actions = { ReportMenu(enabled = after && !state.reported, reported = state.reported) { player.reportAnotherMove(note = "Reported from the puzzle player") } },
-        status = { PuzzleStatus(state, settings) },
-        board = {
-            BoardHost(
-                session = board,
-                theme = settings.boardTheme,
-                whiteAtBottom = whiteAtBottom(settings.boardOrientation, state.solverColor),
-                showCoordinates = settings.showCoordinates,
-                showLegalDots = settings.showLegalDots,
-                autoQueen = settings.autoQueen,
-                arrows = listOfNotNull(state.hintArrow),
-                rings = listOfNotNull(
-                    state.hintSquare?.let { SquareRing(it, MarkKind.HINT) },
-                    state.mistakeSquare?.let { SquareRing(it, MarkKind.MISTAKE) },
-                ),
-                onFeedback = onFeedback,
+        actions = {
+            ReportMenu(
+                enabled = after && !state.reported,
+                reported = state.reported,
+                onAnalyse = if (after) ({ onAnalyse(board.solvingFen, board.puzzle.moves.drop(1)) }) else null,
+                onReport = { player.reportAnotherMove(note = "Reported from the puzzle player") },
             )
         },
-        controls = {
-            if (after) {
-                CtIconButton(
-                    icon = Icons.Rounded.Science,
-                    contentDescription = "Analyse",
-                    onClick = { onAnalyse(board.solvingFen, board.puzzle.moves.drop(1)) },
+        zone = {
+            CtTutor(settings.mascot, mood = mood) { Text(coachText, style = CtType.Chat) }
+            if (after) AfterPuzzle(player, state)
+            PuzzleStatus(state, settings)
+        },
+        under = {
+            BoardMoveList(
+                entries = remember(board, shown.version) { moveListOf(shown.start, shown.moves) },
+                currentPly = ply,
+                onSelect = towardBoard,
+            )
+        },
+        board = {
+            val past = shownPly?.let(positions::getOrNull)
+            val towardSolver = whiteAtBottom(settings.boardOrientation, state.solverColor)
+            if (past != null) {
+                BoardView(
+                    position = past,
+                    theme = settings.boardTheme,
+                    // A tap on the board comes back to the puzzle, as does its latest move in the strip.
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClickLabel = "Back to the puzzle",
+                    ) { viewedPly = null },
+                    whiteAtBottom = towardSolver,
+                    showCoordinates = settings.showCoordinates,
+                    showLegalDots = false,
+                    marks = BoardMarks(lastMove = shown.moves.getOrNull(shownPly - 1)?.let { it.from to it.to }),
                 )
+            } else {
+                BoardHost(
+                    session = board,
+                    theme = settings.boardTheme,
+                    whiteAtBottom = towardSolver,
+                    showCoordinates = settings.showCoordinates,
+                    showLegalDots = settings.showLegalDots,
+                    autoQueen = settings.autoQueen,
+                    arrows = listOfNotNull(state.hintArrow),
+                    rings = listOfNotNull(
+                        state.hintSquare?.let { SquareRing(it, MarkKind.HINT) },
+                        state.mistakeSquare?.let { SquareRing(it, MarkKind.MISTAKE) },
+                    ),
+                    onFeedback = onFeedback,
+                )
+            }
+        },
+        controls = {
+            // Back and Next only look: Next wakes up once you have gone back, and nothing is undone.
+            if (after) {
+                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Back one move", enabled = ply > 0, onClick = { viewedPly = ply - 1 })
+                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Next move", enabled = shownPly != null, onClick = { towardBoard(ply + 1) })
                 CtButton(
                     text = if (state.isLastOfRun) "See your result" else "Next puzzle",
-                    icon = Icons.AutoMirrored.Rounded.ArrowForward,
                     onClick = player::next,
                     modifier = Modifier.weight(1f),
                 )
             } else {
-                CtButton(
-                    text = "Hint",
-                    icon = Icons.Rounded.Lightbulb,
-                    style = CtButtonStyle.Secondary,
-                    enabled = state.phase == PlayerPhase.SOLVING,
-                    onClick = player::hint,
-                    modifier = Modifier.weight(1f),
-                )
-                CtButton(
-                    text = "Solution",
-                    icon = Icons.Rounded.Visibility,
-                    style = CtButtonStyle.Secondary,
-                    enabled = state.phase == PlayerPhase.SOLVING,
-                    onClick = player::reveal,
-                    modifier = Modifier.weight(1f),
-                )
+                val solving = state.phase == PlayerPhase.SOLVING
+                CtControl(Icons.Rounded.Lightbulb, "Hint", enabled = solving && shownPly == null, onClick = player::hint)
+                CtControl(Icons.Rounded.Visibility, "Solution", enabled = solving && shownPly == null, onClick = player::reveal)
+                CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back", enabled = ply > 0, description = "Back one move", onClick = { viewedPly = ply - 1 })
+                CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next", enabled = shownPly != null, description = "Next move", onClick = { towardBoard(ply + 1) })
             }
         },
-    ) {
-        Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()).padding(top = CtSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-        ) {
-            CtCoachStrip(mascot = settings.mascot, text = coachText, mood = mood, modifier = Modifier.fillMaxWidth())
-            if (after) AfterPuzzle(player, state)
-        }
-    }
+    )
 }
 
 /**
- * The fixed row above the board: a small king of the side to move (or a tick once solved), what
+ * The row right above the board: a small king of the side to move (or a tick once solved), what
  * is happening, the clock and, in a run, which puzzle this is and how the run is going.
  */
 @Composable
@@ -276,9 +309,9 @@ private fun RunProgress(state: PuzzlePlayerState) {
     }
 }
 
-/** "Another move works here": the one extra action, kept in the top bar's menu. */
+/** Analyse, once the puzzle is over, and "Another move works here", kept in the top bar's menu. */
 @Composable
-private fun ReportMenu(enabled: Boolean, reported: Boolean, onReport: () -> Unit) {
+private fun ReportMenu(enabled: Boolean, reported: Boolean, onAnalyse: (() -> Unit)?, onReport: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         Box(
@@ -291,6 +324,15 @@ private fun ReportMenu(enabled: Boolean, reported: Boolean, onReport: () -> Unit
             Icon(Icons.Rounded.MoreVert, contentDescription = "More options", tint = CtColors.Text2)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = CtColors.Raised) {
+            if (onAnalyse != null) {
+                DropdownMenuItem(
+                    text = { Text("Analyse", style = CtType.Body.copy(color = CtColors.Text)) },
+                    onClick = {
+                        open = false
+                        onAnalyse()
+                    },
+                )
+            }
             DropdownMenuItem(
                 text = { Text(if (reported) "Reported, thank you" else "Another move works here", style = CtType.Body.copy(color = CtColors.Text)) },
                 enabled = enabled,

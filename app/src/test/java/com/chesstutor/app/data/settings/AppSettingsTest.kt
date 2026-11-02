@@ -48,9 +48,9 @@ class AppSettingsTest {
     }
 
     @Test
-    fun appThemeDefaultsToParchmentFollowingThePhone() {
+    fun appThemeDefaultsToMonoFollowingThePhone() {
         val decoded = AppSettingsCodec.decode(emptyMap())
-        assertEquals(AppTheme.PARCHMENT, decoded.appTheme)
+        assertEquals(AppTheme.MONO, decoded.appTheme)
         assertEquals(Appearance.SYSTEM, decoded.appearance)
     }
 
@@ -61,7 +61,7 @@ class AppSettingsTest {
         assertEquals("LIGHT", encoded[AppSettingsCodec.APPEARANCE])
         listOf("", "NAVY", "baize", 3).forEach { stored ->
             val decoded = AppSettingsCodec.decode(mapOf(AppSettingsCodec.APP_THEME to stored, AppSettingsCodec.APPEARANCE to stored))
-            assertEquals("stored value $stored", AppTheme.PARCHMENT, decoded.appTheme)
+            assertEquals("stored value $stored", AppTheme.MONO, decoded.appTheme)
             assertEquals("stored value $stored", Appearance.SYSTEM, decoded.appearance)
         }
     }

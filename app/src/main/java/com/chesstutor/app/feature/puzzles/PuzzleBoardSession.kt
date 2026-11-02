@@ -41,6 +41,8 @@ class PuzzleBoardSession private constructor(
     private var lineToShow: List<Move> = emptyList()
     /** Where the board was before the player's last accepted move (for showing the main line). */
     private var beforePlayerMove: Position = start
+    /** Every move on the board so far, the opponent's set-up move first, for the move list. */
+    private val played = mutableListOf<Move>()
 
     /** The side the player solves for: the board faces it (decision D2). */
     val solverColor: PieceColor = if (judge.solverColor == 'w') PieceColor.WHITE else PieceColor.BLACK
@@ -70,6 +72,7 @@ class PuzzleBoardSession private constructor(
         if (version > 0) return
         val move = legal(start, judge.openingMove) ?: return
         current = LegalMoveGenerator.makeMove(start, move)
+        played += move
         publish(previous = start, last = move, animate = true, movable = solverColor)
     }
 
@@ -79,7 +82,9 @@ class PuzzleBoardSession private constructor(
             is PuzzleMoveResult.Correct -> {
                 beforePlayerMove = before
                 // Use the generated move: one parsed from text lacks the castling and en passant flags.
-                current = LegalMoveGenerator.makeMove(before, legal(before, move.uci) ?: move)
+                val generated = legal(before, move.uci) ?: move
+                current = LegalMoveGenerator.makeMove(before, generated)
+                played += generated
                 pendingReply = result.reply?.takeIf { !result.solved }?.let { legal(current, it) }
                 lastOutcome = if (result.solved) PuzzleMoveOutcome.Solved(result.alternative) else PuzzleMoveOutcome.Continue
                 publish(previous = before, last = move, animate = true, movable = null)
@@ -101,6 +106,7 @@ class PuzzleBoardSession private constructor(
         pendingReply = null
         val before = current
         current = LegalMoveGenerator.makeMove(before, reply)
+        played += reply
         publish(previous = before, last = reply, animate = true, movable = solverColor)
         return true
     }
@@ -122,6 +128,7 @@ class PuzzleBoardSession private constructor(
     fun prepareMainLine() {
         lineToShow = judge.mainLineFromHere().mapNotNull { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
         current = beforePlayerMove
+        played.removeLastOrNull()
         publish(previous = null, last = null, animate = false, movable = null)
     }
 
@@ -132,6 +139,7 @@ class PuzzleBoardSession private constructor(
         val move = legal(current, next.uci) ?: return false
         val before = current
         current = LegalMoveGenerator.makeMove(before, move)
+        played += move
         publish(previous = before, last = move, animate = true, movable = null)
         return true
     }
@@ -157,6 +165,7 @@ class PuzzleBoardSession private constructor(
             movable = movable,
             legalMoves = if (movable == null) emptyList() else LegalMoveGenerator.generateLegalMoves(position),
             start = start,
+            moves = played.toList(),
         )
 
     companion object {

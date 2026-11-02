@@ -110,22 +110,12 @@ object AppRoutes {
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 
     private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
-    /** Learn's browsing pages keep the bottom bar; the lesson player (a board) hides it. */
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
-    /** Home's browsing pages keep the bottom bar too. */
     private val homePages = setOf(BOTS)
     private val puzzlePages = setOf(PUZZLE_LEVELS)
 
-    /**
-     * The bottom bar shows on tab pages and hides on full-screen activities (anything that
-     * hosts a board). Unknown routes hide it, which is the safe choice for a new full-screen
-     * activity.
-     */
-    fun showsBottomBar(route: String?): Boolean {
-        if (route == null) return true
-        if (TopTab.entries.any { it.startRoute == route }) return true
-        return route in accountPages || route in learnPages || route in homePages || route in puzzlePages
-    }
+    /** The bottom bar shows on the four main tabs only: every other page and board gets the room. */
+    fun showsBottomBar(route: String?): Boolean = route == null || TopTab.entries.any { it.startRoute == route }
 
     /** The tab a destination belongs to, used to highlight the bottom bar. */
     fun tabFor(route: String?): TopTab? = when {

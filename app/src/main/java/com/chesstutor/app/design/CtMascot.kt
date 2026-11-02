@@ -1,5 +1,9 @@
 package com.chesstutor.app.design
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -58,6 +62,34 @@ fun CtCoachBubble(
                 Text(text = mascot.displayName, style = CtType.Caption.copy(color = CtColors.Accent))
                 Text(text = text, style = CtType.Chat)
             }
+        }
+    }
+}
+
+/**
+ * The coach above a board, in [CtBoardScreen]'s zone: a mascot in a [mood] and a tailed bubble.
+ * The bubble takes the zone's free height, standing on the board, and long text scrolls inside it,
+ * so it can never reach the board.
+ */
+@Composable
+fun ColumnScope.CtTutor(
+    mascot: Mascot,
+    modifier: Modifier = Modifier,
+    mood: MascotMood = MascotMood.READY,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Row(
+        modifier = modifier.weight(1f, fill = false).fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
+    ) {
+        CtMascotArt(mascot = mascot, height = 56.dp, mood = mood, modifier = Modifier.width(56.dp))
+        CtSpeechBubble(modifier = Modifier.weight(1f), tail = CtTail.Start) {
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+                content = content,
+            )
         }
     }
 }
