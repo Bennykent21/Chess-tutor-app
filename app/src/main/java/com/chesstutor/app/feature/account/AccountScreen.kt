@@ -1,7 +1,5 @@
 package com.chesstutor.app.feature.account
 
-import com.chesstutor.app.design.CtStreak
-import com.chesstutor.app.feature.home.PlayerAvatar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
@@ -44,7 +41,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.data.model.GameSource
@@ -56,7 +52,6 @@ import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtScreenBackground
-import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtShapes
@@ -69,6 +64,7 @@ import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.account.GameOutcome
 import com.chesstutor.app.domain.account.PerformanceCalculator
+import com.chesstutor.app.domain.account.RatingRank
 import com.chesstutor.app.domain.account.RatingTrend
 import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.domain.account.TrainingCalculator
@@ -78,7 +74,6 @@ import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.OpeningCourses
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.viewmodel.AppUiState
-import java.util.Locale
 
 /** The Account tab's pages (plan section 6.4; "Performance" became "Stats" in D44). */
 enum class AccountTab(val label: String) {
@@ -135,6 +130,8 @@ fun AccountScreen(
     var filter by rememberSaveable(stateSaver = GameFilterSaver) { mutableStateOf(GameFilter()) }
     var filtersOpen by rememberSaveable { mutableStateOf(false) }
     var badgeId by rememberSaveable { mutableStateOf<String?>(null) }
+    var ranksOpen by rememberSaveable { mutableStateOf(false) }
+    val rank = RatingRank.of(state.effectiveUserRating)
     val courseIdFor = remember(openingCourses) { { family: String -> OpeningCourses.courseFor(family, openingCourses)?.id } }
     val followed = state.linkedProfile?.selectedTimeControl
     val gameTrend = remember(games.games, followed) { PerformanceCalculator.ratingTrend(games.games, followed?.let { TimeClass.of(it.name) }) }
@@ -148,10 +145,7 @@ fun AccountScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = CtSpacing.xl),
             ) {
-                item(key = "top") {
-                    CtScreenTitle(title = "Account") { SettingsButton(onClick = actions.onOpenSettings) }
-                }
-                item(key = "profile") { ProfileRow(state, stats, Modifier.padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.md)) }
+                item(key = "hero") { AccountHero(state, rank, onOpenRanks = { ranksOpen = true }, onOpenSettings = actions.onOpenSettings) }
                 item(key = "numbers") {
                     Numbers(
                         state = state,
@@ -198,7 +192,6 @@ fun AccountScreen(
                         TrainingPage(
                             training = training,
                             dueReviewCount = dueReviewCount,
-                            boardTheme = state.appSettings.boardTheme,
                             onReviewMistakes = actions.onReviewMistakes,
                             onPracticeTheme = actions.onPracticeTheme,
                             modifier = page,
@@ -214,29 +207,8 @@ fun AccountScreen(
                 onDismiss = { filtersOpen = false },
             )
             BadgeSheet(badge = overview.badges.firstOrNull { it.id == badgeId }, onDismiss = { badgeId = null })
+            RankSheet(visible = ranksOpen, rank = rank, onDismiss = { ranksOpen = false })
         }
-    }
-}
-
-// ------------------------------------------------------------------ header
-
-/** The player's picture, "@name" with where the rating comes from, and the day streak. */
-@Composable
-private fun ProfileRow(state: AppUiState, stats: PuzzleStats, modifier: Modifier = Modifier) {
-    val linked = state.linkedProfile
-    val name = state.appSettings.playerName.trim()
-    val title = name.ifEmpty { linked?.let { "@${it.username}" } ?: "You" }
-    val detail = linked?.let {
-        val where = "${it.platform.displayName}, ${it.selectedTimeControl.displayName.lowercase(Locale.UK)}"
-        if (name.isEmpty()) where else "@${it.username} · $where"
-    }
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        PlayerAvatar(state.appSettings.picture, name.ifEmpty { linked?.username.orEmpty() }, size = 52.dp)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
-            Text(title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (detail != null) Text(detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        CtStreak(stats.dayStreak)
     }
 }
 
@@ -465,19 +437,3 @@ private val GameFilterSaver = listSaver<GameFilter, String>(
         )
     },
 )
-
-/** The Settings entry: a gear at the top right of Account, as players expect. */
-@Composable
-private fun SettingsButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(CtSpacing.touchTarget)
-            .clip(CtShapes.Pill)
-            .background(CtColors.Surface)
-            .ctPressable(onClickLabel = "Open settings", onClick = onClick)
-            .semantics { contentDescription = "Settings" },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(Icons.Rounded.Settings, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(20.dp))
-    }
-}

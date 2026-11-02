@@ -468,7 +468,6 @@ private fun AppShell(
                     LearnScreen(
                         learn = lessons,
                         trainerDue = trainer.dueTotal,
-                        boardTheme = state.appSettings.boardTheme,
                         actions = LearnHubActions(
                             onOpenCategory = { category -> navController.navigate(AppRoutes.learnCategory(category.key)) { launchSingleTop = true } },
                             onOpenLesson = { id ->
@@ -529,7 +528,6 @@ private fun AppShell(
                         learn = lessons,
                         onOpenCourse = { id -> navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } },
                         onBack = { navController.popBackStack() },
-                        boardTheme = state.appSettings.boardTheme,
                     )
                 }
                 composable(
@@ -558,7 +556,6 @@ private fun AppShell(
                             }
                         },
                         practice = course?.let { lessons.practice[it.id] },
-                        boardTheme = state.appSettings.boardTheme,
                     )
                 }
                 // Home's Continue card: opens one lesson, then shows the player.
