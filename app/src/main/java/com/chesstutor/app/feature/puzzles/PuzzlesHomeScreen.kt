@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -119,9 +120,9 @@ fun PuzzlesHomeScreen(
                         ) { BoardPattern(boardColors) }
                         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                             CtTile(modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onDailyPuzzle, onClickLabel = "Open the daily puzzle") {
-                                Icon(Icons.Rounded.Bolt, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(28.dp))
+                                Icon(if (state.dailySolved) Icons.Rounded.CheckCircle else Icons.Rounded.Bolt, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(28.dp))
                                 Spacer(Modifier.weight(1f))
-                                TileText("Daily puzzle", if (state.stats.solvedToday) "Solved today" else "Waiting for you")
+                                TileText("Daily puzzle", if (state.dailySolved) "Solved today" else "Waiting for you")
                             }
                             CtTile(modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onReviewMistakes, onClickLabel = "Review the mistakes from your games") {
                                 Text("$dueReviewCount", style = CtType.BigNumber)

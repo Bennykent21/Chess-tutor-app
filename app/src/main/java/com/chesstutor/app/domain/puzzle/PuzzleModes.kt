@@ -1,5 +1,7 @@
 package com.chesstutor.app.domain.puzzle
 
+import java.time.ZoneId
+import java.time.Instant
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.random.Random
@@ -34,6 +36,10 @@ object PuzzleModes {
         val index = Math.floorMod(date.toEpochDay() * 2_654_435_761L, pool.size.toLong()).toInt()
         return pool.sortedBy { it.id }[index]
     }
+
+    /** True once [puzzleId] was solved on [today]. The same puzzle solved on another day does not count. */
+    fun solvedOn(puzzleId: String?, history: List<PuzzleHistoryEntry>, today: LocalDate, zone: ZoneId = ZoneId.systemDefault()): Boolean =
+        history.any { it.puzzleId == puzzleId && it.solved && Instant.ofEpochMilli(it.finishedAt).atZone(zone).toLocalDate() == today }
 
     /** The pattern tags found in [pack] among puzzles with [goal], most common first. */
     fun patternsFor(goal: PuzzleGoal, pack: PuzzlePack): List<String> =

@@ -35,6 +35,8 @@ data class PuzzlesHomeState(
     /** False when the bundled pack is missing or empty. */
     val packAvailable: Boolean = true,
     val stats: PuzzleStats = PuzzleStats(),
+    /** Today's daily puzzle is solved. */
+    val dailySolved: Boolean = false,
     val levels: Map<Int, LevelProgress> = emptyMap(),
 ) {
     val passed: Set<Int> get() = levels.filterValues { it.passed }.keys
@@ -55,8 +57,16 @@ class PuzzlesViewModel(
     private val pack = MutableStateFlow<PuzzlePack?>(null)
 
     val home: StateFlow<PuzzlesHomeState> =
-        combine(pack, repository.stats(), repository.levelProgress()) { p, stats, levels ->
-            PuzzlesHomeState(loading = p == null, packAvailable = p?.isEmpty != true, stats = stats, levels = levels)
+        combine(pack, repository.stats(), repository.levelProgress(), repository.history()) { p, stats, levels, history ->
+            val today = LocalDate.now()
+            val daily = p?.let { PuzzleModes.daily(it, today) }
+            PuzzlesHomeState(
+                loading = p == null,
+                packAvailable = p?.isEmpty != true,
+                stats = stats,
+                levels = levels,
+                dailySolved = PuzzleModes.solvedOn(daily?.id, history, today),
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PuzzlesHomeState())
 
     init {

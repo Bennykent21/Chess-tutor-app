@@ -91,6 +91,24 @@ class LiveLinkThenMoreCheck {
         scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
     }
 
+    /** The whole way to the real site with the phone's own lookup failing every time. */
+    @Test
+    fun theFallbackLookupReachesBothSites() = runBlocking {
+        val chessCom = System.getenv("LIVE_IMPORT_USER")
+        val lichess = System.getenv("LIVE_LICHESS_USER")
+        assumeTrue("set LIVE_IMPORT_USER and LIVE_LICHESS_USER to run", !chessCom.isNullOrBlank() && !lichess.isNullOrBlank())
+        val http = okhttp3.OkHttpClient.Builder()
+            .dns(FallbackDns(system = object : okhttp3.Dns {
+                override fun lookup(hostname: String): List<java.net.InetAddress> = throw java.net.UnknownHostException(hostname)
+            }))
+            .build()
+        val client = RatingApiClient(http)
+        println("Chess.com through the fallback: ${client.fetchChessComStats(chessCom!!)}")
+        println("Lichess through the fallback: ${client.fetchLichessStats(lichess!!)}")
+        val games = client.fetchRecentGames(RatingPlatform.CHESS_COM, chessCom, maxGames = 5).getOrThrow()
+        org.junit.Assert.assertEquals(5, games.size)
+    }
+
     @Test
     fun chessCom() {
         val user = System.getenv("LIVE_IMPORT_USER")

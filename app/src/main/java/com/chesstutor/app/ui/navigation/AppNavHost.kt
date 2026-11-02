@@ -969,6 +969,7 @@ private fun homeViewModel(navController: NavHostController, entry: NavBackStackE
                 loadLessons = { AppContainer.provideLessonLoader(context).load() },
                 lessonProgress = AppContainer.provideLessonProgress(context).observe(),
                 loadDaily = { PuzzleModes.daily(AppContainer.loadPuzzlePack(context), LocalDate.now())?.let(DailyPreview::of) },
+                puzzleHistory = AppContainer.providePuzzleRepository(context).history(),
             ),
         ),
     )

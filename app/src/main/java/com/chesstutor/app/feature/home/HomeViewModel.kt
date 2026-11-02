@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.home
 
+import java.time.ZoneId
+import java.time.Instant
+import com.chesstutor.app.domain.puzzle.PuzzleModes
+import com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry
 import com.chesstutor.app.domain.puzzle.PuzzleSession
 import com.chesstutor.app.domain.puzzle.Puzzle
 import kotlinx.coroutines.CoroutineDispatcher
@@ -119,11 +123,11 @@ data class HomeUiState(
 )
 
 /** The position today's puzzle opens on, from the side that solves it. */
-data class DailyPreview(val fen: String, val whiteAtBottom: Boolean) {
+data class DailyPreview(val puzzleId: String, val fen: String, val whiteAtBottom: Boolean) {
     companion object {
         /** Null for a puzzle that cannot be set up. */
         fun of(puzzle: Puzzle): DailyPreview? =
-            PuzzleSession.start(puzzle)?.let { DailyPreview(it.fen, whiteAtBottom = it.solverColor == 'w') }
+            PuzzleSession.start(puzzle)?.let { DailyPreview(puzzle.id, it.fen, whiteAtBottom = it.solverColor == 'w') }
     }
 }
 
@@ -133,6 +137,7 @@ class HomeLearning(
     val loadLessons: suspend () -> LessonLibrary = { LessonLibrary.EMPTY },
     val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
     val loadDaily: suspend () -> DailyPreview? = { null },
+    val puzzleHistory: Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList()),
 )
 
 /**
@@ -182,7 +187,6 @@ class HomeViewModel(
                 resume = saved?.let { s -> findBot(s.botId, mine)?.let { s.toResumeCard(it) } },
                 recommendation = PlayRecommender.recommend(list.botGamesNewestFirst(), rating),
                 dayStreak = stats.dayStreak,
-                dailySolved = stats.solvedToday,
                 gamesPlayed = list.count { it.id.startsWith("bot_") },
                 myBots = mine,
             )
@@ -192,7 +196,10 @@ class HomeViewModel(
                 nextLesson = lesson,
                 nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
             )
-        }.combine(daily) { state, preview -> state.copy(daily = preview) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
+        }.combine(daily.combine(learning.puzzleHistory) { preview, history -> preview to history }) { state, (preview, history) ->
+            val today = Instant.ofEpochMilli(clock()).atZone(ZoneId.systemDefault()).toLocalDate()
+            state.copy(daily = preview, dailySolved = PuzzleModes.solvedOn(preview?.puzzleId, history, today))
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
             BotRoster.byId(s.botId)?.let { s.toResumeCard(it) }
         }))
 
