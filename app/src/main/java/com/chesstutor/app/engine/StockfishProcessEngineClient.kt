@@ -40,7 +40,6 @@ class StockfishProcessEngineClient(
     private val config: NativeEngineConfig = NativeEngineConfig(),
 ) : EngineClient, EngineHealthReporter {
 
-    val targetPath: String get() = binaryPath
 
     @Volatile
     var lastStartupError: String? = null
@@ -607,16 +606,3 @@ class StockfishProcessEngineClient(
         fun skillLevelFor(rating: Int): Int = ((rating - 400).coerceAtLeast(0) / 180).coerceIn(0, 5)
     }
 }
-
-/** Kept for the existing diagnostics dialog. */
-data class EngineDiagnostics(
-    val engineName: String,
-    val isAlive: Boolean,
-    val bestMove: String,
-    val centipawns: Int?,
-    val depth: Int?,
-    val pv: String,
-    val latencyMs: Long,
-    val resolvedBinaryPath: String? = null,
-    val launchError: String? = null
-)

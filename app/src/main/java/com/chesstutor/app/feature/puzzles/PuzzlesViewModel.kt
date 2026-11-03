@@ -1,6 +1,9 @@
 package com.chesstutor.app.feature.puzzles
 
 import com.chesstutor.app.domain.puzzle.DailyPreview
+import com.chesstutor.app.domain.puzzle.InMemoryRushRecords
+import com.chesstutor.app.domain.puzzle.RushKind
+import com.chesstutor.app.domain.puzzle.RushRecords
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.PracticeRepository
 import com.chesstutor.app.domain.learn.PracticeSets
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -56,8 +60,17 @@ class PuzzlesViewModel(
     private val loadPack: suspend () -> PuzzlePack,
     /** Where practice-set scores go (plan 6C). */
     private val practice: PracticeRepository? = null,
+    private val rushRecords: RushRecords = InMemoryRushRecords(),
 ) : ViewModel() {
     private val pack = MutableStateFlow<PuzzlePack?>(null)
+
+    /** Each rush's best score, for its tile on Puzzle modes. */
+    val rushBest: StateFlow<Map<RushKind, Int>> = rushRecords.best
+
+    /** How many missed puzzles wait in "Puzzles you missed", counted again after each puzzle. */
+    val missedCount: StateFlow<Int> = repository.history()
+        .map { repository.mistakePuzzleIds().size }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     val home: StateFlow<PuzzlesHomeState> =
         combine(pack, repository.stats(), repository.levelProgress(), repository.history()) { p, stats, levels, history ->
@@ -71,7 +84,7 @@ class PuzzlesViewModel(
                 daily = daily?.let(DailyPreview::of),
                 dailySolved = PuzzleModes.solvedOn(daily?.id, history, today),
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PuzzlesHomeState())
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, PuzzlesHomeState())
 
     init {
         viewModelScope.launch {
@@ -121,6 +134,7 @@ class PuzzlesViewModel(
             maxStrikes = if (minutes == null) 3 else null,
             oneTry = true,
             nextPuzzle = { _, solved -> rush.next(solved) },
+            onFinished = { solved, _ -> rushRecords.record(RushKind.of(minutes), solved) },
         )
     }
 
@@ -210,8 +224,9 @@ class PuzzlesViewModel(
         private val repository: PuzzleRepository,
         private val loadPack: suspend () -> PuzzlePack,
         private val practice: PracticeRepository? = null,
+        private val rushRecords: RushRecords = InMemoryRushRecords(),
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = PuzzlesViewModel(repository, loadPack, practice) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = PuzzlesViewModel(repository, loadPack, practice, rushRecords) as T
     }
 }

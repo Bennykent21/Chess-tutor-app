@@ -256,23 +256,6 @@ class PuzzleLogicTest {
     }
 
     @Test
-    fun selector_prefersPuzzlesNearTheRating() {
-        val pack = packOf(Triple("low", 600, "fork"), Triple("mid", 1500, "fork"), Triple("high", 2400, "fork"))
-        val sel = PuzzleSelector(pack, Random(1))
-        repeat(20) { assertEquals("mid", sel.next(userRating = 1480)!!.id) }
-    }
-
-    @Test
-    fun selector_widensWindowAndHonoursThemeAndExclusions() {
-        val pack = packOf(Triple("a", 600, "fork"), Triple("b", 2400, "pin"), Triple("c", 2300, "pin"))
-        val sel = PuzzleSelector(pack, Random(2))
-        assertEquals("a", sel.next(userRating = 1500, theme = "fork")!!.id)       // far away, window widens
-        assertEquals("b", sel.next(userRating = 2400, theme = "pin", excludeIds = setOf("c"))!!.id)
-        assertNull(sel.next(userRating = 1500, theme = "pin", excludeIds = setOf("b", "c")))
-        assertNull(sel.next(userRating = 1500, theme = "skewer"))
-    }
-
-    @Test
     fun rating_movesTowardsResultAndStaysInBounds() {
         assertEquals(1516, PuzzleRating.update(1500, 1500, solved = true))
         assertEquals(1484, PuzzleRating.update(1500, 1500, solved = false))

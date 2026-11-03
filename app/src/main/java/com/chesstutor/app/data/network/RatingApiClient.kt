@@ -514,6 +514,7 @@ class RatingApiClient(
 
         /** Stop a Chess.com import after this many months in a row fail (connection down / rate-limited). */
         private const val MAX_CONSECUTIVE_FAILED_MONTHS = 3
-        private const val USER_AGENT = "ChessTutorAndroid/1.0 (https://github.com/Bennykent21/Chess-tutor; contact: support@chesstutor.app)"
+        /** Chess.com and Lichess ask API callers to say who they are and where to find them. */
+        private val USER_AGENT = "ChessTutorAndroid/${com.chesstutor.app.BuildConfig.VERSION_NAME} (+https://github.com/Bennykent21/Chess-tutor-app)"
     }
 }

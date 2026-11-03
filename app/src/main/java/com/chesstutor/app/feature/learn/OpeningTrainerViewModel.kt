@@ -76,7 +76,7 @@ class OpeningTrainerViewModel(
                 )
             },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrainerState())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, TrainerState())
 
     private val progress: StateFlow<Map<String, DrillProgress>> =
         repository.observeDrills().stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())

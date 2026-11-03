@@ -143,9 +143,10 @@ class AccountViewModel(
         combine(repository.observeGames().conflate(), tree.filterNotNull()) { records, openings -> summarise(records, openings) }.flowOn(worker),
         analysis.observeSummaries(),
     ) { list, analysed -> GamesState(loading = false, games = list, analysed = analysed) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GamesState())
+        // Loaded from launch (the view model lives as long as the app), so Account opens at once.
+        .stateIn(viewModelScope, SharingStarted.Eagerly, GamesState())
 
-    val stats: StateFlow<PuzzleStats> = puzzleStats.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PuzzleStats())
+    val stats: StateFlow<PuzzleStats> = puzzleStats.stateIn(viewModelScope, SharingStarted.Eagerly, PuzzleStats())
 
     private val mutableJobs = MutableStateFlow<Map<String, AnalysisJob>>(emptyMap())
     /** Analyses running or waiting, and ones that failed, by game id. */
@@ -173,12 +174,12 @@ class AccountViewModel(
 
     /** The Training page: puzzle rating history, theme strengths and lessons done (plan 6.4). */
     val training: StateFlow<TrainingReport> = trainingSources.reports()
-        .flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TrainingSources.EMPTY_REPORT)
+        .flowOn(worker).stateIn(viewModelScope, SharingStarted.Eagerly, TrainingSources.EMPTY_REPORT)
 
     /** The Learn courses that teach openings, so a row on Stats can open its course (D44). */
     val openingCourses: StateFlow<List<Course>> = flow {
         emit(runCatching { trainingSources.loadLessons() }.getOrDefault(LessonLibrary.EMPTY).coursesIn(LessonCategory.OPENINGS))
-    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** Reviews of every analysed game, kept until the game is analysed again. */
     private val reviewCache = HashMap<String, Pair<Long, GameReview>>()
@@ -186,7 +187,7 @@ class AccountViewModel(
     /** The review of every analysed game by id, for the Performance page (accuracy by phase, mistake types). */
     val reviews: StateFlow<Map<String, GameReview>> = games.map { state -> reviewsOf(state) }
         .flowOn(worker)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     /** Badges for the Overview (plan 5.3), from what is already saved. */
     val overview: StateFlow<OverviewState> = combine(
@@ -206,7 +207,7 @@ class AccountViewModel(
             lessonTitles = library.courses.flatMap { it.lessons }.associate { it.id to it.title },
         )
         OverviewState(Achievements.badges(inputs))
-    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverviewState())
+    }.flowOn(worker).stateIn(viewModelScope, SharingStarted.Eagerly, OverviewState())
 
     init {
         viewModelScope.launch { tree.value = runCatching { loadOpenings() }.getOrDefault(OpeningTree.EMPTY) }

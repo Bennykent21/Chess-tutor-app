@@ -37,11 +37,3 @@ interface PuzzleProgressStore {
     fun save(progress: PuzzleProgress)
 }
 
-class InMemoryPuzzleProgressStore(private var saved: PuzzleProgress? = null) : PuzzleProgressStore {
-    override fun load(seedRating: Int): PuzzleProgress =
-        saved ?: PuzzleProgress(rating = seedRating.coerceIn(PuzzleRating.MIN, PuzzleRating.MAX))
-
-    override fun save(progress: PuzzleProgress) {
-        saved = progress
-    }
-}

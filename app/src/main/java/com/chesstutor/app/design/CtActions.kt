@@ -228,12 +228,6 @@ fun CtBadge(
     }
 }
 
-/** "Coming in Phase N" marker for features that are planned but not built. */
-@Composable
-fun CtComingSoon(phase: Int, modifier: Modifier = Modifier) {
-    CtChip(text = "Coming in Phase $phase", icon = Icons.Rounded.Lock, modifier = modifier)
-}
-
 /**
  * One choice out of a few, side by side (System, Light, Dark). Read as radio buttons.
  * The selected segment is raised; colours fade over 240 ms.

@@ -3,6 +3,9 @@ name: Android CI
 on:
   workflow_dispatch:
   push:
+    # A version tag (v1.0.0) also builds the signed release and publishes it (RELEASING.md).
+    tags:
+      - 'v*'
     branches:
       - main
       - refactor/foundation
@@ -68,15 +71,6 @@ jobs:
             -keysize 2048 \
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
-
-      - name: Ensure environment configuration
-        shell: bash
-        run: |
-          if [ ! -f .env ] && [ -f .env.example ]; then
-            cp .env.example .env
-          elif [ ! -f .env ]; then
-            touch .env
-          fi
 
       - name: Run unit tests
         run: ./gradlew test --no-configuration-cache -Dhttps.protocols=TLSv1.2
@@ -146,11 +140,27 @@ jobs:
         run: ./gradlew assembleDebug -PctAbis=arm64-v8a --no-configuration-cache -Dhttps.protocols=TLSv1.2
 
       - name: Assemble release APK
-        # R8 is on for release. Sign this CI build with the throwaway debug key so the minified
-        # APK can be installed and tested on a phone. NEVER upload this build to Google Play.
+        # R8 is on for release. A version tag signs with the release key (repository secrets,
+        # see RELEASING.md) and fails without it. Every other build signs with the throwaway test
+        # key, so the minified APK can be tried on a phone. NEVER publish a test-key build.
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          KEYSTORE_PATH="$HOME/.android/debug.keystore" \
-          STORE_PASSWORD=android KEY_ALIAS=androiddebugkey KEY_PASSWORD=android \
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            if [ -z "$RELEASE_KEYSTORE_B64" ] || [ -z "$RELEASE_STORE_PASSWORD" ] || [ -z "$RELEASE_KEY_ALIAS" ] || [ -z "$RELEASE_KEY_PASSWORD" ]; then
+              echo "::error title=No release key::Set RELEASE_KEYSTORE_B64, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS and RELEASE_KEY_PASSWORD (RELEASING.md)."
+              exit 1
+            fi
+            printf '%s' "$RELEASE_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            export KEYSTORE_PATH="$RUNNER_TEMP/release.keystore" STORE_PASSWORD="$RELEASE_STORE_PASSWORD"
+            export KEY_ALIAS="$RELEASE_KEY_ALIAS" KEY_PASSWORD="$RELEASE_KEY_PASSWORD" CT_VERSION="${GITHUB_REF_NAME#v}"
+          else
+            export KEYSTORE_PATH="$HOME/.android/debug.keystore" STORE_PASSWORD=android KEY_ALIAS=androiddebugkey KEY_PASSWORD=android
+          fi
           ./gradlew assembleRelease -PctAbis=arm64-v8a --no-configuration-cache -Dhttps.protocols=TLSv1.2
 
       - name: Upload debug APK
@@ -173,3 +183,39 @@ jobs:
           name: chess-tutor-r8-mapping
           path: app/build/outputs/mapping/release/mapping.txt
           if-no-files-found: warn
+
+  release:
+    # Only for version tags: publish the APK the build signed with the release key.
+    needs: test-and-build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download the release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: chess-tutor-release-apk
+          path: apk
+
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          apk="chess-tutor-$version.apk"
+          mv apk/*.apk "$apk"
+          sha256sum "$apk" > "$apk.sha256"
+          # The notes are this version's section of CHANGELOG.md.
+          awk -v heading="## [$version]" 'index($0, heading) == 1 { found = 1; next } found && /^## \[/ { exit } found' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error title=No release notes::Add a '## [$version]' section to CHANGELOG.md."
+            exit 1
+          fi
+          printf '\nSHA-256: `%s`\n' "$(cut -d' ' -f1 "$apk.sha256")" >> notes.md
+          gh release create "$GITHUB_REF_NAME" "$apk" "$apk.sha256" --title "Chess Tutor $version" --notes-file notes.md

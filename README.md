@@ -1,75 +1,101 @@
-# Chess Tutor (Android)
+# Chess Tutor
 
-An offline-first, verified tactical chess tutor and sparring application for Android built with Jetpack Compose, Room, and a local UCI chess engine with win-probability move classification, ECO opening practice, and Chess.com / Lichess game review.
+**A chess teacher on your phone.** Play bots that feel like people, learn from lessons that let you move the pieces, solve thousands of puzzles, and get every game reviewed by Stockfish 19, all on your phone, offline, with no account and no ads.
 
----
+[![Android CI](https://github.com/Bennykent21/Chess-tutor-app/actions/workflows/android.yml/badge.svg)](https://github.com/Bennykent21/Chess-tutor-app/actions/workflows/android.yml)
+[![Latest release](https://img.shields.io/github/v/release/Bennykent21/Chess-tutor-app?label=download)](https://github.com/Bennykent21/Chess-tutor-app/releases/latest)
+[![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
-## 1. Setup & Build Instructions
+<p>
+  <img src=".github/readme/home.jpg" width="19%" alt="Home: your game, Play, the daily puzzle and Quick match">
+  <img src=".github/readme/learn.jpg" width="19%" alt="Learn: the next lesson and six topics with their progress">
+  <img src=".github/readme/puzzles.jpg" width="19%" alt="Puzzles: the level path, the daily puzzle and your mistakes to fix">
+  <img src=".github/readme/stats.jpg" width="19%" alt="Stats: your rapid rating over three months with your records and results">
+  <img src=".github/readme/bots.jpg" width="19%" alt="Bots: build your own, watch two, and the twelve bots with their ratings">
+</p>
 
-### Prerequisites
-- **JDK**: JDK 17 or JDK 21
-- **Android SDK**: `compileSdk = 36`, `targetSdk = 36`, `minSdk = 24`
-- **NDK (only to build Stockfish yourself)**: Android NDK r27c or newer, on Linux or WSL. CI does this for you; see section 3.
+## What it does
 
-### Build & Test Commands
+### Play
+
+- **12 bots with their own style and voice**, from Pebble (250), who is still learning how the pieces move, to Titan, a dragon rated 2500. Between 1100 and 1900 the bots move like people of that rating, using the Maia networks, so their mistakes look human.
+- **Build your own bot**: pick its strength, style and favourite openings.
+- **Quick match** finds a fair opponent; you can also play on from any position, drill an opening against a bot (Opening Battle), explore a position with the engine, or watch two bots play each other.
+- Clocks, takebacks, hints and an evaluation bar, each one your choice.
+
+### Learn
+
+- **38 courses and 73 lessons** across the basics, openings, tactics, the middlegame, endgames and the blunders everyone makes. You learn by moving the pieces on the board, with a coach beside it.
+- An **opening trainer** that drills the lines you want to play, from a database of about 3,900 named openings.
+
+### Puzzles
+
+- **13,485 puzzles** from the Lichess puzzle database, with a puzzle rating that follows how you solve.
+- The daily puzzle, a level path, Rush (3 minutes, 5 minutes or three lives), puzzles by theme, and Custom run, where you choose the rating, the pattern, how many and a timer.
+- **Your own mistakes come back as puzzles**: positions from your games where you went wrong return on a spaced schedule until you get them right.
+
+### Your games and progress
+
+- **Link Chess.com or Lichess** (just your username, no password) to bring in your games, rapid, blitz and bullet.
+- **Stockfish 19 reviews each game on the phone**: accuracy, each move's grade, the key moments, and the better move each time.
+- Stats for each time control: a rating graph, records, results, how your games end and how your openings score. A Training page shows your puzzle rating, streaks and the themes to work on. Badges and levels mark the way.
+
+### Make it yours
+
+- Four colour themes (Mono, Parchment, Baize, Slate), each in light and dark.
+- Board colours and four piece sets, sounds, vibration, Reduce motion, and a choice of coach.
+
+## Install
+
+1. On your Android phone, open the [latest release](https://github.com/Bennykent21/Chess-tutor-app/releases/latest) and download the `.apk` file.
+2. Open it. Android asks once to allow installs from your browser or file manager; allow it, then tap **Install**.
+3. To update, install the newer `.apk` from the same page over the old one. Your progress stays.
+
+Needs Android 7.0 or newer on a 64-bit ARM phone (almost every phone made since 2017). The app is large because Stockfish 19 and its neural network are inside it, so it can run with no connection.
+
+Each release lists the SHA-256 checksum of its APK, so you can check the file you downloaded.
+
+## How to use it
+
+- **New to chess?** On first start, choose "I'm new to chess" and Learn opens at the basics.
+- **Already play?** Choose "I play online", then link Chess.com or Lichess on Account. Your games arrive, your rating sets the bots and puzzles to your level, and each game can be reviewed.
+- **Every day:** solve the daily puzzle on Home, play a quick match, and clear the mistakes waiting in Puzzles.
+- **After a game:** tap **Review this game** on the result. The review shows where the game turned and what to play instead; tap a key moment to see it on the board.
+
+## Privacy
+
+Everything you do stays on your phone: no account, no ads, no analytics and no server of our own. The app goes online only:
+
+- to read your public games and ratings from **Chess.com** or **Lichess**, when you link an account; and
+- if the on-device engine ever fails to start, to send the **position being analysed** (and nothing else) to a public online Stockfish service (chess-api.com or stockfish.online), so analysis keeps working.
+
+## Build from source
+
+You need JDK 17 or 21 and the Android SDK (compile SDK 36). Gradle downloads the rest.
+
 ```bash
-# Run the JVM unit and verification test suite (macOS / Linux)
-./gradlew :app:testDebugUnitTest
-
-# Run the JVM unit and verification test suite (Windows)
-gradlew.bat :app:testDebugUnitTest
-
-# Assemble the debug APK
-./gradlew :app:assembleDebug
-
-# Assemble the release APK
-./gradlew :app:assembleRelease
+./gradlew assembleDebug                  # build the debug APK (gradlew.bat on Windows)
+./gradlew testDebugUnitTest lintDebug    # run the tests and lint
 ```
 
-### Installing test builds from GitHub Actions
+Stockfish is not in the repository (about 95 MB per CPU type). A build without it runs on the app's simple built-in engine and says so in Settings > Engine. To include it, either:
 
-Every push builds two APKs for 64-bit ARM phones (arm64-v8a, every modern phone), in the Actions run's *Artifacts* section:
+- download the `stockfish-android` artifact from any [CI run](https://github.com/Bennykent21/Chess-tutor-app/actions) and copy `arm64-v8a/libstockfish.so` and `x86_64/libstockfish.so` into `app/src/main/jniLibs/`; or
+- build it yourself on Linux or WSL with the Android NDK r27c: `bash tools/build_stockfish_android.sh app/src/main/jniLibs`.
 
-- `chess-tutor-debug-apk`: installs as **Chess Tutor Debug** (`io.github.bennykent21.chesstutor.debug`).
-- `chess-tutor-release-apk`: the minified (R8) build, installs as **Chess Tutor**. It is signed with the test key below, so it is for testing only. **Never upload it to Google Play.**
+Every push builds test APKs in GitHub Actions. A tag such as `v1.0.0` builds the signed APK and publishes it as a release; see [RELEASING.md](RELEASING.md).
 
-The two are separate apps with separate data, so both can be installed at once. The app's version name (`0.1.<run number>`) tells you which Actions run you are on.
+### How it is built
 
-**One-time setup, so updates install over the previous build.** Android only updates an app when the new APK has the same signature, so CI needs a fixed test key, stored as a repository secret. On Windows (PowerShell), using Android Studio's own debug key (create it by building any debug app once in Android Studio if it does not exist):
+- **Kotlin and Jetpack Compose**, Material 3, Navigation Compose; Room and DataStore for what is saved.
+- **Stockfish 19** runs as a separate process and talks UCI. If it cannot start, an online engine answers, then a small built-in engine, and the app says which one is working.
+- **Maia** networks run on the phone for the human-like bots.
+- The code is grouped by feature (`feature/home`, `feature/learn`, `feature/puzzles`, `feature/account`) on top of the board (`board/`), the rules of chess (`core/`), the design system (`design/`) and the data layer (`data/`). More than 700 unit tests cover the rules, the engine's use, reviews, imports and every screen.
 
-```powershell
-# Optional check: the file should exist and list "androiddebugkey"
-& "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -list -keystore "$env:USERPROFILE\.android\debug.keystore" -storepass android
+## Credits
 
-# Copy the key, base64-encoded, to the clipboard
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\.android\debug.keystore")) | Set-Clipboard
-```
+Chess Tutor stands on open work: [Stockfish](https://stockfishchess.org) (GPL-3.0), the [Lichess](https://lichess.org) puzzle database and [opening names](https://github.com/lichess-org/chess-openings) (CC0), [Maia Chess](https://maiachess.com) (GPL-3.0), piece sets by Colin M.L. Burnett, Armando Hernandez Marroquin, Alexis Luengas and Maurizio Monge, sounds by [Kenney](https://kenney.nl) (CC0), the Inter, Schibsted Grotesk and JetBrains Mono fonts (OFL), and a chess set model and lighting from [Poly Haven](https://polyhaven.com) (CC0). [LICENSES.md](LICENSES.md) lists every bundled asset and its licence; the app shows the same list under Settings > About.
 
-Then on GitHub: repository **Settings > Secrets and variables > Actions > New repository secret**, name `CI_DEBUG_KEYSTORE_B64`, paste, save. If the secret is missing, CI still builds but warns, and its APKs will not install over earlier builds.
+## Licence
 
----
-
-## 2. Product Structure & Navigation
-
-The app is being rebuilt in phases (see `plan.md`). The shell has four tabs, built with Navigation Compose, each with its own back stack:
-
-1. **Home**: the play hub. Quick match works now; custom bots, Opening Battle and the daily challenge arrive in Phase 3.
-2. **Learn**: six category buttons with progress. Until the new lesson pages (Phase 4) they open the classic lesson list on that category.
-3. **Puzzles**: the puzzle trainer and mistakes review. The level path and modes arrive in Phase 2.
-4. **Account**: profile, games and review, settings, engine health, the design-system gallery and a list of every classic screen.
-
-**Classic screens:** the pre-revamp screens (lesson and drill player, lesson list, Play, Review, puzzle trainer) open full screen through `LegacyHost`, with a back button, and keep their old behaviour until each is replaced.
-
-**Design system v2** lives in `app/src/main/java/com/chesstutor/app/design/`: colours (`Palette`, contrast-tested), type (Schibsted Grotesk headings, Inter body), shapes, motion that respects "Reduce motion", and the core components. Settings are stored with DataStore (`data/settings/`).
-
----
-
-## 3. Native Engine & Licensing
-
-- **Native packaging**: `libstockfish.so` is extracted to `context.applicationInfo.nativeLibraryDir` (`useLegacyPackaging = true`) and run as a child process.
-- **Process client**: `StockfishProcessEngineClient` talks UCI over pipes. Positions are checked first (`EngineFenGate`), because Stockfish 19 exits on any position it rejects. If Stockfish fails, the request is answered by the online engine, then the built-in Lite engine; after two failures in a session it stops retrying and the app shows a "Lite engine" badge. Bot strength is applied per request, so analysis always runs at full strength.
-- **Engine**: Stockfish 19 with its neural network embedded, built from the pinned official source by `tools/build_stockfish_android.sh` (Android 7+ / API 24, 16 KB page aligned, checked before install). CI builds it once and caches it; the binaries are too large for git and are not committed.
-- **Local builds**: download the `stockfish-android` artifact from any successful Actions run and copy `arm64-v8a/libstockfish.so` and `x86_64/libstockfish.so` into `app/src/main/jniLibs/`. Without them the app still runs, on its Lite engine, and Account > Engine health says so.
-- **Health check**: Account > Engine health (or Settings > Engine check) reports which engine answered, the speed Stockfish itself measured, and whether its network loaded. Nothing in that report is estimated.
-- **Third-party assets**: see `LICENSES.md`.
-- **License**: Distributed under the **GNU General Public License v3.0 (GPL-3.0)**. See `LICENSE` and `NOTICE`.
+Chess Tutor is free software under the [GNU General Public License v3.0](LICENSE). You may use, study, share and change it; if you share a changed version, share its source under the same licence.

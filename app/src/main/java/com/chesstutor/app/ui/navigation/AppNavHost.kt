@@ -21,6 +21,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -95,11 +97,14 @@ private fun AppShell(
         )
     }
 
-    val appContext = LocalContext.current.applicationContext
-    LaunchedEffect(Unit) {
-        AppContainer.provideLessonLoader(appContext).load()
-        AppContainer.provideOpeningLoader(appContext).load()
-    }
+    val appOwner = checkNotNull(LocalViewModelStoreOwner.current) { "The shell needs the activity's view models." }
+    val shell = Shell(navController, viewModel, state, dueReviews, linkActions, appOwner)
+    // Every tab starts loading at launch, in the background, so switching to one is instant.
+    shell.homeViewModel()
+    shell.learnViewModel()
+    shell.trainerViewModel()
+    shell.puzzlesViewModel()
+    shell.accountViewModel()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -125,7 +130,6 @@ private fun AppShell(
             popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(260)) + slideInVertically(tween(340, easing = CtMotion.EaseOut)) { it / 16 } },
             popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(160)) }
         ) {
-            val shell = Shell(navController, viewModel, state, dueReviews, linkActions)
             homeGraph(shell)
             learnGraph(shell)
             puzzlesGraph(shell)
@@ -179,6 +183,8 @@ internal class Shell(
     val state: AppUiState,
     val dueReviews: Int,
     val linkActions: AccountActions,
+    /** The activity: every tab's view model lives here, so all of them load from launch. */
+    val appOwner: ViewModelStoreOwner,
 )
 
 /** Switches tab, keeping each tab's own back stack (plan section 3). */

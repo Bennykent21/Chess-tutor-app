@@ -92,12 +92,16 @@ class PuzzleModesScreenTest {
                         onMistakes = { started += "mistakes" },
                     ),
                     onBack = {},
+                    rushBest = mapOf(com.chesstutor.app.domain.puzzle.RushKind.THREE to 24),
+                    missed = 12,
                 )
             }
         }
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_modes.png")
+        compose.onNodeWithText("Best 24", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("12").assertExists()
 
-        compose.onNodeWithContentDescription("3-minute rush").performClick()
+        compose.onNodeWithContentDescription("3-minute rush, best 24").performClick()
         compose.onNodeWithContentDescription("Survival, three strikes").performClick()
 
         compose.onNodeWithText("Checkmate").performClick()
