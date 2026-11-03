@@ -6,11 +6,11 @@ enum class GameSource {
     LICHESS
 }
 
-/** How many games to import: [label] when linking, [moreLabel] for "Import more" (older games). */
+/** How many games of each clock to import (D59): [label] when linking, [moreLabel] for "Import more" (older games). */
 enum class ImportDepth(val maxGames: Int, val label: String, val moreLabel: String) {
-    LAST_100(100, "Last 100", "100 more"),
-    LAST_500(500, "Last 500", "500 more"),
-    ALL(1500, "Up to 1,500", "1,500 more")
+    LAST_100(100, "100 of each", "100 more of each"),
+    LAST_500(500, "500 of each", "500 more of each"),
+    ALL(1500, "1,500 of each", "1,500 more of each")
 }
 
 data class ImportProgress(

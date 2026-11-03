@@ -26,6 +26,14 @@ class RatingCellsTest {
     }
 
     @Test
+    fun thePieceFollowsTheAverageOfTheClocksPlayed() {
+        fun state(rapid: Int?, blitz: Int?, bullet: Int?) = AppUiState(linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = rapid, blitzRating = blitz, bulletRating = bullet, selectedTimeControl = RatingTimeControl.RAPID))
+        assertEquals(1600, pieceRating(state(1700, 1100, 2000)))
+        assertEquals("a clock never played does not drag it down", 1400, pieceRating(state(1700, 1100, null)))
+        assertEquals(AppUiState().effectiveUserRating, pieceRating(AppUiState()))
+    }
+
+    @Test
     fun withNoAccountThereIsTheRatingAndThePuzzles() {
         val cells = ratingCells(AppUiState(), puzzleRating = 1233)
         assertEquals(listOf("Rating", "Puzzles"), cells.map { it.label })

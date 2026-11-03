@@ -164,7 +164,7 @@ private fun Linked(profile: LinkedChessProfile, state: AppUiState, actions: Acco
     } else {
         DepthChips(state.selectedImportDepth, actions.onImportDepth, more = true)
         CtButton(
-            text = "Import ${state.selectedImportDepth.moreLabel} games",
+            text = "Import ${state.selectedImportDepth.moreLabel}",
             icon = Icons.Rounded.CloudDownload,
             style = CtButtonStyle.Secondary,
             onClick = actions.onImportMore,
