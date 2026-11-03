@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.board.BoardPicture
 import com.chesstutor.app.board.BoardTheme
@@ -41,8 +42,6 @@ import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.PieceType
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
-import com.chesstutor.app.design.CtRing
-import com.chesstutor.app.design.CtRingPart
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
@@ -56,7 +55,6 @@ import com.chesstutor.app.domain.account.GameEnding
 import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameOutcome
 import com.chesstutor.app.domain.account.PerformanceCalculator
-import com.chesstutor.app.domain.account.RatingTrend
 import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.domain.account.Wdl
 import com.chesstutor.app.domain.account.WdlRow
@@ -64,9 +62,10 @@ import com.chesstutor.app.viewmodel.AppUiState
 import kotlin.math.roundToInt
 
 /**
- * Stats for one clock (D60), opened from its rating on Account: its rating graph, its records,
- * its results, how its games ended, and its openings as White and as Black. Every result and
- * opening opens those games; an opening with a course opens the course instead.
+ * Stats for one clock (D60, D64), opened from its rating on Account: the clock's metal and rating
+ * over its graph in the metal's colour, its records as plain figures, its results, how its games
+ * ended, and its openings as White and as Black. Every result and opening opens those games; an
+ * opening with a course opens the course instead.
  */
 @Composable
 fun StatsScreen(
@@ -90,17 +89,22 @@ fun StatsScreen(
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             CtTopBar(title = "Stats", onBack = onBack)
             if (clocks.size > 1) ClockChips(clocks, clock, onSelect = { it?.let { picked -> clockName = picked.name } })
+            if (report.games > 0) {
+                // Keyed on the clock, so each clock's graph draws itself in and starts at three months.
+                androidx.compose.runtime.key(clock) {
+                    RatingHero(report.trend, report.records.current, now, clockIcon(clock), CtColors.metal(clockHue(clock)), Modifier.padding(top = CtSpacing.md).ctEnter(0))
+                }
+            }
             Column(
                 modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md, bottom = CtSpacing.xl),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.xl),
             ) {
                 if (report.games == 0) {
                     CtEmptyState(icon = Icons.Rounded.Insights, title = "No ${clock.label.lowercase()} games yet", body = "Import your games or play a bot.")
                 } else {
-                    if (report.trend.points.size >= 2) GraphCard(report.trend, now, Modifier.ctEnter(0))
-                    RecordGrid(gameRecords(report), Modifier.ctEnter(1))
-                    ResultsCard(report.results, accuracy, onShow = { onShowGames(GameFilter(timeClass = clock, outcome = it)) }, Modifier.ctEnter(2))
-                    EndingsCard(report)
+                    Figures(gameRecords(report, accuracy), Modifier.ctEnter(1))
+                    ResultsBar(report.results, onShow = { onShowGames(GameFilter(timeClass = clock, outcome = it)) }, Modifier.ctEnter(2))
+                    Endings(report)
                     OpeningsAs(PieceColor.WHITE, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, onShowGames)
                     OpeningsAs(PieceColor.BLACK, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, onShowGames)
                 }
@@ -123,56 +127,41 @@ private fun linkedRating(state: AppUiState, clock: TimeClass): Int? {
 /** One record: a big number and what it is. */
 internal data class Record(val value: String, val label: String)
 
-private fun gameRecords(report: ClockReport): List<Record> {
+/** The records the hero and graph do not already show (rating and peak are there). */
+private fun gameRecords(report: ClockReport, accuracy: Double?): List<Record> {
     val r = report.records
     return listOf(
-        Record(r.current?.toString() ?: "–", "Rating"),
-        Record(r.peak?.toString() ?: "–", "Peak"),
-        Record(r.bestWin?.opponentRating?.toString() ?: "–", r.bestWin?.let { "Best win, ${opponentName(it)}" } ?: "Best win"),
-        Record("${r.longestWinStreak}", "Longest win streak"),
-        Record(r.averageOpponent?.toString() ?: "–", "Average opponent"),
+        Record(r.bestWin?.opponentRating?.toString() ?: "–", "Best win"),
+        Record("${r.longestWinStreak}", "Win streak"),
+        Record(accuracy?.let(::accuracyText) ?: "–", "Accuracy"),
+        Record(r.averageOpponent?.toString() ?: "–", "Avg opponent"),
         Record(report.averageMoves?.toString() ?: "–", "Moves a game"),
+        Record("${report.games}", "Games"),
     )
 }
 
-/** Records two to a row, each a number over its name. */
+/** Records three to a row, each a number over its name, straight on the page. */
 @Composable
-internal fun RecordGrid(records: List<Record>, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        records.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                pair.forEach { record ->
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(CtShapes.CardSmall)
-                            .background(CtColors.Surface)
-                            .semantics(mergeDescendants = true) {}
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                    ) {
+internal fun Figures(records: List<Record>, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(CtSpacing.lg)) {
+        records.chunked(3).forEach { row ->
+            Row {
+                row.forEach { record ->
+                    Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
                         Text(record.value, style = CtType.Number, maxLines = 1)
                         Text(record.label, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                if (pair.size == 1) Box(Modifier.weight(1f))
+                repeat(3 - row.size) { Box(Modifier.weight(1f)) }
             }
         }
     }
 }
 
-/** A rating graph on its own card. */
-@Composable
-internal fun GraphCard(trend: RatingTrend, now: Long, modifier: Modifier = Modifier) {
-    RatingGraph(trend, now, modifier.fillMaxWidth().clip(CtShapes.Card).background(CtColors.Surface).padding(CtSpacing.lg))
-}
-
 /** Wins and losses by how they ended. */
 @Composable
-private fun EndingsCard(report: ClockReport) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clip(CtShapes.Card).background(CtColors.Surface).padding(CtSpacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg),
-    ) {
+private fun Endings(report: ClockReport) {
+    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.xl)) {
         Endings("Won by", report.wonBy, Modifier.weight(1f))
         Endings("Lost by", report.lostBy, Modifier.weight(1f))
     }
@@ -236,31 +225,16 @@ private fun OpeningsAs(
     }
 }
 
-/** Every game at a glance: the split as a ring, a line for each result, the score and accuracy. */
+/** Every game at a glance: one bar split by result with the score beside it, and each result's count (a tap shows those games). */
 @Composable
-internal fun ResultsCard(wdl: Wdl, accuracy: Double?, onShow: (GameOutcome) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth().clip(CtShapes.Card).background(CtColors.Surface).padding(horizontal = CtSpacing.lg, vertical = CtSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg),
-    ) {
-        val total = wdl.games.coerceAtLeast(1).toFloat()
-        CtRing(
-            parts = counts(wdl).map { (outcome, n) -> CtRingPart(n / total, outcomeColor(outcome)) },
-            diameter = 96.dp,
-            stroke = 10.dp,
-        ) {
-            Column(Modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${wdl.games}", style = CtType.Number, maxLines = 1)
-                Text("Games", style = CtType.Caption, maxLines = 1)
-            }
-        }
-        Column(Modifier.weight(1f)) {
-            counts(wdl).forEach { (outcome, n) -> ResultLine(outcome, n, onClick = { onShow(outcome) }) }
-        }
-        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+internal fun ResultsBar(wdl: Wdl, onShow: (GameOutcome) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg)) {
+            WdlBar(wdl, Modifier.weight(1f), thickness = 10.dp)
             ResultFigure(percent(wdl.score), "Score")
-            if (accuracy != null) ResultFigure(accuracyText(accuracy), "Accuracy")
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg)) {
+            counts(wdl).forEach { (outcome, n) -> ResultLine(outcome, n, onClick = { onShow(outcome) }) }
         }
     }
 }
@@ -272,14 +246,13 @@ private fun counts(wdl: Wdl): List<Pair<GameOutcome, Int>> =
 private fun ResultLine(outcome: GameOutcome, count: Int, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
             .height(40.dp)
             .ctPressable(onClickLabel = "Show the games", onClick = onClick)
             .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        ResultSquare(outcome, size = 28.dp)
+        ResultSquare(outcome, size = 24.dp)
         Text("$count", style = CtType.TitleSmall, maxLines = 1)
     }
 }
@@ -294,8 +267,8 @@ private fun ResultFigure(value: String, label: String) {
 
 /** Wins, draws and losses side by side, each as wide as its share. */
 @Composable
-private fun WdlBar(wdl: Wdl, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().height(4.dp).clip(CtShapes.Pill), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+private fun WdlBar(wdl: Wdl, modifier: Modifier = Modifier, thickness: Dp = 4.dp) {
+    Row(modifier.fillMaxWidth().height(thickness).clip(CtShapes.Pill), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         counts(wdl).filter { (_, n) -> n > 0 }.forEach { (outcome, n) ->
             Box(Modifier.weight(n.toFloat()).fillMaxHeight().background(outcomeColor(outcome)))
         }

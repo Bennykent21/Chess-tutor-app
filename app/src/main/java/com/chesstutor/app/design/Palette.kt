@@ -213,6 +213,23 @@ object Palette {
 }
 
 /**
+ * The colours of the metal icons (D64), for a page that belongs to one of them: a clock's stats
+ * take its metal's colour for the graph and the glow behind the icon. The same in every theme;
+ * each mode has its own shade so lines and marks keep 3:1 on its backgrounds (PaletteContrastTest).
+ */
+enum class MetalHue(val light: Long, val dark: Long) {
+    GOLD(0xFF8F6608, 0xFFE8BC3E),
+    EMBER(0xFFB1431C, 0xFFF0814F),
+    JADE(0xFF1B7D48, 0xFF4CC985),
+    TEAL(0xFF137872, 0xFF45C7BC),
+    COBALT(0xFF2459C4, 0xFF6E9CF5),
+    VIOLET(0xFF6B42D6, 0xFFA88EFB),
+    ;
+
+    fun of(dark: Boolean): Long = if (dark) this.dark else light
+}
+
+/**
  * Move-grade colours (design language section 2), the same in every theme. Each grade has a
  * fill for badges and the board tint, an ink for the symbol on that fill, and a text colour for
  * the grade written on the page. In light mode the text colours are darker shades of the fills,

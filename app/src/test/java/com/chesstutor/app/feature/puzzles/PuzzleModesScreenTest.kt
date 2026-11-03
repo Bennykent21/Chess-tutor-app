@@ -27,6 +27,51 @@ class PuzzleModesScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
+    private val patterns = mapOf(
+        PuzzleGoal.CHECKMATE to listOf("mateIn2", "fork", "backRankMate"),
+        PuzzleGoal.WIN_MATERIAL to listOf("fork", "pin"),
+        PuzzleGoal.DEFEND to listOf("defensiveMove"),
+        PuzzleGoal.ENDGAME to listOf("rookEndgame", "promotion"),
+    )
+
+    @Test
+    fun eachPatternSitsOnceUnderTheGoalItBelongsToMost() {
+        assertEquals(
+            listOf(
+                PuzzleGoal.CHECKMATE to listOf("mateIn2", "backRankMate"),
+                PuzzleGoal.WIN_MATERIAL to listOf("fork", "pin"),
+                PuzzleGoal.DEFEND to listOf("defensiveMove"),
+                PuzzleGoal.ENDGAME to listOf("promotion", "rookEndgame"),
+            ),
+            patternGroups { patterns.getValue(it) },
+        )
+    }
+
+    /** Phone test 3 Nov: picking a pattern in a sideways strip inside a sheet was a hassle. */
+    @Test
+    fun customRunShowsEveryPatternAndStartsWithTheChoices() {
+        var started: String? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                CustomRunScreen(
+                    patternsFor = { patterns.getValue(it) },
+                    puzzleRating = 1310,
+                    onStart = { band, pattern, count, timed -> started = "$band $pattern $count $timed" },
+                    onBack = {},
+                )
+            }
+        }
+        compose.onNodeWithText("1200 to 1600").assertExists()
+        compose.onNodeWithText("You").assertExists()
+        compose.onNodeWithText("Pin").performScrollTo().performClick()
+        compose.onNodeWithText("1600").performClick()
+        compose.onNodeWithText("20").performClick()
+        compose.onNodeWithText("Timer").performClick()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_custom_run.png")
+        compose.onNodeWithText("Start 20 puzzles").performClick()
+        assertEquals("${RatingBand.STRONG} pin 20 true", started)
+    }
+
     @Test
     fun everyModeStartsWithTheChosenOptions() {
         val started = mutableListOf<String>()
@@ -43,7 +88,7 @@ class PuzzleModesScreenTest {
                     actions = PuzzleModeActions(
                         onRush = { started += "rush $it" },
                         onThemed = { goal, pattern, difficulty -> started += "theme $goal $pattern $difficulty" },
-                        onCustom = { band, pattern, count, timed -> started += "custom $band $pattern $count $timed" },
+                        onOpenCustom = { started += "custom" },
                         onMistakes = { started += "mistakes" },
                     ),
                     onBack = {},
@@ -63,12 +108,6 @@ class PuzzleModesScreenTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Custom run").performScrollTo().performClick()
-        compose.onNodeWithText("1600 to 2000").performClick()
-        compose.onNodeWithText("20").performClick()
-        compose.onNodeWithText("Timer").performClick()
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_modes_custom.png")
-        compose.onNodeWithText("Start 20 puzzles").performClick()
-        compose.waitForIdle()
         compose.onNodeWithText("Puzzles you missed").performScrollTo().performClick()
 
         assertEquals(
@@ -76,7 +115,7 @@ class PuzzleModesScreenTest {
                 "rush 3",
                 "rush null",
                 "theme ${PuzzleGoal.CHECKMATE} backRankMate ${Difficulty.HARDER}",
-                "custom ${RatingBand.STRONG} null 20 true",
+                "custom",
                 "mistakes",
             ),
             started,

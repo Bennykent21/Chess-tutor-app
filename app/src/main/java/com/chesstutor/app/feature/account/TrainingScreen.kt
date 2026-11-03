@@ -31,6 +31,8 @@ import com.chesstutor.app.design.CtScene
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
+import com.chesstutor.app.design.MetalHue
+import com.chesstutor.app.R
 import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.account.PuzzleRecords
 import com.chesstutor.app.domain.account.RatingTrend
@@ -39,8 +41,8 @@ import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.domain.account.TrainingReport
 
 /**
- * Training (D60), opened from the puzzle rating on Account: the puzzle rating graph, the
- * puzzle records, the positions from the player's games due for review, and the puzzle themes
+ * Training (D60, D64), opened from the puzzle rating on Account: the purple puzzle piece and the
+ * puzzle rating over its graph in the same colour, the puzzle records as plain figures, the positions from the player's games due for review, and the puzzle themes
  * that trip them up and that they solve best, each with its share of clean solves (a tap plays it).
  */
 @Composable
@@ -55,23 +57,23 @@ fun TrainingScreen(
     modifier: Modifier = Modifier,
 ) {
     val trend = remember(training) { RatingTrend(timeClass = null, points = training.ratingHistory) }
-    val records = remember(stats, training) { PuzzleRecords.of(stats, training) }
+    val records = remember(stats, training, now) { PuzzleRecords.of(stats, training, now) }
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             CtTopBar(title = "Training", onBack = onBack)
+            RatingHero(trend, records.current, now, R.drawable.icon_extension, CtColors.metal(MetalHue.VIOLET), Modifier.ctEnter(0))
             Column(
-                modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.xl),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
+                modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md, bottom = CtSpacing.xl),
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.xl),
             ) {
-                if (trend.points.size >= 2) GraphCard(trend, now, Modifier.ctEnter(0))
-                RecordGrid(
+                Figures(
                     listOf(
-                        Record("${records.current}", "Puzzle rating"),
-                        Record("${records.peak}", "Peak"),
                         Record("${records.solved}", "Solved"),
-                        Record(records.cleanRate?.let(::percent) ?: "–", "Solved cleanly"),
-                        Record("${records.bestCleanRun}", "Longest clean run"),
+                        Record(records.cleanRate?.let(::percent) ?: "–", "Clean"),
+                        Record("${records.bestCleanRun}", "Clean run"),
                         Record("${records.dayStreak}", "Day streak"),
+                        Record("${records.thisWeek}", "This week"),
+                        Record("${training.lessonsDone}", "Lessons done"),
                     ),
                     Modifier.ctEnter(1),
                 )
@@ -106,7 +108,7 @@ private fun ThemeRow(theme: ThemeScore, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
     ) {
-        CtRing(listOf(CtRingPart(theme.rate, CtColors.Accent)), diameter = 48.dp, stroke = 4.dp) {
+        CtRing(listOf(CtRingPart(theme.rate, CtColors.metal(MetalHue.VIOLET))), diameter = 48.dp, stroke = 4.dp) {
             Text(percent(theme.rate), style = CtType.Caption, maxLines = 1)
         }
         Text(theme.name, style = CtType.TitleSmall, modifier = Modifier.weight(1f))

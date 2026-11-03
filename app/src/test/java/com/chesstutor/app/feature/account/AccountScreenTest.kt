@@ -180,7 +180,7 @@ class AccountScreenTest {
             }
         }
         compose.onNodeWithText("Score").assertExists()
-        compose.onNodeWithText("Longest win streak").assertExists()
+        compose.onNodeWithText("Win streak").assertExists()
         compose.onNodeWithText("Won by").assertExists()
         compose.onNodeWithText("As White").performScrollTo()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_stats.png")
@@ -213,7 +213,7 @@ class AccountScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("Solved cleanly").assertExists()
+        compose.onNodeWithText("Clean").assertExists()
         compose.onNodeWithText("Themes to work on").performScrollTo()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_training.png")
         compose.onNodeWithText("0%").performScrollTo().performClick()

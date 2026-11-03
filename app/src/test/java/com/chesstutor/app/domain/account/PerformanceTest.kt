@@ -100,6 +100,19 @@ class PerformanceTest {
     }
 
     @Test
+    fun aPeriodStartsWithTheRatingThePlayerHadThen() {
+        val day = 86_400_000L
+        val trend = RatingTrend(null, listOf(RatingPoint(10 * day, 1400), RatingPoint(60 * day, 1450), RatingPoint(70 * day, 1480)))
+        assertEquals(
+            "the line begins at the period's start, at the rating held then",
+            listOf(RatingPoint(50 * day, 1400), RatingPoint(60 * day, 1450), RatingPoint(70 * day, 1480)),
+            trend.within(80 * day, GraphPeriod.MONTH.days).points,
+        )
+        assertEquals("a quiet spell keeps the last rating", listOf(RatingPoint(75 * day, 1480)), trend.within(80 * day, 5).points)
+        assertEquals("all of it", trend, trend.within(80 * day, GraphPeriod.ALL.days))
+    }
+
+    @Test
     fun thinningKeepsTheEndsAndTheLimit() {
         val points = List(1000) { RatingPoint(it.toLong(), it) }
         val thin = RatingTrend(null, points).thinned(150)
