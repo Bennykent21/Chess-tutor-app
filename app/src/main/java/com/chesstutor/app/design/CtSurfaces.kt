@@ -99,22 +99,6 @@ fun CtHeroCard(
     )
 }
 
-/** A tile on the surface colour. Two side by side only when they do different jobs. */
-@Composable
-fun CtTile(
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    onClickLabel: String? = null,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    val base = modifier.clip(CtShapes.Card).background(CtColors.Surface)
-    Column(
-        modifier = (if (onClick != null) base.ctPressable(onClickLabel = onClickLabel, onClick = onClick) else base).padding(CtSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
-        content = content,
-    )
-}
-
 /**
  * A settings-style page whose content scrolls under a top bar while its one main action
  * stays fixed at the bottom ("Play", "Save bot", "Start").

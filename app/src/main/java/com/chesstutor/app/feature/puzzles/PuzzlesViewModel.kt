@@ -71,7 +71,7 @@ class PuzzlesViewModel(
                 daily = daily?.let(DailyPreview::of),
                 dailySolved = PuzzleModes.solvedOn(daily?.id, history, today),
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PuzzlesHomeState())
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, PuzzlesHomeState())
 
     init {
         viewModelScope.launch {

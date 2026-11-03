@@ -34,10 +34,6 @@ class ChessPosition(fen: String? = null) {
             gameState.position.sideToMove
         )
 
-    /** History-aware game status, including repetition and move-count draws. */
-    val gameStatus
-        get() = gameState.status
-
     /** Number of occurrences of the current repetition position. */
     val currentPositionOccurrences: Int
         get() = gameState.currentPositionOccurrences
@@ -59,8 +55,6 @@ class ChessPosition(fen: String? = null) {
         get() = gameState.isSeventyFiveMoveDraw && gameState.status == com.chesstutor.app.core.GameStatus.DRAW_75_MOVES
 
     private var cachedLegalMoves: List<MoveChoice>? = null
-    private var cachedMatesInOne: List<MoveChoice>? = null
-    private var cachedHangingPieces: List<HangingPiece>? = null
     private var cachedForks: List<ForkTactic>? = null
 
     val legalMoves: List<MoveChoice>
@@ -74,25 +68,6 @@ class ChessPosition(fen: String? = null) {
 
     val isOver: Boolean
         get() = gameState.isOver
-
-    /**
-     * Every returned move is verified, by playing it out, to end in
-     * checkmate. This is an exhaustive check over legal one-move continuations.
-     */
-    val matesInOne: List<MoveChoice>
-        get() = cachedMatesInOne ?: (if (isOver) {
-            emptyList()
-        } else {
-            val pos = gameState.position
-            legalMoves.filter { moveChoice ->
-                val nextPos = LegalMoveGenerator.makeMove(pos, moveChoice.toCoreMove())
-                LegalMoveGenerator.getGameStatus(nextPos) == com.chesstutor.app.core.GameStatus.CHECKMATE
-            }
-        }).also { cachedMatesInOne = it }
-
-    /** Identifies pieces of the side to move that are currently hanging. */
-    val hangingPieces: List<HangingPiece>
-        get() = cachedHangingPieces ?: TacticalAnalysis.findHangingPieces(this).also { cachedHangingPieces = it }
 
     /** Identifies tactical moves that execute a geometric fork. */
     val forks: List<ForkTactic>
@@ -109,8 +84,6 @@ class ChessPosition(fen: String? = null) {
         return runCatching {
             gameState = gameState.play(parsedMove)
             cachedLegalMoves = null
-            cachedMatesInOne = null
-            cachedHangingPieces = null
             cachedForks = null
             true
         }.getOrDefault(false)

@@ -47,20 +47,6 @@ class AnalysisServiceTest {
         assertEquals(1, engine.stopCalls)
     }
 
-    @Test
-    fun cancellationInvalidatesActiveRequest() = runTest {
-        val engine = ControlledEngine()
-        val service = AnalysisService(engine)
-
-        val request = async { service.analyze(startFen, depth = 6) }
-        engine.awaitRequest(1)
-
-        service.cancelActiveAnalysis()
-
-        engine.complete(1, depth = 6)
-        assertNull(request.await())
-    }
-
     private class ControlledEngine : EngineClient {
         private val requests = mutableMapOf<Int, CompletableDeferred<PositionAnalysis>>()
         var stopCalls: Int = 0

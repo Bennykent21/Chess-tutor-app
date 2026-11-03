@@ -15,11 +15,15 @@ android {
     applicationId = "io.github.bennykent21.chesstutor"
     minSdk = 24
     targetSdk = 36
-    // CI builds carry the GitHub Actions run number, so Android's App info screen shows
-    // exactly which build is installed. Local builds are "0.1-local".
+    // A release (CT_VERSION "1.2.3", from the tag v1.2.3) is that version, with a version code
+    // of 10203 so every release installs over the one before. Other CI builds carry the GitHub
+    // Actions run number, so Android's App info screen shows exactly which build is installed.
+    // Local builds are "0.1-local".
+    val releaseVersion = System.getenv("CT_VERSION")?.takeIf { Regex("""\d+\.\d+\.\d+""").matches(it) }
     val ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
-    versionCode = ciRunNumber ?: 1
-    versionName = if (ciRunNumber != null) "0.1.$ciRunNumber" else "0.1-local"
+    versionCode = releaseVersion?.split('.')?.map(String::toInt)?.let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+      ?: ciRunNumber ?: 1
+    versionName = releaseVersion ?: if (ciRunNumber != null) "0.1.$ciRunNumber" else "0.1-local"
     // App name shown under the launcher icon. Debug builds override it below.
     manifestPlaceholders["appLabel"] = "@string/app_name"
 

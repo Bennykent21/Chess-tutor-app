@@ -1,0 +1,11 @@
+name: Idea
+description: Something that would make Chess Tutor a better teacher.
+labels: [idea]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What you would like, and what it would help you learn or do.
+    validations:
+      required: true

@@ -8,7 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -53,7 +52,7 @@ import kotlinx.coroutines.withContext
 internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
     navigation(startDestination = TopTab.ACCOUNT.startRoute, route = TopTab.ACCOUNT.graphRoute) {
         composable(TopTab.ACCOUNT.startRoute) { entry ->
-            val account = accountViewModel(navController, entry)
+            val account = accountViewModel()
             val games by account.games.collectAsStateWithLifecycle()
             val stats by account.stats.collectAsStateWithLifecycle()
             val overview by account.overview.collectAsStateWithLifecycle()
@@ -88,7 +87,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
             route = AppRoutes.GAMES_PATTERN,
             arguments = listOf(navArgument(AppRoutes.GAMES_FILTER_ARG) { type = NavType.StringType; defaultValue = "" }),
         ) { entry ->
-            val account = accountViewModel(navController, entry)
+            val account = accountViewModel()
             val games by account.games.collectAsStateWithLifecycle()
             GamesScreen(
                 games = games,
@@ -101,7 +100,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
             route = AppRoutes.STATS_PATTERN,
             arguments = listOf(navArgument(AppRoutes.CLOCK_ARG) { type = NavType.StringType }),
         ) { entry ->
-            val account = accountViewModel(navController, entry)
+            val account = accountViewModel()
             val games by account.games.collectAsStateWithLifecycle()
             val openingCourses by account.openingCourses.collectAsStateWithLifecycle()
             val clock = entry.arguments?.getString(AppRoutes.CLOCK_ARG)?.let { name -> TimeClass.entries.firstOrNull { it.name == name } } ?: TimeClass.RAPID
@@ -120,7 +119,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.TRAINING) { entry ->
-            val account = accountViewModel(navController, entry)
+            val account = accountViewModel()
             val stats by account.stats.collectAsStateWithLifecycle()
             val training by account.training.collectAsStateWithLifecycle()
             TrainingScreen(
@@ -188,7 +187,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
             route = AppRoutes.GAME_PATTERN,
             arguments = listOf(navArgument(AppRoutes.GAME_ID_ARG) { type = NavType.StringType })
         ) { entry ->
-            val account = accountViewModel(navController, entry)
+            val account = accountViewModel()
             val games by account.games.collectAsStateWithLifecycle()
             val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
             val openingCourses by account.openingCourses.collectAsStateWithLifecycle()
@@ -229,7 +228,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
                 },
             )
         ) { entry ->
-            val account = accountViewModel(navController, entry)
+            val account = accountViewModel()
             val gameId = entry.arguments?.getString(AppRoutes.GAME_ID_ARG).orEmpty()
             val analyseNow = entry.arguments?.getBoolean(AppRoutes.ANALYSE_ARG) == true
             val fromPlay = entry.arguments?.getBoolean(AppRoutes.FROM_PLAY_ARG) == true
@@ -293,13 +292,12 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
     }
 }
 
-/** The Account tab's view model, shared by the tab and its game pages (scoped to its graph). */
+/** The Account tab's view model, shared by the tab and its game pages (it lives as long as the app). */
 @Composable
-private fun accountViewModel(navController: NavHostController, entry: NavBackStackEntry): AccountViewModel {
-    val owner = remember(entry) { navController.getBackStackEntry(TopTab.ACCOUNT.graphRoute) }
+internal fun Shell.accountViewModel(): AccountViewModel {
     val context = LocalContext.current.applicationContext
     return viewModel(
-        viewModelStoreOwner = owner,
+        viewModelStoreOwner = appOwner,
         factory = AccountViewModel.Factory(
             repository = AppContainer.provideGameRepository(context),
             loadOpenings = { AppContainer.provideOpeningLoader(context).load() },

@@ -1,142 +1,40 @@
 package com.chesstutor.app.engine
 
-import android.content.Context
 import android.util.Log
-import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.MoveChoice
-import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
-import com.chesstutor.app.core.engine.BotStrength
-import com.chesstutor.app.core.engine.Evaluation
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
-import kotlin.math.abs
-import kotlin.math.pow
 
 /**
- * High-level evaluation representation designed to directly power UI components
- * such as the evaluation bar, coach commentary, and move analysis cards.
- *
- * All scores are normalized to White's perspective:
- * - Positive [centipawns] / [mateInMoves] indicates an advantage for White.
- * - Negative indicates an advantage for Black.
+ * An evaluation of one position, from White's side: positive [centipawns] or [mateInMoves]
+ * favour White, negative favour Black.
  */
 data class EngineEvaluation(
     val centipawns: Int? = null,
     val mateInMoves: Int? = null,
     val depth: Int? = null,
     val bestMoveUci: String = "",
-    val bestMoveSan: String? = null,
     val principalVariation: List<String> = emptyList(),
     val fen: String = ""
-) {
-    val isForcedMate: Boolean get() = mateInMoves != null
-
-    /**
-     * Formatted human-readable evaluation score (e.g. "+1.4", "-0.8", "0.0", "M2", "-M1").
-     */
-    val formattedScore: String
-        get() {
-            if (mateInMoves != null) {
-                return if (mateInMoves > 0) "M$mateInMoves" else "-M${abs(mateInMoves)}"
-            }
-            val cp = centipawns ?: 0
-            val pawns = cp / 100.0
-            return if (pawns > 0) "+${String.format(Locale.US, "%.1f", pawns)}"
-            else String.format(Locale.US, "%.1f", pawns)
-        }
-
-    /**
-     * White's win/advantage percentage in range [0.04, 0.96] (or 0.98/0.02 for mates),
-     * suitable for driving a vertical or horizontal evaluation bar in the UI.
-     * 0.5f represents an equal position.
-     */
-    val winningPercentageWhite: Float
-        get() {
-            if (mateInMoves != null) {
-                return if (mateInMoves > 0) 0.98f else 0.02f
-            }
-            val pct = WinProbability.fromCentipawns(centipawns ?: 0) / 100.0
-            return pct.toFloat().coerceIn(0.04f, 0.96f)
-        }
-
-    /**
-     * Returns the evaluation score from the perspective of the side to move.
-     */
-    fun scoreForTurn(isWhiteTurn: Boolean): Float {
-        if (mateInMoves != null) {
-            val base = if (mateInMoves > 0) 10000f else -10000f
-            return if (isWhiteTurn) base else -base
-        }
-        val cp = centipawns ?: 0
-        val raw = cp / 100f
-        return if (isWhiteTurn) raw else -raw
-    }
-
-    /**
-     * Returns centipawns relative to the specified player color.
-     */
-    fun centipawnsForPlayer(isWhite: Boolean): Int? {
-        val cp = centipawns ?: return null
-        return if (isWhite) cp else -cp
-    }
-
-    /**
-     * Converts to the domain [Evaluation] model used by chess core components.
-     */
-    fun toCoreEvaluation(): Evaluation {
-        return Evaluation(centipawns = centipawns, mateInMoves = mateInMoves)
-    }
-}
-
-/**
- * State representation of the chess engine for UI observation.
- */
-data class ChessEngineState(
-    val isInitialized: Boolean = false,
-    val isCalculating: Boolean = false,
-    val currentEvaluation: EngineEvaluation? = null,
-    val lastCalculatedMove: MoveChoice? = null,
-    val activeElo: Int = 1200,
-    val lastError: String? = null
 )
 
 /**
- * Manager class responsible for integrating the Stockfish chess engine,
- * orchestrating move calculations, producing evaluation scores to power the UI,
- * and managing fallbacks gracefully.
+ * The app's way to the engine: evaluations, best moves, bot moves and candidate lines, each
+ * answered by Stockfish or, when it fails, by the fallbacks behind [engineClient].
  */
 class ChessEngineManager(
-    val engineClient: EngineClient,
-    val analysisService: AnalysisService = AnalysisService(engineClient),
+    private val engineClient: EngineClient,
+    private val analysisService: AnalysisService = AnalysisService(engineClient),
     private val localBotMoveSelector: LocalBotMoveSelector = LocalBotMoveSelector(),
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob()),
     private val calculationDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Default,
-    /** Where start-up and diagnostics block. Tests pass their own dispatcher, so no thread outlives a test. */
+    /** Where start-up and the self-test block. Tests pass their own dispatcher, so no thread outlives a test. */
     private val ioDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.IO,
 ) {
-    private val _state = MutableStateFlow(ChessEngineState())
-    val state: StateFlow<ChessEngineState> = _state.asStateFlow()
-
-    val currentEvaluation: StateFlow<EngineEvaluation?> = MutableStateFlow<EngineEvaluation?>(null)
-    private val _currentEvaluation = currentEvaluation as MutableStateFlow<EngineEvaluation?>
-
-    val isCalculating: StateFlow<Boolean> = MutableStateFlow(false)
-    private val _isCalculating = isCalculating as MutableStateFlow<Boolean>
-
-    private var inFlightEvaluationJob: Job? = null
-
     /**
      * Live engine status (for the "Lite engine" badge). Clients that cannot report health
      * (test fakes) show a neutral status.
@@ -144,38 +42,17 @@ class ChessEngineManager(
     val engineStatus: StateFlow<EngineStatus> =
         (engineClient as? EngineHealthReporter)?.status ?: MutableStateFlow(EngineStatus())
 
-    /**
-     * Initializes the underlying engine client.
-     */
+    /** Starts the engine; a failure is logged and the fallbacks answer instead. */
     suspend fun initialize() = withContext(ioDispatcher) {
         try {
             engineClient.initialize()
-            _state.update { it.copy(isInitialized = true, lastError = null) }
             runCatching { Log.i(TAG, "Chess engine initialized successfully.") }
         } catch (e: Exception) {
-            val errMsg = "Failed to initialize engine: ${e.message}"
-            runCatching { Log.e(TAG, errMsg, e) }
-            _state.update { it.copy(isInitialized = false, lastError = errMsg) }
+            runCatching { Log.e(TAG, "Failed to initialize engine: ${e.message}", e) }
         }
     }
 
-    /**
-     * Configures the playing strength (ELO rating) of the engine.
-     */
-    suspend fun setSkillLevel(elo: Int) {
-        val clamped = elo.coerceIn(250, 3200)
-        _state.update { it.copy(activeElo = clamped) }
-        runCatching {
-            engineClient.setStrengthRating(clamped)
-        }.onFailure { err ->
-            runCatching { Log.w(TAG, "Could not set engine strength rating: ${err.message}") }
-        }
-    }
-
-    /**
-     * Evaluates a chess position given its FEN string, returning an [EngineEvaluation]
-     * normalized to White's perspective to power UI bars and indicators.
-     */
+    /** Evaluates the position [fen]; a finished game is scored without asking the engine. */
     suspend fun evaluatePosition(
         fen: String,
         depth: Int? = 10,
@@ -183,79 +60,32 @@ class ChessEngineManager(
     ): EngineEvaluation? = withContext(calculationDispatcher) {
         val chessPos = runCatching { ChessPosition(fen) }.getOrNull()
         if (chessPos == null || chessPos.isOver) {
-            val eval = when {
-                chessPos?.isCheckmate == true -> {
-                    val mateScore = if (chessPos.sideToMove == 'w') -1 else 1
-                    EngineEvaluation(mateInMoves = mateScore, fen = fen)
-                }
-                chessPos?.isStalemate == true || chessPos?.isSeventyFiveMoveDraw == true -> {
-                    EngineEvaluation(centipawns = 0, fen = fen)
-                }
+            return@withContext when {
+                chessPos?.isCheckmate == true -> EngineEvaluation(mateInMoves = if (chessPos.sideToMove == 'w') -1 else 1, fen = fen)
+                chessPos?.isStalemate == true || chessPos?.isSeventyFiveMoveDraw == true -> EngineEvaluation(centipawns = 0, fen = fen)
                 else -> null
             }
-            _currentEvaluation.value = eval
-            _state.update { it.copy(currentEvaluation = eval) }
-            return@withContext eval
         }
-
-        _isCalculating.value = true
-        _state.update { it.copy(isCalculating = true) }
-
         try {
-            val analysis = analysisService.analyze(fen = fen, depth = depth, movetimeMs = movetimeMs)
-            if (analysis != null) {
-                val matchingMove = chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci }
-                val eval = EngineEvaluation(
+            analysisService.analyze(fen = fen, depth = depth, movetimeMs = movetimeMs)?.let { analysis ->
+                EngineEvaluation(
                     centipawns = analysis.centipawns,
                     mateInMoves = analysis.mateInMoves,
                     depth = analysis.depth,
                     bestMoveUci = analysis.bestMoveUci,
-                    bestMoveSan = matchingMove?.san,
                     principalVariation = analysis.principalVariation,
                     fen = fen
                 )
-                _currentEvaluation.value = eval
-                _state.update { it.copy(currentEvaluation = eval, isCalculating = false) }
-                return@withContext eval
-            } else {
-                _state.update { it.copy(isCalculating = false) }
-                return@withContext null
             }
         } catch (e: CancellationException) {
-            _isCalculating.value = false
-            _state.update { it.copy(isCalculating = false) }
             throw e
         } catch (e: Exception) {
             runCatching { Log.e(TAG, "Evaluation failed: ${e.message}", e) }
-            _state.update { it.copy(isCalculating = false, lastError = e.message) }
-            return@withContext null
-        } finally {
-            _isCalculating.value = false
-            _state.update { it.copy(isCalculating = false) }
+            null
         }
     }
 
-    /**
-     * Starts an asynchronous evaluation of the position in the manager's coroutine scope,
-     * automatically updating [currentEvaluation], [isCalculating], and [state] flows to power the UI.
-     */
-    fun startEvaluation(fen: String, depth: Int = 8, movetimeMs: Int? = 400): Job {
-        inFlightEvaluationJob?.cancel()
-        val job = scope.launch {
-            evaluatePosition(fen, depth, movetimeMs)
-        }
-        inFlightEvaluationJob = job
-        return job
-    }
-
-    /**
-     * Calculates the best engine move for a given position.
-     *
-     * @param fen FEN representation of the board
-     * @param depth Search depth limit (default 10)
-     * @param movetimeMs Maximum search time limit in milliseconds (default 500)
-     * @return [MoveChoice] containing UCI, SAN, and piece data, or null if position is finished
-     */
+    /** The best move in [fen] at full strength, or the first legal move if no engine answers; null when the game is over. */
     suspend fun calculateBestMove(
         fen: String,
         depth: Int? = 10,
@@ -263,52 +93,27 @@ class ChessEngineManager(
     ): MoveChoice? = withContext(calculationDispatcher) {
         val chessPos = runCatching { ChessPosition(fen) }.getOrNull() ?: return@withContext null
         if (chessPos.isOver) return@withContext null
-
-        _isCalculating.value = true
-        _state.update { it.copy(isCalculating = true) }
-
         try {
             val analysis = analysisService.analyze(fen = fen, depth = depth, movetimeMs = movetimeMs)
-            val move = if (analysis != null) {
-                chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci }
-            } else null
-
-            val chosen = move ?: chessPos.legalMoves.firstOrNull()
-            if (chosen != null) {
-                _state.update { it.copy(lastCalculatedMove = chosen, isCalculating = false) }
-            }
-            chosen
+            analysis?.let { chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci } } ?: chessPos.legalMoves.firstOrNull()
         } catch (e: CancellationException) {
-            _isCalculating.value = false
-            _state.update { it.copy(isCalculating = false) }
             throw e
         } catch (e: Exception) {
             runCatching { Log.w(TAG, "calculateBestMove failed, falling back to legal move: ${e.message}") }
-            val fallbackMove = chessPos.legalMoves.firstOrNull()
-            _state.update { it.copy(lastCalculatedMove = fallbackMove, isCalculating = false) }
-            fallbackMove
-        } finally {
-            _isCalculating.value = false
-            _state.update { it.copy(isCalculating = false) }
+            chessPos.legalMoves.firstOrNull()
         }
     }
 
     /**
-     * Calculates a bot move calibrated to a given ELO strength and difficulty.
-     *
-     * At Grandmaster/high-strength levels (ELO >= 2600), queries Stockfish directly for
-     * deep tactical moves. At lower and intermediate levels, uses calibrated candidate
-     * move selection with human-like blunder distributions.
+     * A bot move at [elo] strength. The strength travels with this one request, so it never
+     * weakens later analysis; without an engine, the local selector picks a move of that strength.
      */
-    suspend fun calculateBotMove(
-        fen: String,
-        elo: Int,
-        botDifficulty: String = "Casual"
-    ): MoveChoice? = withContext(calculationDispatcher) {
+    suspend fun calculateBotMove(fen: String, elo: Int): MoveChoice? = withContext(calculationDispatcher) {
         val chessPos = runCatching { ChessPosition(fen) }.getOrNull() ?: return@withContext null
         if (chessPos.isOver) return@withContext null
         val corePos = Position.tryFromFen(fen).getOrNull() ?: return@withContext null
-
+        suspend fun local() = runCatching { localBotMoveSelector.selectMove(corePos, elo) }.getOrNull()
+            ?.let { fallback -> chessPos.legalMoves.firstOrNull { it.uci == fallback.uci } }
         return@withContext try {
             runCatching { engineClient.setStrengthRating(elo) }
             val depth = when {
@@ -317,53 +122,14 @@ class ChessEngineManager(
                 elo < 2000 -> 5
                 else -> 6
             }
-            // Strength travels with this one request, so it never weakens later analysis.
             val result = analysisService.analyze(fen = fen, depth = depth, movetimeMs = 800, strengthElo = elo)
-            val matching = result?.let { analysis ->
-                chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci }
-            }
-            val chosen = matching ?: localBotMoveSelector.selectMove(corePos, elo).let { fallback ->
-                chessPos.legalMoves.firstOrNull { it.uci == fallback.uci }
-                    ?: chessPos.legalMoves.firstOrNull()
-            }
-            if (chosen != null) {
-                _state.update { it.copy(lastCalculatedMove = chosen) }
-            }
-            chosen
+            result?.let { analysis -> chessPos.legalMoves.firstOrNull { it.uci == analysis.bestMoveUci } }
+                ?: local() ?: chessPos.legalMoves.firstOrNull()
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
-            runCatching {
-                localBotMoveSelector.selectMove(corePos, elo)
-            }.getOrNull()?.let { fallback ->
-                chessPos.legalMoves.firstOrNull { it.uci == fallback.uci }
-            } ?: chessPos.legalMoves.firstOrNull()
+            local() ?: chessPos.legalMoves.firstOrNull()
         }
-    }
-
-    /**
-     * Cancels any in-flight move calculations or position evaluations and halts engine search.
-     */
-    suspend fun cancelCalculation() {
-        inFlightEvaluationJob?.cancel()
-        _isCalculating.value = false
-        _state.update { it.copy(isCalculating = false) }
-        runCatching { analysisService.cancelActiveAnalysis() }
-        runCatching { engineClient.stop() }
-    }
-
-    /**
-     * Halts engine search without destroying the process.
-     */
-    suspend fun stop() {
-        cancelCalculation()
-    }
-
-    /**
-     * Cleans up and releases engine resources.
-     */
-    suspend fun dispose() {
-        cancelCalculation()
-        runCatching { engineClient.dispose() }
-        _state.update { it.copy(isInitialized = false) }
     }
 
     /**
@@ -403,57 +169,6 @@ class ChessEngineManager(
         (engineClient as? EngineHealthReporter)?.healthCheck(movetimeMs)
 
     /**
-     * Runs engine diagnostics for the diagnostics dialog. The engine name and numbers come
-     * from the engine's own output, never from constants.
-     */
-    suspend fun runDiagnostics(movetimeMs: Int = 1000): EngineDiagnostics = withContext(ioDispatcher) {
-        val report = runCatching { healthCheck(movetimeMs) }.getOrNull()
-        if (report != null) {
-            return@withContext EngineDiagnostics(
-                engineName = report.telemetry.engineIdName ?: report.answeredBy.label,
-                isAlive = report.answeredBy == EngineSource.NATIVE,
-                bestMove = report.bestMove ?: "--",
-                centipawns = report.centipawns,
-                depth = report.depth,
-                pv = "",
-                latencyMs = report.elapsedMs,
-                resolvedBinaryPath = (engineClient as? StockfishProcessEngineClient)?.targetPath,
-                launchError = report.problem
-            )
-        }
-        val start = System.currentTimeMillis()
-        try {
-            val res = analysisService.analyze(
-                fen = ChessPosition.STARTING_FEN,
-                movetimeMs = movetimeMs
-            ) ?: throw IllegalStateException("Engine diagnostics result was null or superseded")
-            EngineDiagnostics(
-                engineName = res.source.label,
-                isAlive = true,
-                bestMove = res.bestMoveUci,
-                centipawns = res.centipawns,
-                depth = res.depth,
-                pv = res.principalVariation.joinToString(" "),
-                latencyMs = System.currentTimeMillis() - start,
-                resolvedBinaryPath = null,
-                launchError = null
-            )
-        } catch (e: Exception) {
-            EngineDiagnostics(
-                engineName = "Engine error",
-                isAlive = false,
-                bestMove = "--",
-                centipawns = null,
-                depth = null,
-                pv = "",
-                latencyMs = System.currentTimeMillis() - start,
-                resolvedBinaryPath = null,
-                launchError = "${e::class.java.simpleName}: ${e.message}"
-            )
-        }
-    }
-
-    /**
      * Engine self-test shown in Settings. Reports which engine actually answered, the speed
      * the engine itself reported, and whether its neural network loaded.
      */
@@ -471,13 +186,5 @@ class ChessEngineManager(
 
     companion object {
         private const val TAG = "ChessEngineManager"
-
-        /**
-         * Convenience factory to create a [ChessEngineManager] backed by the application container.
-         */
-        fun create(context: Context): ChessEngineManager {
-            val client = AppContainer.provideEngineClient(context)
-            return ChessEngineManager(client)
-        }
     }
 }
