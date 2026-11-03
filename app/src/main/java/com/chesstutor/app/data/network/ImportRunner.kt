@@ -6,6 +6,7 @@ import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.ImportProgress
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.repository.GameRepository
+import com.chesstutor.app.domain.account.TimeClass
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -18,9 +19,10 @@ import kotlinx.coroutines.launch
 enum class ImportKind { LINK, MORE, BACKFILL }
 
 /**
- * One import of a linked account's games (plan 6.4): up to [maxGames], older than [beforeMillis]
- * when set. "Import more" and carrying on a cut-short import set it to the oldest saved game,
- * so the games already here do not use up [maxGames] (Phase 7 import fix).
+ * One import of a linked account's games (plan 6.4): up to [maxGames] of each clock, older than
+ * [beforeMillis] when set. "Import more" and carrying on a cut-short import set it to the oldest
+ * saved game, and [clockCutoffs] to each clock's own oldest game, so the games already here do
+ * not use up [maxGames] and a busy clock is not left with a gap (D59).
  */
 data class ImportRequest(
     val kind: ImportKind,
@@ -28,6 +30,7 @@ data class ImportRequest(
     val username: String,
     val maxGames: Int,
     val beforeMillis: Long? = null,
+    val clockCutoffs: Map<TimeClass, Long> = emptyMap(),
 )
 
 /** How the current (or last) import is going. */
@@ -110,6 +113,7 @@ suspend fun runImport(
             }
         },
         beforeMillis = request.beforeMillis,
+        clockCutoffs = request.clockCutoffs,
     )
     result.exceptionOrNull()?.let { if (it is CancellationException) throw it }
     val imported = result.getOrDefault(emptyList())

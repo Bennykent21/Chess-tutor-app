@@ -122,11 +122,11 @@ private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
     )
 }
 
-/** Which of the account's ratings the app uses (games of every time control are imported). */
+/** Which of the account's ratings the app uses (games of every time control are imported, each with its own count). */
 @Composable
 private fun RatingChips(selected: RatingTimeControl, onSelect: (RatingTimeControl) -> Unit) {
     Text("Rating to use", style = CtType.Label)
-    Text("Games of every time control are imported; this picks the rating your bots and level follow.", style = CtType.Caption)
+    Text("Rapid, blitz and bullet are each imported up to the number below; this picks the rating your bots and level follow.", style = CtType.Caption)
     Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         RatingTimeControl.entries.forEach { t ->
             CtChip(text = t.displayName, color = CtColors.Gold, selected = t == selected, onClick = { onSelect(t) })

@@ -67,7 +67,7 @@ class ImportFlowTest {
         assertEquals(ImportKind.LINK, request.kind)
         assertEquals(500, request.maxGames)
         assertTrue("the progress card shows", vm.state.value.isLinkingLoading)
-        assertEquals(500, settings.settings.first().importTarget)
+        assertEquals(1500, settings.settings.first().importTarget)
 
         importer.status.value = ImportStatus.Finished(request, imported = 480, incomplete = 0, failedPeriods = 0, error = null, saveFailed = false)
         advanceUntilIdle()

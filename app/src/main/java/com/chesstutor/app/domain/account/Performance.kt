@@ -123,15 +123,15 @@ object PerformanceCalculator {
         )
     }
 
-    /** The player's rating over time in the [preferred] clock, else the one with the most rated games. */
-    fun ratingTrend(games: List<GameSummary>, preferred: TimeClass? = null): RatingTrend {
-        val rated = games.filter { it.playerRating != null }
-        val timeClass = preferred?.takeIf { clock -> rated.any { it.timeClass == clock } }
-            ?: rated.groupingBy { it.timeClass }.eachCount().maxByOrNull { it.value }?.key
-        val points = rated.filter { it.timeClass == timeClass }
-            .sortedBy { it.dateMillis }
-            .map { RatingPoint(it.dateMillis, it.playerRating!!) }
-        return RatingTrend(timeClass, points)
+    /**
+     * The player's rating over time in each of the three main clocks that has a history, or in
+     * the most played clock when none does.
+     */
+    fun ratingTrends(games: List<GameSummary>): List<RatingTrend> {
+        val rated = games.filter { it.playerRating != null }.groupBy { it.timeClass }
+        fun trendOf(clock: TimeClass) = RatingTrend(clock, rated[clock].orEmpty().sortedBy { it.dateMillis }.map { RatingPoint(it.dateMillis, it.playerRating!!) })
+        val main = listOf(TimeClass.RAPID, TimeClass.BLITZ, TimeClass.BULLET).map(::trendOf).filter { it.points.size >= 2 }
+        return main.ifEmpty { listOfNotNull(rated.maxByOrNull { it.value.size }?.key?.let(::trendOf)) }
     }
 
     /** The position after the shortest named line of an opening [family] in [games], for its picture. */

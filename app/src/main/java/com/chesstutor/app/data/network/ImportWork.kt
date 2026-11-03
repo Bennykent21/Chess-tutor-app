@@ -130,6 +130,7 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         private const val USERNAME = "username"
         private const val MAX = "max"
         private const val BEFORE = "before"
+        private const val CUTOFFS = "cutoffs"
         private const val IMPORTED = "imported"
         private const val ADDED = "added"
         private const val INCOMPLETE = "incomplete"
@@ -148,24 +149,26 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             USERNAME to request.username,
             MAX to request.maxGames,
             BEFORE to (request.beforeMillis ?: -1L),
+            CUTOFFS to ClockQuota.encode(request.clockCutoffs),
         )
 
         private const val TAG_PREFIX = "import|"
 
         /** The request written into a tag, so the app can read it back from the work's info at any stage. */
         fun tagOf(request: ImportRequest): String =
-            listOf(request.kind.name, request.platform.name, request.maxGames, request.beforeMillis ?: -1L, request.username)
+            listOf(request.kind.name, request.platform.name, request.maxGames, request.beforeMillis ?: -1L, ClockQuota.encode(request.clockCutoffs), request.username)
                 .joinToString("|", prefix = TAG_PREFIX)
 
         fun requestFromTags(tags: Set<String>): ImportRequest? {
-            val parts = tags.firstOrNull { it.startsWith(TAG_PREFIX) }?.removePrefix(TAG_PREFIX)?.split("|", limit = 5) ?: return null
+            val parts = tags.firstOrNull { it.startsWith(TAG_PREFIX) }?.removePrefix(TAG_PREFIX)?.split("|", limit = 6) ?: return null
             return runCatching {
                 ImportRequest(
                     kind = ImportKind.valueOf(parts[0]),
                     platform = RatingPlatform.valueOf(parts[1]),
                     maxGames = parts[2].toInt(),
                     beforeMillis = parts[3].toLong().takeIf { it >= 0 },
-                    username = parts[4],
+                    clockCutoffs = ClockQuota.decode(parts[4]),
+                    username = parts[5],
                 )
             }.getOrNull()
         }
@@ -179,6 +182,7 @@ class ImportWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                     username = source.getString(USERNAME)!!,
                     maxGames = source.getInt(MAX, 100),
                     beforeMillis = source.getLong(BEFORE, -1L).takeIf { it >= 0 },
+                    clockCutoffs = ClockQuota.decode(source.getString(CUTOFFS).orEmpty()),
                 )
             }.getOrNull()
         }
