@@ -196,13 +196,10 @@ fun CtArtTile(
     }
 }
 
-/** The play mark on a scene: solid, because a glass mark would vanish on a light theme's picture. */
+/** The play mark on a scene: the same glass as on a picture, in the theme's ink, so it shows on a light page too. */
 @Composable
 fun CtArtPlayMark() {
-    Box(
-        modifier = Modifier.size(40.dp).clip(CtShapes.Pill).background(CtColors.Primary).ctGloss(CtShapes.Pill, CtColors.Primary),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = CtColors.OnPrimary, modifier = Modifier.size(22.dp))
+    CtGlassMark(40.dp, ink = CtColors.Text, surface = CtColors.Surface) {
+        Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(22.dp))
     }
 }

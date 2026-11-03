@@ -52,6 +52,7 @@ import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtScreenBackground
+import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtShapes
@@ -145,13 +146,14 @@ fun AccountScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = CtSpacing.xl),
             ) {
-                item(key = "hero") { AccountHero(state, rank, onOpenRanks = { ranksOpen = true }, onOpenSettings = actions.onOpenSettings) }
+                item(key = "top") {
+                    CtScreenTitle(title = "Account") { SettingsButton(onClick = actions.onOpenSettings) }
+                }
+                item(key = "hero") { AccountHero(state, rank, onOpenRanks = { ranksOpen = true }) }
                 item(key = "numbers") {
                     Numbers(
                         state = state,
                         stats = stats,
-                        gameChange = gameTrend.changeSince(now),
-                        puzzleChange = puzzleTrend.changeSince(now),
                         onOpenStats = { tabName = AccountTab.STATS.name },
                         modifier = Modifier.padding(horizontal = CtSpacing.gutter),
                     )

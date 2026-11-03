@@ -98,7 +98,7 @@ private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
     val platform = RatingPlatform.valueOf(platformName)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        CtIconBubble(icon = Icons.Rounded.Link, tint = CtColors.Teal, size = 40.dp)
+        CtIconBubble(icon = Icons.Rounded.Link)
         Spacer(Modifier.width(CtSpacing.md))
         Column(Modifier.weight(1f)) {
             Text("Link your account", style = CtType.TitleSmall)
@@ -150,7 +150,7 @@ private fun DepthChips(depth: ImportDepth, onDepth: (ImportDepth) -> Unit, more:
 private fun Linked(profile: LinkedChessProfile, state: AppUiState, actions: AccountActions) {
     var confirmUnlink by rememberSaveable { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        CtIconBubble(icon = Icons.Rounded.CloudSync, tint = CtColors.Teal, size = 40.dp)
+        CtIconBubble(icon = Icons.Rounded.CloudSync)
         Spacer(Modifier.width(CtSpacing.md))
         Column(Modifier.weight(1f)) {
             Text("@${profile.username} on ${profile.platform.displayName}", style = CtType.TitleSmall)

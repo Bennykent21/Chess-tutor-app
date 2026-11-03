@@ -5,7 +5,10 @@ import com.chesstutor.app.design.CtTopBar
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.GridOn
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.runtime.key
 import androidx.compose.foundation.ScrollState
@@ -76,6 +79,7 @@ import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtConfirmDialog
+import com.chesstutor.app.design.CtHue
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSpacing
@@ -244,7 +248,7 @@ fun SettingsScreen(
                                 val pieces = PieceSet.fromId(state.appSettings.pieceSetId)
                                 CtListRow(
                                     title = "Board and pieces",
-                                    icon = null,
+                                    icon = Icons.Rounded.GridOn,
                                     subtitle = "${board.displayName}, ${pieces.displayName} pieces",
                                     onClick = actions.onOpenBoardSettings,
                                     leading = { MiniBoard(board) },
@@ -253,13 +257,13 @@ fun SettingsScreen(
                         SettingsPage.PROFILE -> {
                                 CtListRow(
                                     title = "Name",
-                                    icon = null,
+                                    icon = Icons.Rounded.Person,
                                     subtitle = state.appSettings.playerName.ifBlank { "Not set" },
                                     onClick = { nameSheet = true },
                                 )
                                 CtListRow(
                                     title = "Picture",
-                                    icon = null,
+                                    icon = Icons.Rounded.Image,
                                     onClick = {
                                         pictureMessage = null
                                         pictureSheet = true
@@ -268,7 +272,7 @@ fun SettingsScreen(
                                 )
                                 CtListRow(
                                     title = "Coach",
-                                    icon = null,
+                                    icon = Icons.Rounded.School,
                                     subtitle = state.appSettings.mascot.displayName,
                                     onClick = { coachSheet = true },
                                     leading = { CtMascotArt(mascot = state.appSettings.mascot, height = 40.dp, modifier = Modifier.size(40.dp)) },
@@ -311,7 +315,7 @@ fun SettingsScreen(
                                     title = "Engine health",
                                     subtitle = if (state.engineStatus.isDegraded) "Stockfish is not running: using a weaker engine" else "Check that Stockfish runs on this phone",
                                     icon = Icons.Rounded.Memory,
-                                    iconTint = if (state.engineStatus.isDegraded) CtColors.Error else CtColors.Accent,
+                                    hue = if (state.engineStatus.isDegraded) CtHue.RED else null,
                                     onClick = actions.onOpenEngineHealth,
                                     trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
                                 )
@@ -345,7 +349,6 @@ fun SettingsScreen(
                                     title = "Erase everything",
                                     subtitle = "Games, progress, settings and the linked account",
                                     icon = Icons.Rounded.DeleteForever,
-                                    iconTint = CtColors.Error,
                                     onClick = { confirmErase = true },
                                 )
                         }
@@ -434,7 +437,7 @@ fun SettingsScreen(
 private enum class SettingsPage(val title: String, val icon: ImageVector) {
     APPEARANCE("Appearance", Icons.Rounded.Palette),
     PROFILE("Profile", Icons.Rounded.Person),
-    PLAY("Sound and play", Icons.Rounded.VolumeUp),
+    PLAY("Sound and play", Icons.AutoMirrored.Rounded.VolumeUp),
     ACCOUNT("Linked account", Icons.Rounded.Link),
     ENGINE("Engine", Icons.Rounded.Memory),
     DATA("Your data", Icons.Rounded.Storage),

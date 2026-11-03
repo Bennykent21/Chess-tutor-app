@@ -143,7 +143,6 @@ fun HomeScreen(
                     title = "Lite engine",
                     subtitle = "Stockfish is not running, so bots and analysis are weaker",
                     icon = Icons.Rounded.Warning,
-                    iconTint = CtColors.Error,
                     onClick = actions.onOpenEngineHealth,
                     modifier = gutter,
                 )
