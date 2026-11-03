@@ -61,9 +61,6 @@ class RatingLinkCoordinator(
         }
     }
 
-    /** True while a long import runs (checked before starting another). */
-    suspend fun isImporting(): Boolean = importer.isRunning()
-
     fun cancelImport(updateState: ((AppUiState) -> AppUiState) -> Unit) {
         verifyJob?.cancel()
         importer.cancel()

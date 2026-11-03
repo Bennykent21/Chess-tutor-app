@@ -41,7 +41,7 @@ class LearnViewModel(
 
     val learn: StateFlow<LearnState> = combine(library, progress.observe(), practice?.observePractice() ?: flowOf(emptyMap())) { lib, rows, sets ->
         LearnState(loading = lib == null, library = lib ?: LessonLibrary.EMPTY, progress = rows, practice = sets)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LearnState())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, LearnState())
 
     private val mutablePlayer = MutableStateFlow<LessonPlayer?>(null)
     val player: StateFlow<LessonPlayer?> = mutablePlayer.asStateFlow()

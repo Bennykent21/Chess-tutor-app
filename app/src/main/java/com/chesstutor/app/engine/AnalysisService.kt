@@ -70,10 +70,4 @@ class AnalysisService(
             }
         }
     }
-
-    /** Invalidates the current request and stops any active engine search. */
-    suspend fun cancelActiveAnalysis() {
-        latestRequestId = requestCounter.incrementAndGet()
-        runCatching { engine.stop() }
-    }
 }

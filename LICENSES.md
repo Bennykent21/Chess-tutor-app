@@ -29,7 +29,7 @@ known before release (plan.md, section 9). Add a row whenever an asset is added.
 | Piece set "chessnut" | `design/pieces/chessnut/*.svg`; `piece_chessnut_*.xml` | Alexis Luengas, `LexLuengas/chessnut-pieces` ("Copyright 2015 Alexis Luengas"), via `lichess-org/lila` | Apache License 2.0 (`licenses/Apache-2.0.txt`). Converted from SVG to VectorDrawable; shapes unchanged |
 | Piece set "fantasy" | `design/pieces/fantasy/*.svg`; `piece_fantasy_*.xml` | Maurizio Monge, `maurimo/chess-art`, via `lichess-org/lila` | MIT (`licenses/MIT-fantasy-pieces.txt`) |
 | Board colour themes | `app/src/main/java/com/chesstutor/app/board/BoardTheme.kt` | Original, made for this project | GPL-3.0, with the app |
-| Launcher icon | `app/src/main/res/drawable/ic_launcher_*.xml`; the `mipmap-*/ic_launcher*.webp` files (Android 7 only) are rendered from those by `tools/render_launcher_icons.py` | Origin of the vector art not recorded | **To confirm** before release, or replace with original art |
+| Launcher icon for Android 7 | `app/src/main/res/mipmap-*/ic_launcher*.webp` | Rendered from the vector launcher icon above (the Classic knight) by `tools/render_launcher_icons.py` | GPLv2 or later, used here under GPL-3.0 (`LICENSE`) |
 
 Sound effects (`app/src/main/res/raw/sfx_*.ogg`), played by `audio/ChessSoundManager.kt`:
 

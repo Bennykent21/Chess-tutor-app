@@ -3,11 +3,9 @@ package com.chesstutor.app.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -32,7 +30,7 @@ import com.chesstutor.app.navigation.TopTab
 internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
     navigation(startDestination = TopTab.PUZZLES.startRoute, route = TopTab.PUZZLES.graphRoute) {
         composable(TopTab.PUZZLES.startRoute) { entry ->
-            val puzzles = puzzlesViewModel(navController, entry)
+            val puzzles = puzzlesViewModel()
             val home by puzzles.home.collectAsStateWithLifecycle()
             PuzzlesHomeScreen(
                 state = home,
@@ -49,7 +47,7 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.PUZZLE_LEVELS) { entry ->
-            val puzzles = puzzlesViewModel(navController, entry)
+            val puzzles = puzzlesViewModel()
             val levels by puzzles.home.collectAsStateWithLifecycle()
             PuzzleLevelsScreen(
                 state = levels,
@@ -62,7 +60,7 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
         }
         // Home's daily challenge card: starts today's puzzle, then shows the player.
         composable(AppRoutes.PUZZLE_DAILY) { entry ->
-            val puzzles = puzzlesViewModel(navController, entry)
+            val puzzles = puzzlesViewModel()
             LaunchedEffect(Unit) {
                 puzzles.startDaily()
                 navController.navigate(AppRoutes.PUZZLE_PLAYER) {
@@ -75,7 +73,7 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
             route = AppRoutes.PUZZLE_RELATED_PATTERN,
             arguments = listOf(navArgument(AppRoutes.THEMES_ARG) { type = NavType.StringType })
         ) { entry ->
-            val puzzles = puzzlesViewModel(navController, entry)
+            val puzzles = puzzlesViewModel()
             val themes = AppRoutes.parseThemes(entry.arguments?.getString(AppRoutes.THEMES_ARG))
             LaunchedEffect(Unit) {
                 puzzles.startRelated(themes)
@@ -89,7 +87,7 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
             route = AppRoutes.PUZZLE_PRACTICE_PATTERN,
             arguments = listOf(navArgument(AppRoutes.COURSE_ID_ARG) { type = NavType.StringType })
         ) { entry ->
-            val puzzles = puzzlesViewModel(navController, entry)
+            val puzzles = puzzlesViewModel()
             val courseId = entry.arguments?.getString(AppRoutes.COURSE_ID_ARG).orEmpty()
             val context = LocalContext.current.applicationContext
             LaunchedEffect(courseId) {
@@ -105,7 +103,9 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
             }
         }
         composable(AppRoutes.PUZZLE_MODES) { entry ->
-            val puzzles = puzzlesViewModel(navController, entry)
+            val puzzles = puzzlesViewModel()
+            val rushBest by puzzles.rushBest.collectAsStateWithLifecycle()
+            val missed by puzzles.missedCount.collectAsStateWithLifecycle()
             fun play(start: () -> Unit) {
                 start()
                 navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
@@ -119,11 +119,13 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
                     onMistakes = { play { puzzles.startMistakes() } }
                 ),
                 onBack = { navController.popBackStack() },
-                pieceSet = state.appSettings.boardTheme.pieceSet,
+                boardTheme = state.appSettings.boardTheme,
+                rushBest = rushBest,
+                missed = missed,
             )
         }
         composable(AppRoutes.PUZZLE_CUSTOM) { entry ->
-            val puzzles = puzzlesViewModel(navController, entry)
+            val puzzles = puzzlesViewModel()
             val home by puzzles.home.collectAsStateWithLifecycle()
             CustomRunScreen(
                 patternsFor = puzzles::patternsFor,
@@ -157,7 +159,7 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.PUZZLE_PLAYER) { entry ->
-            val puzzles = puzzlesViewModel(navController, entry)
+            val puzzles = puzzlesViewModel()
             val player by puzzles.player.collectAsStateWithLifecycle()
             PuzzlePlayerScreen(
                 player = player,
@@ -174,17 +176,17 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
     }
 }
 
-/** The Puzzles tab's view model, shared by every screen in the tab (scoped to its graph). */
+/** The Puzzles tab's view model, shared by every screen in the tab (it lives as long as the app). */
 @Composable
-private fun puzzlesViewModel(navController: NavHostController, entry: NavBackStackEntry): PuzzlesViewModel {
-    val owner = remember(entry) { navController.getBackStackEntry(TopTab.PUZZLES.graphRoute) }
+internal fun Shell.puzzlesViewModel(): PuzzlesViewModel {
     val context = LocalContext.current.applicationContext
     return viewModel(
-        viewModelStoreOwner = owner,
+        viewModelStoreOwner = appOwner,
         factory = PuzzlesViewModel.Factory(
             repository = AppContainer.providePuzzleRepository(context),
             loadPack = { AppContainer.loadPuzzlePack(context) },
             practice = AppContainer.provideTraining(context),
+            rushRecords = AppContainer.provideRushRecords(context),
         ),
     )
 }

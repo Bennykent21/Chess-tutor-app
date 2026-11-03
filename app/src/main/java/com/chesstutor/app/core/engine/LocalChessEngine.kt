@@ -249,45 +249,6 @@ class LocalChessEngine : HeuristicEngineContract {
     return selectMoveForProfile(position, profile)
   }
 
-  suspend fun analyzeMove(beforePosition: Position, playedMove: Move): MoveAnalysisResult = withContext(Dispatchers.Default) {
-    val (bestMove, evalBest) = findBestMove(beforePosition, depth = 3)
-    val afterPosition = LegalMoveGenerator.makeMove(beforePosition, playedMove)
-    val evalAfter = evaluatePosition(afterPosition, depth = 3)
-
-    val isWhite = beforePosition.sideToMove == PieceColor.WHITE
-    val bestScore = if (isWhite) (evalBest.centipawns ?: 0) else -(evalBest.centipawns ?: 0)
-    val playedScore = if (isWhite) (evalAfter.centipawns ?: 0) else -(evalAfter.centipawns ?: 0)
-    val diff = (bestScore - playedScore).coerceAtLeast(0)
-
-    val quality = when {
-      playedMove.from == bestMove.from && playedMove.to == bestMove.to -> MoveQuality.BEST
-      diff < 30 -> MoveQuality.EXCELLENT
-      diff < 80 -> MoveQuality.GOOD
-      diff < 180 -> MoveQuality.INACCURACY
-      diff < 350 -> MoveQuality.MISTAKE
-      else -> MoveQuality.BLUNDER
-    }
-
-    val explanation = when (quality) {
-      MoveQuality.BEST -> "Optimal move! Accurately coordinates pieces and controls key squares."
-      MoveQuality.EXCELLENT -> "Strong practical move maintaining initiative and tactical solidity."
-      MoveQuality.GOOD -> "Solid natural move keeping the position balanced."
-      MoveQuality.INACCURACY -> "Slight inaccuracy. The engine preferred ${bestMove.uci}."
-      MoveQuality.MISTAKE -> "Mistake! Cedes significant advantage. Consider ${bestMove.uci} instead."
-      MoveQuality.BLUNDER -> "Blunder! Leaves tactical vulnerability or loses material. Best move was ${bestMove.uci}."
-    }
-
-    MoveAnalysisResult(
-      quality = quality,
-      playedMove = playedMove,
-      bestMove = bestMove,
-      evalBefore = evalBest,
-      evalAfter = evalAfter,
-      evalDiffCentipawns = diff,
-      explanation = explanation
-    )
-  }
-
   /**
    * Evaluates all legal moves and returns the best engine move and resulting evaluation.
    */

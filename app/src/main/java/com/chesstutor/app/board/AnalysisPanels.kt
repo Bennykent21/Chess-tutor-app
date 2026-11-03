@@ -212,52 +212,5 @@ fun EngineLinesPanel(
     }
 }
 
-// ------------------------------------------------------------------ toolbar
-
-/** Back and forward through an analysis, and the arrow-drawing switch. */
-@Composable
-fun AnalysisToolbar(
-    view: AnalysisView,
-    drawing: Boolean,
-    onStart: () -> Unit,
-    onBack: () -> Unit,
-    onForward: () -> Unit,
-    onEnd: () -> Unit,
-    onToggleDrawing: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ToolButton(Icons.Rounded.FirstPage, "Go to the start", view.canGoBack, onStart)
-        ToolButton(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back one move", view.canGoBack, onBack)
-        ToolButton(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Forward one move", view.canGoForward, onForward)
-        ToolButton(Icons.AutoMirrored.Rounded.LastPage, "Go to the end", view.canGoForward, onEnd)
-        ToolButton(Icons.Rounded.Draw, if (drawing) "Stop drawing arrows" else "Draw arrows", true, onToggleDrawing, active = drawing)
-    }
-}
-
-@Composable
-private fun ToolButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit, active: Boolean = false) {
-    Box(
-        modifier = Modifier
-            .size(CtSpacing.touchTarget + CtSpacing.sm)
-            .clip(CtShapes.Pill)
-            .background(if (active) CtColors.Lime else CtColors.Surface)
-            .ctPressable(enabled = enabled, onClickLabel = label, onClick = onClick)
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        val tint = when {
-            active -> CtColors.OnLime
-            enabled -> CtColors.Text
-            else -> CtColors.Text3
-        }
-        Icon(icon, contentDescription = null, tint = tint)
-    }
-}
-
 /** A move's quality in a review's move list: its symbol ("?!") or icon, colour and spoken name. */
 data class MoveMark(val symbol: String, val color: Color, val spoken: String, val icon: ImageVector? = null)

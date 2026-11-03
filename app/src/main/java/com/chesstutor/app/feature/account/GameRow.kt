@@ -152,10 +152,6 @@ internal fun relativeDay(millis: Long, now: Long, zone: ZoneId = ZoneId.systemDe
     }
 }
 
-/** "Chess.com · Blitz · 34 moves · 12 Oct 2026". */
-internal fun detailLine(game: GameSummary): String =
-    "${game.source.label} · ${game.timeClass.label} · ${game.moveNumber} move${if (game.moveNumber == 1) "" else "s"} · ${formatDate(game.dateMillis)}"
-
 private val dateFormat = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.UK)
 
 internal fun formatDate(millis: Long, zone: ZoneId = ZoneId.systemDefault()): String =

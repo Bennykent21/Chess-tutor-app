@@ -1,6 +1,0 @@
-{
-  "name": "Chess Tutor",
-  "description": "Clean, beautiful chess trainer with adjustable Stockfish engine, live advantage evaluation bar, daily tactical puzzles, and opening masterclasses",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
