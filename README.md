@@ -6,6 +6,14 @@
 [![Latest release](https://img.shields.io/github/v/release/Bennykent21/Chess-tutor-app?label=download)](https://github.com/Bennykent21/Chess-tutor-app/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
+<p>
+  <img src=".github/readme/home.jpg" width="19%" alt="Home: your game, Play, the daily puzzle and Quick match">
+  <img src=".github/readme/learn.jpg" width="19%" alt="Learn: the next lesson and six topics with their progress">
+  <img src=".github/readme/puzzles.jpg" width="19%" alt="Puzzles: the level path, the daily puzzle and your mistakes to fix">
+  <img src=".github/readme/stats.jpg" width="19%" alt="Stats: your rapid rating over three months with your records and results">
+  <img src=".github/readme/bots.jpg" width="19%" alt="Bots: build your own, watch two, and the twelve bots with their ratings">
+</p>
+
 ## What it does
 
 ### Play

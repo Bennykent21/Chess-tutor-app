@@ -15,6 +15,7 @@ import com.chesstutor.app.data.opening.OpeningAssetLoader
 import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.data.puzzle.RoomPuzzleRepository
 import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
+import com.chesstutor.app.data.puzzle.SharedPrefsRushRecords
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.data.repository.RoomGameRepository
 import com.chesstutor.app.data.repository.RatingRepository
@@ -88,6 +89,15 @@ object AppContainer {
     suspend fun loadPuzzlePack(context: Context): PuzzlePack = puzzlePackInstance ?: puzzlePackLock.withLock {
         puzzlePackInstance ?: PuzzleAssetLoader(context.applicationContext).load().also { if (!it.isEmpty) puzzlePackInstance = it }
     }
+
+    @Volatile
+    private var rushRecordsInstance: SharedPrefsRushRecords? = null
+
+    /** Each rush's best score (D66). */
+    fun provideRushRecords(context: Context): SharedPrefsRushRecords =
+        rushRecordsInstance ?: synchronized(this) {
+            rushRecordsInstance ?: SharedPrefsRushRecords(context.applicationContext).also { rushRecordsInstance = it }
+        }
 
     @Volatile
     private var puzzleRepositoryInstance: PuzzleRepository? = null

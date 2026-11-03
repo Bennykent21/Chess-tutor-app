@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import com.chesstutor.app.data.local.AppDatabase
 import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
+import com.chesstutor.app.data.puzzle.SharedPrefsRushRecords
 import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.data.settings.PlayerPhoto
 import com.chesstutor.app.data.settings.SettingsStore
@@ -13,7 +14,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * "Erase everything" in Settings > Your data (plan 6.4): every table, every setting, the
- * unfinished game, the old puzzle progress and the crash log. The app then restarts, so
+ * unfinished game, the old puzzle progress, the rush bests and the crash log. The app then restarts, so
  * nothing erased lingers in memory.
  */
 object DataReset {
@@ -25,6 +26,7 @@ object DataReset {
         SharedPrefsActiveGameStore(context).clear()
         // Otherwise the puzzle history would copy the pre-Room progress back in on the next start.
         SharedPrefsPuzzleProgressStore(context).clearLegacy()
+        SharedPrefsRushRecords(context).clear()
         CrashLog.of(context).clear()
     }
 
