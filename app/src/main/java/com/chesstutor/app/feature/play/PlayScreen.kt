@@ -2,11 +2,8 @@ package com.chesstutor.app.feature.play
 
 import com.chesstutor.app.feature.home.PlayerAvatar
 import com.chesstutor.app.design.CtControl
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.clickable
-import com.chesstutor.app.domain.account.GameReviewer
-import com.chesstutor.app.board.BoardView
-import com.chesstutor.app.board.BoardMarks
+import com.chesstutor.app.board.LookBackBoard
+import com.chesstutor.app.board.rememberLookBack
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -136,11 +133,7 @@ fun PlayScreen(
     var resultClosed by rememberSaveable(game) { mutableStateOf(false) }
     if (!over && resultClosed) resultClosed = false
     var confirmResign by rememberSaveable { mutableStateOf(false) }
-    // Looking back through the game (a move number), or null on the live position. Nothing is undone.
-    var viewedPly by rememberSaveable(game) { mutableStateOf<Int?>(null) }
-    val latestPly = board.moves.size
-    val shownPly = viewedPly?.takeIf { it < latestPly }
-    val positions = remember(board.version) { GameReviewer.positions(board.start.toFen(), board.moves.map { it.uci }) }
+    val look = rememberLookBack(board, key = game)
 
     val title = when {
         watch != null -> "Bot vs bot"
@@ -153,8 +146,8 @@ fun PlayScreen(
         zone = {
             BoardMoveList(
                 entries = remember(board.version) { moveListOf(board.start, board.moves) },
-                currentPly = shownPly ?: latestPly,
-                onSelect = { ply -> viewedPly = ply.takeIf { it < latestPly } },
+                currentPly = look.ply,
+                onSelect = look::show,
             )
             openingLine(state)?.let { Text(it, style = CtType.Caption) }
             // The bot's line stands on its strip and grows upward: it may cover the move list, never the board.
@@ -168,7 +161,7 @@ fun PlayScreen(
                     )
                 }
                 ChatOverlay(
-                    chat = state.chat?.takeIf { it.speaker == state.botColor },
+                    chat = state.chatOf(state.botColor),
                     onDismiss = game::dismissChat,
                     maxLines = 6,
                     modifier = Modifier.padding(start = CtSpacing.xxl).wrapContentHeight(Alignment.Bottom, unbounded = true),
@@ -192,7 +185,7 @@ fun PlayScreen(
                     running = state.phase == GamePhase.PLAYER_TURN,
                     avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
                     captured = { takenBy(setup.playerColor) },
-                    chat = state.chat?.takeIf { it.speaker == setup.playerColor },
+                    chat = state.chatOf(setup.playerColor),
                     onDismissChat = game::dismissChat,
                 )
             } else {
@@ -212,23 +205,8 @@ fun PlayScreen(
                     BoardEvalBar(centipawns = state.evalCp, mateIn = state.evalMate, whiteAtBottom = whiteBottom, modifier = modifier)
                 } else null,
             ) { modifier ->
-                val past = shownPly?.let(positions::getOrNull)
-                if (past != null) {
-                    BoardView(
-                        position = past,
-                        theme = settings.boardTheme,
-                        // A tap on the board comes back to the game, as does its latest move in the strip.
-                        modifier = modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClickLabel = "Back to the game",
-                        ) { viewedPly = null },
-                        whiteAtBottom = whiteBottom,
-                        showCoordinates = settings.showCoordinates,
-                        showLegalDots = false,
-                        marks = BoardMarks(lastMove = board.moves.getOrNull(shownPly - 1)?.let { it.from to it.to }),
-                    )
-                } else {
+                // A tap on a past position comes back to the game, as does its latest move in the strip.
+                LookBackBoard(look, settings.boardTheme, whiteBottom, settings.showCoordinates, backLabel = "Back to the game", modifier = modifier) {
                     BoardHost(
                         session = game.session,
                         theme = settings.boardTheme,

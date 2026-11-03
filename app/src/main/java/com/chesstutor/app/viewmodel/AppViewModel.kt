@@ -13,6 +13,8 @@ import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.LearningProfile
+import com.chesstutor.app.data.network.MAIN_CLOCKS
+import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.data.repository.GameRepository
@@ -180,7 +182,7 @@ class AppViewModel(
             val target = settingsStore.settings.first().importTarget
             val oldest = mine.minOfOrNull { it.dateMillis }
             val backfill = if (target != null && oldest != null && mine.size < target) {
-                RatingLinkCoordinator.Backfill(oldest, target - mine.size)
+                RatingLinkCoordinator.Backfill(oldest, target - mine.size, oldestByClock(mine))
             } else {
                 if (target != null && mine.size >= target) setImportTarget(null)
                 null
@@ -201,6 +203,10 @@ class AppViewModel(
     /** Remembers how many games the player wants in total, so an import cut short carries on later. */
     private fun setImportTarget(target: Int?) = updateSettings { it.copy(importTarget = target) }
 
+    /** Each clock's oldest saved game, where an import of that clock carries on from. */
+    private fun oldestByClock(games: List<GameRecord>): Map<TimeClass, Long> =
+        games.groupBy { TimeClass.of(it.timeClass) }.mapValues { (_, list) -> list.minOf { it.dateMillis } }
+
     /** The saved games imported from [platform]. */
     private suspend fun savedGamesFrom(platform: RatingPlatform): List<GameRecord> {
         val source = if (platform == RatingPlatform.LICHESS) GameSource.LICHESS else GameSource.CHESS_COM
@@ -213,28 +219,25 @@ class AppViewModel(
         timeControl: RatingTimeControl = RatingTimeControl.RAPID,
         importDepth: ImportDepth = _state.value.selectedImportDepth,
     ) {
-        setImportTarget(importDepth.maxGames)
+        setImportTarget(importDepth.maxGames * MAIN_CLOCKS.size)
         ratingLinkCoordinator.linkAccount(platform, username, timeControl, _state::update, importDepth)
     }
 
-    /** "Import more": new games, then [importDepth] games older than the oldest one saved. */
+    /** "Import more": new games, then [importDepth] older games of each clock, from that clock's oldest saved. */
     fun refreshLinkedRating(importDepth: ImportDepth = _state.value.selectedImportDepth) {
         val profile = _state.value.linkedProfile ?: return
         viewModelScope.launch {
             val mine = savedGamesFrom(profile.platform)
-            setImportTarget(mine.size + importDepth.maxGames)
+            setImportTarget(mine.size + importDepth.maxGames * MAIN_CLOCKS.size)
             ratingLinkCoordinator.refreshProfile(
                 profile.username,
                 _state::update,
                 importDepth,
                 beforeMillis = mine.minOfOrNull { it.dateMillis },
                 sinceMillis = mine.maxOfOrNull { it.dateMillis }?.plus(1),
+                clockCutoffs = oldestByClock(mine),
             )
         }
-    }
-
-    fun setRatingTimeControl(timeControl: RatingTimeControl) {
-        ratingLinkCoordinator.setRatingTimeControl(timeControl)
     }
 
     fun unlinkRatingAccount() {
@@ -272,7 +275,7 @@ class AppViewModel(
 
     fun setReviewDepth(depth: ReviewDepth) = updateSettings { it.copy(reviewDepth = depth) }
 
-    fun setAppTheme(theme: AppTheme) = updateSettings { it.copy(appTheme = theme) }
+    fun setAppTheme(theme: AppTheme) = updateSettings { it.withTheme(theme) }
 
     fun setAppearance(appearance: Appearance) = updateSettings { it.copy(appearance = appearance) }
 

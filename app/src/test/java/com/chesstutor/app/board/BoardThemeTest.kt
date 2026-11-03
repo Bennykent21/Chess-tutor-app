@@ -1,5 +1,7 @@
 package com.chesstutor.app.board
 
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.data.settings.BoardOrientation
 import com.chesstutor.app.design.Palette
@@ -38,14 +40,14 @@ class BoardThemeTest {
         assertEquals(BoardColors.entries.size, BoardColors.entries.map { it.id }.toSet().size)
         assertEquals(PieceSet.entries.size, PieceSet.entries.map { it.id }.toSet().size)
         // Settings store these ids; renaming one would silently reset players' choices.
-        assertEquals(listOf("classic", "meadow", "lagoon", "walnut", "ice", "neon", "marble"), BoardColors.entries.map { it.id })
+        assertEquals(listOf("classic", "meadow", "lagoon", "walnut", "ice", "neon", "marble", "parchment", "baize", "mono", "slate"), BoardColors.entries.map { it.id })
         assertEquals(listOf("cburnett", "merida", "chessnut", "fantasy"), PieceSet.entries.map { it.id })
     }
 
     @Test
     fun unknownIdsFallBackToDefaults() {
         for (id in listOf(null, "", "glass", "CLASSIC")) {
-            assertEquals(BoardColors.CLASSIC, BoardColors.fromId(id))
+            assertEquals(BoardColors.DEFAULT, BoardColors.fromId(id))
         }
         // "classic" was the Phase 0 placeholder piece set id.
         for (id in listOf(null, "", "classic", "glass")) {
@@ -61,5 +63,28 @@ class BoardThemeTest {
         assertFalse(whiteAtBottom(BoardOrientation.FOLLOW_SIDE, PieceColor.BLACK))
         assertTrue(whiteAtBottom(BoardOrientation.WHITE_ALWAYS_BOTTOM, PieceColor.WHITE))
         assertTrue(whiteAtBottom(BoardOrientation.WHITE_ALWAYS_BOTTOM, PieceColor.BLACK))
+    }
+
+    /** The theme cards show these colours, so the board has to be what they promise, in both modes. */
+    @Test
+    fun everyThemesBoardIsTheOneItsCardShows() {
+        AppTheme.entries.forEach { theme ->
+            listOf(false, true).forEach { dark ->
+                val palette = Palette.of(theme, dark)
+                assertEquals("$theme light squares", BoardColors.forTheme(theme).light, palette.boardLight)
+                assertEquals("$theme dark squares", BoardColors.forTheme(theme).dark, palette.boardDark)
+            }
+        }
+    }
+
+    @Test
+    fun choosingAThemeBringsItsBoardAndABoardCanThenBePicked() {
+        val baize = AppSettings().withTheme(AppTheme.BAIZE)
+        assertEquals(BoardColors.BAIZE, baize.boardTheme.colors)
+
+        val picked = baize.copy(boardThemeId = BoardColors.NEON.id)
+        assertEquals("a picked board stays", BoardColors.NEON, picked.boardTheme.colors)
+        assertEquals(AppTheme.BAIZE, picked.appTheme)
+        assertEquals("the next theme brings its own again", BoardColors.SLATE, picked.withTheme(AppTheme.SLATE).boardTheme.colors)
     }
 }

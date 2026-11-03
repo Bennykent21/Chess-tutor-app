@@ -20,15 +20,12 @@ data class LinkedChessProfile(
     val selectedTimeControl: RatingTimeControl = RatingTimeControl.RAPID,
     val lastUpdated: Long = System.currentTimeMillis()
 ) {
+    /** The rating the app follows (D61): the average of the clocks the player has a rating in. */
     val activeRating: Int?
-        get() = when (selectedTimeControl) {
-            RatingTimeControl.RAPID -> rapidRating ?: blitzRating ?: bulletRating
-            RatingTimeControl.BLITZ -> blitzRating ?: rapidRating ?: bulletRating
-            RatingTimeControl.BULLET -> bulletRating ?: blitzRating ?: rapidRating
-        }
+        get() = listOfNotNull(rapidRating, blitzRating, bulletRating).takeIf { it.isNotEmpty() }?.average()?.toInt()
 
     fun tuningDescription(): String {
         val rating = activeRating ?: 1200
-        return "Tuned to approximate your ${platform.displayName} ${selectedTimeControl.displayName} rating ($rating)"
+        return "Tuned to approximate your ${platform.displayName} rating ($rating)"
     }
 }

@@ -27,6 +27,14 @@ class BotChatTest {
     }
 
     @Test
+    fun aWatchedBotNamesTheBotItTalksTo() {
+        assertEquals("Kofi, your king looks lonely.", BotChat.addressed("Your king looks lonely.", "Kofi", always = false))
+        assertEquals("Kofi, I'll get you next time.", BotChat.addressed("I'll get you next time.", "Kofi", always = false))
+        assertEquals("not said to anyone", "Mine! Mine!", BotChat.addressed("Mine! Mine!", "Kofi", always = false))
+        assertEquals("greetings always are", "Kofi, let's play!", BotChat.addressed("Let's play!", "Kofi", always = true))
+    }
+
+    @Test
     fun theSettingDecidesHowOftenBotsSpeak() {
         assertFalse((0 until 50).any { BotChat.shouldSpeak(ChatEvent.GREETING, ChatLevel.OFF, Random(it)) })
         assertTrue("greetings and results always", (0 until 50).all { BotChat.shouldSpeak(ChatEvent.BOT_WINS, ChatLevel.SOME, Random(it)) })

@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.puzzles
 
+import com.chesstutor.app.domain.puzzle.DailyPreview
 import com.chesstutor.app.domain.learn.Course
 import com.chesstutor.app.domain.learn.PracticeRepository
 import com.chesstutor.app.domain.learn.PracticeSets
@@ -35,6 +36,8 @@ data class PuzzlesHomeState(
     /** False when the bundled pack is missing or empty. */
     val packAvailable: Boolean = true,
     val stats: PuzzleStats = PuzzleStats(),
+    /** Today's puzzle for its tile; null until the pack has loaded. */
+    val daily: DailyPreview? = null,
     /** Today's daily puzzle is solved. */
     val dailySolved: Boolean = false,
     val levels: Map<Int, LevelProgress> = emptyMap(),
@@ -65,6 +68,7 @@ class PuzzlesViewModel(
                 packAvailable = p?.isEmpty != true,
                 stats = stats,
                 levels = levels,
+                daily = daily?.let(DailyPreview::of),
                 dailySolved = PuzzleModes.solvedOn(daily?.id, history, today),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PuzzlesHomeState())

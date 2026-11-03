@@ -32,14 +32,14 @@ class SetUpGameImportTest {
     fun aGameSetUpFromItsOwnPositionIsReadFromThatPosition() {
         // Castling on the first move is only legal from the game's own position.
         val pgn = "[White \"me\"]\n[Black \"you\"]\n[SetUp \"1\"]\n[FEN \"4k3/8/8/8/8/8/4P3/4K2R w K - 0 1\"]\n\n1. O-O Kd7 2. Rd1+ Kc6 1-0"
-        val game = RatingApiClient().parseChessComArchiveJson(archive(pgn), "me").single()
+        val game = ChessComArchive.parse(archive(pgn), "me").single()
         assertFalse(game.incompleteParse)
         assertEquals("e1g1 e8d7 f1d1 d7c6", game.uciMoves)
     }
 
     @Test
     fun aNormalGameStillStartsFromTheNormalPosition() {
-        val game = RatingApiClient().parseChessComArchiveJson(archive("[White \"me\"]\n\n1. e4 e5 1-0"), "me").single()
+        val game = ChessComArchive.parse(archive("[White \"me\"]\n\n1. e4 e5 1-0"), "me").single()
         assertFalse(game.incompleteParse)
         assertEquals("e2e4 e7e5", game.uciMoves)
     }

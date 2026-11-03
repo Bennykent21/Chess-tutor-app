@@ -28,6 +28,11 @@ class NavigationModelTest {
         assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.SETTINGS))
         assertEquals(TopTab.LEARN, AppRoutes.tabFor("learn"))
         assertNull(AppRoutes.tabFor(AppRoutes.MISTAKE_REVIEW))
+        assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.GAMES_PATTERN))
+        assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.STATS_PATTERN))
+        assertEquals(TopTab.ACCOUNT, AppRoutes.tabFor(AppRoutes.TRAINING))
+        assertEquals("account/stats/BLITZ", AppRoutes.stats(com.chesstutor.app.domain.account.TimeClass.BLITZ))
+        assertFalse(AppRoutes.showsBottomBar(AppRoutes.STATS_PATTERN))
     }
 
     @Test

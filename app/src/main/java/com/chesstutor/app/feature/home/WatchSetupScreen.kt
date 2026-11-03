@@ -1,7 +1,6 @@
 package com.chesstutor.app.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -79,7 +78,8 @@ internal fun BotPickerRow(bots: List<RosterBot>, selectedId: String?, onPick: (S
     LazyRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), contentPadding = PaddingValues(vertical = CtSpacing.xs)) {
         items(bots, key = { it.id }) { bot ->
             val chosen = bot.id == selectedId
-            Box(
+            // Each face over its rating, so the bots read as strengths (phone test, D63).
+            Column(
                 modifier = Modifier
                     .ctPressable(onClickLabel = "Choose ${bot.name}", onClick = { onPick(bot.id) })
                     .semantics {
@@ -87,8 +87,11 @@ internal fun BotPickerRow(bots: List<RosterBot>, selectedId: String?, onPick: (S
                         selected = chosen
                         contentDescription = "${bot.name}, ${bot.rating}"
                     },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
             ) {
                 BotAvatar(bot.profile.face, bot.rating, size = 56.dp, accent = if (chosen) CtColors.Accent else CtColors.Line)
+                Text("${bot.rating}", style = if (chosen) CtType.Label else CtType.Caption, maxLines = 1)
             }
         }
     }

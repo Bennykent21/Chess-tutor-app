@@ -70,6 +70,7 @@ class LearnViewModel(
                 scope = viewModelScope,
                 startStep = resumeAt.coerceIn(0, lesson.steps.lastIndex),
                 nextLesson = lib.nextAfter(lessonId),
+                previousLesson = lib.previousIn(lessonId),
             ).also { it.start() }
         }
     }

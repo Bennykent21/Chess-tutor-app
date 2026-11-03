@@ -6,6 +6,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.account.AnalysisSummary
+import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.puzzle.PlayerLevel
@@ -83,10 +85,10 @@ class AccountScreenTest {
         var opened: String? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 2, actions = AccountActions(onOpenGame = { opened = it }))
+                AccountScreen(state = AppUiState(), games = games, stats = stats, actions = AccountActions(onOpenGame = { opened = it }))
             }
         }
-        compose.onNodeWithText("Puzzle rating").assertExists()
+        compose.onNodeWithText("Puzzles").assertExists()
         compose.onNodeWithText("Level ${stats.playerLevel.level}").assertExists()
         compose.onNodeWithContentDescription("5-day streak").assertExists()
         compose.onNodeWithText("Link your account").assertExists()
@@ -109,7 +111,7 @@ class AccountScreenTest {
         )
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 0, actions = AccountActions(), overview = overview)
+                AccountScreen(state = AppUiState(), games = games, stats = stats, actions = AccountActions(), overview = overview)
             }
         }
         val list = compose.onNode(androidx.compose.ui.test.hasScrollToNodeAction())
@@ -124,10 +126,15 @@ class AccountScreenTest {
     fun gamesPageFiltersInOneSheet() {
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 0, actions = AccountActions(), initialTab = AccountTab.GAMES)
+                GamesScreen(games = games, initialFilter = GameFilter(), onOpenGame = {}, onBack = {})
             }
         }
         compose.onNodeWithText("3 games").assertExists()
+        // The clocks have their own row of chips above the list.
+        compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("Blitz") and hasClickAction()).onFirst().performClick()
+        compose.onNodeWithText("1 of 3 games").assertExists()
+        compose.onNodeWithText("@rookie99").assertExists()
+        compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("All") and hasClickAction()).onFirst().performClick()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_games.png")
 
         compose.onNodeWithText("Filter").performClick()
@@ -156,32 +163,33 @@ class AccountScreenTest {
     }
 
     @Test
-    fun statsShowOpeningsThatOpenTheirCourseOrTheirGames() {
+    fun statsShowOneClockAndItsOpeningsOpenTheirCourseOrTheirGames() {
         val italian = com.chesstutor.app.domain.learn.Course(
             id = "openings-italian", category = com.chesstutor.app.domain.learn.LessonCategory.OPENINGS, title = "Italian Game",
             intro = "", level = com.chesstutor.app.domain.learn.LessonLevel.BEGINNER, order = 20, lessons = emptyList(),
         )
         var course: String? = null
+        var shown: GameFilter? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(
-                    state = AppUiState(), games = games, stats = stats, dueReviewCount = 0,
-                    actions = AccountActions(onOpenCourse = { course = it }),
-                    initialTab = AccountTab.STATS, openingCourses = listOf(italian),
+                StatsScreen(
+                    games = games, state = AppUiState(), initialClock = com.chesstutor.app.domain.account.TimeClass.RAPID, now = 1_760_000_000_000,
+                    courseIdFor = { family -> if (family == "Italian Game") italian.id else null },
+                    onOpenCourse = { course = it }, onShowGames = { shown = it }, onBack = {},
                 )
             }
         }
         compose.onNodeWithText("Score").assertExists()
-        compose.onNodeWithText("Accuracy").assertDoesNotExist()
-        compose.onNodeWithText("Your openings").performScrollTo()
-        compose.onNodeWithText("By colour").performScrollTo()
+        compose.onNodeWithText("Win streak").assertExists()
+        compose.onNodeWithText("Won by").assertExists()
+        compose.onNodeWithText("As White").performScrollTo()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_stats.png")
-
         compose.onNodeWithText("Italian Game").performScrollTo().performClick()
         assertEquals("openings-italian", course)
+
+        compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("Bullet") and hasClickAction()).onFirst().performClick()
         compose.onNodeWithText("Sicilian Defense").performScrollTo().performClick()
-        compose.onNodeWithText("1 of 3 games").assertExists()
-        compose.onNodeWithText("@sagefan").assertExists()
+        assertEquals(GameFilter(timeClass = com.chesstutor.app.domain.account.TimeClass.BULLET, color = com.chesstutor.app.core.PieceColor.WHITE, openingFamily = "Sicilian Defense"), shown)
     }
 
     @Test
@@ -199,19 +207,96 @@ class AccountScreenTest {
         var practised: String? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(
-                    state = AppUiState(), games = games, stats = stats, dueReviewCount = 2,
-                    actions = AccountActions(onReviewMistakes = { reviewed = true }, onPracticeTheme = { practised = it }),
-                    initialTab = AccountTab.TRAINING, training = training,
+                TrainingScreen(
+                    training = training, stats = stats, dueReviewCount = 2, now = 10,
+                    onReviewMistakes = { reviewed = true }, onPracticeTheme = { practised = it }, onBack = {},
                 )
             }
         }
+        compose.onNodeWithText("Clean").assertExists()
         compose.onNodeWithText("Themes to work on").performScrollTo()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_training.png")
-        compose.onNodeWithText("0% clean").performScrollTo().performClick()
+        compose.onNodeWithText("0%").performScrollTo().performClick()
         assertEquals("pin", practised)
         compose.onNodeWithText("Mistakes to review").performScrollTo().performClick()
         assertTrue(reviewed)
+    }
+
+    @Test
+    fun statsGraphTheRatingsAndAResultOpensItsGames() {
+        val day = 86_400_000L
+        val now = 1_760_000_000_000
+        fun rated(id: String, days: Long, rating: Int, result: String) =
+            record(id, "rookie99", result, "white", GameSource.CHESS_COM, "e2e4 c7c5", date = now - days * day, timeClass = "blitz")
+                .copy(pgn = "[WhiteElo \"$rating\"]")
+        val played = GamesState(
+            loading = false,
+            games = GameLibrary.summarise(listOf(rated("a", 60, 1400, "1-0"), rated("b", 20, 1430, "1/2-1/2"), rated("c", 1, 1466, "0-1")), tree),
+        )
+        val history = (1..4).map { i ->
+            com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry("p$i", solved = true, clean = true, ratingAfter = 1000 + i * 15, finishedAt = now - (5 - i) * day)
+        }
+        val training = com.chesstutor.app.domain.account.TrainingCalculator.report(history, { emptySet() }, 0, 0)
+        var shown: GameFilter? = null
+        var page by mutableStateOf("stats")
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                if (page == "stats") {
+                    StatsScreen(games = played, state = AppUiState(), initialClock = com.chesstutor.app.domain.account.TimeClass.BLITZ, now = now, courseIdFor = { null }, onOpenCourse = {}, onShowGames = { shown = it }, onBack = {})
+                } else {
+                    TrainingScreen(training = training, stats = stats, dueReviewCount = 0, now = now, onReviewMistakes = {}, onPracticeTheme = {}, onBack = {})
+                }
+            }
+        }
+        compose.onNodeWithContentDescription("Rating graph, now 1466. Hold to read a day.").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_stats_graph.png")
+        compose.onNode(androidx.compose.ui.test.hasContentDescription("Drawn") and hasClickAction()).performClick()
+        assertEquals(GameFilter(timeClass = com.chesstutor.app.domain.account.TimeClass.BLITZ, outcome = com.chesstutor.app.domain.account.GameOutcome.DRAW), shown)
+
+        page = "training"
+        compose.onNodeWithContentDescription("Rating graph, now 1060. Hold to read a day.").assertExists()
+    }
+
+    @Test
+    fun theHeroShowsTheEarnedPieceAndItsLadder() {
+        val state = AppUiState(
+            linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = 1526, blitzRating = null, bulletRating = null, selectedTimeControl = RatingTimeControl.RAPID),
+        )
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                AccountScreen(state = state, games = games, stats = stats, actions = AccountActions())
+            }
+        }
+        compose.onNodeWithText("274 to Queen").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Your piece: Rook").performClick()
+        compose.onNodeWithText("Your piece").assertExists()
+        compose.onNodeWithText("King").assertExists()
+        compose.onNodeWithText("2200").assertExists()
+    }
+
+    @Test
+    fun eachRatingOpensItsOwnPage() {
+        val state = AppUiState(
+            linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = 1700, blitzRating = 1100, bulletRating = 1999, selectedTimeControl = RatingTimeControl.RAPID),
+        )
+        var clock: com.chesstutor.app.domain.account.TimeClass? = null
+        var training = false
+        var all: GameFilter? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                AccountScreen(state = state, games = games, stats = stats, actions = AccountActions(onOpenStats = { clock = it }, onOpenTraining = { training = true }, onOpenGames = { all = it }))
+            }
+        }
+        compose.onNodeWithText("Overview").assertDoesNotExist()
+        compose.onNodeWithText("1100").performClick()
+        assertEquals(com.chesstutor.app.domain.account.TimeClass.BLITZ, clock)
+        compose.onNodeWithText("1999").performClick()
+        assertEquals(com.chesstutor.app.domain.account.TimeClass.BULLET, clock)
+        compose.onNodeWithText("Puzzles").performClick()
+        assertTrue(training)
+        compose.onNodeWithText("See all").performScrollTo().performClick()
+        assertEquals(GameFilter(), all)
+        compose.onNodeWithContentDescription("Your piece: Rook").assertExists()
     }
 
     @Test
@@ -242,33 +327,48 @@ class AccountScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("No account linked. Link Chess.com or Lichess on the Account page to bring in your games.").assertExists()
-        compose.onNodeWithText("Support the developer").assertDoesNotExist()
-        compose.onNodeWithText("Export my games").performScrollTo().assertExists()
-        compose.onNodeWithText("Board lab").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_settings.png")
+        compose.onNodeWithText("Export my games").assertDoesNotExist()
+        section("Linked account")
+        compose.onNodeWithText("No account linked. Link Chess.com or Lichess on the Account page", substring = true).assertExists()
+        back()
+        section("Appearance")
         compose.onNodeWithText("Board and pieces").performScrollTo().performClick()
         assertTrue(boardOpened)
+        back()
+        section("Sound and play")
         compose.onNodeWithText("Lots").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.domain.bot.ChatLevel.LOTS, chat)
+        back()
+        section("Engine")
         compose.onNodeWithText("Deep").performScrollTo().performClick()
         assertEquals(com.chesstutor.app.data.settings.ReviewDepth.DEEP, depth)
         compose.onNodeWithText("Online engine as a backup").performScrollTo().performClick()
         assertEquals(false, online)
+        back()
+        section("About")
+        compose.onNodeWithText("Support the developer").assertDoesNotExist()
+        compose.onNodeWithText("Open-source licences").performScrollTo().performClick()
+        assertTrue(licences)
+        back()
+        section("Your data")
+        compose.onNodeWithText("Export my games").performScrollTo().assertExists()
         compose.onNodeWithText("The app crashed 1 time recently.", substring = true).performScrollTo().assertExists()
         compose.onNodeWithText("Reports of another move that works appear here.").assertExists()
         compose.onNodeWithText("Clear").performScrollTo().performClick()
         compose.waitForIdle()
         assertTrue(crashCleared)
         compose.onNodeWithText("No crashes recorded on this phone.").assertExists()
-        compose.onNodeWithText("Open-source licences").performScrollTo().performClick()
-        assertTrue(licences)
         compose.onNodeWithText("Erase everything").performScrollTo().performClick()
         compose.onNodeWithText("Erase everything?").assertExists()
         compose.onNodeWithText("Erase").performClick()
         compose.waitForIdle()
         assertTrue(erased)
     }
+
+    private fun section(title: String) = compose.onNodeWithText(title).performScrollTo().performClick()
+
+    private fun back() = compose.onNodeWithContentDescription("Back").performClick()
 
     @Test
     fun settingsPicksTheCoachInASheetAndFlipsTheEverydaySwitches() {
@@ -284,10 +384,13 @@ class AccountScreenTest {
                 )
             }
         }
+        section("Sound and play")
         compose.onNodeWithText("Sound").performScrollTo().performClick()
         assertEquals("sound starts on, so a tap turns it off", false, sound)
         compose.onNodeWithText("Reduce motion").performScrollTo().performClick()
         assertEquals(true, reduceMotion)
+        back()
+        section("Profile")
         compose.onNodeWithText("Coach").performScrollTo().performClick()
         compose.onNode(hasText("Sage") and hasClickAction()).performClick()
         compose.waitForIdle()
@@ -311,31 +414,32 @@ class AccountScreenTest {
             linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = 1848, blitzRating = 1720, bulletRating = null, selectedTimeControl = RatingTimeControl.RAPID),
         )
         var page by mutableStateOf("account")
-        var rating: RatingTimeControl? = null
         var imported = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                val actions = AccountActions(onRatingTimeControl = { rating = it }, onImportMore = { imported = true })
+                val actions = AccountActions(onImportMore = { imported = true })
                 if (page == "account") {
-                    AccountScreen(state = state, games = games, stats = stats, dueReviewCount = 0, actions = actions)
+                    AccountScreen(state = state, games = games, stats = stats, actions = actions)
                 } else {
                     SettingsScreen(state = state, accountActions = actions, actions = SettingsActions(supportUrl = "https://example.org/support"))
                 }
             }
         }
         compose.onNodeWithText("@kenny").assertExists()
-        compose.onNodeWithText("Lichess, rapid").assertExists()
+        compose.onNodeWithText("Lichess").assertExists()
         compose.onNodeWithText("1848").assertExists()
         compose.onNodeWithText("Link your account").assertDoesNotExist()
         compose.onNodeWithContentDescription("Settings").assertExists()
 
         page = "settings"
+        section("Linked account")
         compose.onNodeWithText("@kenny on Lichess").assertExists()
         compose.onNodeWithText("Rapid 1848 · Blitz 1720 · Bullet –").assertExists()
-        compose.onNodeWithText("Blitz").performClick()
-        assertEquals(RatingTimeControl.BLITZ, rating)
-        compose.onNodeWithText("Import 100 more games").performClick()
+        compose.onNodeWithText("Blitz").assertDoesNotExist()
+        compose.onNodeWithText("Import 100 more").performClick()
         assertTrue(imported)
+        back()
+        section("About")
         compose.onNodeWithText("Support the developer").assertExists()
     }
 

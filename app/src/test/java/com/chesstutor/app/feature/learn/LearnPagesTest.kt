@@ -137,4 +137,17 @@ class LearnPagesTest {
         compose.onNodeWithText("What is check?").performClick()
         assertEquals("basics-check", opened)
     }
+
+    @Test
+    fun aFinishedCourseOffersItsFirstLessonAgain() {
+        val done = checkAndMate.lessons.associate { it.id to LessonProgress(it.id, completed = true) }
+        var opened: String? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                CourseScreen(course = checkAndMate, progress = done, onOpenLesson = { opened = it }, onBack = {})
+            }
+        }
+        compose.onNodeWithText("Play again").performClick()
+        assertEquals(checkAndMate.lessons.first().id, opened)
+    }
 }

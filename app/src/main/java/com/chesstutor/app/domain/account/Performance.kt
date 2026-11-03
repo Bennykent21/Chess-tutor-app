@@ -1,6 +1,9 @@
 package com.chesstutor.app.domain.account
 
 import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.Position
+import java.time.Instant
+import java.time.ZoneId
 
 /** Wins, draws and losses for a group of games. */
 data class Wdl(val wins: Int = 0, val draws: Int = 0, val losses: Int = 0) {
@@ -35,6 +38,59 @@ data class PhaseStats(val phase: GamePhase, val accuracy: Double?, val moves: In
 /** One point of the rating trend. */
 data class RatingPoint(val dateMillis: Long, val rating: Int)
 
+/** How far back a rating graph looks; null days is all of it. */
+enum class GraphPeriod(val label: String, val days: Int?) {
+    MONTH("1M", 30),
+    QUARTER("3M", 90),
+    YEAR("1Y", 365),
+    ALL("All", null),
+}
+
+/** One rating over time, oldest first. [timeClass] says which clock; null for puzzles. */
+data class RatingTrend(val timeClass: TimeClass?, val points: List<RatingPoint>) {
+    /** The rise or fall over the last [CHANGE_DAYS] days, or null with nothing to compare. */
+    fun changeSince(now: Long): Int? {
+        if (points.size < 2) return null
+        val start = now - CHANGE_DAYS * DAY_MILLIS
+        val base = points.lastOrNull { it.dateMillis <= start } ?: points.first()
+        return points.last().rating - base.rating
+    }
+
+    /**
+     * The trend over the last [days] days (from the first point for null), running up to [now]:
+     * the rating the player had as the period began starts the line and the latest rating carries
+     * on to today, so every period spans its own length and a quiet one shows a flat line.
+     */
+    fun within(now: Long, days: Int?): RatingTrend {
+        if (points.isEmpty()) return this
+        val start = days?.let { now - it * DAY_MILLIS } ?: points.first().dateMillis
+        val before = points.lastOrNull { it.dateMillis < start }?.copy(dateMillis = start)
+        val inside = listOfNotNull(before) + points.filter { it.dateMillis >= start }
+        val today = inside.last().takeIf { it.dateMillis < now }?.copy(dateMillis = now)
+        return copy(points = inside + listOfNotNull(today))
+    }
+
+    /**
+     * The points a graph draws (D65): each day's closing rating, so a day of many games is one
+     * step and not a spike; past [limit] days, the closing rating of each of [limit] equal slices
+     * of time. The first point always stays, so the line starts where the period does.
+     */
+    fun forGraph(limit: Int, zone: ZoneId = ZoneId.systemDefault()): List<RatingPoint> {
+        if (points.size < 2) return points
+        val daily = points.groupBy { Instant.ofEpochMilli(it.dateMillis).atZone(zone).toLocalDate() }.values.map { it.last() }
+        if (daily.size <= limit) return (listOf(points.first()) + daily).distinctBy { it.dateMillis }
+        val first = daily.first().dateMillis
+        val span = (daily.last().dateMillis - first).coerceAtLeast(1L)
+        val slices = daily.groupBy { ((it.dateMillis - first) * (limit - 1) / span) }.values.map { it.last() }
+        return (listOf(points.first()) + slices).distinctBy { it.dateMillis }
+    }
+
+    companion object {
+        const val CHANGE_DAYS = 30
+        private const val DAY_MILLIS = 86_400_000L
+    }
+}
+
 /** Everything on the Performance page (plan 6.4), from the player's games. */
 data class PerformanceReport(
     val overall: Wdl,
@@ -45,9 +101,6 @@ data class PerformanceReport(
     val analysedGames: Int,
     val phases: List<PhaseStats>,
     val mistakes: Map<MistakeKind, Int>,
-    /** The time class with the most rated games, and the player's rating in it over time. */
-    val ratingTimeClass: TimeClass?,
-    val ratingTrend: List<RatingPoint>,
 ) {
     val isEmpty: Boolean get() = overall.games == 0
 }
@@ -91,12 +144,6 @@ object PerformanceCalculator {
         }
         val mistakes = mine.mapNotNull(::kindOf).groupingBy { it }.eachCount()
 
-        val rated = games.filter { it.playerRating != null }
-        val ratingClass = rated.groupingBy { it.timeClass }.eachCount().maxByOrNull { it.value }?.key
-        val trend = rated.filter { it.timeClass == ratingClass }
-            .sortedBy { it.dateMillis }
-            .map { RatingPoint(it.dateMillis, it.playerRating!!) }
-
         return PerformanceReport(
             overall = wdl(finished),
             byColor = byColor,
@@ -105,9 +152,24 @@ object PerformanceCalculator {
             analysedGames = analysed.size,
             phases = phases,
             mistakes = mistakes,
-            ratingTimeClass = ratingClass,
-            ratingTrend = trend,
         )
+    }
+
+    /**
+     * The player's rating over time in each of the three main clocks that has a history, or in
+     * the most played clock when none does.
+     */
+    fun ratingTrends(games: List<GameSummary>): List<RatingTrend> {
+        val rated = games.filter { it.playerRating != null }.groupBy { it.timeClass }
+        fun trendOf(clock: TimeClass) = RatingTrend(clock, rated[clock].orEmpty().sortedBy { it.dateMillis }.map { RatingPoint(it.dateMillis, it.playerRating!!) })
+        val main = listOf(TimeClass.RAPID, TimeClass.BLITZ, TimeClass.BULLET).map(::trendOf).filter { it.points.size >= 2 }
+        return main.ifEmpty { listOfNotNull(rated.maxByOrNull { it.value.size }?.key?.let(::trendOf)) }
+    }
+
+    /** The position after the shortest named line of an opening [family] in [games], for its picture. */
+    fun openingFen(games: List<GameSummary>, family: String): String? {
+        val line = games.mapNotNull { it.opening }.filter { it.family == family }.minByOrNull { it.moves.size } ?: return null
+        return GameReviewer.positions(Position.initial().toFen(), line.moves).lastOrNull()?.toFen()
     }
 
     /**

@@ -97,9 +97,9 @@ class ImportMoreTest {
     }
 
     /** The October games, as if imported earlier. */
-    private suspend fun repositoryWithOctober(client: RatingApiClient): InMemoryGameRepository {
+    private suspend fun repositoryWithOctober(): InMemoryGameRepository {
         val games = InMemoryGameRepository()
-        val october = client.parseChessComArchiveJson(
+        val october = ChessComArchive.parse(
             JSONObject().put("games", JSONArray(months.getValue("2026/10").map { (id, day) -> gameJson(id, day) })).toString(),
             "kenny",
         )
@@ -113,7 +113,7 @@ class ImportMoreTest {
         val month = listOf("old" to "2026-10-02", "new1" to "2026-10-20", "new2" to "2026-10-21")
         val json = JSONObject().put("games", JSONArray(month.map { (id, day) -> gameJson(id, day) })).toString()
 
-        val games = RatingApiClient().parseChessComArchiveJson(json, "kenny", maxGames = 1, beforeMillis = millis("2026-10-10"))
+        val games = ChessComArchive.parse(json, "kenny", maxGames = 1, beforeMillis = millis("2026-10-10"))
 
         assertEquals(listOf("chesscom_old"), games.map { it.id })
     }
@@ -158,7 +158,7 @@ class ImportMoreTest {
     fun importMoreBringsTheGamesBeforeTheOldestSavedOne() = runBlocking {
         val requests = mutableListOf<String>()
         val client = fakeChessCom(requests)
-        val games = repositoryWithOctober(client)
+        val games = repositoryWithOctober()
 
         val request = ImportRequest(ImportKind.MORE, RatingPlatform.CHESS_COM, "kenny", maxGames = 3, beforeMillis = millis("2026-10-10"))
         val done = runImport(request, client, games) {}
@@ -175,7 +175,7 @@ class ImportMoreTest {
     @Test
     fun theCountOnlyIncludesGamesThatWereNotSavedBefore() = runBlocking {
         val client = fakeChessCom()
-        val games = repositoryWithOctober(client)
+        val games = repositoryWithOctober()
 
         // Without a starting point (the old behaviour) the saved October games use up the request.
         val done = runImport(ImportRequest(ImportKind.MORE, RatingPlatform.CHESS_COM, "kenny", maxGames = 4), client, games) {}
@@ -203,7 +203,7 @@ class ImportMoreTest {
     @Test
     fun theViewModelStartsFromTheOldestSavedGameAndAimsForTheNewTotal() = runTest(dispatcher) {
         val client = fakeChessCom()
-        val games = repositoryWithOctober(client)
+        val games = repositoryWithOctober()
         val settings = InMemorySettingsStore()
         val importer = object : ImportRunner {
             val started = mutableListOf<ImportRequest>()
@@ -240,6 +240,6 @@ class ImportMoreTest {
         assertEquals(ImportKind.MORE, request.kind)
         assertEquals(500, request.maxGames)
         assertEquals("starts from the oldest saved game", millis("2026-10-10"), request.beforeMillis)
-        assertEquals("saved games plus the 500 asked for", 502, settings.settings.first().importTarget)
+        assertEquals("saved games plus the 500 asked for of each clock", 1502, settings.settings.first().importTarget)
     }
 }

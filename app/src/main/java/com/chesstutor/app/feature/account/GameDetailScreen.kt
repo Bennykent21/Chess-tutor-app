@@ -53,7 +53,6 @@ import com.chesstutor.app.design.CtBoardScreen
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtConfirmDialog
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtShapes
@@ -212,7 +211,6 @@ private fun OpeningRow(game: GameSummary, courseId: String?, settings: AppSettin
     val title = game.openingFamily ?: if (game.startFen != null) "Set-up position" else "Opening not named"
     val detail = openingDetail(game)
     Column {
-        CtDivider()
         Row(
             modifier = Modifier
                 .fillMaxWidth()

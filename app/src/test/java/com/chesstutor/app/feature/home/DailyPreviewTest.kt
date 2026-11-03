@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.home
 
+import com.chesstutor.app.domain.puzzle.DailyPreview
 import com.chesstutor.app.domain.puzzle.Puzzle
 import com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry
 import com.chesstutor.app.domain.puzzle.PuzzleModes

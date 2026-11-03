@@ -18,7 +18,6 @@ interface RatingRepository {
         timeControl: RatingTimeControl = RatingTimeControl.RAPID
     ): Result<LinkedChessProfile>
     suspend fun refreshProfile(): Result<LinkedChessProfile>
-    suspend fun updateTimeControl(timeControl: RatingTimeControl)
     suspend fun unlinkAccount()
 }
 
@@ -56,12 +55,6 @@ class RoomRatingRepository(
         return linkAccount(current.platform, current.username, current.selectedTimeControl)
     }
 
-    override suspend fun updateTimeControl(timeControl: RatingTimeControl) {
-        val current = getLinkedProfile() ?: return
-        val updated = current.copy(selectedTimeControl = timeControl)
-        dao.insertOrUpdate(LinkedProfileEntity.fromDomain(updated))
-    }
-
     override suspend fun unlinkAccount() {
         dao.clear()
     }
@@ -97,11 +90,6 @@ class InMemoryRatingRepository(
     override suspend fun refreshProfile(): Result<LinkedChessProfile> {
         val current = profileFlow.value ?: return Result.failure(IllegalStateException("No account currently linked"))
         return Result.success(current)
-    }
-
-    override suspend fun updateTimeControl(timeControl: RatingTimeControl) {
-        val current = profileFlow.value ?: return
-        profileFlow.value = current.copy(selectedTimeControl = timeControl)
     }
 
     override suspend fun unlinkAccount() {

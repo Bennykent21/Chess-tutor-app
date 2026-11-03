@@ -127,7 +127,18 @@ data class Lesson(
 ) {
     val quizCount: Int get() = steps.count { it is LessonStep.Play && it.quiz }
 
+    /** The position for its picture: the last with a fair number of pieces, else the fullest. */
+    val pictureFen: String?
+        get() {
+            val fens = steps.map { it.fen }
+            return fens.lastOrNull { pieceCount(it) >= FAIR_PICTURE } ?: fens.maxByOrNull(::pieceCount)
+        }
+
+    private fun pieceCount(fen: String): Int = fen.substringBefore(' ').count(Char::isLetter)
+
     companion object {
+        /** Fewer pieces than this make a nearly empty picture. */
+        private const val FAIR_PICTURE = 12
         const val DEFAULT_XP = 20
     }
 }
@@ -173,6 +184,12 @@ data class LessonLibrary(val courses: List<Course>) {
         val siblings = coursesIn(course.category)
         val at = siblings.indexOfFirst { it.id == course.id }
         return siblings.drop(at + 1).firstOrNull { it.lessons.isNotEmpty() }?.lessons?.first()
+    }
+
+    /** The lesson before [lessonId] in its own course, or null for the first. */
+    fun previousIn(lessonId: String): Lesson? {
+        val (course, i) = lessonIndex[lessonId] ?: return null
+        return course.lessons.getOrNull(i - 1)
     }
 
     val isEmpty: Boolean get() = courses.isEmpty()

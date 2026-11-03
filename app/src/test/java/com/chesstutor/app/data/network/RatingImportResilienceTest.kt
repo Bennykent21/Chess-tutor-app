@@ -46,7 +46,6 @@ class RatingImportResilienceTest {
 
     @Test
     fun parseLichessNdjsonFiltersAbortedAndPreservesStandardGames() {
-        val client = RatingApiClient()
         val sampleNdjson = """
             {"id":"valid1","variant":"standard","status":"mate","winner":"white","createdAt":1700000000,"speed":"rapid","players":{"white":{"user":{"name":"Hero"},"rating":1500},"black":{"user":{"name":"Villain"},"rating":1450}},"pgn":"1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7#"}
             {"id":"aborted1","variant":"standard","status":"aborted","createdAt":1700000100,"speed":"rapid","players":{"white":{"user":{"name":"Hero"},"rating":1500},"black":{"user":{"name":"Villain"},"rating":1450}},"pgn":""}
@@ -54,7 +53,7 @@ class RatingImportResilienceTest {
             {"id":"valid2","variant":"standard","status":"resign","winner":"black","createdAt":1700000300,"speed":"blitz","players":{"white":{"user":{"name":"Opponent"},"rating":1600},"black":{"user":{"name":"Hero"},"rating":1520}},"pgn":"1. d4 d5"}
         """.trimIndent()
 
-        val records = client.parseLichessNdjson(sampleNdjson, "Hero")
+        val records = LichessGames.parse(sampleNdjson, "Hero")
         assertEquals(2, records.size)
         assertEquals("lichess_valid1", records[0].id)
         assertEquals("1-0", records[0].result)
@@ -66,12 +65,11 @@ class RatingImportResilienceTest {
 
     @Test
     fun theAutomaticSyncSkipsArchiveMonthsThatEndedBeforeTheNewestGame() {
-        val client = RatingApiClient()
-        val october = client.archiveMonthEnd("https://api.chess.com/pub/player/kenny/games/2026/10")!!
+        val october = ChessComArchive.monthEnd("https://api.chess.com/pub/player/kenny/games/2026/10")!!
         assertEquals(java.time.Instant.parse("2026-11-01T00:00:00Z").toEpochMilli(), october)
-        assertEquals("December rolls into the next year", java.time.Instant.parse("2027-01-01T00:00:00Z").toEpochMilli(), client.archiveMonthEnd("https://x/games/2026/12/"))
-        assertEquals(null, client.archiveMonthEnd("https://x/games/latest"))
-        assertEquals("a resumed import skips months that start after its oldest game", java.time.Instant.parse("2026-10-01T00:00:00Z").toEpochMilli(), client.archiveMonthStart("https://x/games/2026/10"))
+        assertEquals("December rolls into the next year", java.time.Instant.parse("2027-01-01T00:00:00Z").toEpochMilli(), ChessComArchive.monthEnd("https://x/games/2026/12/"))
+        assertEquals(null, ChessComArchive.monthEnd("https://x/games/latest"))
+        assertEquals("a resumed import skips months that start after its oldest game", java.time.Instant.parse("2026-10-01T00:00:00Z").toEpochMilli(), ChessComArchive.monthStart("https://x/games/2026/10"))
     }
 
     @Test

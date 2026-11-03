@@ -9,7 +9,6 @@ import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtActionPage
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.heightIn
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtGroupLabel
 import com.chesstutor.app.design.CtSearchField
 import androidx.compose.foundation.layout.Arrangement
@@ -103,7 +102,6 @@ fun BattleSetupScreen(
             subtitle = line?.let { it.variation.ifEmpty { movesText(it) } },
             icon = null,
             onClick = onPickOpening,
-            divider = false,
             leading = {
                 Box(Modifier.size(40.dp).clip(CtShapes.Pill).background(CtColors.Surface), contentAlignment = Alignment.Center) {
                     Icon(Icons.Rounded.Flag, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(22.dp))
@@ -234,7 +232,6 @@ fun OpeningPickerScreen(
                                     Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, contentDescription = null, tint = CtColors.Text2)
                                 }
                             }
-                            CtDivider()
                         }
                     }
                     if (expanded) {

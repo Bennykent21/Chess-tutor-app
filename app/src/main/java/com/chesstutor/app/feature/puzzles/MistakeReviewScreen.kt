@@ -117,6 +117,7 @@ fun MistakeReviewScreen(
                 arrows = if (from != null && to != null) listOf(BoardArrow(from, to, MarkKind.HINT)) else emptyList(),
                 rings = if (from != null && to == null) listOf(SquareRing(from, MarkKind.HINT)) else emptyList(),
                 onFeedback = actions.onFeedback,
+                soundsOtherMoves = true,
             )
         },
         controls = {

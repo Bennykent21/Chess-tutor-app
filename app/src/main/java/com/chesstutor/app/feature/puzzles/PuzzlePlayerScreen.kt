@@ -2,13 +2,10 @@ package com.chesstutor.app.feature.puzzles
 
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.clickable
-import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.board.moveListOf
 import com.chesstutor.app.board.BoardMoveList
-import com.chesstutor.app.board.BoardMarks
-import com.chesstutor.app.board.BoardView
+import com.chesstutor.app.board.LookBackBoard
+import com.chesstutor.app.board.rememberLookBack
 import com.chesstutor.app.design.CtTutor
 import com.chesstutor.app.design.CtControl
 import androidx.activity.compose.BackHandler
@@ -158,13 +155,7 @@ private fun Playing(
         else -> MascotMood.READY
     }
     val shown by board.state.collectAsState()
-    // Looking back through the puzzle (a move number), or null on the live board. Nothing is undone.
-    var viewedPly by remember(board) { mutableStateOf<Int?>(null) }
-    val latestPly = shown.moves.size
-    val shownPly = viewedPly?.takeIf { it < latestPly }
-    val ply = shownPly ?: latestPly
-    val positions = remember(board, shown.version) { GameReviewer.positions(shown.start.toFen(), shown.moves.map { it.uci }) }
-    val towardBoard = { target: Int -> viewedPly = target.takeIf { it < latestPly } }
+    val look = rememberLookBack(shown, key = board)
     CtBoardScreen(
         title = state.title,
         onBack = onBack,
@@ -185,29 +176,14 @@ private fun Playing(
         under = {
             BoardMoveList(
                 entries = remember(board, shown.version) { moveListOf(shown.start, shown.moves) },
-                currentPly = ply,
-                onSelect = towardBoard,
+                currentPly = look.ply,
+                onSelect = look::show,
             )
         },
         board = {
-            val past = shownPly?.let(positions::getOrNull)
             val towardSolver = whiteAtBottom(settings.boardOrientation, state.solverColor)
-            if (past != null) {
-                BoardView(
-                    position = past,
-                    theme = settings.boardTheme,
-                    // A tap on the board comes back to the puzzle, as does its latest move in the strip.
-                    modifier = Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClickLabel = "Back to the puzzle",
-                    ) { viewedPly = null },
-                    whiteAtBottom = towardSolver,
-                    showCoordinates = settings.showCoordinates,
-                    showLegalDots = false,
-                    marks = BoardMarks(lastMove = shown.moves.getOrNull(shownPly - 1)?.let { it.from to it.to }),
-                )
-            } else {
+            // A tap on a past position comes back to the puzzle, as does its latest move in the strip.
+            LookBackBoard(look, settings.boardTheme, towardSolver, settings.showCoordinates, backLabel = "Back to the puzzle") {
                 BoardHost(
                     session = board,
                     theme = settings.boardTheme,
@@ -221,14 +197,15 @@ private fun Playing(
                         state.mistakeSquare?.let { SquareRing(it, MarkKind.MISTAKE) },
                     ),
                     onFeedback = onFeedback,
+                    soundsOtherMoves = true,
                 )
             }
         },
         controls = {
             // Back and Next only look: Next wakes up once you have gone back, and nothing is undone.
             if (after) {
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Back one move", enabled = ply > 0, onClick = { viewedPly = ply - 1 })
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Next move", enabled = shownPly != null, onClick = { towardBoard(ply + 1) })
+                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Back one move", enabled = look.canGoBack, onClick = look::back)
+                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Next move", enabled = look.shownPly != null, onClick = look::forward)
                 CtButton(
                     text = if (state.isLastOfRun) "See your result" else "Next puzzle",
                     onClick = player::next,
@@ -236,10 +213,10 @@ private fun Playing(
                 )
             } else {
                 val solving = state.phase == PlayerPhase.SOLVING
-                CtControl(Icons.Rounded.Lightbulb, "Hint", enabled = solving && shownPly == null, onClick = player::hint)
-                CtControl(Icons.Rounded.Visibility, "Solution", enabled = solving && shownPly == null, onClick = player::reveal)
-                CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back", enabled = ply > 0, description = "Back one move", onClick = { viewedPly = ply - 1 })
-                CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next", enabled = shownPly != null, description = "Next move", onClick = { towardBoard(ply + 1) })
+                CtControl(Icons.Rounded.Lightbulb, "Hint", enabled = solving && look.shownPly == null, onClick = player::hint)
+                CtControl(Icons.Rounded.Visibility, "Solution", enabled = solving && look.shownPly == null, onClick = player::reveal)
+                CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back", enabled = look.canGoBack, description = "Back one move", onClick = look::back)
+                CtControl(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next", enabled = look.shownPly != null, description = "Next move", onClick = look::forward)
             }
         },
     )

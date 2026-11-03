@@ -129,11 +129,10 @@ class HomeScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Home.png")
         compose.onNodeWithText("vs Juno").performClick()
         assertTrue(resumed)
-        compose.onNodeWithText("Play ${recommended.name}").performClick()
-        assertEquals(recommended.id, opened)
-        // D42: the bots live behind "Bots" in More ways to play, not on Home itself.
+        compose.onNodeWithText("${recommended.name}, ${recommended.rating}").assertExists()
+        // D42: the bots live behind Play, not on Home itself.
         compose.onNodeWithText("Meet the bots").assertDoesNotExist()
-        compose.onNodeWithText("Bots").performScrollTo().performClick()
+        compose.onNodeWithText("Play").performClick()
         assertTrue(bots)
     }
 
@@ -179,6 +178,7 @@ class HomeScreensTest {
             }
         }
         compose.onNodeWithText("My bots").assertDoesNotExist()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/Bots.png")
         compose.onNodeWithText("Build a bot").performClick()
         assertTrue(built)
         compose.onNodeWithText("Watch two").performClick()
@@ -355,7 +355,7 @@ class HomeScreensTest {
                 PositionSetupScreen(
                     draft = draft,
                     theme = AppSettings().boardTheme,
-                    opponents = BotRoster.bots.take(4),
+                    opponents = BotRoster.bots,
                     onChange = { draft = it(draft) },
                     onStart = { started = true },
                     onBack = {},
@@ -368,7 +368,12 @@ class HomeScreensTest {
         compose.onNodeWithText("The side not to move is in check. Change who moves first.").assertExists()
         compose.onNodeWithText("Black to move").performClick()
         compose.onNode(hasText("Play")).performClick()
+        // Side and opponent wait in a sheet, below the fold of a phone's setup area (D63).
+        assertEquals(false, started)
+        compose.onNodeWithContentDescription("Pebble, 250").performClick()
+        compose.onNodeWithText("Play Pebble").performClick()
         assertEquals(true, started)
+        assertEquals("pebble", draft.opponentId)
         assertEquals("4k3/8/8/4Q3/8/8/8/4K3 b - - 0 1", draft.board.toFen())
     }
 

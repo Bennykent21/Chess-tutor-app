@@ -76,7 +76,6 @@ data class CtPalette(
     val boardDark: Long,
 ) {
     /** Dark themes and Mono outline their cards with a hairline; the other light themes use a soft shadow. */
-    val outlinedCards: Boolean get() = dark || theme == AppTheme.MONO
 
     /** Text colour and the backgrounds it is allowed on. Tested to meet WCAG AA (4.5:1). */
     val textPairs: List<Pair<Long, List<Long>>>
@@ -120,7 +119,7 @@ object Palette {
         navPill = 0xFF2F281C, navIcon = 0xFFF2ECE1,
         success = 0xFF7DBE93, onSuccess = 0xFF13110E,
         error = 0xFFE08374, onError = 0xFF13110E,
-        switchOff = 0xFF4A4236, boardLight = 0xFFD4BD98, boardDark = 0xFF8F6E48,
+        switchOff = 0xFF4A4236, boardLight = 0xFFECDDC2, boardDark = 0xFFB8956A,
     )
     val BAIZE_LIGHT = CtPalette(
         theme = AppTheme.BAIZE, dark = false,
@@ -142,7 +141,7 @@ object Palette {
         navPill = 0xFF1F3328, navIcon = 0xFFC5E6D1,
         success = 0xFF7CC19B, onSuccess = 0xFF0D1210,
         error = 0xFFE08374, onError = 0xFF0D1210,
-        switchOff = 0xFF3A4740, boardLight = 0xFFCBD5C2, boardDark = 0xFF60846A,
+        switchOff = 0xFF3A4740, boardLight = 0xFFE6EBDD, boardDark = 0xFF7C9D84,
     )
     val MONO_LIGHT = CtPalette(
         theme = AppTheme.MONO, dark = false,
@@ -164,7 +163,7 @@ object Palette {
         navPill = 0xFF262626, navIcon = 0xFFF5F5F5,
         success = 0xFF6CC08E, onSuccess = 0xFF000000,
         error = 0xFFEC7A6A, onError = 0xFF000000,
-        switchOff = 0xFF3A3A3A, boardLight = 0xFFD9BF97, boardDark = 0xFF9B6D47,
+        switchOff = 0xFF3A3A3A, boardLight = 0xFFEAD3AF, boardDark = 0xFFB3825A,
     )
     // Slate takes the colours of the developer's own mock-up (dark); its light mode is derived.
     val SLATE_LIGHT = CtPalette(
@@ -211,6 +210,23 @@ object Palette {
         }
         return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
     }
+}
+
+/**
+ * The colours of the metal icons (D64), for a page that belongs to one of them: a clock's stats
+ * take its metal's colour for the graph and the glow behind the icon. The same in every theme;
+ * each mode has its own shade so lines and marks keep 3:1 on its backgrounds (PaletteContrastTest).
+ */
+enum class MetalHue(val light: Long, val dark: Long) {
+    GOLD(0xFF8F6608, 0xFFE8BC3E),
+    EMBER(0xFFB1431C, 0xFFF0814F),
+    JADE(0xFF1B7D48, 0xFF4CC985),
+    TEAL(0xFF137872, 0xFF45C7BC),
+    COBALT(0xFF2459C4, 0xFF6E9CF5),
+    VIOLET(0xFF6B42D6, 0xFFA88EFB),
+    ;
+
+    fun of(dark: Boolean): Long = if (dark) this.dark else light
 }
 
 /**
