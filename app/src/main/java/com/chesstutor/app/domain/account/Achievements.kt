@@ -9,11 +9,14 @@ import java.time.ZoneId
 /** What a badge is for, which sets its colour and icon. */
 enum class BadgeKind { GAMES, PUZZLES, LEARNING, REVIEW }
 
+/** How hard a badge is to earn, which is the metal of its medal. */
+enum class BadgeTier { BRONZE, SILVER, GOLD }
+
 /**
  * One badge (plan 5.3 and 6.4): earned by learning and playing, never by tapping around.
  * Every badge is worked out from what is already saved, so none can be lost again.
  */
-data class Badge(val id: String, val title: String, val detail: String, val kind: BadgeKind, val progress: Int, val goal: Int) {
+data class Badge(val id: String, val title: String, val detail: String, val kind: BadgeKind, val progress: Int, val goal: Int, val tier: BadgeTier = BadgeTier.BRONZE) {
     val earned: Boolean get() = progress >= goal
 }
 
@@ -48,21 +51,21 @@ object Achievements {
         fun beat(rating: Int) = if (botWins.any { it.opponentRating >= rating }) 1 else 0
         val all = listOf(
             Badge("first-win", "First win", "Beat a bot", BadgeKind.GAMES, botWins.size.coerceAtMost(1), 1),
-            Badge("giant-slayer", "Giant slayer", "Beat a bot rated 1600 or more", BadgeKind.GAMES, beat(1600), 1),
-            Badge("bot-master", "Bot master", "Beat a bot rated 2000 or more", BadgeKind.GAMES, beat(2000), 1),
+            Badge("giant-slayer", "Giant slayer", "Beat a bot rated 1600 or more", BadgeKind.GAMES, beat(1600), 1, BadgeTier.SILVER),
+            Badge("bot-master", "Bot master", "Beat a bot rated 2000 or more", BadgeKind.GAMES, beat(2000), 1, BadgeTier.GOLD),
             Badge("regular", "Regular", "Play 25 games against the bots", BadgeKind.GAMES, botGames.size, 25),
             Badge("puzzles-10", "Puzzle starter", "Solve 10 puzzles", BadgeKind.PUZZLES, solved, 10),
-            Badge("puzzles-100", "Puzzle fan", "Solve 100 puzzles", BadgeKind.PUZZLES, solved, 100),
-            Badge("puzzles-500", "Puzzle master", "Solve 500 puzzles", BadgeKind.PUZZLES, solved, 500),
-            Badge("hot-hand", "Hot hand", "Solve 10 puzzles in a row without a slip", BadgeKind.PUZZLES, bestCleanRun, 10),
-            Badge("week", "Seven days", "Solve a puzzle 7 days in a row", BadgeKind.PUZZLES, dayRun, 7),
-            Badge("level-10", "Level 10", "Reach level 10", BadgeKind.PUZZLES, inputs.playerLevel, 10),
+            Badge("puzzles-100", "Puzzle fan", "Solve 100 puzzles", BadgeKind.PUZZLES, solved, 100, BadgeTier.SILVER),
+            Badge("puzzles-500", "Puzzle master", "Solve 500 puzzles", BadgeKind.PUZZLES, solved, 500, BadgeTier.GOLD),
+            Badge("hot-hand", "Hot hand", "Solve 10 puzzles in a row without a slip", BadgeKind.PUZZLES, bestCleanRun, 10, BadgeTier.SILVER),
+            Badge("week", "Seven days", "Solve a puzzle 7 days in a row", BadgeKind.PUZZLES, dayRun, 7, BadgeTier.SILVER),
+            Badge("level-10", "Level 10", "Reach level 10", BadgeKind.PUZZLES, inputs.playerLevel, 10, BadgeTier.SILVER),
             Badge("first-lesson", "First lesson", "Finish a lesson", BadgeKind.LEARNING, lessons.coerceAtMost(1), 1),
-            Badge("ten-lessons", "Keen learner", "Finish 10 lessons", BadgeKind.LEARNING, lessons, 10),
-            Badge("all-lessons", "Graduate", "Finish every lesson", BadgeKind.LEARNING, lessons, lessonTotal),
+            Badge("ten-lessons", "Keen learner", "Finish 10 lessons", BadgeKind.LEARNING, lessons, 10, BadgeTier.SILVER),
+            Badge("all-lessons", "Graduate", "Finish every lesson", BadgeKind.LEARNING, lessons, lessonTotal, BadgeTier.GOLD),
             Badge("first-review", "Under the microscope", "Review a game with Stockfish", BadgeKind.REVIEW, inputs.analysed.size.coerceAtMost(1), 1),
-            Badge("sharp", "Sharp", "Play a game with 90% accuracy or more", BadgeKind.REVIEW, if (bestAccuracy >= 90.0) 1 else 0, 1),
-            Badge("brilliant", "Brilliant!", "Play a brilliant move in a reviewed game", BadgeKind.REVIEW, brilliant.coerceAtMost(1), 1),
+            Badge("sharp", "Sharp", "Play a game with 90% accuracy or more", BadgeKind.REVIEW, if (bestAccuracy >= 90.0) 1 else 0, 1, BadgeTier.SILVER),
+            Badge("brilliant", "Brilliant!", "Play a brilliant move in a reviewed game", BadgeKind.REVIEW, brilliant.coerceAtMost(1), 1, BadgeTier.GOLD),
         )
         return all.sortedWith(compareByDescending<Badge> { it.earned }.thenByDescending { it.progress.toFloat() / it.goal })
     }

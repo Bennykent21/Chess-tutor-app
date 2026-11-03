@@ -56,6 +56,7 @@ fun ExploreSetupScreen(
         onBoard = { next -> onChange { it.copy(board = next) } },
         onBrush = { brush -> onChange { it.copy(brush = brush) } },
         onBack = onBack,
+        nextLabel = "Explore",
         startLabel = "Explore",
         onStart = onStart,
     ) {

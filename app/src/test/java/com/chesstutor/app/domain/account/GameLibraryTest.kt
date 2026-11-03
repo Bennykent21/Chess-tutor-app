@@ -102,7 +102,7 @@ class GameLibraryTest {
         assertEquals(emptyList<String>(), ids(GameFilter(query = "pip", source = GameSource.LICHESS)))
 
         assertEquals(listOf(GameSource.ARENA, GameSource.CHESS_COM, GameSource.LICHESS), GameLibrary.sources(games))
-        assertEquals(listOf(TimeClass.BULLET, TimeClass.BLITZ, TimeClass.RAPID), GameLibrary.timeClasses(games))
+        assertEquals(listOf(TimeClass.RAPID, TimeClass.BLITZ, TimeClass.BULLET), GameLibrary.timeClasses(games))
         assertEquals(3, GameLibrary.topOpenings(games).size)
 
         val totals = GameLibrary.totals(games)

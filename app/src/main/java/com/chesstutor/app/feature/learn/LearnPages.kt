@@ -41,20 +41,19 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.chesstutor.app.board.BoardTheme
-import com.chesstutor.app.board.BoardView
 import com.chesstutor.app.core.PieceColor
-import com.chesstutor.app.core.Position
+import com.chesstutor.app.design.CtArt
 import com.chesstutor.app.design.CtBackBar
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtDropdownChip
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtProgressBar
+import com.chesstutor.app.design.CtRing
+import com.chesstutor.app.design.CtRingPart
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtSectionHeader
@@ -75,7 +74,7 @@ import com.chesstutor.app.domain.learn.PracticeSets
 
 /**
  * A category page (plan 6.2, Phase 7D, canvas `LearnOpenings.dc.html`), for example Openings:
- * every course as a row with a board picture, who it is for and its level, filtered by level
+ * the topic's scene, then every course as a row with who it is for and its level, filtered by level
  * and side with dropdown chips. Search hides behind its icon until wanted.
  */
 @Composable
@@ -85,8 +84,6 @@ fun LearnCategoryScreen(
     onOpenCourse: (courseId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    /** The player's board, for the course pictures. */
-    boardTheme: BoardTheme = BoardTheme(),
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
@@ -104,22 +101,25 @@ fun LearnCategoryScreen(
 
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CtBackBar(onBack = onBack, modifier = Modifier.weight(1f))
-                if (all.size > 3) {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = CtSpacing.sm)
-                            .size(CtSpacing.touchTarget)
-                            .clip(CtShapes.Pill)
-                            .ctPressable(onClickLabel = "Search courses") { searching = !searching },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Rounded.Search, contentDescription = "Search courses", tint = CtColors.Text)
+            Box(Modifier.fillMaxWidth().height(HERO_HEIGHT)) {
+                CtArt(categoryScene(category), Modifier.matchParentSize(), lift = 0.14f, alive = true)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CtBackBar(onBack = onBack, modifier = Modifier.weight(1f))
+                    if (all.size > 3) {
+                        Box(
+                            modifier = Modifier
+                                .padding(end = CtSpacing.sm)
+                                .size(CtSpacing.touchTarget)
+                                .clip(CtShapes.Pill)
+                                .ctPressable(onClickLabel = "Search courses") { searching = !searching },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.Rounded.Search, contentDescription = "Search courses", tint = CtColors.Text)
+                        }
                     }
                 }
+                CtScreenTitle(title = category.title, modifier = Modifier.align(Alignment.BottomStart))
             }
-            CtScreenTitle(title = category.title)
             Text("${count.completed} of ${count.total} lessons", style = CtType.BodySmall, modifier = Modifier.padding(horizontal = CtSpacing.gutter))
             Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
                 if (searching) {
@@ -151,14 +151,16 @@ fun LearnCategoryScreen(
                         body = if (all.isEmpty()) "Lessons for this category are being written." else "Try another word or clear the filters.",
                     )
                 }
-                shown.forEachIndexed { i, course ->
-                    CourseRow(course, learn.progress, boardTheme, last = i == shown.lastIndex, onClick = { onOpenCourse(course.id) })
+                shown.forEach { course ->
+                    CourseRow(course, learn.progress, onClick = { onOpenCourse(course.id) })
                 }
                 Spacer(Modifier.height(CtSpacing.xl))
             }
         }
     }
 }
+
+private val HERO_HEIGHT = 240.dp
 
 /** A chip that opens a short menu of choices; null is "any". */
 @Composable
@@ -180,34 +182,30 @@ private fun FilterDropdown(label: String, options: List<Pair<String?, String>>, 
     }
 }
 
-/** A course: a picture of its first board, its name, who it is for and its level. */
+/** A course: how far you are round a ring, its name, who it is for and its level. */
 @Composable
-private fun CourseRow(course: Course, progress: Map<String, LessonProgress>, boardTheme: BoardTheme, last: Boolean, onClick: () -> Unit) {
+private fun CourseRow(course: Course, progress: Map<String, LessonProgress>, onClick: () -> Unit) {
     val count = LearnHubModel.countOf(course.lessons, progress)
     val who = course.side?.let { if (it == PieceColor.WHITE) "For White" else "For Black" }
-    val lessons = if (count.completed > 0) "${count.completed} of ${count.total} done" else "${count.total} lesson${if (count.total == 1) "" else "s"}"
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 76.dp)
-                .ctPressable(onClickLabel = "Open ${course.title}", onClick = onClick)
-                .padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Box(Modifier.size(56.dp).clip(CtShapes.Chip)) {
-                val position = course.lessons.firstOrNull()?.steps?.firstOrNull()?.fen?.let { Position.tryFromFen(it).getOrNull() } ?: Position.initial()
-                BoardView(position = position, theme = boardTheme, whiteAtBottom = course.side != PieceColor.BLACK, showCoordinates = false, showLegalDots = false)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(course.title, style = CtType.TitleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(listOfNotNull(who, lessons).joinToString(", "), style = CtType.Caption, maxLines = 1)
-            }
-            LevelBars(course.level)
-            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2)
+    val lessons = "${count.total} lesson${if (count.total == 1) "" else "s"}"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 68.dp)
+            .ctPressable(onClickLabel = "Open ${course.title}", onClick = onClick)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        CtRing(listOf(CtRingPart(count.progress, CtColors.Accent)), diameter = 44.dp, stroke = 3.dp) {
+            Text("${count.completed}/${count.total}", style = CtType.Caption, maxLines = 1)
         }
-        if (!last) CtDivider()
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(course.title, style = CtType.TitleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(listOfNotNull(who, lessons).joinToString(", "), style = CtType.Caption, maxLines = 1)
+        }
+        LevelBars(course.level)
+        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2)
     }
 }
 
@@ -228,8 +226,8 @@ private fun LevelBars(level: LessonLevel) {
 
 /**
  * A course page (plan 6.2, Phase 7D, canvas `Course.dc.html`): its topic and title, how far
- * you are, the lesson to do next as a card, the other lessons as quiet rows, and ways to
- * practise.
+ * you are on the topic's scene, the lesson to do next as a card, the other lessons as quiet rows
+ * and ways to practise. A finished course offers its first lesson again.
  */
 @Composable
 fun CourseScreen(
@@ -254,12 +252,17 @@ fun CourseScreen(
         }
         val count = LearnHubModel.countOf(course.lessons, progress)
         // The lesson to do next: the first one not finished.
-        val current = course.lessons.firstOrNull { progress[it.id]?.completed != true }
+        val current = course.lessons.firstOrNull { progress[it.id]?.completed != true } ?: course.lessons.firstOrNull()
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtBackBar(onBack = onBack)
-            Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-                Text(course.category.title, style = CtType.BodySmall)
-                Text(course.title, style = CtType.Display)
+            Box(Modifier.fillMaxWidth().height(HERO_HEIGHT)) {
+                CtArt(categoryScene(course.category), Modifier.matchParentSize(), lift = 0.14f, alive = true)
+                CtBackBar(onBack = onBack)
+                Column(Modifier.align(Alignment.BottomStart).padding(horizontal = CtSpacing.gutter)) {
+                    Text(course.category.title, style = CtType.BodySmall)
+                    Text(course.title, style = CtType.Display, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.xs), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
                 if (course.intro.isNotBlank()) Text(course.intro, style = CtType.Caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(Modifier.padding(top = CtSpacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                     CtProgressBar(progress = count.progress, height = 3.dp, modifier = Modifier.weight(1f))
@@ -291,39 +294,41 @@ fun CourseScreen(
                     )
                 }
                 onPractise?.let { CtListRow(title = "Practise in Opening Battle", icon = Icons.Rounded.Flag, onClick = it) }
-                onRelatedPuzzles?.let { CtListRow(title = "Related puzzles", icon = Icons.Rounded.Extension, onClick = it, divider = false) }
+                onRelatedPuzzles?.let { CtListRow(title = "Related puzzles", icon = Icons.Rounded.Extension, onClick = it) }
                 Spacer(Modifier.height(CtSpacing.xl))
             }
         }
     }
 }
 
-/** The lesson to do next, raised: its number, title, summary, where you are, and Start or Continue. */
+/** The lesson to do next, raised: its title, summary, where you are, and the button. */
 @Composable
 private fun CurrentLesson(number: Int, lesson: Lesson, progress: LessonProgress?, onOpen: () -> Unit) {
-    val started = progress?.started == true
+    val finished = progress?.completed == true
+    val resuming = progress?.started == true && !finished
     val challenges = lesson.quizCount
-    val detail = if (started) {
+    val detail = if (resuming) {
         "Resume at step ${progress!!.stepIndex + 1} of ${lesson.steps.size}"
     } else {
         "${lesson.steps.count { it !is LessonStep.Watch }} steps" + if (challenges > 0) ", $challenges challenge${if (challenges == 1) "" else "s"}" else ""
     }
     CtCard(onClick = onOpen, onClickLabel = "Open lesson $number, ${lesson.title}", modifier = Modifier.fillMaxWidth().padding(vertical = CtSpacing.xs)) {
-        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Box(
-                modifier = Modifier.size(32.dp).clip(CtShapes.Pill).border(2.dp, CtColors.Accent, CtShapes.Pill),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("$number", style = CtType.Label.copy(color = CtColors.Accent))
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(lesson.title, style = CtType.TopBar, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (lesson.summary.isNotBlank()) Text(lesson.summary, style = CtType.BodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(detail, style = CtType.Caption)
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(lesson.title, style = CtType.TopBar, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (lesson.summary.isNotBlank()) Text(lesson.summary, style = CtType.BodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(detail, style = CtType.Caption)
+            Spacer(Modifier.height(CtSpacing.md))
+            CtButton(
+                text = when {
+                    finished -> "Play again"
+                    resuming -> "Continue"
+                    else -> "Start"
+                },
+                icon = Icons.AutoMirrored.Rounded.ArrowForward,
+                onClick = onOpen,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
-        Spacer(Modifier.height(14.dp))
-        CtButton(text = if (started) "Continue" else "Start", icon = Icons.AutoMirrored.Rounded.ArrowForward, onClick = onOpen, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -333,9 +338,9 @@ private fun LessonRow(number: Int, lesson: Lesson, done: Boolean, onClick: () ->
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 60.dp)
+            .defaultMinSize(minHeight = 64.dp)
             .ctPressable(onClickLabel = "Open lesson $number, ${lesson.title}", onClick = onClick)
-            .padding(horizontal = CtSpacing.lg, vertical = CtSpacing.sm),
+            .padding(vertical = CtSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {

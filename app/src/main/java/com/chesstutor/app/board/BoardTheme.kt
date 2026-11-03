@@ -1,5 +1,6 @@
 package com.chesstutor.app.board
 
+import com.chesstutor.app.design.AppTheme
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.data.settings.BoardOrientation
 
@@ -44,10 +45,24 @@ enum class BoardColors(
     WALNUT("walnut", "Walnut", 0xFFE3C29CL, 0xFFA26E44L, 0xFF4A2A12L, 0xFF0D0500L, sheen = true),
     ICE("ice", "Ice", 0xFFF2F7FBL, 0xFFA9C7DDL, 0xFF4F6F86L, 0xFF1C3346L),
     NEON("neon", "Neon", 0xFFC9F7F2L, 0xFF7B6CF0L, 0xFF3A2F96L, 0xFF0E0838L),
-    MARBLE("marble", "Marble", 0xFFECEAE6L, 0xFFA7A39CL, 0xFF55514BL, 0xFF1F1D1AL, sheen = true);
+    MARBLE("marble", "Marble", 0xFFECEAE6L, 0xFFA7A39CL, 0xFF55514BL, 0xFF1F1D1AL, sheen = true),
+
+    // The boards of the app themes, the ones each theme's card shows.
+    PARCHMENT("parchment", "Parchment", 0xFFECDDC2L, 0xFFB8956AL, 0xFF5A3418L, 0xFF2A1708L),
+    BAIZE("baize", "Baize", 0xFFE6EBDDL, 0xFF7C9D84L, 0xFF3C5A2AL, 0xFF0F2209L),
+    MONO("mono", "Mono", 0xFFEAD3AFL, 0xFFB3825AL, 0xFF5A3418L, 0xFF2A1708L),
+    SLATE("slate", "Slate", 0xFFE8E0D1L, 0xFF58707EL, 0xFF3A4F5CL, 0xFFFFFFFFL);
 
     companion object {
-        val DEFAULT = CLASSIC
+        val DEFAULT = MONO
+
+        /** The board that goes with an app theme: choosing the theme chooses it too. */
+        fun forTheme(theme: AppTheme): BoardColors = when (theme) {
+            AppTheme.PARCHMENT -> PARCHMENT
+            AppTheme.BAIZE -> BAIZE
+            AppTheme.MONO -> MONO
+            AppTheme.SLATE -> SLATE
+        }
 
         /** Unknown or missing ids (an old or damaged setting) fall back to [DEFAULT]. */
         fun fromId(id: String?): BoardColors = entries.firstOrNull { it.id == id } ?: DEFAULT

@@ -1,5 +1,7 @@
 package com.chesstutor.app.navigation
 
+import com.chesstutor.app.domain.account.GameFilter
+import com.chesstutor.app.domain.account.TimeClass
 /**
  * The four bottom-bar tabs (plan section 3). Each tab has its own back stack.
  */
@@ -18,6 +20,17 @@ object AppRoutes {
     /** Every bundled part and its licence, with the licence texts (Settings > About). */
     const val LICENCES = "account/licences"
     /** One saved game: result, opening, final position and moves (plan section 6.4). */
+    /** Every saved game, with a filter already set (D60). */
+    const val GAMES_FILTER_ARG = "filter"
+    const val GAMES_PATTERN = "account/games?$GAMES_FILTER_ARG={$GAMES_FILTER_ARG}"
+    fun games(filter: GameFilter = GameFilter()): String = "account/games?$GAMES_FILTER_ARG=${encode(filter.encode())}"
+
+    /** Stats for one clock, and Training for the puzzles (D60). */
+    const val CLOCK_ARG = "clock"
+    const val STATS_PATTERN = "account/stats/{$CLOCK_ARG}"
+    fun stats(clock: TimeClass): String = "account/stats/${clock.name}"
+    const val TRAINING = "account/training"
+
     const val GAME_ID_ARG = "gameId"
     const val GAME_PATTERN = "account/game/{$GAME_ID_ARG}"
     fun game(id: String): String = "account/game/${encode(id)}"
@@ -33,6 +46,8 @@ object AppRoutes {
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
+    /** Custom run: rating, pattern, how many and a timer (D64). */
+    const val PUZZLE_CUSTOM = "puzzles/custom"
     /** Every level of the five worlds (D43). */
     const val PUZZLE_LEVELS = "puzzles/levels"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
@@ -109,7 +124,7 @@ object AppRoutes {
 
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 
-    private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN)
+    private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN, GAMES_PATTERN, STATS_PATTERN, TRAINING)
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
     private val homePages = setOf(BOTS)
     private val puzzlePages = setOf(PUZZLE_LEVELS)

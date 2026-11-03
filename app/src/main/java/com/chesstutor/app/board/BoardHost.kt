@@ -69,7 +69,9 @@ object BoardMotionSpec {
  * through. With "Reduce motion" on, everything snaps instead.
  *
  * [onFeedback] receives the sound and vibration for each event; the caller plays it,
- * respecting the player's sound and haptics settings.
+ * respecting the player's sound and haptics settings. With [soundsOtherMoves], a move the
+ * player did not make here (a puzzle's reply, a lesson's demonstration, a solution played out)
+ * sounds as it slides; a game's bot moves are sounded by the game instead.
  */
 @Composable
 fun BoardHost(
@@ -83,6 +85,7 @@ fun BoardHost(
     arrows: List<BoardArrow> = emptyList(),
     rings: List<SquareRing> = emptyList(),
     onFeedback: (BoardFeedback) -> Unit = {},
+    soundsOtherMoves: Boolean = false,
     /** In draw mode (analysis), drags draw arrows and taps ring squares instead of moving. */
     drawMode: Boolean = false,
     onDrawArrow: (from: Square, to: Square) -> Unit = { _, _ -> },
@@ -105,6 +108,9 @@ fun BoardHost(
     val slide = remember { Animatable(1f) }
     val shake = remember { Animatable(1f) }
     var animatedVersion by remember { mutableIntStateOf(state.version) }
+    // The last move this board has sounded or seen made by the player, so coming back to the
+    // board (after looking back through the moves) does not sound the last move again.
+    var heardVersion by remember { mutableIntStateOf(state.version) }
     val plan = remember(state.version) {
         val move = state.lastMove
         val previous = state.previous
@@ -118,6 +124,12 @@ fun BoardHost(
     LaunchedEffect(state.version) {
         selected = null
         pendingPromotion = null
+        val move = state.lastMove
+        val previous = state.previous
+        if (soundsOtherMoves && state.version != heardVersion && state.animateLastMove && move != null && previous != null) {
+            onFeedback(MoveEffects.feedbackFor(previous, move, state.position))
+        }
+        heardVersion = state.version
         if (plan != null && !reduceMotion) {
             slide.snapTo(0f)
             animatedVersion = state.version
@@ -160,6 +172,7 @@ fun BoardHost(
             is BoardIntent.Play -> {
                 selected = null
                 currentOnFeedback(currentSession.onMove(intent.move))
+                heardVersion = currentSession.state.value.version
             }
             is BoardIntent.ChoosePromotion -> {
                 selected = null

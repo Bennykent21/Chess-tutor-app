@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.home
 
+import com.chesstutor.app.design.ctEnter
+import com.chesstutor.app.design.CtFade
+import com.chesstutor.app.design.CtPictureTile
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
-import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
@@ -49,25 +51,33 @@ fun BotsScreen(
                 }
                 if (myBots.isNotEmpty()) {
                     CtSectionHeader(title = "My bots")
-                    myBots.map { it.asRosterBot() }.forEachIndexed { i, bot -> BotRow(bot, last = i == myBots.lastIndex, onOpenBot) }
+                    BotGrid(myBots.map { it.asRosterBot() }, onOpenBot)
                 }
                 CtSectionHeader(title = "All bots")
-                roster.forEachIndexed { i, bot -> BotRow(bot, last = i == roster.lastIndex, onOpenBot) }
+                BotGrid(roster, onOpenBot)
                 Spacer(Modifier.height(CtSpacing.xl))
             }
         }
     }
 }
 
-/** A bot: its face, name, rating and style; opens its page (pick colour and clock, then play). */
+/** Two bots to a row, each face filling its card; a card opens that bot's page. */
 @Composable
-private fun BotRow(bot: RosterBot, last: Boolean, onOpenBot: (String) -> Unit) {
-    CtListRow(
-        title = bot.name,
-        subtitle = "${bot.rating}, ${bot.profile.style.label}",
-        icon = null,
-        onClick = { onOpenBot(bot.id) },
-        divider = !last,
-        leading = { BotAvatar(bot.profile.face, bot.rating, size = 40.dp) },
-    )
+private fun BotGrid(bots: List<RosterBot>, onOpenBot: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+        bots.chunked(2).forEachIndexed { row, pair ->
+            Row(Modifier.ctEnter(row), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+                pair.forEach { bot ->
+                    CtPictureTile(
+                        title = bot.name,
+                        subtitle = "${bot.rating}, ${bot.profile.style.label}",
+                        modifier = Modifier.weight(1f).height(196.dp),
+                        fade = CtFade.Soft,
+                        onClick = { onOpenBot(bot.id) },
+                    ) { BotPicture(bot.profile.face) }
+                }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
 }

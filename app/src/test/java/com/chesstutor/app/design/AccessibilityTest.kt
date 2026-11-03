@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.Config
 import java.io.File
 
@@ -59,6 +60,7 @@ import java.io.File
  * 48 dp across (plan Phase 6D). Fails with the list of problems.
  */
 @RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w400dp-h3000dp-xxhdpi")
 class AccessibilityTest {
 
@@ -118,10 +120,10 @@ class AccessibilityTest {
         PuzzlesHomeScreen(PuzzlesHomeState(loading = false, stats = PuzzleStats()), 0, onPlayLevel = {}, onOpenModes = {}, onReviewMistakes = {})
     }
 
-    @Test fun puzzleModes() = check("Puzzle modes") { PuzzleModesScreen(patternsFor = { emptyList() }, actions = PuzzleModeActions({}, { _, _, _ -> }, { _, _, _, _ -> }, {}), onBack = {}) }
+    @Test fun puzzleModes() = check("Puzzle modes") { PuzzleModesScreen(patternsFor = { emptyList() }, actions = PuzzleModeActions({}, { _, _, _ -> }, {}, {}), onBack = {}) }
 
     @Test fun account() = check("Account") {
-        AccountScreen(state = AppUiState(), games = GamesState(loading = false), stats = PuzzleStats(), dueReviewCount = 0, actions = AccountActions())
+        AccountScreen(state = AppUiState(), games = GamesState(loading = false), stats = PuzzleStats(), actions = AccountActions())
     }
 
     @Test fun settings() = check("Settings") { SettingsScreen(state = AppUiState(), accountActions = AccountActions(), actions = SettingsActions(supportUrl = "")) }

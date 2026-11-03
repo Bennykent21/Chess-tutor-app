@@ -1,5 +1,18 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.design.ctEnter
+import com.chesstutor.app.design.CtTopBar
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.GridOn
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.runtime.key
+import androidx.compose.foundation.ScrollState
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.PickVisualMediaRequest
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.feature.home.PlayerAvatar
@@ -34,7 +47,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Code
@@ -69,7 +81,6 @@ import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtConfirmDialog
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtScreenBackground
-import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtToggleRow
 import com.chesstutor.app.design.CtSegmented
@@ -139,6 +150,8 @@ fun SettingsScreen(
     var coachSheet by rememberSaveable { mutableStateOf(false) }
     var nameSheet by rememberSaveable { mutableStateOf(false) }
     var pictureSheet by rememberSaveable { mutableStateOf(false) }
+    var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
+    BackHandler(enabled = page != null) { page = null }
     var pictureBusy by remember { mutableStateOf(false) }
     var pictureMessage by remember { mutableStateOf<String?>(null) }
     fun usePhoto(image: ByteArray?, failure: String) {
@@ -192,174 +205,181 @@ fun SettingsScreen(
     }
 
     CtScreenBackground(modifier) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtBackBar(onBack = actions.onBack)
-            CtScreenTitle(title = "Settings")
-            Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
-                CtSectionHeader(title = "Appearance")
-                Spacer(Modifier.height(CtSpacing.sm))
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppTheme.entries.chunked(2).forEach { pair ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            pair.forEach { theme ->
-                                CtThemeCard(
-                                    theme = theme,
-                                    dark = CtColors.IsDark,
-                                    selected = state.appSettings.appTheme == theme,
-                                    onClick = { actions.onAppTheme(theme) },
-                                    modifier = Modifier.weight(1f),
+        val scroll = remember(page) { ScrollState(0) }
+        Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+            val open = page
+            if (open == null) {
+                CtBackBar(onBack = actions.onBack)
+                CtScreenTitle(title = "Settings")
+            } else {
+                CtTopBar(title = open.title, onBack = { page = null })
+            }
+            key(open) {
+                Column(Modifier.padding(horizontal = CtSpacing.gutter).ctEnter()) {
+                    when (open) {
+                        null -> SettingsPage.entries.forEach { entry ->
+                            CtListRow(title = entry.title, icon = entry.icon, subtitle = summaryOf(entry, state), onClick = { page = entry })
+                        }
+                        SettingsPage.APPEARANCE -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    AppTheme.entries.chunked(2).forEach { pair ->
+                                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            pair.forEach { theme ->
+                                                CtThemeCard(
+                                                    theme = theme,
+                                                    dark = CtColors.IsDark,
+                                                    selected = state.appSettings.appTheme == theme,
+                                                    onClick = { actions.onAppTheme(theme) },
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                            }
+                                        }
+                                    }
+                                    CtSegmented(
+                                        options = Appearance.entries,
+                                        selected = state.appSettings.appearance,
+                                        label = { it.label },
+                                        onSelect = actions.onAppearance,
+                                    )
+                                }
+                                Spacer(Modifier.height(CtSpacing.md))
+                                val board = BoardColors.fromId(state.appSettings.boardThemeId)
+                                val pieces = PieceSet.fromId(state.appSettings.pieceSetId)
+                                CtListRow(
+                                    title = "Board and pieces",
+                                    icon = Icons.Rounded.GridOn,
+                                    subtitle = "${board.displayName}, ${pieces.displayName} pieces",
+                                    onClick = actions.onOpenBoardSettings,
+                                    leading = { MiniBoard(board) },
                                 )
-                            }
+                        }
+                        SettingsPage.PROFILE -> {
+                                CtListRow(
+                                    title = "Name",
+                                    icon = Icons.Rounded.Person,
+                                    subtitle = state.appSettings.playerName.ifBlank { "Not set" },
+                                    onClick = { nameSheet = true },
+                                )
+                                CtListRow(
+                                    title = "Picture",
+                                    icon = Icons.Rounded.Image,
+                                    onClick = {
+                                        pictureMessage = null
+                                        pictureSheet = true
+                                    },
+                                    leading = { PlayerAvatar(state.appSettings.picture, state.appSettings.playerName.ifBlank { state.linkedProfile?.username.orEmpty() }) },
+                                )
+                                CtListRow(
+                                    title = "Coach",
+                                    icon = Icons.Rounded.School,
+                                    subtitle = state.appSettings.mascot.displayName,
+                                    onClick = { coachSheet = true },
+                                    leading = { CtMascotArt(mascot = state.appSettings.mascot, height = 40.dp, modifier = Modifier.size(40.dp)) },
+                                )
+                        }
+                        SettingsPage.PLAY -> {
+                                CtToggleRow(title = "Sound", checked = state.appSettings.soundEnabled, onCheckedChange = actions.onSound)
+                                CtToggleRow(title = "Vibration", checked = state.appSettings.hapticsEnabled, onCheckedChange = actions.onHaptics)
+                                CtToggleRow(title = "Reduce motion", checked = state.appSettings.reduceMotion, onCheckedChange = actions.onReduceMotion)
+
+                                Spacer(Modifier.height(CtSpacing.md))
+                                Text("Bot chat", style = CtType.Label)
+                                Spacer(Modifier.height(CtSpacing.sm))
+                                CtSegmented(
+                                    options = ChatLevel.entries,
+                                    selected = state.appSettings.chatLevel,
+                                    label = { it.label },
+                                    onSelect = actions.onChatLevel,
+                                )
+                        }
+                        SettingsPage.ACCOUNT -> ManageAccountCard(state = state, actions = accountActions)
+                        SettingsPage.ENGINE -> {
+                                Text("Game review depth", style = CtType.Label)
+                                Spacer(Modifier.height(CtSpacing.sm))
+                                CtSegmented(
+                                    options = ReviewDepth.entries,
+                                    selected = state.appSettings.reviewDepth,
+                                    label = { it.label },
+                                    onSelect = actions.onReviewDepth,
+                                )
+                                Spacer(Modifier.height(CtSpacing.xs))
+                                Text(state.appSettings.reviewDepth.detail, style = CtType.Caption)
+                                CtToggleRow(
+                                    title = "Online engine as a backup",
+                                    subtitle = "If Stockfish stops, a free online engine answers",
+                                    checked = state.appSettings.onlineEngine,
+                                    onCheckedChange = actions.onOnlineEngine,
+                                )
+                                CtListRow(
+                                    title = "Engine health",
+                                    subtitle = if (state.engineStatus.isDegraded) "Stockfish is not running: using a weaker engine" else "Check that Stockfish runs on this phone",
+                                    icon = if (state.engineStatus.isDegraded) Icons.Rounded.Warning else Icons.Rounded.Memory,
+                                    onClick = actions.onOpenEngineHealth,
+                                    trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
+                                )
+                        }
+                        SettingsPage.DATA -> {
+                                CtListRow(
+                                    title = "Export my games",
+                                    subtitle = exportMessage ?: "One PGN file for other chess apps",
+                                    icon = Icons.Rounded.Download,
+                                    onClick = { exporter.launch("chess-tutor-games.pgn") },
+                                )
+                                ShareRow(
+                                    title = "Crash log",
+                                    icon = Icons.Rounded.BugReport,
+                                    empty = "No crashes recorded on this phone.",
+                                    filled = "The app crashed ${countLabel(crashCount(crashText), "time")} recently. Tap to share the log.",
+                                    text = crashText,
+                                    onShare = { share("Chess Tutor crash log", crashText) },
+                                    onClear = { scope.launch { actions.clearCrashLog(); dataVersion++ } },
+                                )
+                                ShareRow(
+                                    title = "Puzzle reports",
+                                    icon = Icons.Rounded.Flag,
+                                    empty = "Reports of another move that works appear here.",
+                                    filled = "${countLabel(reportText.lines().count { it.isNotBlank() }, "report")} to share, so the puzzles can be checked.",
+                                    text = reportText,
+                                    onShare = { share("Chess Tutor puzzle reports", reportText) },
+                                    onClear = { scope.launch { actions.clearPuzzleReports(); dataVersion++ } },
+                                )
+                                CtListRow(
+                                    title = "Erase everything",
+                                    subtitle = "Games, progress, settings and the linked account",
+                                    icon = Icons.Rounded.DeleteForever,
+                                    onClick = { confirmErase = true },
+                                )
+                        }
+                        SettingsPage.ABOUT -> {
+                                Column(Modifier.padding(vertical = CtSpacing.sm)) {
+                                    Text("Chess Tutor ${BuildConfig.VERSION_NAME}", style = CtType.TitleSmall)
+                                    Text("Free software under the GNU GPL v3. Everything runs on your phone.", style = CtType.Caption)
+                                }
+                                CtListRow(
+                                    title = "Source code",
+                                    subtitle = "github.com/Bennykent21/Chess-tutor-app",
+                                    icon = Icons.Rounded.Code,
+                                    onClick = { runCatching { uriHandler.openUri(SOURCE_URL) } },
+                                )
+                                CtListRow(
+                                    title = "Open-source licences",
+                                    subtitle = "Stockfish, Maia, puzzles, pieces, sounds, fonts and libraries",
+                                    icon = Icons.Rounded.Description,
+                                    onClick = actions.onOpenLicences,
+                                )
+                                // Only in builds that carry a support link (plan section 9).
+                                if (actions.supportUrl.isNotBlank()) {
+                                    CtListRow(
+                                        title = "Support the developer",
+                                        subtitle = "Chess Tutor is free. If it helps you, you can chip in.",
+                                        icon = Icons.Rounded.Favorite,
+                                        onClick = { runCatching { uriHandler.openUri(actions.supportUrl) } },
+                                    )
+                                }
                         }
                     }
-                    CtSegmented(
-                        options = Appearance.entries,
-                        selected = state.appSettings.appearance,
-                        label = { it.label },
-                        onSelect = actions.onAppearance,
-                    )
+                    Spacer(Modifier.height(CtSpacing.xl))
                 }
-
-                Spacer(Modifier.height(CtSpacing.md))
-                val board = BoardColors.fromId(state.appSettings.boardThemeId)
-                val pieces = PieceSet.fromId(state.appSettings.pieceSetId)
-                CtListRow(
-                    title = "Board and pieces",
-                    icon = null,
-                    subtitle = "${board.displayName}, ${pieces.displayName} pieces",
-                    onClick = actions.onOpenBoardSettings,
-                    leading = { MiniBoard(board) },
-                )
-                CtListRow(
-                    title = "Name",
-                    icon = null,
-                    subtitle = state.appSettings.playerName.ifBlank { "Not set" },
-                    onClick = { nameSheet = true },
-                )
-                CtListRow(
-                    title = "Picture",
-                    icon = null,
-                    onClick = {
-                        pictureMessage = null
-                        pictureSheet = true
-                    },
-                    leading = { PlayerAvatar(state.appSettings.picture, state.appSettings.playerName.ifBlank { state.linkedProfile?.username.orEmpty() }) },
-                )
-                CtListRow(
-                    title = "Coach",
-                    icon = null,
-                    subtitle = state.appSettings.mascot.displayName,
-                    onClick = { coachSheet = true },
-                    leading = { CtMascotArt(mascot = state.appSettings.mascot, height = 40.dp, modifier = Modifier.size(40.dp)) },
-                )
-                CtToggleRow(title = "Sound", checked = state.appSettings.soundEnabled, onCheckedChange = actions.onSound)
-                CtToggleRow(title = "Vibration", checked = state.appSettings.hapticsEnabled, onCheckedChange = actions.onHaptics)
-                CtToggleRow(title = "Reduce motion", checked = state.appSettings.reduceMotion, onCheckedChange = actions.onReduceMotion, divider = false)
-
-                CtSectionHeader(title = "Bot chat")
-                Spacer(Modifier.height(CtSpacing.sm))
-                CtSegmented(
-                    options = ChatLevel.entries,
-                    selected = state.appSettings.chatLevel,
-                    label = { it.label },
-                    onSelect = actions.onChatLevel,
-                )
-
-                CtSectionHeader(title = "Linked account")
-                Spacer(Modifier.height(CtSpacing.sm))
-                ManageAccountCard(state = state, actions = accountActions)
-
-                CtSectionHeader(title = "Engine")
-                Spacer(Modifier.height(CtSpacing.sm))
-                Text("Game review depth", style = CtType.Label)
-                Spacer(Modifier.height(CtSpacing.sm))
-                CtSegmented(
-                    options = ReviewDepth.entries,
-                    selected = state.appSettings.reviewDepth,
-                    label = { it.label },
-                    onSelect = actions.onReviewDepth,
-                )
-                Spacer(Modifier.height(CtSpacing.xs))
-                Text(state.appSettings.reviewDepth.detail, style = CtType.Caption)
-                CtToggleRow(
-                    title = "Online engine as a backup",
-                    subtitle = "If Stockfish stops, a free online engine answers",
-                    checked = state.appSettings.onlineEngine,
-                    onCheckedChange = actions.onOnlineEngine,
-                )
-                CtListRow(
-                    title = "Engine health",
-                    subtitle = if (state.engineStatus.isDegraded) "Stockfish is not running: using a weaker engine" else "Check that Stockfish runs on this phone",
-                    icon = Icons.Rounded.Memory,
-                    iconTint = if (state.engineStatus.isDegraded) CtColors.Error else CtColors.Accent,
-                    onClick = actions.onOpenEngineHealth,
-                    divider = false,
-                    trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
-                )
-
-                CtSectionHeader(title = "Your data")
-                CtListRow(
-                    title = "Export my games",
-                    subtitle = exportMessage ?: "One PGN file for other chess apps",
-                    icon = Icons.Rounded.Download,
-                    onClick = { exporter.launch("chess-tutor-games.pgn") },
-                )
-                ShareRow(
-                    title = "Crash log",
-                    icon = Icons.Rounded.BugReport,
-                    empty = "No crashes recorded on this phone.",
-                    filled = "The app crashed ${countLabel(crashCount(crashText), "time")} recently. Tap to share the log.",
-                    text = crashText,
-                    onShare = { share("Chess Tutor crash log", crashText) },
-                    onClear = { scope.launch { actions.clearCrashLog(); dataVersion++ } },
-                )
-                ShareRow(
-                    title = "Puzzle reports",
-                    icon = Icons.Rounded.Flag,
-                    empty = "Reports of another move that works appear here.",
-                    filled = "${countLabel(reportText.lines().count { it.isNotBlank() }, "report")} to share, so the puzzles can be checked.",
-                    text = reportText,
-                    onShare = { share("Chess Tutor puzzle reports", reportText) },
-                    onClear = { scope.launch { actions.clearPuzzleReports(); dataVersion++ } },
-                )
-                CtListRow(
-                    title = "Erase everything",
-                    subtitle = "Games, progress, settings and the linked account",
-                    icon = Icons.Rounded.DeleteForever,
-                    iconTint = CtColors.Error,
-                    onClick = { confirmErase = true },
-                    divider = false,
-                )
-
-                CtSectionHeader(title = "About")
-                Column(Modifier.padding(vertical = CtSpacing.sm)) {
-                    Text("Chess Tutor ${BuildConfig.VERSION_NAME}", style = CtType.TitleSmall)
-                    Text("Free software under the GNU GPL v3. Everything runs on your phone.", style = CtType.Caption)
-                }
-                CtListRow(
-                    title = "Source code",
-                    subtitle = "github.com/Bennykent21/Chess-tutor-app",
-                    icon = Icons.Rounded.Code,
-                    onClick = { runCatching { uriHandler.openUri(SOURCE_URL) } },
-                )
-                CtListRow(
-                    title = "Open-source licences",
-                    subtitle = "Stockfish, Maia, puzzles, pieces, sounds, fonts and libraries",
-                    icon = Icons.Rounded.Description,
-                    onClick = actions.onOpenLicences,
-                    divider = actions.supportUrl.isNotBlank(),
-                )
-                // Only in builds that carry a support link (plan section 9).
-                if (actions.supportUrl.isNotBlank()) {
-                    CtListRow(
-                        title = "Support the developer",
-                        subtitle = "Chess Tutor is free. If it helps you, you can chip in.",
-                        icon = Icons.Rounded.Favorite,
-                        onClick = { runCatching { uriHandler.openUri(actions.supportUrl) } },
-                        divider = false,
-                    )
-                }
-                Spacer(Modifier.height(CtSpacing.xl))
             }
         }
         CtSheet(visible = coachSheet, onDismiss = { coachSheet = false }) {
@@ -409,6 +429,28 @@ fun SettingsScreen(
             onDismiss = { confirmErase = false },
         )
     }
+}
+
+/** The sub-pages of Settings, in the order of the menu. */
+private enum class SettingsPage(val title: String, val icon: ImageVector) {
+    APPEARANCE("Appearance", Icons.Rounded.Palette),
+    PROFILE("Profile", Icons.Rounded.Person),
+    PLAY("Sound and play", Icons.AutoMirrored.Rounded.VolumeUp),
+    ACCOUNT("Linked account", Icons.Rounded.Link),
+    ENGINE("Engine", Icons.Rounded.Memory),
+    DATA("Your data", Icons.Rounded.Storage),
+    ABOUT("About", Icons.Rounded.Info),
+}
+
+/** One short line under each menu row: what is set, where that is worth seeing. */
+private fun summaryOf(page: SettingsPage, state: AppUiState): String? = when (page) {
+    SettingsPage.APPEARANCE -> state.appSettings.appTheme.label
+    SettingsPage.PROFILE -> state.appSettings.playerName.ifBlank { null }
+    SettingsPage.PLAY -> null
+    SettingsPage.ACCOUNT -> state.linkedProfile?.let { "@${it.username}" } ?: "Not linked"
+    SettingsPage.ENGINE -> if (state.engineStatus.isDegraded) "Using a weaker engine" else null
+    SettingsPage.DATA -> null
+    SettingsPage.ABOUT -> "Version ${BuildConfig.VERSION_NAME}"
 }
 
 /** A text the player may share (crash log, puzzle reports): tap the row to share it; Clear empties it. */

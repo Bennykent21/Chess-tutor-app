@@ -1,18 +1,21 @@
 package com.chesstutor.app.feature.puzzles
 
-import androidx.compose.material.icons.rounded.CheckCircle
+import com.chesstutor.app.board.BoardScenes
+import com.chesstutor.app.board.BoardPicture
+import com.chesstutor.app.design.ctEnter
+import com.chesstutor.app.design.CtTickMark
+import com.chesstutor.app.design.CtPictureTile
+import com.chesstutor.app.board.BoardTheme
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,7 +32,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Lock
@@ -44,17 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.chesstutor.app.board.BoardColors
-import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtHeroCard
@@ -64,7 +60,6 @@ import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
-import com.chesstutor.app.design.CtTile
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.LocalReduceMotion
@@ -88,15 +83,14 @@ fun PuzzlesHomeScreen(
     onOpenLevels: () -> Unit = {},
     onDailyPuzzle: () -> Unit = {},
     /** The player's board colours, for the level card's picture. */
-    boardColors: BoardColors = BoardColors.DEFAULT,
+    boardTheme: BoardTheme = BoardTheme(),
 ) {
     val current = state.currentLevel
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = CtSpacing.xl)) {
             CtScreenTitle(title = "Puzzles") {
-                CtChip(text = "Level $current", icon = Icons.Rounded.Map, onClick = onOpenLevels)
+                Text("${state.stats.rating}", style = CtType.Headline, modifier = Modifier.semantics { contentDescription = "Puzzle rating ${state.stats.rating}" })
             }
-            Text("Rating ${state.stats.rating}", style = CtType.BodySmall, modifier = Modifier.padding(horizontal = CtSpacing.gutter))
             Column(
                 modifier = Modifier.padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
@@ -117,18 +111,23 @@ fun PuzzlesHomeScreen(
                                 ?: "Solve ${PuzzleLevels.TO_PASS} of ${PuzzleLevels.PUZZLES_PER_LEVEL} to pass",
                             onClick = { onPlayLevel(current) },
                             onClickLabel = "Play level $current",
-                        ) { BoardPattern(boardColors) }
-                        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                            CtTile(modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onDailyPuzzle, onClickLabel = "Open the daily puzzle") {
-                                Icon(if (state.dailySolved) Icons.Rounded.CheckCircle else Icons.Rounded.Bolt, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(28.dp))
-                                Spacer(Modifier.weight(1f))
-                                TileText("Daily puzzle", if (state.dailySolved) "Solved today" else "Waiting for you")
-                            }
-                            CtTile(modifier = Modifier.weight(1f).fillMaxHeight(), onClick = onReviewMistakes, onClickLabel = "Review the mistakes from your games") {
-                                Text("$dueReviewCount", style = CtType.BigNumber)
-                                Spacer(Modifier.weight(1f))
-                                TileText("Mistakes to fix", if (dueReviewCount > 0) "Due today" else "From your games")
-                            }
+                        ) { BoardPicture(BoardScenes.OPENING, boardTheme) }
+                        Row(Modifier.height(150.dp).ctEnter(1), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+                            CtPictureTile(
+                                title = "Daily puzzle",
+                                subtitle = if (state.dailySolved) "Solved today" else "Waiting for you",
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                onClick = onDailyPuzzle,
+                                onClickLabel = "Open the daily puzzle",
+                                trailing = if (state.dailySolved) { { CtTickMark() } } else null,
+                            ) { BoardPicture(state.daily?.fen, boardTheme, whiteAtBottom = state.daily?.whiteAtBottom ?: true) }
+                            CtPictureTile(
+                                title = "Mistakes to fix",
+                                subtitle = if (dueReviewCount > 0) "$dueReviewCount due today" else "From your games",
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                onClick = onReviewMistakes,
+                                onClickLabel = "Review the mistakes from your games",
+                            ) { BoardPicture(BoardScenes.ATTACK, boardTheme) }
                         }
                     }
                 }
@@ -140,31 +139,9 @@ fun PuzzlesHomeScreen(
                         subtitle = "${state.passed.size} of ${PuzzleLevels.COUNT} passed",
                         icon = Icons.Rounded.Map,
                         onClick = onOpenLevels,
-                        divider = false,
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun TileText(title: String, detail: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, style = CtType.TitleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-/** An empty board in the player's colours: the level card's picture, without inventing a position. */
-@Composable
-private fun BoardPattern(colors: BoardColors) {
-    val light = Color(colors.light)
-    val dark = Color(colors.dark)
-    Canvas(Modifier.fillMaxSize()) {
-        val cell = size.minDimension / 8f
-        for (row in 0 until 8) for (col in 0 until 8) {
-            drawRect(if ((row + col) % 2 == 0) light else dark, Offset(col * cell, row * cell), Size(cell, cell))
         }
     }
 }

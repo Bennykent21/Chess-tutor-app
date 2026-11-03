@@ -1,7 +1,6 @@
 package com.chesstutor.app.feature.account
 
 import androidx.compose.ui.semantics.semantics
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtListRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,6 +59,7 @@ val CREDITS: List<Credit> = listOf(
     Credit("Pieces \"Merida\"", "Armando Hernandez Marroquin", Licence.GPL2_PLUS),
     Credit("Pieces \"Chessnut\"", "Alexis Luengas", Licence.APACHE2),
     Credit("Pieces \"Fantasy\"", "Maurizio Monge", Licence.MIT),
+    Credit("Chess piece pictures, rendered from \"Chess Set\"", "Riley Queen, via Poly Haven", Licence.CC0),
     Credit("Sound effects", "Kenney (kenney.nl)", Licence.CC0),
     Credit("Fonts Schibsted Grotesk, Inter and JetBrains Mono", "Their designers, via Google Fonts and JetBrains", Licence.OFL),
     Credit("Jetpack Compose, Room, DataStore, Navigation and other AndroidX libraries", "Google and the Android Open Source Project", Licence.APACHE2),
@@ -98,12 +98,11 @@ fun LicencesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             Text(credit.name, style = CtType.TitleSmall)
                             Text("${credit.by} · ${credit.licence.title}", style = CtType.Caption)
                         }
-                        if (i < CREDITS.lastIndex) CtDivider()
                     }
                     CtSectionHeader(title = "Licence texts")
                     val texts = Licence.entries.filter { it.file != null }.distinctBy { it.file }
                     texts.forEachIndexed { i, licence ->
-                        CtListRow(title = licence.title, icon = null, onClick = { open = licence }, divider = i < texts.lastIndex)
+                        CtListRow(title = licence.title, icon = null, onClick = { open = licence })
                     }
                 }
                 Spacer(Modifier.height(CtSpacing.lg))

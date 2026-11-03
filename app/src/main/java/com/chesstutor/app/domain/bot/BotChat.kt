@@ -31,6 +31,18 @@ object BotChat {
         else -> random.nextDouble() < 0.35
     }
 
+    /**
+     * [line] said to the bot [name] while the player watches, so it is not heard as said to the
+     * player: greetings ([always]) and lines that say "you" begin with that bot's name.
+     */
+    fun addressed(line: String, name: String, always: Boolean): String {
+        if (!always && !YOU.containsMatchIn(line)) return line
+        val keepCapital = line.startsWith("I ") || line.startsWith("I'")
+        return "$name, ${if (keepCapital) line else line.replaceFirstChar { it.lowercaseChar() }}"
+    }
+
+    private val YOU = Regex("""\byou""", RegexOption.IGNORE_CASE)
+
     private val ALWAYS = setOf(ChatEvent.GREETING, ChatEvent.BOT_WINS, ChatEvent.PLAYER_WINS, ChatEvent.DRAW, ChatEvent.PLAYER_BLUNDER)
 
     private val general: Map<ChatEvent, List<String>> = mapOf(
@@ -205,7 +217,7 @@ object BotChat {
             ChatEvent.DRAW to listOf("A truce, then. For now."),
         ),
         "bolt" to mapOf(
-            ChatEvent.GREETING to listOf("Beep boop. Calculating your defeat.", "Hello, human. Initialising game."),
+            ChatEvent.GREETING to listOf("Beep boop. Calculating your defeat.", "Hello, challenger. Initialising game."),
             ChatEvent.BOT_CAPTURES to listOf("Material gained. Efficiency: high.", "Capture executed."),
             ChatEvent.PLAYER_CAPTURES to listOf("Unexpected. Recalculating.", "Error: piece missing."),
             ChatEvent.BOT_CHECKS to listOf("Check. Probability of escape: low."),
@@ -213,7 +225,7 @@ object BotChat {
             ChatEvent.PLAYER_BLUNDER to listOf("Blunder detected. Thank you."),
             ChatEvent.TAKEBACK to listOf("Undo accepted. Memory wiped."),
             ChatEvent.BOT_WINS to listOf("Game over. Result: as calculated."),
-            ChatEvent.PLAYER_WINS to listOf("Does not compute... Congratulations, human!"),
+            ChatEvent.PLAYER_WINS to listOf("Does not compute... Congratulations, challenger!"),
             ChatEvent.DRAW to listOf("Draw. Both systems stable."),
         ),
     )

@@ -15,6 +15,7 @@ import com.chesstutor.app.data.network.RatingApiClient
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.data.repository.InMemoryGameRepository
 import com.chesstutor.app.data.repository.RatingRepository
+import com.chesstutor.app.domain.account.TimeClass
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -107,7 +108,8 @@ class RatingLinkCoordinator(
 
     /**
      * "Import more": fresh ratings and the games played since [sinceMillis] (the newest saved
-     * one), then up to [importDepth] games older than [beforeMillis] (the oldest saved one). It
+     * one), then up to [importDepth] games of each clock older than [beforeMillis] (the oldest
+     * saved one), or than that clock's own oldest in [clockCutoffs]. It
      * used to ask for the newest games again, so the games already saved used up the request
      * and "Import 500" with 257 saved brought nothing new (Phase 7 import fix).
      */
@@ -117,6 +119,7 @@ class RatingLinkCoordinator(
         importDepth: ImportDepth = ImportDepth.LAST_100,
         beforeMillis: Long? = null,
         sinceMillis: Long? = null,
+        clockCutoffs: Map<TimeClass, Long> = emptyMap(),
     ) {
         if (currentProfileUsername == null) return
         verifyJob?.cancel()
@@ -137,14 +140,10 @@ class RatingLinkCoordinator(
             ratingRepository.refreshProfile()
                 .onSuccess { profile ->
                     newGamesBeforeImport = if (sinceMillis != null) fetchNewGames(profile, sinceMillis).getOrNull()?.size ?: 0 else 0
-                    importer.start(ImportRequest(ImportKind.MORE, profile.platform, profile.username, importDepth.maxGames, beforeMillis = beforeMillis))
+                    importer.start(ImportRequest(ImportKind.MORE, profile.platform, profile.username, importDepth.maxGames, beforeMillis = beforeMillis, clockCutoffs = clockCutoffs))
                 }
                 .onFailure { err -> updateState { it.copy(isLinkingLoading = false, importProgress = null, linkingError = err.message ?: "Failed to refresh rating") } }
         }
-    }
-
-    fun setRatingTimeControl(timeControl: RatingTimeControl) {
-        scope.launch { ratingRepository.updateTimeControl(timeControl) }
     }
 
     /**
@@ -167,7 +166,7 @@ class RatingLinkCoordinator(
                 val result = fetchNewGames(profile, sinceMillis)
                 if (result.isSuccess) updateState { it.copy(lastSyncedEpochMs = System.currentTimeMillis()) }
                 if (backfill != null) {
-                    importer.start(ImportRequest(ImportKind.BACKFILL, profile.platform, profile.username, backfill.maxGames, beforeMillis = backfill.beforeMillis))
+                    importer.start(ImportRequest(ImportKind.BACKFILL, profile.platform, profile.username, backfill.maxGames, beforeMillis = backfill.beforeMillis, clockCutoffs = backfill.clockCutoffs))
                 }
             } finally {
                 updateState { it.copy(isAutoSyncing = false) }
@@ -175,7 +174,7 @@ class RatingLinkCoordinator(
         }
     }
 
-    /** Up to 100 games played since [sinceMillis] (all of the newest when null), saved as they arrive. */
+    /** Up to 100 games of each clock played since [sinceMillis] (all of the newest when null), saved as they arrive. */
     private suspend fun fetchNewGames(profile: LinkedChessProfile, sinceMillis: Long?): Result<List<GameRecord>> {
         val result = ratingApiClient.fetchRecentGames(
             platform = profile.platform,
@@ -188,8 +187,8 @@ class RatingLinkCoordinator(
         return result
     }
 
-    /** Finishing an interrupted import: up to [maxGames] games older than [beforeMillis]. */
-    data class Backfill(val beforeMillis: Long, val maxGames: Int)
+    /** Finishing an interrupted import: up to [maxGames] games of each clock, older than the oldest saved. */
+    data class Backfill(val beforeMillis: Long, val maxGames: Int, val clockCutoffs: Map<TimeClass, Long> = emptyMap())
 
     fun unlinkAccount(updateState: ((AppUiState) -> AppUiState) -> Unit) {
         verifyJob?.cancel()

@@ -72,6 +72,8 @@ class LessonSession(val lesson: Lesson, startStep: Int = 0) {
     private var mistakes = 0
     private var hintsUsed = 0
     private val startedAt = stepIndex
+    /** The furthest step reached: anything before it stays open when the player looks back. */
+    private var furthest = stepIndex
     private val challenges = mutableListOf<ChallengeResult>()
 
     val step: LessonStep get() = lesson.steps[stepIndex]
@@ -90,8 +92,8 @@ class LessonSession(val lesson: Lesson, startStep: Int = 0) {
     /** True when the player may move now. */
     val expectsMove: Boolean get() = !finished && step is LessonStep.Play && !solved && awaitingReply == null
 
-    /** True when "Next" may be pressed: an explain or watch step, or a solved play step. */
-    val canAdvance: Boolean get() = !finished && (step !is LessonStep.Play || solved)
+    /** True when "Next" may be pressed: an explain or watch step, a solved play step, or one already passed. */
+    val canAdvance: Boolean get() = !finished && (step !is LessonStep.Play || solved || stepIndex < furthest)
 
     val stepSolved: Boolean get() = solved
 
@@ -150,6 +152,13 @@ class LessonSession(val lesson: Lesson, startStep: Int = 0) {
         return true
     }
 
+    /** Back to the step before, to look at it again; false on the first step. */
+    fun stepBack(): Boolean {
+        if (finished || stepIndex == 0) return false
+        enter(stepIndex - 1)
+        return true
+    }
+
     /** Back to the start of the current step (after a mistake, or to watch it again). */
     fun restartStep() {
         if (finished) return
@@ -177,6 +186,7 @@ class LessonSession(val lesson: Lesson, startStep: Int = 0) {
 
     private fun enter(index: Int) {
         stepIndex = index
+        furthest = maxOf(furthest, index)
         position = Position.fromFen(lesson.steps[index].fen)
         turn = 0
         solved = false

@@ -70,6 +70,9 @@ data class AppSettings(
 
     val picture: PlayerPicture get() = PlayerPicture.decode(playerPicture)
 
+    /** Choosing an app theme brings its board; Board and pieces can then pick another. */
+    fun withTheme(theme: AppTheme): AppSettings = copy(appTheme = theme, boardThemeId = BoardColors.forTheme(theme).id)
+
     val boardTheme: BoardTheme get() = BoardTheme(BoardColors.fromId(boardThemeId), PieceSet.fromId(pieceSetId))
 
     companion object {

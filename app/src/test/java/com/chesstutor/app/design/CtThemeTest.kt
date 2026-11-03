@@ -3,6 +3,7 @@ package com.chesstutor.app.design
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.chesstutor.app.ui.theme.InterFontFamily
@@ -59,7 +60,7 @@ class CtThemeTest {
         headings.forEach {
             assertEquals(GroteskFontFamily, it.fontFamily)
             assertEquals(FontWeight.SemiBold, it.fontWeight)
-            assertEquals((-0.02).em, it.letterSpacing)
+            assertEquals("no negative kerning", TextUnit.Unspecified, it.letterSpacing)
         }
         listOf(type.titleSmall, type.body, type.bodySmall, type.label, type.caption, type.navLabel, type.button).forEach {
             assertEquals(InterFontFamily, it.fontFamily)

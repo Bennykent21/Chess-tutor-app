@@ -50,8 +50,8 @@ class PerformanceTest {
         assertEquals(Wdl(wins = 1, losses = 1), report.byColor[0].wdl)
         assertEquals(PieceColor.BLACK, report.byColor[1].filter.color)
 
-        assertEquals(listOf("Blitz", "Rapid"), report.byTimeClass.map { it.label })
-        assertEquals(TimeClass.BLITZ, report.byTimeClass[0].filter.timeClass)
+        assertEquals(listOf("Rapid", "Blitz"), report.byTimeClass.map { it.label })
+        assertEquals(TimeClass.RAPID, report.byTimeClass[0].filter.timeClass)
 
         assertEquals(listOf("Italian Game", "Queen's Gambit"), report.byOpening.map { it.label }.sorted())
         assertEquals("Italian Game", report.byOpening.first { it.wdl.games == 2 }.filter.openingFamily)
@@ -68,18 +68,85 @@ class PerformanceTest {
     }
 
     @Test
-    fun ratingTrendFollowsTheMostPlayedRatedTimeClass() {
+    fun eachMainClockHasItsOwnRatingTrend() {
         val games = listOf(
             game("a", "1-0", rating = 1500, date = 3, timeClass = "blitz"),
             game("b", "1-0", rating = 1480, date = 1, timeClass = "blitz"),
             game("c", "1-0", rating = 1700, date = 2, timeClass = "rapid"),
-            game("d", "1-0", date = 4, timeClass = "blitz"),
+            game("d", "1-0", rating = 1720, date = 5, timeClass = "rapid"),
+            game("e", "1-0", rating = 1999, date = 4, timeClass = "bullet"),
+            game("f", "1-0", date = 6, timeClass = "blitz"),
         )
         assertEquals(1500, games[0].playerRating)
-        assertNull(games[3].playerRating)
-        val report = PerformanceCalculator.report(games, emptyMap())
-        assertEquals(TimeClass.BLITZ, report.ratingTimeClass)
-        assertEquals(listOf(1480, 1500), report.ratingTrend.map { it.rating })
+        assertNull(games[5].playerRating)
+        val trends = PerformanceCalculator.ratingTrends(games)
+        assertEquals("rapid first, and bullet has too few games to draw", listOf(TimeClass.RAPID, TimeClass.BLITZ), trends.map { it.timeClass })
+        assertEquals(listOf(1480, 1500), trends[1].points.map { it.rating })
+    }
+
+    @Test
+    fun aPlayerOfNoMainClockStillGetsAGraph() {
+        val games = listOf(game("a", "1-0", rating = 1500, date = 1, timeClass = "classical"), game("b", "1-0", rating = 1510, date = 2, timeClass = "classical"))
+        assertEquals(listOf(TimeClass.CLASSICAL), PerformanceCalculator.ratingTrends(games).map { it.timeClass })
+    }
+
+    @Test
+    fun ratingChangeComparesWithThirtyDaysAgo() {
+        val day = 86_400_000L
+        fun trend(vararg points: Pair<Long, Int>) = RatingTrend(null, points.map { (d, r) -> RatingPoint(d * day, r) })
+        assertEquals("the last point at or before the window", 30, trend(10L to 1400, 20L to 1450, 40L to 1470, 60L to 1480).changeSince(60 * day))
+        assertEquals("younger than the window: since the first point", -20, trend(50L to 1500, 60L to 1480).changeSince(60 * day))
+        assertNull("one point has nothing to compare with", trend(60L to 1480).changeSince(60 * day))
+    }
+
+    @Test
+    fun aPeriodRunsFromTheRatingHeldThenToToday() {
+        val day = 86_400_000L
+        val trend = RatingTrend(null, listOf(RatingPoint(10 * day, 1400), RatingPoint(60 * day, 1450), RatingPoint(70 * day, 1480)))
+        assertEquals(
+            "the line begins at the period's start, at the rating held then, and carries on to today",
+            listOf(RatingPoint(50 * day, 1400), RatingPoint(60 * day, 1450), RatingPoint(70 * day, 1480), RatingPoint(80 * day, 1480)),
+            trend.within(80 * day, GraphPeriod.MONTH.days).points,
+        )
+        assertEquals(
+            "phone test 3 Nov: a quiet month is a flat line, not the whole history",
+            listOf(RatingPoint(75 * day, 1480), RatingPoint(80 * day, 1480)),
+            trend.within(80 * day, 5).points,
+        )
+        assertEquals("all of it, up to today", trend.points + RatingPoint(80 * day, 1480), trend.within(80 * day, GraphPeriod.ALL.days).points)
+    }
+
+    /** Phone test 3 Nov: many games a day made the line spike up and down on one spot. */
+    @Test
+    fun theGraphTakesEachDaysClosingRating() {
+        val hour = 3_600_000L
+        val day = 24 * hour
+        val zone = java.time.ZoneOffset.UTC
+        val points = listOf(
+            RatingPoint(0, 1500), RatingPoint(2 * hour, 1520), RatingPoint(3 * hour, 1490),
+            RatingPoint(day + hour, 1510), RatingPoint(day + 5 * hour, 1530),
+        )
+        assertEquals(
+            "the period's first point, then each day's last game",
+            listOf(RatingPoint(0, 1500), RatingPoint(3 * hour, 1490), RatingPoint(day + 5 * hour, 1530)),
+            RatingTrend(null, points).forGraph(90, zone),
+        )
+        val long = List(1000) { RatingPoint(it * day, 1000 + it) }
+        val graph = RatingTrend(null, long).forGraph(90, zone)
+        assertTrue("at most about the limit: ${graph.size}", graph.size in 85..91)
+        assertEquals(long.first(), graph.first())
+        assertEquals(long.last(), graph.last())
+        assertEquals("oldest first", graph.sortedBy { it.dateMillis }, graph)
+    }
+
+    @Test
+    fun anOpeningsPictureIsItsShortestNamedLine() {
+        val ruy = game("a", "1-0", moves = "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6")
+        val family = ruy.openingFamily!!
+        val fen = PerformanceCalculator.openingFen(listOf(ruy), family)!!
+        assertEquals("the line's own last move was played", Position.tryFromFen(fen).isSuccess, true)
+        assertTrue(fen.startsWith("r"))
+        assertNull(PerformanceCalculator.openingFen(listOf(ruy), "No such opening"))
     }
 
     @Test

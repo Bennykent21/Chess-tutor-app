@@ -35,6 +35,19 @@ class PaletteContrastTest {
     }
 
     @Test
+    fun metalHuesStandOutFromEveryBackground() {
+        val failures = Palette.ALL.flatMap { p ->
+            MetalHue.entries.flatMap { hue ->
+                listOf(p.bg, p.surface).mapNotNull { bg ->
+                    val ratio = Palette.contrastRatio(hue.of(p.dark), bg)
+                    if (ratio < 3.0) "${name(p)}: ${hue.name} on %08X = %.2f".format(bg, ratio) else null
+                }
+            }
+        }
+        assertTrue("Metal hues below 3:1: $failures", failures.isEmpty())
+    }
+
+    @Test
     fun everyThemeHasALightAndADarkPalette() {
         assertEquals(AppTheme.entries.size * 2, Palette.ALL.size)
         AppTheme.entries.forEach { theme ->

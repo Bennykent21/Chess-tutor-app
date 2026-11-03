@@ -48,7 +48,6 @@ import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtDivider
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSegmented
@@ -90,13 +89,13 @@ fun OpeningTrainerScreen(state: TrainerState, onOpen: (openingId: String) -> Uni
         )
         val shown = state.openings.filter { it.opening.side == side && it.lines.isNotEmpty() }
         Column(Modifier.padding(top = CtSpacing.sm)) {
-            shown.forEachIndexed { i, item -> TrainerRow(item, divider = i < shown.lastIndex, onOpen = { onOpen(item.opening.id) }) }
+            shown.forEachIndexed { i, item -> TrainerRow(item, onOpen = { onOpen(item.opening.id) }) }
         }
     }
 }
 
 @Composable
-private fun TrainerRow(item: TrainerOpeningState, divider: Boolean, onOpen: () -> Unit) {
+private fun TrainerRow(item: TrainerOpeningState, onOpen: () -> Unit) {
     Column {
         Row(
             modifier = Modifier
@@ -124,7 +123,6 @@ private fun TrainerRow(item: TrainerOpeningState, divider: Boolean, onOpen: () -
             }
             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(20.dp))
         }
-        if (divider) CtDivider()
     }
 }
 
@@ -202,6 +200,7 @@ fun OpeningDrillScreen(
                 autoQueen = settings.autoQueen,
                 arrows = listOfNotNull(answer?.let { BoardArrow(it.from, it.to, MarkKind.HINT) }),
                 onFeedback = onFeedback,
+                soundsOtherMoves = true,
             )
         },
         controls = {

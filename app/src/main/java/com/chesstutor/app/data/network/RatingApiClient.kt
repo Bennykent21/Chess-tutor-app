@@ -1,76 +1,25 @@
 package com.chesstutor.app.data.network
 
-import java.util.stream.Collectors
-import com.chesstutor.app.core.SanReplay
-import com.chesstutor.app.core.Position
-import com.chesstutor.app.core.LegalMoveGenerator
-import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.data.model.GameRecord
-import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.ImportProgress
 import com.chesstutor.app.data.model.LinkedChessProfile
 import com.chesstutor.app.data.model.RatingPlatform
 import com.chesstutor.app.data.model.RatingTimeControl
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import com.chesstutor.app.domain.account.TimeClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import java.io.IOException
+import java.net.URLEncoder
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import okhttp3.Response
 import okhttp3.Request
+import okhttp3.Response
 import org.json.JSONObject
-import java.io.IOException
-import java.net.URLEncoder
-import java.util.concurrent.TimeUnit
-
-@JsonClass(generateAdapter = true)
-data class ChessComStatsDto(
-    @param:Json(name = "chess_rapid") val rapid: ChessComCategoryDto? = null,
-    @param:Json(name = "chess_blitz") val blitz: ChessComCategoryDto? = null,
-    @param:Json(name = "chess_bullet") val bullet: ChessComCategoryDto? = null
-)
-
-@JsonClass(generateAdapter = true)
-data class ChessComCategoryDto(
-    @param:Json(name = "last") val last: ChessComLastDto? = null
-)
-
-@JsonClass(generateAdapter = true)
-data class ChessComLastDto(
-    @param:Json(name = "rating") val rating: Int? = null
-)
-
-@JsonClass(generateAdapter = true)
-data class LichessUserDto(
-    @param:Json(name = "id") val id: String? = null,
-    @param:Json(name = "username") val username: String? = null,
-    @param:Json(name = "perfs") val perfs: LichessPerfsDto? = null
-)
-
-@JsonClass(generateAdapter = true)
-data class LichessPerfsDto(
-    @param:Json(name = "rapid") val rapid: LichessPerfDto? = null,
-    @param:Json(name = "blitz") val blitz: LichessPerfDto? = null,
-    @param:Json(name = "bullet") val bullet: LichessPerfDto? = null
-)
-
-@JsonClass(generateAdapter = true)
-data class LichessPerfDto(
-    @param:Json(name = "rating") val rating: Int? = null,
-    @param:Json(name = "games") val games: Int? = null
-)
-
-data class SanParseOutcome(
-    val uciMoves: String,
-    val finalFen: String,
-    val moveCount: Int,
-    val incomplete: Boolean
-)
 
 class RatingApiClient(
     private val client: OkHttpClient = OkHttpClient.Builder()
@@ -240,9 +189,10 @@ class RatingApiClient(
 
     /**
      * Fetches public standard chess games from Lichess (streaming NDJSON) or Chess.com
-     * (paging backwards through monthly archives) up to [maxGames], reporting progress via [onProgress].
-     * With [sinceMillis] only games from then on are fetched (the automatic sync); with
-     * [beforeMillis] only older games (finishing an import that was interrupted). [onBatch] gets
+     * (paging backwards through monthly archives) up to [maxGames] of each clock, reporting progress
+     * via [onProgress]. With [sinceMillis] only games from then on are fetched (the automatic sync);
+     * with [beforeMillis] only older games, or with [clockCutoffs] only games older than their own
+     * clock's cut-off, so each clock carries on from its own oldest game. [onBatch] gets
      * the games as they arrive (each Chess.com month, every [BATCH] Lichess games), so they can be
      * saved and shown while the import runs.
      */
@@ -254,6 +204,7 @@ class RatingApiClient(
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
         beforeMillis: Long? = null,
+        clockCutoffs: Map<TimeClass, Long> = emptyMap(),
     ): Result<List<GameRecord>> = withContext(Dispatchers.IO) {
         val cleanUsername = username.trim()
         if (cleanUsername.isEmpty()) {
@@ -261,8 +212,8 @@ class RatingApiClient(
         }
         runCatching {
             when (platform) {
-                RatingPlatform.LICHESS -> fetchLichessGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis)
-                RatingPlatform.CHESS_COM -> fetchChessComGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis)
+                RatingPlatform.LICHESS -> fetchLichessGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis, clockCutoffs)
+                RatingPlatform.CHESS_COM -> fetchChessComGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis, clockCutoffs)
             }
         }
     }
@@ -274,10 +225,66 @@ class RatingApiClient(
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
         beforeMillis: Long? = null,
+        clockCutoffs: Map<TimeClass, Long> = emptyMap(),
     ): List<GameRecord> {
         val encoded = URLEncoder.encode(username, "UTF-8")
-        val since = sinceMillis?.let { "&since=$it" }.orEmpty() + beforeMillis?.let { "&until=${it - 1}" }.orEmpty()
-        val url = "https://lichess.org/api/games/user/$encoded?max=$maxGames&opening=true&pgnInJson=true$since"
+        val since = sinceMillis?.let { "&since=$it" }.orEmpty()
+        val target = maxGames * MAIN_CLOCKS.size
+        onProgress?.invoke(
+            ImportProgress(
+                importedCount = 0,
+                targetCount = target,
+                currentPeriod = "Lichess stream",
+                phase = "Streaming games from Lichess..."
+            )
+        )
+
+        val records = mutableListOf<GameRecord>()
+        var failedStreams = 0
+        var lastFailure: ImportFailedException? = null
+        for ((clock, perfTypes) in LICHESS_CLOCKS) {
+            currentCoroutineContext().ensureActive()
+            val cutoff = if (clockCutoffs.isEmpty()) beforeMillis else clockCutoffs[clock]
+            val until = cutoff?.let { "&until=${it - 1}" }.orEmpty()
+            val url = "https://lichess.org/api/games/user/$encoded?max=$maxGames&perfType=$perfTypes&opening=true&pgnInJson=true$since$until"
+            try {
+                val stream = streamLichessGames(url, username, maxGames, records.size, target, onProgress, onBatch)
+                records += stream.games
+                if (stream.interrupted) failedStreams++
+            } catch (e: ImportFailedException) {
+                failedStreams++
+                lastFailure = e
+            }
+        }
+        // Nothing downloaded and something failed: say why instead of returning "0 games".
+        if (records.isEmpty()) lastFailure?.let { throw it }
+
+        onProgress?.invoke(
+            ImportProgress(
+                importedCount = records.size,
+                targetCount = target,
+                currentPeriod = "Complete",
+                incompleteCount = records.count { it.incompleteParse },
+                phase = "Imported ${records.size} games",
+                failedPeriods = failedStreams,
+                fraction = 1f,
+            )
+        )
+        return records
+    }
+
+    private class LichessStream(val games: List<GameRecord>, val interrupted: Boolean)
+
+    /** One clock's games: up to [maxGames], counted on from the [earlier] games of this import. */
+    private suspend fun streamLichessGames(
+        url: String,
+        username: String,
+        maxGames: Int,
+        earlier: Int,
+        target: Int,
+        onProgress: ((ImportProgress) -> Unit)?,
+        onBatch: (suspend (List<GameRecord>) -> Unit)?,
+    ): LichessStream {
         val req = Request.Builder()
             .url(url)
             .header("User-Agent", USER_AGENT)
@@ -285,16 +292,7 @@ class RatingApiClient(
             .get()
             .build()
 
-        onProgress?.invoke(
-            ImportProgress(
-                importedCount = 0,
-                targetCount = maxGames,
-                currentPeriod = "Lichess stream",
-                phase = "Streaming games from Lichess..."
-            )
-        )
-
-        var streamInterrupted = false
+        var interrupted = false
         val records = fetchWithRetry(req, "your Lichess games") { resp ->
             val reader = resp.body?.charStream()?.buffered()
                 ?: return@fetchWithRetry emptyList<GameRecord>()
@@ -306,7 +304,7 @@ class RatingApiClient(
                     for (line in lines) {
                         currentCoroutineContext().ensureActive()
                         if (collected.size >= maxGames) break
-                        val parsed = parseSingleLichessJsonLine(line, username) ?: continue
+                        val parsed = LichessGames.record(line, username) ?: continue
                         if (parsed.incompleteParse) incompleteCount++
                         collected += parsed
                         pending += parsed
@@ -315,13 +313,14 @@ class RatingApiClient(
                             pending.clear()
                         }
                         if (collected.size % 5 == 0 || collected.size == 1) {
+                            val soFar = earlier + collected.size
                             onProgress?.invoke(
                                 ImportProgress(
-                                    importedCount = collected.size,
-                                    targetCount = maxGames,
+                                    importedCount = soFar,
+                                    targetCount = target,
                                     currentPeriod = "Lichess",
                                     incompleteCount = incompleteCount,
-                                    phase = "Imported ${collected.size} games..."
+                                    phase = "Imported $soFar games..."
                                 )
                             )
                         }
@@ -330,123 +329,18 @@ class RatingApiClient(
             } catch (e: IOException) {
                 // The stream broke part-way: keep what already arrived rather than losing it all.
                 if (collected.isEmpty()) throw e
-                streamInterrupted = true
+                interrupted = true
             }
             if (pending.isNotEmpty()) onBatch?.invoke(pending.toList())
             collected
         }
-
-        onProgress?.invoke(
-            ImportProgress(
-                importedCount = records.size,
-                targetCount = maxGames,
-                currentPeriod = "Complete",
-                incompleteCount = records.count { it.incompleteParse },
-                phase = "Imported ${records.size} games",
-                failedPeriods = if (streamInterrupted) 1 else 0
-            )
-        )
-        return records
+        return LichessStream(records, interrupted)
     }
 
-    fun parseLichessNdjson(ndjson: String, username: String, maxGames: Int = Int.MAX_VALUE): List<GameRecord> {
-        val records = mutableListOf<GameRecord>()
-        for (line in ndjson.lineSequence()) {
-            if (records.size >= maxGames) break
-            val parsed = parseSingleLichessJsonLine(line, username) ?: continue
-            records += parsed
-        }
-        return records
-    }
-
-    private fun parseSingleLichessJsonLine(line: String, username: String): GameRecord? {
-        val trimmed = line.trim()
-        if (trimmed.isEmpty()) return null
-        return runCatching {
-            val json = JSONObject(trimmed)
-            val variant = json.optString("variant", "standard")
-            if (variant != "standard") return@runCatching null
-
-            // Check status so aborted/noStart games are never recorded as draws (Review 2 §2.1 & §4.7)
-            val status = json.optString("status", "started").lowercase()
-            if (status in setOf("aborted", "nostart", "no_start", "unknownfinish", "cheat", "created")) {
-                return@runCatching null
-            }
-
-            val id = json.optString("id", "").ifBlank { return@runCatching null }
-            val createdAt = json.optLong("createdAt", System.currentTimeMillis())
-            val speed = json.optString("speed", "rapid").lowercase()
-            val players = json.optJSONObject("players")
-            val whiteObj = players?.optJSONObject("white")
-            val blackObj = players?.optJSONObject("black")
-            val whiteName = whiteObj?.optJSONObject("user")?.optString("name", "White") ?: "White"
-            val blackName = blackObj?.optJSONObject("user")?.optString("name", "Black") ?: "Black"
-            val whiteRating = whiteObj?.optInt("rating", 1200) ?: 1200
-            val blackRating = blackObj?.optInt("rating", 1200) ?: 1200
-
-            val userIsWhite = whiteName.equals(username, ignoreCase = true)
-            val oppName = if (userIsWhite) blackName else whiteName
-            val oppRating = if (userIsWhite) blackRating else whiteRating
-
-            val winner = json.optString("winner", "")
-            val result = when {
-                winner == "white" -> "1-0"
-                winner == "black" -> "0-1"
-                status in setOf("draw", "stalemate", "outoftime", "timeout", "mate", "resign") -> "1/2-1/2"
-                else -> "1/2-1/2"
-            }
-
-            val termination = when (status) {
-                "mate" -> "checkmate"
-                "resign" -> "resigned"
-                "outoftime", "timeout" -> "timeout"
-                "stalemate" -> "stalemate"
-                "draw" -> "draw"
-                else -> status
-            }
-
-            val movesSan = json.optString("moves", "")
-            val pgn = json.optString("pgn", "")
-            val openingObj = json.optJSONObject("opening")
-            val openingName = openingObj?.optString("name", "") ?: ""
-            val openingEco = openingObj?.optString("eco", "") ?: ""
-            val enrichedPgn = buildString {
-                if (openingName.isNotBlank() && !pgn.contains("[Opening ")) {
-                    append("[Opening \"$openingName\"]\n")
-                }
-                if (openingEco.isNotBlank() && !pgn.contains("[ECO ")) {
-                    append("[ECO \"$openingEco\"]\n")
-                }
-                append(if (pgn.isNotBlank()) pgn else movesSan)
-            }
-
-            val outcome = convertSanStreamToUciWithStatus(
-                if (movesSan.isNotBlank()) movesSan else extractMovesFromPgn(pgn)
-            )
-            if (outcome.uciMoves.isBlank()) return@runCatching null
-
-            GameRecord(
-                id = "lichess_$id",
-                dateMillis = createdAt,
-                botName = oppName,
-                botRating = oppRating,
-                result = result,
-                pgn = enrichedPgn,
-                moveCount = outcome.moveCount,
-                userColor = if (userIsWhite) "white" else "black",
-                finalFen = outcome.finalFen,
-                uciMoves = outcome.uciMoves,
-                source = GameSource.LICHESS,
-                termination = termination,
-                timeClass = speed,
-                incompleteParse = outcome.incomplete
-            )
-        }.getOrNull()
-    }
 
     /**
-     * Pages backwards through Chess.com monthly archives (newest -> oldest) until
-     * [maxGames] standard chess games are collected or all archives are exhausted.
+     * Pages backwards through Chess.com monthly archives (newest -> oldest) until each clock the
+     * account plays has [maxGames] standard chess games, or all archives are exhausted.
      *
      * Each request is retried. A month that still fails is skipped and counted in
      * [ImportProgress.failedPeriods]; if nothing at all could be downloaded the failure is thrown
@@ -460,7 +354,11 @@ class RatingApiClient(
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
         beforeMillis: Long? = null,
+        clockCutoffs: Map<TimeClass, Long> = emptyMap(),
     ): List<GameRecord> {
+        // A sync looks at recent months only; anything else must not read a whole history for a clock never played.
+        val quota = ClockQuota(maxGames, if (sinceMillis != null) MAIN_CLOCKS else clocksPlayed(username))
+        val target = quota.target
         val encoded = URLEncoder.encode(username.lowercase(), "UTF-8")
         val archivesUrl = "https://api.chess.com/pub/player/$encoded/games/archives"
         val archivesReq = Request.Builder()
@@ -472,7 +370,7 @@ class RatingApiClient(
         onProgress?.invoke(
             ImportProgress(
                 importedCount = 0,
-                targetCount = maxGames,
+                targetCount = target,
                 currentPeriod = "Archives",
                 phase = "Fetching Chess.com monthly archive index..."
             )
@@ -502,28 +400,29 @@ class RatingApiClient(
         var lastFailure: ImportFailedException? = null
 
         // Newest month first, only those that can hold games in the wanted window.
+        val latestCutoff = if (clockCutoffs.isEmpty()) beforeMillis else clockCutoffs.takeIf { it.keys.containsAll(MAIN_CLOCKS) }?.values?.max()
         val months = archiveUrls.asReversed().filter { url ->
-            (sinceMillis == null || archiveMonthEnd(url)?.let { it >= sinceMillis } != false) &&
-                (beforeMillis == null || archiveMonthStart(url)?.let { it < beforeMillis } != false)
+            (sinceMillis == null || ChessComArchive.monthEnd(url)?.let { it >= sinceMillis } != false) &&
+                (latestCutoff == null || ChessComArchive.monthStart(url)?.let { it < latestCutoff } != false)
         }
         var furthest = 0f
 
         /** How far along: by games wanted, or by months read when the account has fewer. Never falls back. */
         fun fraction(monthsDone: Float, games: Int = allRecords.size): Float {
-            furthest = maxOf(furthest, games.toFloat() / maxGames.coerceAtLeast(1), monthsDone / months.size.coerceAtLeast(1)).coerceAtMost(1f)
+            furthest = maxOf(furthest, games.toFloat() / target.coerceAtLeast(1), monthsDone / months.size.coerceAtLeast(1)).coerceAtMost(1f)
             return furthest
         }
 
         for ((monthIndex, monthUrl) in months.withIndex()) {
             currentCoroutineContext().ensureActive()
-            if (allRecords.size >= maxGames) break
+            if (quota.full) break
             if (consecutiveFailures >= MAX_CONSECUTIVE_FAILED_MONTHS) break
-            val periodLabel = extractArchivePeriodLabel(monthUrl)
+            val periodLabel = ChessComArchive.periodLabel(monthUrl)
 
             onProgress?.invoke(
                 ImportProgress(
                     importedCount = allRecords.size,
-                    targetCount = maxGames,
+                    targetCount = target,
                     currentPeriod = periodLabel,
                     incompleteCount = incompleteCount,
                     phase = "Importing $periodLabel (${allRecords.size} games)...",
@@ -532,7 +431,6 @@ class RatingApiClient(
                 )
             )
 
-            val remaining = maxGames - allRecords.size
             val monthReq = Request.Builder()
                 .url(monthUrl)
                 .header("User-Agent", USER_AGENT)
@@ -541,12 +439,12 @@ class RatingApiClient(
 
             val monthGames = try {
                 fetchWithRetry(monthReq, "your Chess.com games for $periodLabel") { resp ->
-                    parseChessComArchiveJson(resp.body?.string().orEmpty(), username, remaining, sinceMillis, beforeMillis) { done, of ->
-                        val read = allRecords.size + minOf(done, remaining)
+                    ChessComArchive.parse(resp.body?.string().orEmpty(), username, Int.MAX_VALUE, sinceMillis, beforeMillis, clockCutoffs, quota) { done, of ->
+                        val read = minOf(allRecords.size + done, target)
                         onProgress?.invoke(
                             ImportProgress(
                                 importedCount = read,
-                                targetCount = maxGames,
+                                targetCount = target,
                                 currentPeriod = periodLabel,
                                 incompleteCount = incompleteCount,
                                 phase = "Reading $periodLabel...",
@@ -569,7 +467,6 @@ class RatingApiClient(
                     if (g.incompleteParse) incompleteCount++
                     allRecords += g
                     fresh += g
-                    if (allRecords.size >= maxGames) break
                 }
             }
             if (fresh.isNotEmpty()) onBatch?.invoke(fresh)
@@ -577,7 +474,7 @@ class RatingApiClient(
             onProgress?.invoke(
                 ImportProgress(
                     importedCount = allRecords.size,
-                    targetCount = maxGames,
+                    targetCount = target,
                     currentPeriod = periodLabel,
                     incompleteCount = incompleteCount,
                     phase = "Imported ${allRecords.size} games ($periodLabel)",
@@ -592,220 +489,25 @@ class RatingApiClient(
         return allRecords
     }
 
-    /** When an archive month (".../2026/10") starts, in epoch millis (UTC). */
-    internal fun archiveMonthStart(url: String): Long? = archiveMonthEnd(url)?.let {
-        java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneOffset.UTC).minusMonths(1).toInstant().toEpochMilli()
-    }
-
-    /** When an archive month (".../2026/10") ends, in epoch millis (UTC), or null if the URL is unusual. */
-    internal fun archiveMonthEnd(url: String): Long? {
-        val parts = url.trimEnd('/').split('/')
-        if (parts.size < 2) return null
-        val year = parts[parts.size - 2].toIntOrNull() ?: return null
-        val month = parts.last().toIntOrNull()?.takeIf { it in 1..12 } ?: return null
-        return java.time.YearMonth.of(year, month).plusMonths(1).atDay(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
-    }
-
-    private fun extractArchivePeriodLabel(url: String): String {
-        val parts = url.trimEnd('/').split('/')
-        return if (parts.size >= 2) {
-            "${parts[parts.size - 2]}-${parts.last()}"
-        } else {
-            "Archive"
-        }
-    }
-
-    /**
-     * The games of one month, newest first, up to [maxGames]. Games outside [sinceMillis] and
-     * [beforeMillis] are dropped before the limit is counted: they used to use it up, so "Import
-     * more" in a half-imported month skipped its older games. [onScanned] hears (done, of).
-     */
-    fun parseChessComArchiveJson(
-        jsonStr: String,
-        username: String,
-        maxGames: Int = 100,
-        sinceMillis: Long? = null,
-        beforeMillis: Long? = null,
-        onScanned: ((done: Int, of: Int) -> Unit)? = null,
-    ): List<GameRecord> {
-        val root = runCatching { JSONObject(jsonStr) }.getOrNull() ?: return emptyList()
-        val gamesArr = root.optJSONArray("games") ?: return emptyList()
-        val wanted = ArrayList<JSONObject>()
-        for (i in gamesArr.length() - 1 downTo 0) {
-            val g = gamesArr.optJSONObject(i) ?: continue
-            if (g.optString("rules", "chess") != "chess") continue
-            val endMillis = g.optLong("end_time", System.currentTimeMillis() / 1000L) * 1000L
-            if (sinceMillis != null && endMillis < sinceMillis) continue
-            if (beforeMillis != null && endMillis >= beforeMillis) continue
-            wanted += g
-        }
-
-        val records = ArrayList<GameRecord>()
-        var done = 0
-        while (done < wanted.size && records.size < maxGames) {
-            val chunk = wanted.subList(done, minOf(done + PARSE_CHUNK, wanted.size))
-            val parsed = chunk.parallelStream().map { listOfNotNull(chessComRecord(it, username)) }.collect(Collectors.toList()).flatten()
-            records += parsed.take(maxGames - records.size)
-            done += chunk.size
-            onScanned?.invoke(done, wanted.size)
-        }
-        return records
-    }
-
-    /** One Chess.com game, or null when it was aborted or has no moves to read. */
-    private fun chessComRecord(g: JSONObject, username: String): GameRecord? {
-        val pgn = g.optString("pgn", "")
-        if (pgn.isBlank()) return null
-
-        val whiteObj = g.optJSONObject("white")
-        val blackObj = g.optJSONObject("black")
-        val whiteUser = whiteObj?.optString("username", "White") ?: "White"
-        val blackUser = blackObj?.optString("username", "Black") ?: "Black"
-        val whiteRating = whiteObj?.optInt("rating", 1200) ?: 1200
-        val blackRating = blackObj?.optInt("rating", 1200) ?: 1200
-        val whiteResult = whiteObj?.optString("result", "")?.lowercase() ?: ""
-        val blackResult = blackObj?.optString("result", "")?.lowercase() ?: ""
-
-        if (whiteResult == "aborted" || blackResult == "aborted") return null
-
-        val userIsWhite = whiteUser.equals(username, ignoreCase = true)
-        val oppName = if (userIsWhite) blackUser else whiteUser
-        val oppRating = if (userIsWhite) blackRating else whiteRating
-
-        val result = when {
-            whiteResult == "win" -> "1-0"
-            blackResult == "win" -> "0-1"
-            else -> "1/2-1/2"
-        }
-
-        val decisiveCode = if (whiteResult == "win") blackResult else if (blackResult == "win") whiteResult else whiteResult
-        val termination = when (decisiveCode) {
-            "checkmated" -> "checkmate"
-            "resigned" -> "resigned"
-            "timeout", "abandoned" -> "timeout"
-            "stalemate" -> "stalemate"
-            "repetition", "insufficient", "agreed", "50move", "timevsinsufficient" -> "draw"
-            else -> decisiveCode
-        }
-
-        val timeClass = g.optString("time_class", "rapid").lowercase()
-        val endTimeSec = g.optLong("end_time", System.currentTimeMillis() / 1000L)
-        val urlId = g.optString("url", "").substringAfterLast("/").ifBlank { "$endTimeSec" }
-
-        // Odds games and the like start from their own position, named in the PGN.
-        val outcome = convertSanStreamToUciWithStatus(extractMovesFromPgn(pgn), GameLibrary.startFenOf(pgn))
-        if (outcome.uciMoves.isBlank()) return null
-        return GameRecord(
-            id = "chesscom_$urlId",
-            dateMillis = endTimeSec * 1000L,
-            botName = oppName,
-            botRating = oppRating,
-            result = result,
-            pgn = pgn,
-            moveCount = outcome.moveCount,
-            userColor = if (userIsWhite) "white" else "black",
-            finalFen = outcome.finalFen,
-            uciMoves = outcome.uciMoves,
-            source = GameSource.CHESS_COM,
-            termination = termination,
-            timeClass = timeClass,
-            incompleteParse = outcome.incomplete
-        )
-    }
-
-    /**
-     * Strips PGN headers, `{...}` block comments, `;...` line comments, and nested `(...)` RAVs.
-     */
-    fun extractMovesFromPgn(pgn: String): String {
-        val withoutHeadersAndLineComments = pgn.lineSequence()
-            .filter { !it.trim().startsWith("[") && !it.trim().startsWith("%") }
-            .map { line -> line.substringBefore(";") }
-            .joinToString(" ")
-
-        // Strip {...} comments
-        val withoutBraces = withoutBracesComments(withoutHeadersAndLineComments)
-        // Strip nested (...) variations
-        return withoutNestedVariations(withoutBraces)
-    }
-
-    private fun withoutBracesComments(input: String): String {
-        val sb = StringBuilder(input.length)
-        var depth = 0
-        for (ch in input) {
-            when (ch) {
-                '{' -> depth++
-                '}' -> if (depth > 0) depth--
-                else -> if (depth == 0) sb.append(ch)
-            }
-        }
-        return sb.toString()
-    }
-
-    private fun withoutNestedVariations(input: String): String {
-        val sb = StringBuilder(input.length)
-        var depth = 0
-        for (ch in input) {
-            when (ch) {
-                '(' -> depth++
-                ')' -> if (depth > 0) depth--
-                else -> if (depth == 0) sb.append(ch)
-            }
-        }
-        return sb.toString()
-    }
-
-    fun convertSanStreamToUci(sanStream: String): Triple<String, String, Int> {
-        val res = convertSanStreamToUciWithStatus(sanStream)
-        return Triple(res.uciMoves, res.finalFen, res.moveCount)
-    }
-
-    /**
-     * Tokenizes a SAN move stream (handling NAGs `$1`, move numbers `1.` / `1...`,
-     * annotations `!`/`?`, and `0-0`/`0-0-0` castling), converts to UCI, and flags
-     * `incomplete = true` if any token fails to match before the game result token. [startFen]
-     * is the position the game was set up from, or null for the normal start.
-     */
-    fun convertSanStreamToUciWithStatus(sanStream: String, startFen: String? = null): SanParseOutcome {
-        var position = startFen?.let { fen -> Position.tryFromFen(fen).getOrNull() } ?: Position.initial()
-        val uciList = mutableListOf<String>()
-        var incomplete = false
-
-        val normalized = withoutNestedVariations(withoutBracesComments(sanStream))
-            .replace(NAG, " ")
-            .replace(MOVE_NUMBER, " ")
-            .trim()
-
-        for (rawToken in normalized.split(WHITESPACE)) {
-            if (rawToken.isBlank()) continue
-            if (rawToken == "1-0" || rawToken == "0-1" || rawToken == "1/2-1/2" || rawToken == "*") break
-            // Skip standalone move number fragments or NAGs
-            if (rawToken.startsWith("$") || rawToken.all { it.isDigit() || it == '.' }) continue
-
-            val legal = LegalMoveGenerator.generateLegalMoves(position)
-            val move = SanReplay.moveFor(position, legal, rawToken)
-            if (move == null) {
-                incomplete = true
-                break
-            }
-            position = LegalMoveGenerator.makeMove(position, move)
-            uciList += move.uci
-        }
-
-        return SanParseOutcome(
-            uciMoves = uciList.joinToString(" "),
-            finalFen = position.toFen(),
-            moveCount = (uciList.size + 1) / 2,
-            incomplete = incomplete
-        )
+    /** The clocks the account has a rating in, so a clock never played is not searched for. */
+    private suspend fun clocksPlayed(username: String): Set<TimeClass> {
+        val profile = fetchChessComStats(username, RatingTimeControl.RAPID).getOrNull() ?: return MAIN_CLOCKS
+        return buildSet {
+            if (profile.rapidRating != null) add(TimeClass.RAPID)
+            if (profile.blitzRating != null) add(TimeClass.BLITZ)
+            if (profile.bulletRating != null) add(TimeClass.BULLET)
+        }.ifEmpty { MAIN_CLOCKS }
     }
 
     companion object {
-        private val NAG = Regex("\\$\\d+")
-        private val MOVE_NUMBER = Regex("\\d+\\.+")
-        private val WHITESPACE = Regex("\\s+")
-
-        /** Games replayed together on all cores, between progress reports. */
-        private const val PARSE_CHUNK = 32
+        /** Lichess's game kinds, one stream for each clock. */
+        private val LICHESS_CLOCKS = listOf(
+            TimeClass.RAPID to "rapid",
+            TimeClass.BLITZ to "blitz",
+            TimeClass.BULLET to "bullet,ultraBullet",
+            TimeClass.CLASSICAL to "classical",
+            TimeClass.DAILY to "correspondence",
+        )
 
         /** Lichess games handed over per [fetchRecentGames] batch while streaming. */
         const val BATCH = 20

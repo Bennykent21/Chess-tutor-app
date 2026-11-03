@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Extension
@@ -55,6 +56,7 @@ import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
+import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.MascotMood
@@ -79,6 +81,8 @@ fun LessonPlayerScreen(
     onReplay: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens the lesson before this one in the course. */
+    onPreviousLesson: (lessonId: String) -> Unit = {},
     /** Opens Opening Battle on the course's line; null hides the button. */
     onPractise: (() -> Unit)? = null,
     /** Opens puzzles with the course's themes; null hides the button. */
@@ -91,13 +95,13 @@ fun LessonPlayerScreen(
     }
     val state by player.state.collectAsState()
     if (state.phase != LessonPhase.DONE && state.step !is LessonStep.Watch) {
-        BoardStep(player, state, settings, onFeedback, onBack, modifier)
+        BoardStep(player, state, settings, onFeedback, onBack, onPreviousLesson, modifier)
         return
     }
     if (state.phase == LessonPhase.DONE) {
-        DonePage(state, settings, onNextLesson, onReplay, onBack, onPractise, onRelatedPuzzles, modifier)
+        DonePage(state, settings, onNextLesson, onPreviousLesson, onReplay, onBack, onPractise, onRelatedPuzzles, modifier)
     } else {
-        WatchPage(state, state.step as LessonStep.Watch, onStart = player::next, onBack = onBack, modifier = modifier)
+        WatchPage(state, state.step as LessonStep.Watch, onStart = player::next, onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier)
     }
 }
 
@@ -163,6 +167,7 @@ private fun BoardStep(
     settings: AppSettings,
     onFeedback: (BoardFeedback) -> Unit,
     onBack: () -> Unit,
+    onPreviousLesson: (String) -> Unit,
     modifier: Modifier,
 ) {
     val side = if (state.orientation == PieceColor.WHITE) "White" else "Black"
@@ -203,9 +208,15 @@ private fun BoardStep(
                 arrows = arrows,
                 rings = rings,
                 onFeedback = onFeedback,
+                soundsOtherMoves = true,
             )
         },
         controls = {
+            if (state.stepIndex > 0) {
+                CtIconButton(icon = Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Previous step", onClick = player::back)
+            } else {
+                PreviousLessonButton(state, onPreviousLesson)
+            }
             if (yourMove) {
                 CtButton(
                     text = "Hint",
@@ -216,34 +227,42 @@ private fun BoardStep(
                     modifier = Modifier.weight(1f),
                 )
             } else {
-                CtButton(
-                    text = "Again",
-                    icon = Icons.Rounded.Refresh,
-                    style = CtButtonStyle.Secondary,
-                    enabled = !state.busy,
-                    onClick = player::replayStep,
-                    modifier = Modifier.weight(1f),
-                )
+                CtIconButton(icon = Icons.Rounded.Refresh, contentDescription = "Again", onClick = player::replayStep, enabled = !state.busy)
                 CtButton(
                     text = if (state.isLastStep) "Finish" else "Next",
                     icon = if (state.isLastStep) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.ArrowForward,
                     enabled = state.canAdvance,
                     onClick = player::next,
-                    modifier = Modifier.weight(1.6f),
+                    modifier = Modifier.weight(1f),
                 )
             }
         },
     )
 }
 
+/** Back to the lesson before this one in the course; dimmed on the course's first lesson. */
+@Composable
+private fun PreviousLessonButton(state: LessonPlayerState, onPreviousLesson: (String) -> Unit) {
+    val previous = state.previousLesson
+    CtIconButton(
+        icon = Icons.AutoMirrored.Rounded.ArrowBack,
+        contentDescription = "Previous lesson",
+        onClick = { previous?.let { onPreviousLesson(it.id) } },
+        enabled = previous != null,
+    )
+}
+
 /** The lesson's first page: the video slot (a placeholder until lesson videos exist), its title and one line. */
 @Composable
-private fun WatchPage(state: LessonPlayerState, step: LessonStep.Watch, onStart: () -> Unit, onBack: () -> Unit, modifier: Modifier) {
+private fun WatchPage(state: LessonPlayerState, step: LessonStep.Watch, onStart: () -> Unit, onBack: () -> Unit, onPreviousLesson: (String) -> Unit, modifier: Modifier) {
     CtActionPage(
         title = state.lessonTitle,
         onBack = onBack,
         modifier = modifier,
-        bottom = { CtButton(text = "Start", onClick = onStart, modifier = Modifier.weight(1f)) },
+        bottom = {
+            PreviousLessonButton(state, onPreviousLesson)
+            CtButton(text = "Start", onClick = onStart, modifier = Modifier.weight(1f))
+        },
     ) {
         Box(
             modifier = Modifier
@@ -269,6 +288,7 @@ private fun DonePage(
     state: LessonPlayerState,
     settings: AppSettings,
     onNextLesson: (String) -> Unit,
+    onPreviousLesson: (String) -> Unit,
     onReplay: () -> Unit,
     onBack: () -> Unit,
     onPractise: (() -> Unit)?,
@@ -283,6 +303,7 @@ private fun DonePage(
         onBack = onBack,
         modifier = modifier,
         bottom = {
+            PreviousLessonButton(state, onPreviousLesson)
             if (next != null) CtButton(text = "Next: ${next.title}", onClick = { onNextLesson(next.id) }, modifier = Modifier.weight(1f))
             else CtButton(text = "Play it again", onClick = onReplay, modifier = Modifier.weight(1f))
         },
@@ -316,7 +337,7 @@ private fun DonePage(
         Column(Modifier.padding(top = CtSpacing.xl)) {
             onRelatedPuzzles?.let { CtListRow(title = "Related puzzles", icon = Icons.Rounded.Extension, onClick = it) }
             onPractise?.let { CtListRow(title = "Practise in Opening Battle", icon = Icons.Rounded.Flag, onClick = it) }
-            if (next != null) CtListRow(title = "Play it again", icon = Icons.Rounded.Refresh, onClick = onReplay, divider = false)
+            if (next != null) CtListRow(title = "Play it again", icon = Icons.Rounded.Refresh, onClick = onReplay)
         }
     }
 }

@@ -80,13 +80,15 @@ class LiveLinkThenMoreCheck {
             println("[$platform] $label: saved=${all.size} unique=${ids.toSet().size} in ${(System.currentTimeMillis() - started) / 1000}s " +
                 "oldest=${all.minOfOrNull { it.dateMillis }?.let { java.time.Instant.ofEpochMilli(it) }} newest=${all.maxOfOrNull { it.dateMillis }?.let { java.time.Instant.ofEpochMilli(it) }} " +
                 "message=${state.value.linkingSuccessMessage} error=${state.value.linkingError}")
+            println("[$platform] $label by clock: " + all.groupBy { com.chesstutor.app.domain.account.TimeClass.of(it.timeClass) }.mapValues { it.value.size })
         }
         var t = System.currentTimeMillis()
         coordinator.linkAccount(platform, user, com.chesstutor.app.data.model.RatingTimeControl.RAPID, update, ImportDepth.LAST_100)
         waitDone("link, last 100", t)
         val first = games.getRecentGames(100_000).filter { it.source.name.contains(if (platform == RatingPlatform.LICHESS) "LICHESS" else "CHESS_COM") }
         t = System.currentTimeMillis()
-        coordinator.refreshProfile(user, update, ImportDepth.LAST_100, beforeMillis = first.minOfOrNull { it.dateMillis }, sinceMillis = first.maxOfOrNull { it.dateMillis }?.plus(1))
+        val cutoffs = first.groupBy { com.chesstutor.app.domain.account.TimeClass.of(it.timeClass) }.mapValues { (_, list) -> list.minOf { it.dateMillis } }
+        coordinator.refreshProfile(user, update, ImportDepth.LAST_100, beforeMillis = first.minOfOrNull { it.dateMillis }, sinceMillis = first.maxOfOrNull { it.dateMillis }?.plus(1), clockCutoffs = cutoffs)
         waitDone("import 100 more", t)
         scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
     }
@@ -106,7 +108,7 @@ class LiveLinkThenMoreCheck {
         println("Chess.com through the fallback: ${client.fetchChessComStats(chessCom!!)}")
         println("Lichess through the fallback: ${client.fetchLichessStats(lichess!!)}")
         val games = client.fetchRecentGames(RatingPlatform.CHESS_COM, chessCom, maxGames = 5).getOrThrow()
-        org.junit.Assert.assertEquals(5, games.size)
+        org.junit.Assert.assertTrue("up to 5 of each clock, got ${games.size}", games.size in 5..25)
     }
 
     @Test
