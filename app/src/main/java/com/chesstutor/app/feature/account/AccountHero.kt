@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.design.CtArt
+import com.chesstutor.app.design.CtMetalIcon
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScene
@@ -35,6 +37,7 @@ import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.account.RatingRank
+import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.feature.home.PlayerAvatar
 import com.chesstutor.app.viewmodel.AppUiState
@@ -99,35 +102,45 @@ internal fun SettingsButton(onClick: () -> Unit) {
     }
 }
 
-/** One number in the row under the player. */
-internal data class RatingCell(val value: String, val label: String, val followed: Boolean = false)
+/** One rating in the row under the player: a game clock, or the puzzles when [clock] is null. */
+internal data class RatingCell(val value: String, val label: String, val clock: TimeClass?, val followed: Boolean = false)
+
+/** The rating that earns the piece (D60): the average of the clocks the player has a rating in. */
+internal fun pieceRating(state: AppUiState): Int {
+    val linked = state.linkedProfile ?: return state.effectiveUserRating
+    val played = listOfNotNull(linked.rapidRating, linked.blitzRating, linked.bulletRating)
+    return if (played.isEmpty()) state.effectiveUserRating else played.average().toInt()
+}
 
 /** The linked account's three clocks and the puzzle rating, or the app's own rating and the puzzle rating. */
 internal fun ratingCells(state: AppUiState, puzzleRating: Int): List<RatingCell> {
     val linked = state.linkedProfile
     val games = if (linked == null) {
-        listOf(RatingCell("${state.effectiveUserRating}", "Rating"))
+        listOf(RatingCell("${state.effectiveUserRating}", "Rating", TimeClass.RAPID))
     } else {
         listOf(
             RatingTimeControl.RAPID to linked.rapidRating,
             RatingTimeControl.BLITZ to linked.blitzRating,
             RatingTimeControl.BULLET to linked.bulletRating,
-        ).map { (clock, rating) -> RatingCell(rating?.toString() ?: "–", clock.displayName, followed = clock == linked.selectedTimeControl) }
+        ).map { (clock, rating) -> RatingCell(rating?.toString() ?: "–", clock.displayName, TimeClass.of(clock.name), followed = clock == linked.selectedTimeControl) }
     }
-    return games + RatingCell("$puzzleRating", "Puzzles")
+    return games + RatingCell("$puzzleRating", "Puzzles", clock = null)
 }
 
-/** Each rating over its name, kept apart by a thin rule, then the level. */
+/** Each rating under its clock's icon, kept apart by a thin rule, then the level. A rating opens its stats. */
 @Composable
-internal fun Numbers(state: AppUiState, stats: PuzzleStats, onOpenStats: () -> Unit, modifier: Modifier = Modifier) {
+internal fun Numbers(
+    state: AppUiState,
+    stats: PuzzleStats,
+    onOpenClock: (TimeClass) -> Unit,
+    onOpenPuzzles: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().ctPressable(onClickLabel = "Open your stats", onClick = onOpenStats),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ratingCells(state, stats.rating).forEachIndexed { i, cell ->
-                if (i > 0) Box(Modifier.width(1.dp).height(32.dp).background(CtColors.Line))
-                Figure(cell, Modifier.weight(1f))
+                if (i > 0) Box(Modifier.width(1.dp).height(40.dp).background(CtColors.Line))
+                Figure(cell, onClick = { cell.clock?.let(onOpenClock) ?: onOpenPuzzles() }, modifier = Modifier.weight(1f))
             }
         }
         Row(
@@ -143,8 +156,16 @@ internal fun Numbers(state: AppUiState, stats: PuzzleStats, onOpenStats: () -> U
 }
 
 @Composable
-private fun Figure(cell: RatingCell, modifier: Modifier = Modifier) {
-    Column(modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
+private fun Figure(cell: RatingCell, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .ctPressable(onClickLabel = if (cell.clock == null) "Open training" else "Open ${cell.label} stats", onClick = onClick)
+            .semantics(mergeDescendants = true) {}
+            .padding(vertical = CtSpacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        if (cell.clock != null) ClockIcon(cell.clock, size = 22.dp) else CtMetalIcon(Icons.Rounded.Extension, size = 22.dp)
         Text(cell.value, style = CtType.Number.copy(color = if (cell.followed) CtColors.Accent else CtColors.Text), maxLines = 1)
         Text(cell.label, style = CtType.Caption, maxLines = 1)
     }

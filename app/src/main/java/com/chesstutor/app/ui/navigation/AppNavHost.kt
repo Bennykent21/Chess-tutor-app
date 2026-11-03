@@ -1,5 +1,10 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.domain.account.TimeClass
+import com.chesstutor.app.domain.account.GameFilter
+import com.chesstutor.app.feature.account.TrainingScreen
+import com.chesstutor.app.feature.account.StatsScreen
+import com.chesstutor.app.feature.account.GamesScreen
 import com.chesstutor.app.design.CtMotion
 import androidx.compose.animation.slideInVertically
 import com.chesstutor.app.data.network.RatingApiClient
@@ -726,19 +731,17 @@ private fun AppShell(
                     val account = accountViewModel(navController, entry)
                     val games by account.games.collectAsStateWithLifecycle()
                     val stats by account.stats.collectAsStateWithLifecycle()
-                    val training by account.training.collectAsStateWithLifecycle()
                     val overview by account.overview.collectAsStateWithLifecycle()
-                    val openingCourses by account.openingCourses.collectAsStateWithLifecycle()
                     AccountScreen(
                         state = state,
                         games = games,
                         stats = stats,
-                        training = training,
                         overview = overview,
-                        openingCourses = openingCourses,
-                        dueReviewCount = dueReviews,
                         actions = linkActions.copy(
                             onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
+                            onOpenGames = { filter -> navController.navigate(AppRoutes.games(filter)) { launchSingleTop = true } },
+                            onOpenStats = { clock -> navController.navigate(AppRoutes.stats(clock)) { launchSingleTop = true } },
+                            onOpenTraining = { navController.navigate(AppRoutes.TRAINING) { launchSingleTop = true } },
                             onReviewMistakes = {
                                 navController.navigateToTab(TopTab.PUZZLES)
                                 navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true }
@@ -754,6 +757,61 @@ private fun AppShell(
                             onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) { launchSingleTop = true } },
                             onShown = { viewModel.autoSyncLinkedAccount() }
                         )
+                    )
+                }
+                composable(
+                    route = AppRoutes.GAMES_PATTERN,
+                    arguments = listOf(navArgument(AppRoutes.GAMES_FILTER_ARG) { type = NavType.StringType; defaultValue = "" }),
+                ) { entry ->
+                    val account = accountViewModel(navController, entry)
+                    val games by account.games.collectAsStateWithLifecycle()
+                    GamesScreen(
+                        games = games,
+                        initialFilter = GameFilter.decode(entry.arguments?.getString(AppRoutes.GAMES_FILTER_ARG).orEmpty()),
+                        onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(
+                    route = AppRoutes.STATS_PATTERN,
+                    arguments = listOf(navArgument(AppRoutes.CLOCK_ARG) { type = NavType.StringType }),
+                ) { entry ->
+                    val account = accountViewModel(navController, entry)
+                    val games by account.games.collectAsStateWithLifecycle()
+                    val openingCourses by account.openingCourses.collectAsStateWithLifecycle()
+                    val clock = entry.arguments?.getString(AppRoutes.CLOCK_ARG)?.let { name -> TimeClass.entries.firstOrNull { it.name == name } } ?: TimeClass.RAPID
+                    StatsScreen(
+                        games = games,
+                        state = state,
+                        initialClock = clock,
+                        now = remember { System.currentTimeMillis() },
+                        courseIdFor = { family -> OpeningCourses.courseFor(family, openingCourses)?.id },
+                        onOpenCourse = { id ->
+                            navController.navigateToTab(TopTab.LEARN)
+                            navController.navigate(AppRoutes.course(id)) { launchSingleTop = true }
+                        },
+                        onShowGames = { filter -> navController.navigate(AppRoutes.games(filter)) { launchSingleTop = true } },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(AppRoutes.TRAINING) { entry ->
+                    val account = accountViewModel(navController, entry)
+                    val stats by account.stats.collectAsStateWithLifecycle()
+                    val training by account.training.collectAsStateWithLifecycle()
+                    TrainingScreen(
+                        training = training,
+                        stats = stats,
+                        dueReviewCount = dueReviews,
+                        now = remember { System.currentTimeMillis() },
+                        onReviewMistakes = {
+                            navController.navigateToTab(TopTab.PUZZLES)
+                            navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true }
+                        },
+                        onPracticeTheme = { theme ->
+                            navController.navigateToTab(TopTab.PUZZLES)
+                            navController.navigate(AppRoutes.puzzleRelated(listOf(theme))) { launchSingleTop = true }
+                        },
+                        onBack = { navController.popBackStack() },
                     )
                 }
                 composable(AppRoutes.SETTINGS) {

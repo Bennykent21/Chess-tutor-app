@@ -43,8 +43,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * One game in a list (Account > Overview and Games): a result square, the opponent, the
- * opening and day, and the player's accuracy once the game is reviewed (a dash before).
+ * One game in a list (Account and Games): a result square, the opponent, the clock's icon with
+ * the opening and day, and the player's accuracy once the game is reviewed (a dash before).
  */
 @Composable
 fun GameListRow(
@@ -67,7 +67,10 @@ fun GameListRow(
             ResultSquare(game.outcome)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
                 Text(opponentName(game), style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(gameLine(game, now), style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ClockIcon(game.timeClass, size = 14.dp)
+                    Text(gameLine(game, now), style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
             Text(
                 text = accuracy?.let(::accuracyText) ?: "–",

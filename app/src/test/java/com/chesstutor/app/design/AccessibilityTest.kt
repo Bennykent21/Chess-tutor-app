@@ -123,7 +123,7 @@ class AccessibilityTest {
     @Test fun puzzleModes() = check("Puzzle modes") { PuzzleModesScreen(patternsFor = { emptyList() }, actions = PuzzleModeActions({}, { _, _, _ -> }, { _, _, _, _ -> }, {}), onBack = {}) }
 
     @Test fun account() = check("Account") {
-        AccountScreen(state = AppUiState(), games = GamesState(loading = false), stats = PuzzleStats(), dueReviewCount = 0, actions = AccountActions())
+        AccountScreen(state = AppUiState(), games = GamesState(loading = false), stats = PuzzleStats(), actions = AccountActions())
     }
 
     @Test fun settings() = check("Settings") { SettingsScreen(state = AppUiState(), accountActions = AccountActions(), actions = SettingsActions(supportUrl = "")) }

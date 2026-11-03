@@ -20,9 +20,9 @@ enum class GameOutcome(val label: String) {
  * differently ("ultraBullet", "correspondence", "daily"), so they are folded into one list.
  */
 enum class TimeClass(val label: String) {
-    BULLET("Bullet"),
-    BLITZ("Blitz"),
     RAPID("Rapid"),
+    BLITZ("Blitz"),
+    BULLET("Bullet"),
     CLASSICAL("Classical"),
     DAILY("Daily"),
     UNTIMED("No clock");
@@ -94,6 +94,26 @@ data class GameFilter(
     val query: String = "",
 ) {
     val isEmpty: Boolean get() = this == GameFilter()
+
+    /** The filter as one line, for opening the games page from another page. */
+    fun encode(): String = listOf(source?.name, outcome?.name, color?.name, timeClass?.name, openingFamily, query).joinToString("|") { it.orEmpty() }
+
+    companion object {
+        fun decode(text: String): GameFilter {
+            val v = text.split("|", limit = 6)
+            if (v.size < 6) return GameFilter()
+            return runCatching {
+                GameFilter(
+                    source = v[0].takeIf { it.isNotEmpty() }?.let(GameSource::valueOf),
+                    outcome = v[1].takeIf { it.isNotEmpty() }?.let(GameOutcome::valueOf),
+                    color = v[2].takeIf { it.isNotEmpty() }?.let(PieceColor::valueOf),
+                    timeClass = v[3].takeIf { it.isNotEmpty() }?.let(TimeClass::valueOf),
+                    openingFamily = v[4].ifEmpty { null },
+                    query = v[5],
+                )
+            }.getOrDefault(GameFilter())
+        }
+    }
 }
 
 /** Totals for the Overview page. */

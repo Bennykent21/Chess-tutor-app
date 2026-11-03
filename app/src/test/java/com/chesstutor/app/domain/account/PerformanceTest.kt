@@ -50,8 +50,8 @@ class PerformanceTest {
         assertEquals(Wdl(wins = 1, losses = 1), report.byColor[0].wdl)
         assertEquals(PieceColor.BLACK, report.byColor[1].filter.color)
 
-        assertEquals(listOf("Blitz", "Rapid"), report.byTimeClass.map { it.label })
-        assertEquals(TimeClass.BLITZ, report.byTimeClass[0].filter.timeClass)
+        assertEquals(listOf("Rapid", "Blitz"), report.byTimeClass.map { it.label })
+        assertEquals(TimeClass.RAPID, report.byTimeClass[0].filter.timeClass)
 
         assertEquals(listOf("Italian Game", "Queen's Gambit"), report.byOpening.map { it.label }.sorted())
         assertEquals("Italian Game", report.byOpening.first { it.wdl.games == 2 }.filter.openingFamily)
