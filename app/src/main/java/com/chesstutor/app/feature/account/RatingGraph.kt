@@ -57,7 +57,8 @@ import com.chesstutor.app.domain.account.GraphPeriod
 import com.chesstutor.app.domain.account.RatingTrend
 import kotlin.math.abs
 
-private const val MOST_POINTS = 150
+/** Enough to show the shape of a year without the zigzag of every game (D65). */
+private const val MOST_POINTS = 90
 
 /** A flat run still gets a line in the middle, not one at full height. */
 private const val SMALLEST_RANGE = 20
@@ -84,7 +85,7 @@ fun RatingHero(
     val period = GraphPeriod.valueOf(periodName)
     // A period with too little in it shows the whole trend rather than an empty graph.
     val shown = remember(trend, period, now) { trend.within(now, period.days).takeIf { it.points.size >= 2 } ?: trend }
-    val points = remember(shown) { shown.thinned(MOST_POINTS) }
+    val points = remember(shown) { shown.forGraph(MOST_POINTS) }
     var touched by remember(shown) { mutableStateOf<Int?>(null) }
     val graphed = points.size >= 2
     val rating = touched?.let { points[it].rating } ?: current ?: points.lastOrNull()?.rating
@@ -181,10 +182,7 @@ private fun Graph(points: List<com.chesstutor.app.domain.account.RatingPoint>, h
         val label = measurer.measure("Peak $peak", peakStyle)
         drawText(label, topLeft = Offset(size.width - inset - label.size.width, peakY - label.size.height - 2.dp.toPx()))
 
-        val line = Path().apply {
-            moveTo(x(0), y(0))
-            for (i in 1..points.lastIndex) lineTo(x(i), y(i))
-        }
+        val line = smoothLine(points.indices.map { x(it) }, points.indices.map { y(it) })
         val area = Path().apply {
             addPath(line)
             lineTo(x(points.lastIndex), size.height)
@@ -202,6 +200,49 @@ private fun Graph(points: List<com.chesstutor.app.domain.account.RatingPoint>, h
             drawCircle(hue, radius = 4.5.dp.toPx(), center = Offset(x(at), y(at)))
         }
     }
+}
+
+/**
+ * A smooth line through every point that never bends past them (D65): a monotone cubic
+ * (Fritsch and Carlson), so a rise stays a rise and the curve's highs and lows are real ratings.
+ */
+internal fun smoothLine(xs: List<Float>, ys: List<Float>): Path {
+    val n = xs.size
+    val path = Path().apply { moveTo(xs[0], ys[0]) }
+    if (n < 3) {
+        for (i in 1 until n) path.lineTo(xs[i], ys[i])
+        return path
+    }
+    val slopes = List(n - 1) { i -> (ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]).coerceAtLeast(0.001f) }
+    val tangents = FloatArray(n) { i ->
+        when (i) {
+            0 -> slopes[0]
+            n - 1 -> slopes[n - 2]
+            // Flat where the line turns, so it does not overshoot the turning point.
+            else -> if (slopes[i - 1] * slopes[i] <= 0f) 0f else (slopes[i - 1] + slopes[i]) / 2f
+        }
+    }
+    for (i in 0 until n - 1) {
+        val s = slopes[i]
+        if (s == 0f) {
+            tangents[i] = 0f
+            tangents[i + 1] = 0f
+            continue
+        }
+        val a = tangents[i] / s
+        val b = tangents[i + 1] / s
+        val h = a * a + b * b
+        if (h > 9f) {
+            val t = 3f / kotlin.math.sqrt(h)
+            tangents[i] = t * a * s
+            tangents[i + 1] = t * b * s
+        }
+    }
+    for (i in 0 until n - 1) {
+        val dx = (xs[i + 1] - xs[i]) / 3f
+        path.cubicTo(xs[i] + dx, ys[i] + tangents[i] * dx, xs[i + 1] - dx, ys[i + 1] - tangents[i + 1] * dx, xs[i + 1], ys[i + 1])
+    }
+    return path
 }
 
 /** 1M, 3M, 1Y, All: how far back the graph looks. */
