@@ -208,6 +208,7 @@ private fun BoardStep(
                 arrows = arrows,
                 rings = rings,
                 onFeedback = onFeedback,
+                soundsOtherMoves = true,
             )
         },
         controls = {

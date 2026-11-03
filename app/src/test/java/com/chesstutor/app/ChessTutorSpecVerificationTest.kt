@@ -1,5 +1,6 @@
 package com.chesstutor.app
 
+import com.chesstutor.app.data.network.PgnMoves
 import com.chesstutor.app.domain.ChessPosition
 import com.chesstutor.app.domain.ReviewItem
 import com.chesstutor.app.domain.ReviewScheduler
@@ -41,19 +42,18 @@ class ChessTutorSpecVerificationTest {
 
     @Test
     fun pgnSanTokenizer_stripsCommentsVariationsAndNags_andFlagsIncompleteOnCorruptToken() {
-        val client = com.chesstutor.app.data.network.RatingApiClient()
         val annotatedPgn = """
             [Event "Live Chess"]
             [Result "1-0"]
             1. e4 { [%clk 0:09:59] } 1... e5 $1 (1... c5 2. Nf3) 2. Nf3! Nc6? 3. Bb5 Nf6 4. 0-0 1-0
         """.trimIndent()
-        val cleanStream = client.extractMovesFromPgn(annotatedPgn)
-        val parsed = client.convertSanStreamToUciWithStatus(cleanStream)
+        val cleanStream = PgnMoves.movesText(annotatedPgn)
+        val parsed = PgnMoves.toUci(cleanStream)
         assertFalse("Valid annotated PGN should not be flagged incomplete", parsed.incomplete)
         assertEquals("e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 e1g1", parsed.uciMoves)
 
         val corruptStream = "1. e4 e5 2. INVALID_TOKEN Nc6 1-0"
-        val corruptParsed = client.convertSanStreamToUciWithStatus(corruptStream)
+        val corruptParsed = PgnMoves.toUci(corruptStream)
         assertTrue("Corrupt token must flag incomplete = true", corruptParsed.incomplete)
         assertEquals("e2e4 e7e5", corruptParsed.uciMoves)
     }
