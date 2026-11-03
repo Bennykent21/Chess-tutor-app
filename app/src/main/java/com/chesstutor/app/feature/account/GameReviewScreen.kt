@@ -600,7 +600,7 @@ private fun AnalysisStatus(state: ReviewState, review: GameReview?, actions: Rev
         job != null -> Unit
         review == null || !review.complete -> CtCard(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CtIconBubble(icon = Icons.Rounded.Insights, tint = CtColors.Teal, size = 40.dp)
+                CtIconBubble(icon = Icons.Rounded.Insights)
                 Spacer(Modifier.width(CtSpacing.md))
                 Column(Modifier.weight(1f)) {
                     Text(if (review?.moves.isNullOrEmpty()) "Analyse this game" else "Finish the analysis", style = CtType.TitleSmall)

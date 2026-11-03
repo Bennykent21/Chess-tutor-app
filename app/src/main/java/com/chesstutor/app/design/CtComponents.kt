@@ -187,27 +187,6 @@ fun CtTile(
     )
 }
 
-/** Circle holding an icon, used on cards and rows. */
-@Composable
-fun CtIconBubble(
-    icon: ImageVector,
-    tint: Color,
-    modifier: Modifier = Modifier,
-    size: Dp = 44.dp,
-    background: Color = tint.copy(alpha = 0.12f),
-    contentDescription: String? = null,
-) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CtShapes.Pill)
-            .background(background),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(imageVector = icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(size * 0.5f))
-    }
-}
-
 // ------------------------------------------------------------------ text blocks
 
 @Composable
@@ -841,7 +820,7 @@ fun CtListRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    iconTint: Color = CtColors.Accent,
+    hue: CtHue? = null,
     trailing: @Composable (() -> Unit)? = null,
     leading: @Composable (() -> Unit)? = null,
 ) {
@@ -856,7 +835,7 @@ fun CtListRow(
         ) {
             when {
                 leading != null -> Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { leading() }
-                icon != null -> CtIconBubble(icon = icon, tint = iconTint, size = 40.dp)
+                icon != null -> CtIconBubble(icon = icon, hue = hue ?: CtHue.of(icon))
             }
             if (leading != null || icon != null) Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
@@ -1134,7 +1113,7 @@ fun CtEmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
     ) {
-        CtIconBubble(icon = icon, tint = CtColors.Accent, size = 64.dp)
+        CtIconBubble(icon = icon, size = 64.dp)
         Text(text = title, style = CtType.Title)
         Text(text = body, style = CtType.BodySmall)
         if (actionLabel != null && onAction != null) {

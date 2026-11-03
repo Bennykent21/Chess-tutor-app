@@ -1,10 +1,7 @@
 package com.chesstutor.app.feature.account
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -26,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -35,9 +31,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtColors
+import com.chesstutor.app.design.CtHue
+import com.chesstutor.app.design.CtIconBubble
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtSectionHeader
-import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSheet
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
@@ -92,24 +89,11 @@ private fun BadgeTile(badge: Badge, onClick: () -> Unit) {
     }
 }
 
-/** A round medal: raised with an accent ring once earned, flat before. */
+/** A round medal: in the badge's own colour once earned, grey before. */
 @Composable
 private fun BadgeMedal(badge: Badge, size: Dp) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CtShapes.Pill)
-            .background(if (badge.earned) CtColors.Raised else CtColors.Surface)
-            .then(if (badge.earned) Modifier.border(1.5.dp, CtColors.Accent, CtShapes.Pill) else Modifier),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = badgeIcon(badge.kind),
-            contentDescription = null,
-            tint = if (badge.earned) CtColors.Accent else CtColors.Text2,
-            modifier = Modifier.size(size * 0.43f),
-        )
-    }
+    val icon = badgeIcon(badge.kind)
+    CtIconBubble(icon, size = size, hue = if (badge.earned) CtHue.of(icon) else CtHue.SLATE)
 }
 
 /** One badge up close: what it is for and, until earned, how far along the player is. */

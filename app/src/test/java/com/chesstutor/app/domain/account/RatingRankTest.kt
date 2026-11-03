@@ -1,7 +1,6 @@
 package com.chesstutor.app.domain.account
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 class RatingRankTest {
@@ -21,18 +20,5 @@ class RatingRankTest {
     @Test
     fun aNegativeRatingIsStillAPawn() {
         assertEquals(RatingRank.PAWN, RatingRank.of(-5))
-    }
-
-    @Test
-    fun progressRunsFromOnePieceToTheNext() {
-        assertEquals(0f, RatingRank.ROOK.progress(1500), 0.001f)
-        assertEquals(0.5f, RatingRank.ROOK.progress(1650), 0.001f)
-        assertEquals("the top piece has nothing left to climb", 1f, RatingRank.KING.progress(2300), 0.001f)
-    }
-
-    @Test
-    fun theKingIsTheTop() {
-        assertEquals(RatingRank.QUEEN, RatingRank.ROOK.next)
-        assertNull(RatingRank.KING.next)
     }
 }

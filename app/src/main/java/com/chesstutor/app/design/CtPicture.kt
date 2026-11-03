@@ -144,9 +144,9 @@ fun Modifier.ctGloss(shape: Shape, surface: Color = Shade): Modifier = drawWithC
 
 /** A round glass mark on a picture: the picture shows through it. */
 @Composable
-fun CtGlassMark(size: Dp, content: @Composable BoxScope.() -> Unit) {
+fun CtGlassMark(size: Dp, ink: Color = CtPictureInk, surface: Color = Shade, content: @Composable BoxScope.() -> Unit) {
     Box(
-        modifier = Modifier.size(size).clip(CtShapes.Pill).background(CtPictureInk.copy(alpha = 0.2f)).ctGloss(CtShapes.Pill),
+        modifier = Modifier.size(size).clip(CtShapes.Pill).background(ink.copy(alpha = 0.2f)).ctGloss(CtShapes.Pill, surface),
         contentAlignment = Alignment.Center,
         content = content,
     )

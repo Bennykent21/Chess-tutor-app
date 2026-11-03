@@ -253,8 +253,8 @@ class AccountScreenTest {
                 AccountScreen(state = state, games = games, stats = stats, dueReviewCount = 0, actions = AccountActions())
             }
         }
-        compose.onNodeWithText("Rook").assertExists()
-        compose.onNodeWithText("274 to Queen").performClick()
+        compose.onNodeWithText("274 to Queen").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Your piece: Rook").performClick()
         compose.onNodeWithText("Your piece").assertExists()
         compose.onNodeWithText("King").assertExists()
         compose.onNodeWithText("2200").assertExists()
