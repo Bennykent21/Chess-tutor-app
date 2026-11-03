@@ -5,6 +5,7 @@ import com.chesstutor.app.core.SanReplay
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.LegalMoveGenerator
 import com.chesstutor.app.domain.account.GameLibrary
+import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.data.model.GameSource
 import com.chesstutor.app.data.model.ImportDepth
@@ -240,9 +241,10 @@ class RatingApiClient(
 
     /**
      * Fetches public standard chess games from Lichess (streaming NDJSON) or Chess.com
-     * (paging backwards through monthly archives) up to [maxGames], reporting progress via [onProgress].
-     * With [sinceMillis] only games from then on are fetched (the automatic sync); with
-     * [beforeMillis] only older games (finishing an import that was interrupted). [onBatch] gets
+     * (paging backwards through monthly archives) up to [maxGames] of each clock, reporting progress
+     * via [onProgress]. With [sinceMillis] only games from then on are fetched (the automatic sync);
+     * with [beforeMillis] only older games, or with [clockCutoffs] only games older than their own
+     * clock's cut-off, so each clock carries on from its own oldest game. [onBatch] gets
      * the games as they arrive (each Chess.com month, every [BATCH] Lichess games), so they can be
      * saved and shown while the import runs.
      */
@@ -254,6 +256,7 @@ class RatingApiClient(
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
         beforeMillis: Long? = null,
+        clockCutoffs: Map<TimeClass, Long> = emptyMap(),
     ): Result<List<GameRecord>> = withContext(Dispatchers.IO) {
         val cleanUsername = username.trim()
         if (cleanUsername.isEmpty()) {
@@ -261,8 +264,8 @@ class RatingApiClient(
         }
         runCatching {
             when (platform) {
-                RatingPlatform.LICHESS -> fetchLichessGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis)
-                RatingPlatform.CHESS_COM -> fetchChessComGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis)
+                RatingPlatform.LICHESS -> fetchLichessGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis, clockCutoffs)
+                RatingPlatform.CHESS_COM -> fetchChessComGames(cleanUsername, maxGames, onProgress, sinceMillis, onBatch, beforeMillis, clockCutoffs)
             }
         }
     }
@@ -274,10 +277,66 @@ class RatingApiClient(
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
         beforeMillis: Long? = null,
+        clockCutoffs: Map<TimeClass, Long> = emptyMap(),
     ): List<GameRecord> {
         val encoded = URLEncoder.encode(username, "UTF-8")
-        val since = sinceMillis?.let { "&since=$it" }.orEmpty() + beforeMillis?.let { "&until=${it - 1}" }.orEmpty()
-        val url = "https://lichess.org/api/games/user/$encoded?max=$maxGames&opening=true&pgnInJson=true$since"
+        val since = sinceMillis?.let { "&since=$it" }.orEmpty()
+        val target = maxGames * MAIN_CLOCKS.size
+        onProgress?.invoke(
+            ImportProgress(
+                importedCount = 0,
+                targetCount = target,
+                currentPeriod = "Lichess stream",
+                phase = "Streaming games from Lichess..."
+            )
+        )
+
+        val records = mutableListOf<GameRecord>()
+        var failedStreams = 0
+        var lastFailure: ImportFailedException? = null
+        for ((clock, perfTypes) in LICHESS_CLOCKS) {
+            currentCoroutineContext().ensureActive()
+            val cutoff = if (clockCutoffs.isEmpty()) beforeMillis else clockCutoffs[clock]
+            val until = cutoff?.let { "&until=${it - 1}" }.orEmpty()
+            val url = "https://lichess.org/api/games/user/$encoded?max=$maxGames&perfType=$perfTypes&opening=true&pgnInJson=true$since$until"
+            try {
+                val stream = streamLichessGames(url, username, maxGames, records.size, target, onProgress, onBatch)
+                records += stream.games
+                if (stream.interrupted) failedStreams++
+            } catch (e: ImportFailedException) {
+                failedStreams++
+                lastFailure = e
+            }
+        }
+        // Nothing downloaded and something failed: say why instead of returning "0 games".
+        if (records.isEmpty()) lastFailure?.let { throw it }
+
+        onProgress?.invoke(
+            ImportProgress(
+                importedCount = records.size,
+                targetCount = target,
+                currentPeriod = "Complete",
+                incompleteCount = records.count { it.incompleteParse },
+                phase = "Imported ${records.size} games",
+                failedPeriods = failedStreams,
+                fraction = 1f,
+            )
+        )
+        return records
+    }
+
+    private class LichessStream(val games: List<GameRecord>, val interrupted: Boolean)
+
+    /** One clock's games: up to [maxGames], counted on from the [earlier] games of this import. */
+    private suspend fun streamLichessGames(
+        url: String,
+        username: String,
+        maxGames: Int,
+        earlier: Int,
+        target: Int,
+        onProgress: ((ImportProgress) -> Unit)?,
+        onBatch: (suspend (List<GameRecord>) -> Unit)?,
+    ): LichessStream {
         val req = Request.Builder()
             .url(url)
             .header("User-Agent", USER_AGENT)
@@ -285,16 +344,7 @@ class RatingApiClient(
             .get()
             .build()
 
-        onProgress?.invoke(
-            ImportProgress(
-                importedCount = 0,
-                targetCount = maxGames,
-                currentPeriod = "Lichess stream",
-                phase = "Streaming games from Lichess..."
-            )
-        )
-
-        var streamInterrupted = false
+        var interrupted = false
         val records = fetchWithRetry(req, "your Lichess games") { resp ->
             val reader = resp.body?.charStream()?.buffered()
                 ?: return@fetchWithRetry emptyList<GameRecord>()
@@ -315,13 +365,14 @@ class RatingApiClient(
                             pending.clear()
                         }
                         if (collected.size % 5 == 0 || collected.size == 1) {
+                            val soFar = earlier + collected.size
                             onProgress?.invoke(
                                 ImportProgress(
-                                    importedCount = collected.size,
-                                    targetCount = maxGames,
+                                    importedCount = soFar,
+                                    targetCount = target,
                                     currentPeriod = "Lichess",
                                     incompleteCount = incompleteCount,
-                                    phase = "Imported ${collected.size} games..."
+                                    phase = "Imported $soFar games..."
                                 )
                             )
                         }
@@ -330,23 +381,12 @@ class RatingApiClient(
             } catch (e: IOException) {
                 // The stream broke part-way: keep what already arrived rather than losing it all.
                 if (collected.isEmpty()) throw e
-                streamInterrupted = true
+                interrupted = true
             }
             if (pending.isNotEmpty()) onBatch?.invoke(pending.toList())
             collected
         }
-
-        onProgress?.invoke(
-            ImportProgress(
-                importedCount = records.size,
-                targetCount = maxGames,
-                currentPeriod = "Complete",
-                incompleteCount = records.count { it.incompleteParse },
-                phase = "Imported ${records.size} games",
-                failedPeriods = if (streamInterrupted) 1 else 0
-            )
-        )
-        return records
+        return LichessStream(records, interrupted)
     }
 
     fun parseLichessNdjson(ndjson: String, username: String, maxGames: Int = Int.MAX_VALUE): List<GameRecord> {
@@ -445,8 +485,8 @@ class RatingApiClient(
     }
 
     /**
-     * Pages backwards through Chess.com monthly archives (newest -> oldest) until
-     * [maxGames] standard chess games are collected or all archives are exhausted.
+     * Pages backwards through Chess.com monthly archives (newest -> oldest) until each clock the
+     * account plays has [maxGames] standard chess games, or all archives are exhausted.
      *
      * Each request is retried. A month that still fails is skipped and counted in
      * [ImportProgress.failedPeriods]; if nothing at all could be downloaded the failure is thrown
@@ -460,7 +500,11 @@ class RatingApiClient(
         sinceMillis: Long? = null,
         onBatch: (suspend (List<GameRecord>) -> Unit)? = null,
         beforeMillis: Long? = null,
+        clockCutoffs: Map<TimeClass, Long> = emptyMap(),
     ): List<GameRecord> {
+        // A sync looks at recent months only; anything else must not read a whole history for a clock never played.
+        val quota = ClockQuota(maxGames, if (sinceMillis != null) MAIN_CLOCKS else clocksPlayed(username))
+        val target = quota.target
         val encoded = URLEncoder.encode(username.lowercase(), "UTF-8")
         val archivesUrl = "https://api.chess.com/pub/player/$encoded/games/archives"
         val archivesReq = Request.Builder()
@@ -472,7 +516,7 @@ class RatingApiClient(
         onProgress?.invoke(
             ImportProgress(
                 importedCount = 0,
-                targetCount = maxGames,
+                targetCount = target,
                 currentPeriod = "Archives",
                 phase = "Fetching Chess.com monthly archive index..."
             )
@@ -502,28 +546,29 @@ class RatingApiClient(
         var lastFailure: ImportFailedException? = null
 
         // Newest month first, only those that can hold games in the wanted window.
+        val latestCutoff = if (clockCutoffs.isEmpty()) beforeMillis else clockCutoffs.takeIf { it.keys.containsAll(MAIN_CLOCKS) }?.values?.max()
         val months = archiveUrls.asReversed().filter { url ->
             (sinceMillis == null || archiveMonthEnd(url)?.let { it >= sinceMillis } != false) &&
-                (beforeMillis == null || archiveMonthStart(url)?.let { it < beforeMillis } != false)
+                (latestCutoff == null || archiveMonthStart(url)?.let { it < latestCutoff } != false)
         }
         var furthest = 0f
 
         /** How far along: by games wanted, or by months read when the account has fewer. Never falls back. */
         fun fraction(monthsDone: Float, games: Int = allRecords.size): Float {
-            furthest = maxOf(furthest, games.toFloat() / maxGames.coerceAtLeast(1), monthsDone / months.size.coerceAtLeast(1)).coerceAtMost(1f)
+            furthest = maxOf(furthest, games.toFloat() / target.coerceAtLeast(1), monthsDone / months.size.coerceAtLeast(1)).coerceAtMost(1f)
             return furthest
         }
 
         for ((monthIndex, monthUrl) in months.withIndex()) {
             currentCoroutineContext().ensureActive()
-            if (allRecords.size >= maxGames) break
+            if (quota.full) break
             if (consecutiveFailures >= MAX_CONSECUTIVE_FAILED_MONTHS) break
             val periodLabel = extractArchivePeriodLabel(monthUrl)
 
             onProgress?.invoke(
                 ImportProgress(
                     importedCount = allRecords.size,
-                    targetCount = maxGames,
+                    targetCount = target,
                     currentPeriod = periodLabel,
                     incompleteCount = incompleteCount,
                     phase = "Importing $periodLabel (${allRecords.size} games)...",
@@ -532,7 +577,6 @@ class RatingApiClient(
                 )
             )
 
-            val remaining = maxGames - allRecords.size
             val monthReq = Request.Builder()
                 .url(monthUrl)
                 .header("User-Agent", USER_AGENT)
@@ -541,12 +585,12 @@ class RatingApiClient(
 
             val monthGames = try {
                 fetchWithRetry(monthReq, "your Chess.com games for $periodLabel") { resp ->
-                    parseChessComArchiveJson(resp.body?.string().orEmpty(), username, remaining, sinceMillis, beforeMillis) { done, of ->
-                        val read = allRecords.size + minOf(done, remaining)
+                    parseChessComArchiveJson(resp.body?.string().orEmpty(), username, Int.MAX_VALUE, sinceMillis, beforeMillis, clockCutoffs, quota) { done, of ->
+                        val read = minOf(allRecords.size + done, target)
                         onProgress?.invoke(
                             ImportProgress(
                                 importedCount = read,
-                                targetCount = maxGames,
+                                targetCount = target,
                                 currentPeriod = periodLabel,
                                 incompleteCount = incompleteCount,
                                 phase = "Reading $periodLabel...",
@@ -569,7 +613,6 @@ class RatingApiClient(
                     if (g.incompleteParse) incompleteCount++
                     allRecords += g
                     fresh += g
-                    if (allRecords.size >= maxGames) break
                 }
             }
             if (fresh.isNotEmpty()) onBatch?.invoke(fresh)
@@ -577,7 +620,7 @@ class RatingApiClient(
             onProgress?.invoke(
                 ImportProgress(
                     importedCount = allRecords.size,
-                    targetCount = maxGames,
+                    targetCount = target,
                     currentPeriod = periodLabel,
                     incompleteCount = incompleteCount,
                     phase = "Imported ${allRecords.size} games ($periodLabel)",
@@ -590,6 +633,16 @@ class RatingApiClient(
         // Nothing downloaded and something failed: say why instead of returning "0 games".
         if (allRecords.isEmpty()) lastFailure?.let { throw it }
         return allRecords
+    }
+
+    /** The clocks the account has a rating in, so a clock never played is not searched for. */
+    private suspend fun clocksPlayed(username: String): Set<TimeClass> {
+        val profile = fetchChessComStats(username, RatingTimeControl.RAPID).getOrNull() ?: return MAIN_CLOCKS
+        return buildSet {
+            if (profile.rapidRating != null) add(TimeClass.RAPID)
+            if (profile.blitzRating != null) add(TimeClass.BLITZ)
+            if (profile.bulletRating != null) add(TimeClass.BULLET)
+        }.ifEmpty { MAIN_CLOCKS }
     }
 
     /** When an archive month (".../2026/10") starts, in epoch millis (UTC). */
@@ -618,7 +671,9 @@ class RatingApiClient(
     /**
      * The games of one month, newest first, up to [maxGames]. Games outside [sinceMillis] and
      * [beforeMillis] are dropped before the limit is counted: they used to use it up, so "Import
-     * more" in a half-imported month skipped its older games. [onScanned] hears (done, of).
+     * more" in a half-imported month skipped its older games. [clockCutoffs], when given, replaces
+     * [beforeMillis] clock by clock. [quota], when given, decides which games are still wanted and
+     * counts the ones taken. [onScanned] hears (done, of).
      */
     fun parseChessComArchiveJson(
         jsonStr: String,
@@ -626,6 +681,8 @@ class RatingApiClient(
         maxGames: Int = 100,
         sinceMillis: Long? = null,
         beforeMillis: Long? = null,
+        clockCutoffs: Map<TimeClass, Long> = emptyMap(),
+        quota: ClockQuota? = null,
         onScanned: ((done: Int, of: Int) -> Unit)? = null,
     ): List<GameRecord> {
         val root = runCatching { JSONObject(jsonStr) }.getOrNull() ?: return emptyList()
@@ -636,16 +693,19 @@ class RatingApiClient(
             if (g.optString("rules", "chess") != "chess") continue
             val endMillis = g.optLong("end_time", System.currentTimeMillis() / 1000L) * 1000L
             if (sinceMillis != null && endMillis < sinceMillis) continue
-            if (beforeMillis != null && endMillis >= beforeMillis) continue
+            val clock = TimeClass.of(g.optString("time_class", "rapid"))
+            if (quota != null && !quota.wants(clock)) continue
+            val cutoff = if (clockCutoffs.isEmpty()) beforeMillis else clockCutoffs[clock]
+            if (cutoff != null && endMillis >= cutoff) continue
             wanted += g
         }
 
         val records = ArrayList<GameRecord>()
         var done = 0
-        while (done < wanted.size && records.size < maxGames) {
+        while (done < wanted.size && records.size < maxGames && quota?.full != true) {
             val chunk = wanted.subList(done, minOf(done + PARSE_CHUNK, wanted.size))
             val parsed = chunk.parallelStream().map { listOfNotNull(chessComRecord(it, username)) }.collect(Collectors.toList()).flatten()
-            records += parsed.take(maxGames - records.size)
+            records += parsed.filter { quota?.take(TimeClass.of(it.timeClass)) != false }.take(maxGames - records.size)
             done += chunk.size
             onScanned?.invoke(done, wanted.size)
         }
@@ -806,6 +866,15 @@ class RatingApiClient(
 
         /** Games replayed together on all cores, between progress reports. */
         private const val PARSE_CHUNK = 32
+
+        /** Lichess's game kinds, one stream for each clock. */
+        private val LICHESS_CLOCKS = listOf(
+            TimeClass.RAPID to "rapid",
+            TimeClass.BLITZ to "blitz",
+            TimeClass.BULLET to "bullet,ultraBullet",
+            TimeClass.CLASSICAL to "classical",
+            TimeClass.DAILY to "correspondence",
+        )
 
         /** Lichess games handed over per [fetchRecentGames] batch while streaming. */
         const val BATCH = 20

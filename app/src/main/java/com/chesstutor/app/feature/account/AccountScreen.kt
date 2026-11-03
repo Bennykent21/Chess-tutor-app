@@ -138,7 +138,7 @@ fun AccountScreen(
     val rank = RatingRank.of(state.effectiveUserRating)
     val courseIdFor = remember(openingCourses) { { family: String -> OpeningCourses.courseFor(family, openingCourses)?.id } }
     val followed = state.linkedProfile?.selectedTimeControl
-    val gameTrend = remember(games.games, followed) { PerformanceCalculator.ratingTrend(games.games, followed?.let { TimeClass.of(it.name) }) }
+    val gameTrends = remember(games.games) { PerformanceCalculator.ratingTrends(games.games) }
     val puzzleTrend = remember(training) { RatingTrend(timeClass = null, points = training.ratingHistory) }
     val now = remember { System.currentTimeMillis() }
     LaunchedEffect(Unit) { actions.onShown() }
@@ -184,7 +184,8 @@ fun AccountScreen(
                     AccountTab.STATS -> item(key = "stats") {
                         StatsPage(
                             games = games,
-                            gameTrend = gameTrend,
+                            gameTrends = gameTrends,
+                            followed = followed?.let { TimeClass.of(it.name) },
                             puzzleTrend = puzzleTrend,
                             now = now,
                             boardTheme = state.appSettings.boardTheme,

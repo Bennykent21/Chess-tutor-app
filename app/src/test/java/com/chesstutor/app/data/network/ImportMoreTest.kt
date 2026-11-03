@@ -240,6 +240,6 @@ class ImportMoreTest {
         assertEquals(ImportKind.MORE, request.kind)
         assertEquals(500, request.maxGames)
         assertEquals("starts from the oldest saved game", millis("2026-10-10"), request.beforeMillis)
-        assertEquals("saved games plus the 500 asked for", 502, settings.settings.first().importTarget)
+        assertEquals("saved games plus the 500 asked for of each clock", 1502, settings.settings.first().importTarget)
     }
 }

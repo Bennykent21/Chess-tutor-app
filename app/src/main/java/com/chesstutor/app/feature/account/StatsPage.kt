@@ -20,7 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -54,20 +54,23 @@ import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameOutcome
 import com.chesstutor.app.domain.account.PerformanceCalculator
 import com.chesstutor.app.domain.account.RatingTrend
+import com.chesstutor.app.domain.account.TimeClass
 import com.chesstutor.app.domain.account.Wdl
 import com.chesstutor.app.domain.account.WdlRow
 import kotlin.math.roundToInt
 
 /**
- * Account > Stats (D44, D55): the rating graph, the results, then the player's openings by
+ * Account > Stats (D44, D55, D59): the rating graph with a tab for each clock, the results, then the player's openings by
  * score (the weakest in the error colour; a tap opens the course that teaches one, or its games
  * when there is no course), and the results with each colour. A result opens its games.
  */
 @Composable
 fun StatsPage(
     games: GamesState,
-    gameTrend: RatingTrend,
+    gameTrends: List<RatingTrend>,
     puzzleTrend: RatingTrend,
+    /** The clock the app follows, whose tab opens first. */
+    followed: TimeClass?,
     now: Long,
     boardTheme: BoardTheme,
     courseIdFor: (openingFamily: String) -> String?,
@@ -77,13 +80,13 @@ fun StatsPage(
 ) {
     val report = remember(games.games) { PerformanceCalculator.report(games.games, emptyMap()) }
     val accuracy = remember(games) { averageAccuracy(games) }
-    val graphs = listOf(gameTrend, puzzleTrend).filter { it.points.size >= 2 }
+    val graphs = (gameTrends + puzzleTrend).filter { it.points.size >= 2 }
     Column(modifier) {
         if (report.isEmpty && graphs.isEmpty()) {
             CtEmptyState(icon = Icons.Rounded.Insights, title = "No finished games yet", body = "Play a bot from Home or link your account.")
             return@Column
         }
-        if (graphs.isNotEmpty()) RatingCard(graphs, now, Modifier.padding(top = CtSpacing.sm).ctEnter(0))
+        if (graphs.isNotEmpty()) RatingCard(graphs, followed, now, Modifier.padding(top = CtSpacing.sm).ctEnter(0))
         if (!report.isEmpty) {
             ResultsCard(report.overall, accuracy, onShow = { onShowGames(GameFilter(outcome = it)) }, Modifier.padding(top = CtSpacing.md).ctEnter(1))
         }
@@ -112,11 +115,11 @@ fun StatsPage(
     }
 }
 
-/** The graph, with a switch when both game and puzzle ratings have a history. */
+/** The graph, with a tab for each rating that has a history. */
 @Composable
-private fun RatingCard(graphs: List<RatingTrend>, now: Long, modifier: Modifier = Modifier) {
-    var chosen by rememberSaveable { mutableIntStateOf(0) }
-    val trend = graphs.getOrElse(chosen) { graphs.first() }
+private fun RatingCard(graphs: List<RatingTrend>, followed: TimeClass?, now: Long, modifier: Modifier = Modifier) {
+    var chosen by rememberSaveable { mutableStateOf(followed?.name) }
+    val trend = graphs.firstOrNull { (it.timeClass?.name ?: PUZZLES) == chosen } ?: graphs.first()
     Column(
         modifier = modifier.fillMaxWidth().clip(CtShapes.Card).background(CtColors.Surface).padding(CtSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
@@ -126,12 +129,14 @@ private fun RatingCard(graphs: List<RatingTrend>, now: Long, modifier: Modifier 
                 options = graphs,
                 selected = trend,
                 label = { it.timeClass?.label ?: "Puzzles" },
-                onSelect = { chosen = graphs.indexOf(it) },
+                onSelect = { chosen = it.timeClass?.name ?: PUZZLES },
             )
         }
         RatingGraph(trend, now)
     }
 }
+
+private const val PUZZLES = "PUZZLES"
 
 /** Every game at a glance: the split as a ring, a line for each result, the score and accuracy. */
 @Composable

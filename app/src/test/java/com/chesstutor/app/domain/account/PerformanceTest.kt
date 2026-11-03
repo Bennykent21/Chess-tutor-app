@@ -68,29 +68,26 @@ class PerformanceTest {
     }
 
     @Test
-    fun ratingTrendFollowsTheMostPlayedRatedTimeClass() {
+    fun eachMainClockHasItsOwnRatingTrend() {
         val games = listOf(
             game("a", "1-0", rating = 1500, date = 3, timeClass = "blitz"),
             game("b", "1-0", rating = 1480, date = 1, timeClass = "blitz"),
             game("c", "1-0", rating = 1700, date = 2, timeClass = "rapid"),
-            game("d", "1-0", date = 4, timeClass = "blitz"),
+            game("d", "1-0", rating = 1720, date = 5, timeClass = "rapid"),
+            game("e", "1-0", rating = 1999, date = 4, timeClass = "bullet"),
+            game("f", "1-0", date = 6, timeClass = "blitz"),
         )
         assertEquals(1500, games[0].playerRating)
-        assertNull(games[3].playerRating)
-        val trend = PerformanceCalculator.ratingTrend(games)
-        assertEquals(TimeClass.BLITZ, trend.timeClass)
-        assertEquals(listOf(1480, 1500), trend.points.map { it.rating })
+        assertNull(games[5].playerRating)
+        val trends = PerformanceCalculator.ratingTrends(games)
+        assertEquals("rapid first, and bullet has too few games to draw", listOf(TimeClass.RAPID, TimeClass.BLITZ), trends.map { it.timeClass })
+        assertEquals(listOf(1480, 1500), trends[1].points.map { it.rating })
     }
 
     @Test
-    fun ratingTrendFollowsTheClockThePlayerChoseWhenItHasGames() {
-        val games = listOf(
-            game("a", "1-0", rating = 1500, date = 3, timeClass = "blitz"),
-            game("b", "1-0", rating = 1480, date = 1, timeClass = "blitz"),
-            game("c", "1-0", rating = 1700, date = 2, timeClass = "rapid"),
-        )
-        assertEquals(listOf(1700), PerformanceCalculator.ratingTrend(games, TimeClass.RAPID).points.map { it.rating })
-        assertEquals("no bullet games, so the most played clock", TimeClass.BLITZ, PerformanceCalculator.ratingTrend(games, TimeClass.BULLET).timeClass)
+    fun aPlayerOfNoMainClockStillGetsAGraph() {
+        val games = listOf(game("a", "1-0", rating = 1500, date = 1, timeClass = "classical"), game("b", "1-0", rating = 1510, date = 2, timeClass = "classical"))
+        assertEquals(listOf(TimeClass.CLASSICAL), PerformanceCalculator.ratingTrends(games).map { it.timeClass })
     }
 
     @Test
