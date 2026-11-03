@@ -146,10 +146,6 @@ class RatingLinkCoordinator(
         }
     }
 
-    fun setRatingTimeControl(timeControl: RatingTimeControl) {
-        scope.launch { ratingRepository.updateTimeControl(timeControl) }
-    }
-
     /**
      * The automatic sync: fresh ratings and any games played since [sinceMillis] (the newest
      * imported one), saved as they arrive. Quiet: no progress card, and it never interrupts an
