@@ -104,6 +104,8 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
         }
         composable(AppRoutes.PUZZLE_MODES) { entry ->
             val puzzles = puzzlesViewModel()
+            val rushBest by puzzles.rushBest.collectAsStateWithLifecycle()
+            val missed by puzzles.missedCount.collectAsStateWithLifecycle()
             fun play(start: () -> Unit) {
                 start()
                 navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
@@ -117,7 +119,9 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
                     onMistakes = { play { puzzles.startMistakes() } }
                 ),
                 onBack = { navController.popBackStack() },
-                pieceSet = state.appSettings.boardTheme.pieceSet,
+                boardTheme = state.appSettings.boardTheme,
+                rushBest = rushBest,
+                missed = missed,
             )
         }
         composable(AppRoutes.PUZZLE_CUSTOM) { entry ->
@@ -182,6 +186,7 @@ internal fun Shell.puzzlesViewModel(): PuzzlesViewModel {
             repository = AppContainer.providePuzzleRepository(context),
             loadPack = { AppContainer.loadPuzzlePack(context) },
             practice = AppContainer.provideTraining(context),
+            rushRecords = AppContainer.provideRushRecords(context),
         ),
     )
 }
