@@ -77,13 +77,17 @@ data class BotGameState(
     val battleTitle: String? = null,
     val drillMistakes: Int = 0,
     val drillMessage: String? = null,
-    val chat: ChatLine? = null,
+    /** What the bots are saying, at most one line a side (both talk when watching). */
+    val chats: List<ChatLine> = emptyList(),
     /** Watch mode only: the game is held. */
     val paused: Boolean = false,
 ) {
     val playerWon: Boolean get() = result?.winner == setup.playerColor
     val isWatch: Boolean get() = setup.watch != null
     val botColor: PieceColor get() = setup.playerColor.opposite()
+    /** The latest line said. */
+    val chat: ChatLine? get() = chats.lastOrNull()
+    fun chatOf(speaker: PieceColor): ChatLine? = chats.firstOrNull { it.speaker == speaker }
 }
 
 /** Pauses and clock ticks (shortened in tests). */
@@ -134,7 +138,6 @@ class BotGame(
     private var lastBotEval: Int? = null
     private var lastChatPly = -10
     private var chatId = 0
-    private var chatJob: Job? = null
     private var paused = false
     private var botJob: Job? = null
     private var evalJob: Job? = null
@@ -164,7 +167,11 @@ class BotGame(
             turnStartedAt = clock()
             if (setup.rules.timeControl.initialMs != null) startTicker()
             if (!checkGameOver()) {
-                if (resumeMoves.isEmpty()) say(ChatEvent.GREETING, setup.bot, state.value.botColor)
+                if (resumeMoves.isEmpty()) {
+                    // Watching, the side to move greets first and the other answers after its move.
+                    val greeter = if (setup.watch != null) session.game.position.sideToMove else state.value.botColor
+                    say(ChatEvent.GREETING, profileOf(greeter), greeter)
+                }
                 nextTurn()
             }
         }
@@ -258,10 +265,14 @@ class BotGame(
         val legal = LegalMoveGenerator.generateLegalMoves(position).firstOrNull { it.uci == decision.uci } ?: return
         sound(session.play(legal))
         val (capture, check) = lastMoveFacts()
+        // Watching, the bot on the receiving end answers half the time, so both bots talk.
+        val answer = setup.watch != null && random.nextBoolean()
+        val speaker = if (answer) color.opposite() else color
         when {
+            setup.watch != null && resumeMoves.isEmpty() && session.moves.size == 1 -> say(ChatEvent.GREETING, profileOf(color.opposite()), color.opposite())
             playerBlundered -> say(ChatEvent.PLAYER_BLUNDER, profile, color)
-            check -> say(ChatEvent.BOT_CHECKS, profile, color)
-            capture -> say(ChatEvent.BOT_CAPTURES, profile, color)
+            check -> say(if (answer) ChatEvent.PLAYER_CHECKS else ChatEvent.BOT_CHECKS, profileOf(speaker), speaker)
+            capture -> say(if (answer) ChatEvent.PLAYER_CAPTURES else ChatEvent.BOT_CAPTURES, profileOf(speaker), speaker)
         }
         afterMove(color)
     }
@@ -334,10 +345,9 @@ class BotGame(
         finish(GameResult(state.value.botColor, GameEnd.RESIGNATION))
     }
 
-    /** Closes the bot's current chat line early (a tap on the bubble). */
+    /** Closes the bots' chat lines early (a tap on a bubble). */
     fun dismissChat() {
-        chatJob?.cancel()
-        mutableState.update { it.copy(chat = null) }
+        mutableState.update { it.copy(chats = emptyList()) }
     }
 
     /** Watch mode: holds the game, or lets it go on. */
@@ -532,17 +542,23 @@ class BotGame(
         val plies = session.moves.size
         val ending = event == ChatEvent.BOT_WINS || event == ChatEvent.PLAYER_WINS || event == ChatEvent.DRAW
         if (!ending && event != ChatEvent.GREETING && event != ChatEvent.PLAYER_BLUNDER && plies - lastChatPly < 2) return
-        val text = BotChat.lineFor(profile.id, profile.style, event, random) ?: return
+        val line = BotChat.lineFor(profile.id, profile.style, event, random) ?: return
+        // Watching, a bot talks to the other bot by name, not to the player.
+        val text = if (setup.watch == null) line else BotChat.addressed(line, profileOf(speaker.opposite()).name, always = event == ChatEvent.GREETING)
         lastChatPly = plies
         val id = ++chatId
-        mutableState.update { it.copy(chat = ChatLine(id, text, speaker)) }
-        chatJob?.cancel()
+        mutableState.update { s -> s.copy(chats = s.chats.filter { it.speaker != speaker } + ChatLine(id, text, speaker)) }
+        // The result's line stays; the others fade after a few seconds.
         if (ending) return
-        chatJob = scope.launch {
+        scope.launch {
             delay(timing.chatMs)
-            mutableState.update { if (it.chat?.id == id) it.copy(chat = null) else it }
+            mutableState.update { s -> s.copy(chats = s.chats.filter { it.id != id }) }
         }
     }
+
+    /** The bot playing [color]: the opponent, or the bot in the player's seat when watching. */
+    private fun profileOf(color: PieceColor): BotProfile =
+        if (color == state.value.botColor) setup.bot else setup.watch ?: setup.bot
 
     private fun sound(feedback: BoardFeedback) {
         mutableState.update { it.copy(sound = GameSoundEvent(++soundId, feedback)) }

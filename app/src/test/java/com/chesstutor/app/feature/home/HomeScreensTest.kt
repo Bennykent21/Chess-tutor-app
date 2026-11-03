@@ -355,7 +355,7 @@ class HomeScreensTest {
                 PositionSetupScreen(
                     draft = draft,
                     theme = AppSettings().boardTheme,
-                    opponents = BotRoster.bots.take(4),
+                    opponents = BotRoster.bots,
                     onChange = { draft = it(draft) },
                     onStart = { started = true },
                     onBack = {},
@@ -368,7 +368,12 @@ class HomeScreensTest {
         compose.onNodeWithText("The side not to move is in check. Change who moves first.").assertExists()
         compose.onNodeWithText("Black to move").performClick()
         compose.onNode(hasText("Play")).performClick()
+        // Side and opponent wait in a sheet, below the fold of a phone's setup area (D63).
+        assertEquals(false, started)
+        compose.onNodeWithContentDescription("Pebble, 250").performClick()
+        compose.onNodeWithText("Play Pebble").performClick()
         assertEquals(true, started)
+        assertEquals("pebble", draft.opponentId)
         assertEquals("4k3/8/8/4Q3/8/8/8/4K3 b - - 0 1", draft.board.toFen())
     }
 

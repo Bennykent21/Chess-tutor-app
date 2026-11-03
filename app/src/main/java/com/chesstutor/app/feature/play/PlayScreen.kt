@@ -161,7 +161,7 @@ fun PlayScreen(
                     )
                 }
                 ChatOverlay(
-                    chat = state.chat?.takeIf { it.speaker == state.botColor },
+                    chat = state.chatOf(state.botColor),
                     onDismiss = game::dismissChat,
                     maxLines = 6,
                     modifier = Modifier.padding(start = CtSpacing.xxl).wrapContentHeight(Alignment.Bottom, unbounded = true),
@@ -185,7 +185,7 @@ fun PlayScreen(
                     running = state.phase == GamePhase.PLAYER_TURN,
                     avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
                     captured = { takenBy(setup.playerColor) },
-                    chat = state.chat?.takeIf { it.speaker == setup.playerColor },
+                    chat = state.chatOf(setup.playerColor),
                     onDismissChat = game::dismissChat,
                 )
             } else {

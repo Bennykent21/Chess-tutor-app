@@ -65,8 +65,8 @@ import com.chesstutor.app.domain.game.SetupBoard
 import com.chesstutor.app.domain.game.SideChoice
 
 /**
- * "From a position" (plan 6.1, mock-up round 17): set up any position on the fixed board,
- * choose a side and an opponent, and play it out against that bot.
+ * "From a position" (plan 6.1, mock-up round 17): set up any position on the fixed board, then
+ * choose a side and an opponent (D63) and play it out against that bot.
  */
 @Composable
 fun PositionSetupScreen(
@@ -86,6 +86,7 @@ fun PositionSetupScreen(
         onBoard = { next -> onChange { it.copy(board = next) } },
         onBrush = { brush -> onChange { it.copy(brush = brush) } },
         onBack = onBack,
+        nextLabel = "Play",
         startLabel = opponent?.let { "Play ${it.name}" } ?: "Play",
         onStart = onStart,
     ) {
@@ -97,10 +98,11 @@ fun PositionSetupScreen(
 }
 
 /**
- * A board screen for setting up a position (From a position and Explore): the board stays
- * fixed under who moves first, the pieces to place sit below it with the page's own [options],
- * and the start button is fixed at the bottom. Start position, kings only and a FEN are in the
- * menu. [SetupBoard.problem] keeps the button off until the position can be played.
+ * A board screen for setting up a position (From a position and Explore): the pieces to place
+ * and who moves first sit above the fixed board, and the [nextLabel] button at the bottom opens
+ * a sheet with the page's own [options] (side, opponent or strength) and the [startLabel]
+ * button (D63: above the board they did not fit on a phone). Start position, kings only and a
+ * FEN are in the menu. [SetupBoard.problem] keeps the button off until the position can be played.
  */
 @Composable
 internal fun SetupBoardScreen(
@@ -111,12 +113,14 @@ internal fun SetupBoardScreen(
     onBoard: (SetupBoard) -> Unit,
     onBrush: (Piece?) -> Unit,
     onBack: () -> Unit,
+    nextLabel: String,
     startLabel: String,
     onStart: () -> Unit,
     options: @Composable ColumnScope.() -> Unit,
 ) {
     val problem = remember(board) { board.problem() }
     var fenOpen by remember { mutableStateOf(false) }
+    var optionsOpen by remember { mutableStateOf(false) }
     CtBoardScreen(
         title = title,
         onBack = onBack,
@@ -138,15 +142,27 @@ internal fun SetupBoardScreen(
                     label = { if (it == PieceColor.WHITE) "White to move" else "Black to move" },
                     onSelect = { onBoard(board.withSideToMove(it)) },
                 )
-                options()
             }
         },
         under = {
             if (problem != null) Text(problem, style = CtType.BodySmall.copy(color = CtColors.Error), maxLines = 2)
         },
         board = { EditorBoard(board, theme) { square -> onBoard(board.place(square, brush)) } },
-        controls = { CtButton(text = startLabel, enabled = problem == null, onClick = onStart, modifier = Modifier.weight(1f)) },
-        overlay = { FenSheet(fenOpen, board, onBoard, onDismiss = { fenOpen = false }) },
+        controls = { CtButton(text = nextLabel, enabled = problem == null, onClick = { optionsOpen = true }, modifier = Modifier.weight(1f)) },
+        overlay = {
+            FenSheet(fenOpen, board, onBoard, onDismiss = { fenOpen = false })
+            CtSheet(visible = optionsOpen, onDismiss = { optionsOpen = false }) {
+                options()
+                CtButton(
+                    text = startLabel,
+                    onClick = {
+                        optionsOpen = false
+                        onStart()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
     )
 }
 
