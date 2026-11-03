@@ -46,7 +46,7 @@ class ClockQuotaTest {
     @Test
     fun aBusyClockLeavesRoomForTheOthers() {
         val json = month(game("b1", "bullet", 100), game("b2", "bullet", 200), game("b3", "bullet", 300), game("z1", "blitz", 50), game("r1", "rapid", 40))
-        val games = RatingApiClient().parseChessComArchiveJson(json, "kenny", Int.MAX_VALUE, quota = ClockQuota(perClock = 2))
+        val games = ChessComArchive.parse(json, "kenny", Int.MAX_VALUE, quota = ClockQuota(perClock = 2))
         assertEquals("the newest two bullet games, and the others", setOf("chesscom_b3", "chesscom_b2", "chesscom_z1", "chesscom_r1"), games.map { it.id }.toSet())
     }
 
@@ -54,14 +54,14 @@ class ClockQuotaTest {
     fun eachClockCarriesOnFromItsOwnOldestGame() {
         val json = month(game("old", "bullet", 100), game("seen", "bullet", 200), game("rapidOld", "rapid", 150), game("rapidSeen", "rapid", 300))
         val cutoffs = mapOf(TimeClass.BULLET to 200_000L, TimeClass.RAPID to 300_000L)
-        val games = RatingApiClient().parseChessComArchiveJson(json, "kenny", Int.MAX_VALUE, clockCutoffs = cutoffs)
+        val games = ChessComArchive.parse(json, "kenny", Int.MAX_VALUE, clockCutoffs = cutoffs)
         assertEquals(setOf("chesscom_old", "chesscom_rapidOld"), games.map { it.id }.toSet())
     }
 
     @Test
     fun aClockWithNothingSavedYetIsFetchedFromTheNewest() {
         val json = month(game("bulletNew", "bullet", 900), game("rapidOld", "rapid", 100))
-        val games = RatingApiClient().parseChessComArchiveJson(json, "kenny", Int.MAX_VALUE, clockCutoffs = mapOf(TimeClass.RAPID to 500_000L))
+        val games = ChessComArchive.parse(json, "kenny", Int.MAX_VALUE, clockCutoffs = mapOf(TimeClass.RAPID to 500_000L))
         assertEquals(setOf("chesscom_bulletNew", "chesscom_rapidOld"), games.map { it.id }.toSet())
     }
 

@@ -200,6 +200,7 @@ fun OpeningDrillScreen(
                 autoQueen = settings.autoQueen,
                 arrows = listOfNotNull(answer?.let { BoardArrow(it.from, it.to, MarkKind.HINT) }),
                 onFeedback = onFeedback,
+                soundsOtherMoves = true,
             )
         },
         controls = {
