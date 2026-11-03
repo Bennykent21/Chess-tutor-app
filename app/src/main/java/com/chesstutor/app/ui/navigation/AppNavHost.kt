@@ -582,6 +582,7 @@ private fun AppShell(
                         settings = state.appSettings,
                         onFeedback = viewModel::playBoardFeedback,
                         onNextLesson = { id -> learn.openLesson(id) },
+                        onPreviousLesson = { id -> learn.openLesson(id) },
                         onReplay = { player?.lesson?.id?.let { learn.openLesson(it, fromStart = true) } },
                         onBack = {
                             learn.closePlayer()

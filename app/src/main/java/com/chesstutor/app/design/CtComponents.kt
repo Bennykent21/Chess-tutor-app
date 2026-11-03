@@ -820,7 +820,6 @@ fun CtListRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
-    hue: CtHue? = null,
     trailing: @Composable (() -> Unit)? = null,
     leading: @Composable (() -> Unit)? = null,
 ) {
@@ -835,7 +834,7 @@ fun CtListRow(
         ) {
             when {
                 leading != null -> Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { leading() }
-                icon != null -> CtIconBubble(icon = icon, hue = hue ?: CtHue.of(icon))
+                icon != null -> Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { CtMetalIcon(icon, size = 32.dp) }
             }
             if (leading != null || icon != null) Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
@@ -1113,7 +1112,7 @@ fun CtEmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
     ) {
-        CtIconBubble(icon = icon, size = 64.dp)
+        CtMetalIcon(icon, size = 64.dp)
         Text(text = title, style = CtType.Title)
         Text(text = body, style = CtType.BodySmall)
         if (actionLabel != null && onAction != null) {

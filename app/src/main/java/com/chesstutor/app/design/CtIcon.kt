@@ -1,7 +1,7 @@
 package com.chesstutor.app.design
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
@@ -39,91 +39,66 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.R
 
-/**
- * The colours of the app's icons (D57). They are the same on every theme, like the glow of a
- * topic's scene, so an icon keeps its meaning wherever it appears. Each runs light to deep.
- */
-enum class CtHue(val top: Color, val bottom: Color) {
-    GOLD(Color(0xFFF4C95D), Color(0xFFC78A17)),
-    EMBER(Color(0xFFFFA45C), Color(0xFFD9541A)),
-    RED(Color(0xFFF47A84), Color(0xFFC62F45)),
-    VIOLET(Color(0xFFB096FF), Color(0xFF6A3FE0)),
-    BLUE(Color(0xFF74BBFF), Color(0xFF2B6FD6)),
-    TEAL(Color(0xFF54DCCA), Color(0xFF119C8C)),
-    GREEN(Color(0xFF63DD9C), Color(0xFF1F9A5C)),
-    SLATE(Color(0xFFA3AFBB), Color(0xFF5E6B78)),
-    ;
-
-    companion object {
-        private val byIcon: Map<ImageVector, CtHue> by lazy {
-            mapOf(
-                Icons.Rounded.Palette to VIOLET,
-                Icons.Rounded.GridOn to GOLD,
-                Icons.Rounded.Person to BLUE,
-                Icons.Rounded.Image to TEAL,
-                Icons.AutoMirrored.Rounded.VolumeUp to EMBER,
-                Icons.Rounded.Link to TEAL,
-                Icons.Rounded.CloudSync to TEAL,
-                Icons.Rounded.Memory to BLUE,
-                Icons.Rounded.Storage to GOLD,
-                Icons.Rounded.Info to SLATE,
-                Icons.Rounded.Flag to GREEN,
-                Icons.Rounded.Extension to VIOLET,
-                Icons.Rounded.Star to GOLD,
-                Icons.Rounded.EmojiEvents to GOLD,
-                Icons.Rounded.Refresh to BLUE,
-                Icons.Rounded.Warning to RED,
-                Icons.Rounded.DeleteForever to RED,
-                Icons.Rounded.BugReport to RED,
-                Icons.Rounded.Favorite to RED,
-                Icons.Rounded.Download to BLUE,
-                Icons.Rounded.Code to SLATE,
-                Icons.Rounded.Description to SLATE,
-                Icons.Rounded.Insights to BLUE,
-                Icons.Rounded.Tune to SLATE,
-                Icons.Rounded.History to EMBER,
-                Icons.Rounded.Map to GREEN,
-                Icons.Rounded.CheckCircle to GREEN,
-                Icons.Rounded.SportsEsports to VIOLET,
-                Icons.Rounded.School to GREEN,
-                Icons.Rounded.Bolt to GOLD,
-                Icons.Rounded.Psychology to BLUE,
-                Icons.Rounded.AutoStories to RED,
-                Icons.Rounded.Shield to EMBER,
-            )
-        }
-
-        /** The colour that belongs to [icon], so it is the same everywhere. */
-        fun of(icon: ImageVector): CtHue = byIcon[icon] ?: SLATE
-    }
+/** The polished metal version of each icon (made by `tools/art/metal.html`). */
+private val metal: Map<ImageVector, Int> by lazy {
+    mapOf(
+        Icons.Rounded.Palette to R.drawable.icon_palette,
+        Icons.Rounded.GridOn to R.drawable.icon_grid_on,
+        Icons.Rounded.Person to R.drawable.icon_person,
+        Icons.Rounded.Image to R.drawable.icon_image,
+        Icons.AutoMirrored.Rounded.VolumeUp to R.drawable.icon_volume_up,
+        Icons.Rounded.Link to R.drawable.icon_link,
+        Icons.Rounded.CloudSync to R.drawable.icon_cloud_sync,
+        Icons.Rounded.Memory to R.drawable.icon_memory,
+        Icons.Rounded.Storage to R.drawable.icon_storage,
+        Icons.Rounded.Info to R.drawable.icon_info,
+        Icons.Rounded.Flag to R.drawable.icon_flag,
+        Icons.Rounded.Extension to R.drawable.icon_extension,
+        Icons.Rounded.Star to R.drawable.icon_star,
+        Icons.Rounded.EmojiEvents to R.drawable.icon_emoji_events,
+        Icons.Rounded.Refresh to R.drawable.icon_refresh,
+        Icons.Rounded.Warning to R.drawable.icon_warning,
+        Icons.Rounded.DeleteForever to R.drawable.icon_delete_forever,
+        Icons.Rounded.BugReport to R.drawable.icon_bug_report,
+        Icons.Rounded.Favorite to R.drawable.icon_favorite,
+        Icons.Rounded.Download to R.drawable.icon_download,
+        Icons.Rounded.Code to R.drawable.icon_code,
+        Icons.Rounded.Description to R.drawable.icon_description,
+        Icons.Rounded.Insights to R.drawable.icon_analytics,
+        Icons.Rounded.Tune to R.drawable.icon_tune,
+        Icons.Rounded.History to R.drawable.icon_history,
+        Icons.Rounded.Map to R.drawable.icon_map,
+        Icons.Rounded.CheckCircle to R.drawable.icon_check_circle,
+        Icons.Rounded.SportsEsports to R.drawable.icon_sports_esports,
+        Icons.Rounded.School to R.drawable.icon_school,
+        Icons.Rounded.Bolt to R.drawable.icon_bolt,
+        Icons.Rounded.Psychology to R.drawable.icon_psychology,
+        Icons.Rounded.AutoStories to R.drawable.icon_auto_stories,
+        Icons.Rounded.Shield to R.drawable.icon_shield,
+    )
 }
 
-/** A coloured, glossy disc holding a white icon, used on rows, medals and empty pages. */
+/** The picture for [icon], or null when it has no metal version yet. */
+@DrawableRes
+internal fun metalIcon(icon: ImageVector): Int? = metal[icon]
+
+/**
+ * An icon as a polished metal object (D57): the shape itself carries the colour, with no
+ * background, and each meaning keeps one colour on every theme. Board screens keep plain icons.
+ */
 @Composable
-fun CtIconBubble(
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    hue: CtHue = CtHue.of(icon),
-    size: Dp = 40.dp,
-    contentDescription: String? = null,
-) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CtShapes.Pill)
-            .background(Brush.verticalGradient(listOf(hue.top, hue.bottom)))
-            .ctGloss(CtShapes.Pill),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(imageVector = icon, contentDescription = contentDescription, tint = CtPictureInk, modifier = Modifier.size(size * 0.54f))
+fun CtMetalIcon(icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 32.dp) {
+    val art = metalIcon(icon)
+    if (art != null) {
+        Image(painterResource(art), contentDescription = null, modifier = modifier.size(size))
+    } else {
+        Icon(icon, contentDescription = null, tint = CtColors.Accent, modifier = modifier.size(size * 0.8f))
     }
 }

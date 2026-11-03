@@ -46,6 +46,7 @@ data class LessonPlayerState(
     val result: LessonResult? = null,
     val completion: LessonCompletion? = null,
     val nextLesson: Lesson? = null,
+    val previousLesson: Lesson? = null,
 ) {
     /** What the coach says now: feedback first, then the step's own text. */
     val coachText: String get() = feedback ?: step.text
@@ -73,6 +74,7 @@ class LessonPlayer(
     startStep: Int = 0,
     private val nextLesson: Lesson? = null,
     private val timing: LessonTiming = LessonTiming(),
+    private val previousLesson: Lesson? = null,
 ) {
     private val judge = LessonSession(lesson, startStep)
     val board = LessonBoardSession(judge)
@@ -97,6 +99,11 @@ class LessonPlayer(
     fun next() {
         if (mutableState.value.busy || !judge.advance()) return
         if (judge.finished) finish() else enterStep()
+    }
+
+    /** The step before, to look at it again. */
+    fun back() {
+        if (judge.stepBack()) enterStep()
     }
 
     /** Plays the current step again from its start. */
@@ -190,6 +197,7 @@ class LessonPlayer(
         result = result,
         completion = completion,
         nextLesson = nextLesson,
+        previousLesson = previousLesson,
     )
 
     companion object {

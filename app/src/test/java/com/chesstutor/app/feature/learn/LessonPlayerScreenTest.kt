@@ -2,6 +2,7 @@ package com.chesstutor.app.feature.learn
 
 import org.junit.Assert.assertEquals
 import com.chesstutor.app.design.CtBoardScreenTags
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -93,6 +94,24 @@ class LessonPlayerScreenTest {
         compose.onNodeWithText("Correct!").assertExists()
         // D39: the hint, the longer coach text and the new buttons never move the board.
         assertEquals(boardBefore, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
+    }
+
+    @Test
+    fun backGoesAStepThenToThePreviousLessonInTheCourse() {
+        val player = LessonPlayer(course, course.lessons[1], InMemoryLessonProgressRepository(), scope, startStep = 1, previousLesson = course.lessons[0])
+        var opened: String? = null
+        player.start()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {}, onPreviousLesson = { opened = it })
+            }
+        }
+        step()
+        compose.onNodeWithContentDescription("Previous step").performClick()
+        step()
+        assertEquals(0, player.state.value.stepIndex)
+        compose.onNodeWithContentDescription("Previous lesson").performClick()
+        assertEquals(course.lessons[0].id, opened)
     }
 
     @Test

@@ -92,7 +92,7 @@ import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtIconBubble
+import com.chesstutor.app.design.CtMetalIcon
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtShapes
@@ -600,7 +600,7 @@ private fun AnalysisStatus(state: ReviewState, review: GameReview?, actions: Rev
         job != null -> Unit
         review == null || !review.complete -> CtCard(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CtIconBubble(icon = Icons.Rounded.Insights)
+                CtMetalIcon(Icons.Rounded.Insights, size = 36.dp)
                 Spacer(Modifier.width(CtSpacing.md))
                 Column(Modifier.weight(1f)) {
                     Text(if (review?.moves.isNullOrEmpty()) "Analyse this game" else "Finish the analysis", style = CtType.TitleSmall)
