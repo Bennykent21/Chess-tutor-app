@@ -314,6 +314,18 @@ class BotGameTest {
         assertTrue("got: $said", said.contains("gift") || said.contains("second"))
     }
 
+    /** Phone test 3 Nov: only one watched bot talked, and it sounded as if it spoke to the player. */
+    @Test
+    fun watchedBotsGreetEachOtherByName() {
+        val g = game(color = PieceColor.WHITE, watch = BotRoster.byId("juno")!!.profile.copy(mistakeLevel = 0f), chat = ChatLevel.LOTS)
+        val first = g.state.value.chatOf(PieceColor.WHITE)?.text.orEmpty()
+        assertTrue("Juno, White, greets Wayne: $first", first.startsWith("Wayne, "))
+        repeat(20) { if (g.session.moves.isEmpty()) step(250) }
+        val answer = g.state.value.chatOf(PieceColor.BLACK)?.text.orEmpty()
+        assertTrue("Wayne answers Juno: $answer", answer.startsWith("Juno, "))
+        assertEquals("both lines show, one a side", first, g.state.value.chatOf(PieceColor.WHITE)?.text)
+    }
+
     @Test
     fun twoBotsPlayEachOtherWhileThePlayerWatches() = runBlocking {
         val g = game(color = PieceColor.WHITE, watch = BotRoster.byId("juno")!!.profile.copy(mistakeLevel = 0f))
