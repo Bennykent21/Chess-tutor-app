@@ -46,6 +46,8 @@ object AppRoutes {
     /** The puzzle player, full screen inside the Puzzles tab. */
     const val PUZZLE_PLAYER = "puzzles/play"
     const val PUZZLE_MODES = "puzzles/modes"
+    /** Custom run: rating, pattern, how many and a timer (D64). */
+    const val PUZZLE_CUSTOM = "puzzles/custom"
     /** Every level of the five worlds (D43). */
     const val PUZZLE_LEVELS = "puzzles/levels"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */

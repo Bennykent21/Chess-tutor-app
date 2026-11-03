@@ -20,6 +20,7 @@ import com.chesstutor.app.feature.puzzles.MistakeReviewScreen
 import com.chesstutor.app.feature.puzzles.MistakeReviewViewModel
 import com.chesstutor.app.feature.puzzles.PuzzleLevelsScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
+import com.chesstutor.app.feature.puzzles.CustomRunScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
 import com.chesstutor.app.feature.puzzles.PuzzlePlayerScreen
 import com.chesstutor.app.feature.puzzles.PuzzlesHomeScreen
@@ -114,9 +115,23 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
                 actions = PuzzleModeActions(
                     onRush = { minutes -> play { puzzles.startRush(minutes) } },
                     onThemed = { goal, pattern, difficulty -> play { puzzles.startThemed(goal, pattern, difficulty) } },
-                    onCustom = { band, pattern, count, timed -> play { puzzles.startCustom(band, pattern, count, timed) } },
+                    onOpenCustom = { navController.navigate(AppRoutes.PUZZLE_CUSTOM) { launchSingleTop = true } },
                     onMistakes = { play { puzzles.startMistakes() } }
                 ),
+                onBack = { navController.popBackStack() },
+                pieceSet = state.appSettings.boardTheme.pieceSet,
+            )
+        }
+        composable(AppRoutes.PUZZLE_CUSTOM) { entry ->
+            val puzzles = puzzlesViewModel(navController, entry)
+            val home by puzzles.home.collectAsStateWithLifecycle()
+            CustomRunScreen(
+                patternsFor = puzzles::patternsFor,
+                puzzleRating = home.stats.rating,
+                onStart = { band, pattern, count, timed ->
+                    puzzles.startCustom(band, pattern, count, timed)
+                    navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
+                },
                 onBack = { navController.popBackStack() },
                 pieceSet = state.appSettings.boardTheme.pieceSet,
             )

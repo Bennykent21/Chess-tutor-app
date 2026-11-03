@@ -36,6 +36,14 @@ data class PhaseStats(val phase: GamePhase, val accuracy: Double?, val moves: In
 /** One point of the rating trend. */
 data class RatingPoint(val dateMillis: Long, val rating: Int)
 
+/** How far back a rating graph looks; null days is all of it. */
+enum class GraphPeriod(val label: String, val days: Int?) {
+    MONTH("1M", 30),
+    QUARTER("3M", 90),
+    YEAR("1Y", 365),
+    ALL("All", null),
+}
+
 /** One rating over time, oldest first. [timeClass] says which clock; null for puzzles. */
 data class RatingTrend(val timeClass: TimeClass?, val points: List<RatingPoint>) {
     /** The rise or fall over the last [CHANGE_DAYS] days, or null with nothing to compare. */
@@ -44,6 +52,17 @@ data class RatingTrend(val timeClass: TimeClass?, val points: List<RatingPoint>)
         val start = now - CHANGE_DAYS * DAY_MILLIS
         val base = points.lastOrNull { it.dateMillis <= start } ?: points.first()
         return points.last().rating - base.rating
+    }
+
+    /**
+     * The trend over the last [days] days (all of it for null). The rating the player had as the
+     * period began starts the line, so a quiet month still shows where they stood.
+     */
+    fun within(now: Long, days: Int?): RatingTrend {
+        if (days == null) return this
+        val start = now - days * DAY_MILLIS
+        val before = points.lastOrNull { it.dateMillis < start }?.copy(dateMillis = start)
+        return copy(points = listOfNotNull(before) + points.filter { it.dateMillis >= start })
     }
 
     /** At most [limit] points, evenly picked and always with the first and last, for a graph. */

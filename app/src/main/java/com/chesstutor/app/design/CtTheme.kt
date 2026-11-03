@@ -119,6 +119,10 @@ object CtColors {
     val OnError: Color @Composable @ReadOnlyComposable get() = LocalCtColors.current.onError
     val SwitchOff: Color @Composable @ReadOnlyComposable get() = LocalCtColors.current.switchOff
 
+    /** A metal icon's colour in this mode (D64). */
+    @Composable @ReadOnlyComposable
+    fun metal(hue: MetalHue): Color = Color(hue.of(LocalCtColors.current.isDark))
+
     // Old names (transition only).
     val BgDeep: Color @Composable @ReadOnlyComposable get() = Bg
     val BgIndigo: Color @Composable @ReadOnlyComposable get() = Bg

@@ -26,6 +26,7 @@ import com.chesstutor.app.R
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing
+import com.chesstutor.app.design.MetalHue
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.account.TimeClass
@@ -38,6 +39,15 @@ internal fun clockIcon(clock: TimeClass): Int = when (clock) {
     TimeClass.BULLET -> R.drawable.icon_clock_bullet
     TimeClass.CLASSICAL -> R.drawable.icon_clock_classical
     TimeClass.DAILY -> R.drawable.icon_clock_daily
+}
+
+/** Each clock's metal colour, for its stats page's graph and glow (D64). */
+internal fun clockHue(clock: TimeClass): MetalHue = when (clock) {
+    TimeClass.RAPID, TimeClass.UNTIMED -> MetalHue.JADE
+    TimeClass.BLITZ -> MetalHue.GOLD
+    TimeClass.BULLET -> MetalHue.EMBER
+    TimeClass.CLASSICAL -> MetalHue.TEAL
+    TimeClass.DAILY -> MetalHue.COBALT
 }
 
 /** A clock's icon; screen readers hear its name. */
