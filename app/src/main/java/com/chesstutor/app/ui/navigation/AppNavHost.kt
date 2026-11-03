@@ -161,8 +161,7 @@ private fun AppShell(
     // Linking Chess.com or Lichess, shared by the Account tab and the Settings page.
     val linkActions = remember(viewModel) {
         AccountActions(
-            onLink = { platform, username, timeControl -> viewModel.linkRatingAccount(platform, username, timeControl) },
-            onRatingTimeControl = viewModel::setRatingTimeControl,
+            onLink = { platform, username -> viewModel.linkRatingAccount(platform, username) },
             onImportMore = { viewModel.refreshLinkedRating() },
             onCancelImport = viewModel::cancelAccountImport,
             onUnlink = viewModel::unlinkRatingAccount,

@@ -25,7 +25,6 @@ import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.ImportProgress
 import com.chesstutor.app.data.model.LinkedChessProfile
 import com.chesstutor.app.data.model.RatingPlatform
-import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCard
@@ -58,8 +57,7 @@ fun LinkAccountCard(state: AppUiState, actions: AccountActions, modifier: Modifi
 }
 
 /**
- * Settings > Linked account: who is linked and their ratings, which rating the app uses,
- * bringing in more of the history, and unlinking. New games arrive by themselves.
+ * Settings > Linked account: who is linked and their ratings, bringing in more of the history, and unlinking. New games arrive by themselves.
  */
 @Composable
 fun ManageAccountCard(state: AppUiState, actions: AccountActions, modifier: Modifier = Modifier) {
@@ -93,7 +91,6 @@ private fun LinkStatus(state: AppUiState, actions: AccountActions) {
 @Composable
 private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
     var platformName by rememberSaveable { mutableStateOf(RatingPlatform.CHESS_COM.name) }
-    var timeName by rememberSaveable { mutableStateOf(RatingTimeControl.RAPID.name) }
     var username by rememberSaveable { mutableStateOf("") }
     val platform = RatingPlatform.valueOf(platformName)
 
@@ -111,37 +108,24 @@ private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
         }
     }
     CtTextField(value = username, onValueChange = { username = it.trim() }, label = "Username", placeholder = "Your ${platform.displayName} name")
-    RatingChips(RatingTimeControl.valueOf(timeName)) { timeName = it.name }
     DepthChips(depth, actions.onImportDepth)
     CtButton(
         text = "Link and import",
         icon = Icons.Rounded.Link,
         enabled = username.isNotBlank(),
-        onClick = { actions.onLink(platform, username, RatingTimeControl.valueOf(timeName)) },
+        onClick = { actions.onLink(platform, username) },
         modifier = Modifier.fillMaxWidth(),
     )
 }
 
-/** Which of the account's ratings the app uses (games of every time control are imported, each with its own count). */
-@Composable
-private fun RatingChips(selected: RatingTimeControl, onSelect: (RatingTimeControl) -> Unit) {
-    Text("Rating to use", style = CtType.Label)
-    Text("Rapid, blitz and bullet are each imported up to the number below; this picks the rating your bots and level follow.", style = CtType.Caption)
-    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        RatingTimeControl.entries.forEach { t ->
-            CtChip(text = t.displayName, color = CtColors.Gold, selected = t == selected, onClick = { onSelect(t) })
-        }
-    }
-}
-
-/** How many games to import; once linked, [more] counts older games ("500 more"). */
+/** How many games of each clock to import; once linked, [more] reaches back past the oldest game here. */
 @Composable
 private fun DepthChips(depth: ImportDepth, onDepth: (ImportDepth) -> Unit, more: Boolean = false) {
     Text(if (more) "Import older games" else "Games to import", style = CtType.Label)
-    if (more) Text("Goes back from the oldest game you have here. New games arrive by themselves.", style = CtType.Caption)
+    Text(if (more) "Of each time control, before your oldest here." else "Of each time control: rapid, blitz and bullet.", style = CtType.Caption)
     Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         ImportDepth.entries.forEach { d ->
-            CtChip(text = if (more) d.moreLabel else d.label, color = CtColors.Violet, selected = d == depth, onClick = { onDepth(d) })
+            CtChip(text = d.label, color = CtColors.Violet, selected = d == depth, onClick = { onDepth(d) })
         }
     }
 }
@@ -158,7 +142,6 @@ private fun Linked(profile: LinkedChessProfile, state: AppUiState, actions: Acco
             Text(syncLine(state), style = CtType.Caption)
         }
     }
-    RatingChips(profile.selectedTimeControl, actions.onRatingTimeControl)
     if (state.isLinkingLoading) {
         ImportRunning(state.importProgress, onCancel = actions.onCancelImport)
     } else {

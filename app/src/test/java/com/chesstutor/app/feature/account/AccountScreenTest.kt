@@ -414,11 +414,10 @@ class AccountScreenTest {
             linkedProfile = LinkedChessProfile(RatingPlatform.LICHESS, "kenny", rapidRating = 1848, blitzRating = 1720, bulletRating = null, selectedTimeControl = RatingTimeControl.RAPID),
         )
         var page by mutableStateOf("account")
-        var rating: RatingTimeControl? = null
         var imported = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                val actions = AccountActions(onRatingTimeControl = { rating = it }, onImportMore = { imported = true })
+                val actions = AccountActions(onImportMore = { imported = true })
                 if (page == "account") {
                     AccountScreen(state = state, games = games, stats = stats, actions = actions)
                 } else {
@@ -427,7 +426,7 @@ class AccountScreenTest {
             }
         }
         compose.onNodeWithText("@kenny").assertExists()
-        compose.onNodeWithText("Lichess, rapid").assertExists()
+        compose.onNodeWithText("Lichess").assertExists()
         compose.onNodeWithText("1848").assertExists()
         compose.onNodeWithText("Link your account").assertDoesNotExist()
         compose.onNodeWithContentDescription("Settings").assertExists()
@@ -436,9 +435,8 @@ class AccountScreenTest {
         section("Linked account")
         compose.onNodeWithText("@kenny on Lichess").assertExists()
         compose.onNodeWithText("Rapid 1848 · Blitz 1720 · Bullet –").assertExists()
-        compose.onNodeWithText("Blitz").performClick()
-        assertEquals(RatingTimeControl.BLITZ, rating)
-        compose.onNodeWithText("Import 100 more of each").performClick()
+        compose.onNodeWithText("Blitz").assertDoesNotExist()
+        compose.onNodeWithText("Import 100 more").performClick()
         assertTrue(imported)
         back()
         section("About")

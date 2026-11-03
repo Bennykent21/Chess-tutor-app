@@ -17,7 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.chesstutor.app.data.model.ImportDepth
 import com.chesstutor.app.data.model.RatingPlatform
-import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtSectionHeader
@@ -44,9 +43,8 @@ data class AccountActions(
     val onOpenCourse: (courseId: String) -> Unit = {},
     /** Training: a theme row plays puzzles of that theme. */
     val onPracticeTheme: (theme: String) -> Unit = {},
-    val onLink: (RatingPlatform, String, RatingTimeControl) -> Unit = { _, _, _ -> },
+    val onLink: (RatingPlatform, String) -> Unit = { _, _ -> },
     /** Settings > Linked account: which rating the app follows, and importing more of the history. */
-    val onRatingTimeControl: (RatingTimeControl) -> Unit = {},
     val onImportMore: () -> Unit = {},
     /** The Account tab came on screen: a chance for the automatic sync (throttled). */
     val onShown: () -> Unit = {},
@@ -73,7 +71,7 @@ fun AccountScreen(
 ) {
     var badgeId by rememberSaveable { mutableStateOf<String?>(null) }
     var ranksOpen by rememberSaveable { mutableStateOf(false) }
-    val rank = RatingRank.of(pieceRating(state))
+    val rank = RatingRank.of(state.effectiveUserRating)
     LaunchedEffect(Unit) { actions.onShown() }
 
     CtScreenBackground(modifier) {

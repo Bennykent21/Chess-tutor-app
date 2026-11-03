@@ -240,10 +240,6 @@ class AppViewModel(
         }
     }
 
-    fun setRatingTimeControl(timeControl: RatingTimeControl) {
-        ratingLinkCoordinator.setRatingTimeControl(timeControl)
-    }
-
     fun unlinkRatingAccount() {
         ratingLinkCoordinator.unlinkAccount(_state::update)
     }

@@ -24,7 +24,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.design.CtArt
 import com.chesstutor.app.design.CtMetalIcon
 import com.chesstutor.app.design.CtColors
@@ -67,16 +66,13 @@ internal fun AccountHero(state: AppUiState, rank: RatingRank, onOpenRanks: () ->
     }
 }
 
-/** The player's picture and "@name", with where the rating comes from. */
+/** The player's picture and "@name", with the site the ratings come from. */
 @Composable
 private fun PlayerRow(state: AppUiState, modifier: Modifier = Modifier) {
     val linked = state.linkedProfile
     val name = state.appSettings.playerName.trim()
     val title = name.ifEmpty { linked?.let { "@${it.username}" } ?: "You" }
-    val detail = linked?.let {
-        val where = "${it.platform.displayName}, ${it.selectedTimeControl.displayName.lowercase(Locale.UK)}"
-        if (name.isEmpty()) where else "@${it.username} · $where"
-    }
+    val detail = linked?.let { if (name.isEmpty()) it.platform.displayName else "@${it.username} · ${it.platform.displayName}" }
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
         PlayerAvatar(state.appSettings.picture, name.ifEmpty { linked?.username.orEmpty() }, size = 48.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
@@ -103,14 +99,7 @@ internal fun SettingsButton(onClick: () -> Unit) {
 }
 
 /** One rating in the row under the player: a game clock, or the puzzles when [clock] is null. */
-internal data class RatingCell(val value: String, val label: String, val clock: TimeClass?, val followed: Boolean = false)
-
-/** The rating that earns the piece (D60): the average of the clocks the player has a rating in. */
-internal fun pieceRating(state: AppUiState): Int {
-    val linked = state.linkedProfile ?: return state.effectiveUserRating
-    val played = listOfNotNull(linked.rapidRating, linked.blitzRating, linked.bulletRating)
-    return if (played.isEmpty()) state.effectiveUserRating else played.average().toInt()
-}
+internal data class RatingCell(val value: String, val label: String, val clock: TimeClass?)
 
 /** The linked account's three clocks and the puzzle rating, or the app's own rating and the puzzle rating. */
 internal fun ratingCells(state: AppUiState, puzzleRating: Int): List<RatingCell> {
@@ -119,10 +108,10 @@ internal fun ratingCells(state: AppUiState, puzzleRating: Int): List<RatingCell>
         listOf(RatingCell("${state.effectiveUserRating}", "Rating", TimeClass.RAPID))
     } else {
         listOf(
-            RatingTimeControl.RAPID to linked.rapidRating,
-            RatingTimeControl.BLITZ to linked.blitzRating,
-            RatingTimeControl.BULLET to linked.bulletRating,
-        ).map { (clock, rating) -> RatingCell(rating?.toString() ?: "–", clock.displayName, TimeClass.of(clock.name), followed = clock == linked.selectedTimeControl) }
+            TimeClass.RAPID to linked.rapidRating,
+            TimeClass.BLITZ to linked.blitzRating,
+            TimeClass.BULLET to linked.bulletRating,
+        ).map { (clock, rating) -> RatingCell(rating?.toString() ?: "–", clock.label, clock) }
     }
     return games + RatingCell("$puzzleRating", "Puzzles", clock = null)
 }
@@ -166,7 +155,7 @@ private fun Figure(cell: RatingCell, onClick: () -> Unit, modifier: Modifier = M
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (cell.clock != null) ClockIcon(cell.clock, size = 22.dp) else CtMetalIcon(Icons.Rounded.Extension, size = 22.dp)
-        Text(cell.value, style = CtType.Number.copy(color = if (cell.followed) CtColors.Accent else CtColors.Text), maxLines = 1)
+        Text(cell.value, style = CtType.Number.copy(color = CtColors.Text), maxLines = 1)
         Text(cell.label, style = CtType.Caption, maxLines = 1)
     }
 }
