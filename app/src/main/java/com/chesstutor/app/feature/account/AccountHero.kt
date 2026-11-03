@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -22,6 +23,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.design.CtArt
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtProgressBar
@@ -30,7 +32,6 @@ import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSheet
 import com.chesstutor.app.design.CtSpacing
-import com.chesstutor.app.design.CtStreak
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.account.RatingRank
@@ -98,14 +99,36 @@ internal fun SettingsButton(onClick: () -> Unit) {
     }
 }
 
-/** Rating, puzzle rating and the streak, then the level. */
+/** One number in the row under the player. */
+internal data class RatingCell(val value: String, val label: String, val followed: Boolean = false)
+
+/** The linked account's three clocks and the puzzle rating, or the app's own rating and the puzzle rating. */
+internal fun ratingCells(state: AppUiState, puzzleRating: Int): List<RatingCell> {
+    val linked = state.linkedProfile
+    val games = if (linked == null) {
+        listOf(RatingCell("${state.effectiveUserRating}", "Rating"))
+    } else {
+        listOf(
+            RatingTimeControl.RAPID to linked.rapidRating,
+            RatingTimeControl.BLITZ to linked.blitzRating,
+            RatingTimeControl.BULLET to linked.bulletRating,
+        ).map { (clock, rating) -> RatingCell(rating?.toString() ?: "–", clock.displayName, followed = clock == linked.selectedTimeControl) }
+    }
+    return games + RatingCell("$puzzleRating", "Puzzles")
+}
+
+/** Each rating over its name, kept apart by a thin rule, then the level. */
 @Composable
 internal fun Numbers(state: AppUiState, stats: PuzzleStats, onOpenStats: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(Modifier.ctPressable(onClickLabel = "Open your stats", onClick = onOpenStats), verticalAlignment = Alignment.Top) {
-            Figure(state.effectiveUserRating, "Rating", Modifier.weight(1f))
-            Figure(stats.rating, "Puzzle rating", Modifier.weight(1f))
-            CtStreak(stats.dayStreak, Modifier.padding(top = CtSpacing.xxs))
+        Row(
+            modifier = Modifier.fillMaxWidth().ctPressable(onClickLabel = "Open your stats", onClick = onOpenStats),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ratingCells(state, stats.rating).forEachIndexed { i, cell ->
+                if (i > 0) Box(Modifier.width(1.dp).height(32.dp).background(CtColors.Line))
+                Figure(cell, Modifier.weight(1f))
+            }
         }
         Row(
             modifier = Modifier.semantics(mergeDescendants = true) {},
@@ -120,10 +143,10 @@ internal fun Numbers(state: AppUiState, stats: PuzzleStats, onOpenStats: () -> U
 }
 
 @Composable
-private fun Figure(value: Int, label: String, modifier: Modifier = Modifier) {
-    Column(modifier.semantics(mergeDescendants = true) {}) {
-        Text("$value", style = CtType.Number.copy(color = CtColors.Accent), maxLines = 1)
-        Text(label, style = CtType.Caption, maxLines = 1)
+private fun Figure(cell: RatingCell, modifier: Modifier = Modifier) {
+    Column(modifier.semantics(mergeDescendants = true) {}, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(cell.value, style = CtType.Number.copy(color = if (cell.followed) CtColors.Accent else CtColors.Text), maxLines = 1)
+        Text(cell.label, style = CtType.Caption, maxLines = 1)
     }
 }
 

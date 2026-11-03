@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtIconBubble
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtSpacing

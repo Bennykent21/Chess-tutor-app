@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,12 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.EmojiEvents
-import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.Insights
-import androidx.compose.material.icons.rounded.School
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,16 +19,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.chesstutor.app.R
 import com.chesstutor.app.design.CtColors
-import com.chesstutor.app.design.CtHue
-import com.chesstutor.app.design.CtIconBubble
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSheet
@@ -41,13 +38,25 @@ import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.account.Badge
 import com.chesstutor.app.domain.account.BadgeKind
+import com.chesstutor.app.domain.account.BadgeTier
 
-internal fun badgeIcon(kind: BadgeKind): ImageVector = when (kind) {
-    BadgeKind.GAMES -> Icons.Rounded.EmojiEvents
-    BadgeKind.PUZZLES -> Icons.Rounded.Extension
-    BadgeKind.LEARNING -> Icons.Rounded.School
-    BadgeKind.REVIEW -> Icons.Rounded.Insights
+/** A medal's picture: the badge's kind in the metal of its rank. */
+@DrawableRes
+private fun medal(badge: Badge): Int = when (badge.kind) {
+    BadgeKind.GAMES -> byTier(badge.tier, R.drawable.medal_cup_bronze, R.drawable.medal_cup_silver, R.drawable.medal_cup_gold)
+    BadgeKind.PUZZLES -> byTier(badge.tier, R.drawable.medal_puzzle_bronze, R.drawable.medal_puzzle_silver, R.drawable.medal_puzzle_gold)
+    BadgeKind.LEARNING -> byTier(badge.tier, R.drawable.medal_cap_bronze, R.drawable.medal_cap_silver, R.drawable.medal_cap_gold)
+    BadgeKind.REVIEW -> byTier(badge.tier, R.drawable.medal_chart_bronze, R.drawable.medal_chart_silver, R.drawable.medal_chart_gold)
 }
+
+private fun byTier(tier: BadgeTier, bronze: Int, silver: Int, gold: Int): Int = when (tier) {
+    BadgeTier.BRONZE -> bronze
+    BadgeTier.SILVER -> silver
+    BadgeTier.GOLD -> gold
+}
+
+/** A medal not yet earned has no shine: the colour goes and it fades back. */
+private val Unearned = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
 
 /** Account > Overview's badges (plan 5.3) in one sideways row, earned ones first; a tap shows one. */
 @Composable
@@ -89,11 +98,15 @@ private fun BadgeTile(badge: Badge, onClick: () -> Unit) {
     }
 }
 
-/** A round medal: in the badge's own colour once earned, grey before. */
+/** The badge's shape in polished metal once earned, dull before. */
 @Composable
 private fun BadgeMedal(badge: Badge, size: Dp) {
-    val icon = badgeIcon(badge.kind)
-    CtIconBubble(icon, size = size, hue = if (badge.earned) CtHue.of(icon) else CtHue.SLATE)
+    Image(
+        painter = painterResource(medal(badge)),
+        contentDescription = null,
+        colorFilter = if (badge.earned) null else Unearned,
+        modifier = Modifier.size(size),
+    )
 }
 
 /** One badge up close: what it is for and, until earned, how far along the player is. */

@@ -86,7 +86,7 @@ class AccountScreenTest {
                 AccountScreen(state = AppUiState(), games = games, stats = stats, dueReviewCount = 2, actions = AccountActions(onOpenGame = { opened = it }))
             }
         }
-        compose.onNodeWithText("Puzzle rating").assertExists()
+        compose.onNodeWithText("Puzzles").assertExists()
         compose.onNodeWithText("Level ${stats.playerLevel.level}").assertExists()
         compose.onNodeWithContentDescription("5-day streak").assertExists()
         compose.onNodeWithText("Link your account").assertExists()
@@ -235,7 +235,7 @@ class AccountScreenTest {
             }
         }
         compose.onNodeWithContentDescription("Rating graph, now 1466. Hold to read a day.").assertExists()
-        compose.onNodeWithText("Puzzles").performClick()
+        compose.onAllNodesWithText("Puzzles").onLast().performClick()
         compose.onNodeWithContentDescription("Rating graph, now 1060. Hold to read a day.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_stats_graph.png")
 
@@ -268,7 +268,7 @@ class AccountScreenTest {
             }
         }
         compose.onNodeWithText("Score").assertDoesNotExist()
-        compose.onNodeWithText("Puzzle rating").performClick()
+        compose.onNodeWithText("Puzzles").performClick()
         compose.onNodeWithText("Score").assertExists()
     }
 

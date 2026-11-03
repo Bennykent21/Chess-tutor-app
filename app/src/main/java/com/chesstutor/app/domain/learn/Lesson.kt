@@ -186,6 +186,12 @@ data class LessonLibrary(val courses: List<Course>) {
         return siblings.drop(at + 1).firstOrNull { it.lessons.isNotEmpty() }?.lessons?.first()
     }
 
+    /** The lesson before [lessonId] in its own course, or null for the first. */
+    fun previousIn(lessonId: String): Lesson? {
+        val (course, i) = lessonIndex[lessonId] ?: return null
+        return course.lessons.getOrNull(i - 1)
+    }
+
     val isEmpty: Boolean get() = courses.isEmpty()
 
     companion object {

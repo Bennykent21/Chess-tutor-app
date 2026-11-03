@@ -32,7 +32,7 @@ import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtConfirmDialog
-import com.chesstutor.app.design.CtIconBubble
+import com.chesstutor.app.design.CtMetalIcon
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTextField
@@ -98,7 +98,7 @@ private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
     val platform = RatingPlatform.valueOf(platformName)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        CtIconBubble(icon = Icons.Rounded.Link)
+        CtMetalIcon(Icons.Rounded.Link, size = 36.dp)
         Spacer(Modifier.width(CtSpacing.md))
         Column(Modifier.weight(1f)) {
             Text("Link your account", style = CtType.TitleSmall)
@@ -150,7 +150,7 @@ private fun DepthChips(depth: ImportDepth, onDepth: (ImportDepth) -> Unit, more:
 private fun Linked(profile: LinkedChessProfile, state: AppUiState, actions: AccountActions) {
     var confirmUnlink by rememberSaveable { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        CtIconBubble(icon = Icons.Rounded.CloudSync)
+        CtMetalIcon(Icons.Rounded.CloudSync, size = 36.dp)
         Spacer(Modifier.width(CtSpacing.md))
         Column(Modifier.weight(1f)) {
             Text("@${profile.username} on ${profile.platform.displayName}", style = CtType.TitleSmall)

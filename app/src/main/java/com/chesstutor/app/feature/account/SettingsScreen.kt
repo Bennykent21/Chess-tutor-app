@@ -79,7 +79,6 @@ import com.chesstutor.app.design.CtBadge
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtConfirmDialog
-import com.chesstutor.app.design.CtHue
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSpacing
@@ -314,8 +313,7 @@ fun SettingsScreen(
                                 CtListRow(
                                     title = "Engine health",
                                     subtitle = if (state.engineStatus.isDegraded) "Stockfish is not running: using a weaker engine" else "Check that Stockfish runs on this phone",
-                                    icon = Icons.Rounded.Memory,
-                                    hue = if (state.engineStatus.isDegraded) CtHue.RED else null,
+                                    icon = if (state.engineStatus.isDegraded) Icons.Rounded.Warning else Icons.Rounded.Memory,
                                     onClick = actions.onOpenEngineHealth,
                                     trailing = if (state.engineStatus.isDegraded) { { CtBadge(text = "Lite engine", icon = Icons.Rounded.Warning) } } else null,
                                 )

@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -56,6 +58,7 @@ import com.chesstutor.app.design.CtScreenTitle
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtShapes
+import com.chesstutor.app.design.CtStreak
 import com.chesstutor.app.design.CtSheet
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
@@ -147,7 +150,11 @@ fun AccountScreen(
                 contentPadding = PaddingValues(bottom = CtSpacing.xl),
             ) {
                 item(key = "top") {
-                    CtScreenTitle(title = "Account") { SettingsButton(onClick = actions.onOpenSettings) }
+                    CtScreenTitle(title = "Account") {
+                        CtStreak(stats.dayStreak)
+                        Spacer(Modifier.width(CtSpacing.md))
+                        SettingsButton(onClick = actions.onOpenSettings)
+                    }
                 }
                 item(key = "hero") { AccountHero(state, rank, onOpenRanks = { ranksOpen = true }) }
                 item(key = "numbers") {
