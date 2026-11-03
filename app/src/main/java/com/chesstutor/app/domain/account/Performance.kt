@@ -2,6 +2,8 @@ package com.chesstutor.app.domain.account
 
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
+import java.time.Instant
+import java.time.ZoneId
 
 /** Wins, draws and losses for a group of games. */
 data class Wdl(val wins: Int = 0, val draws: Int = 0, val losses: Int = 0) {
@@ -55,21 +57,32 @@ data class RatingTrend(val timeClass: TimeClass?, val points: List<RatingPoint>)
     }
 
     /**
-     * The trend over the last [days] days (all of it for null). The rating the player had as the
-     * period began starts the line, so a quiet month still shows where they stood.
+     * The trend over the last [days] days (from the first point for null), running up to [now]:
+     * the rating the player had as the period began starts the line and the latest rating carries
+     * on to today, so every period spans its own length and a quiet one shows a flat line.
      */
     fun within(now: Long, days: Int?): RatingTrend {
-        if (days == null) return this
-        val start = now - days * DAY_MILLIS
+        if (points.isEmpty()) return this
+        val start = days?.let { now - it * DAY_MILLIS } ?: points.first().dateMillis
         val before = points.lastOrNull { it.dateMillis < start }?.copy(dateMillis = start)
-        return copy(points = listOfNotNull(before) + points.filter { it.dateMillis >= start })
+        val inside = listOfNotNull(before) + points.filter { it.dateMillis >= start }
+        val today = inside.last().takeIf { it.dateMillis < now }?.copy(dateMillis = now)
+        return copy(points = inside + listOfNotNull(today))
     }
 
-    /** At most [limit] points, evenly picked and always with the first and last, for a graph. */
-    fun thinned(limit: Int): List<RatingPoint> {
-        if (points.size <= limit) return points
-        val step = points.lastIndex.toDouble() / (limit - 1)
-        return List(limit) { i -> points[(i * step).toInt()] }.dropLast(1) + points.last()
+    /**
+     * The points a graph draws (D65): each day's closing rating, so a day of many games is one
+     * step and not a spike; past [limit] days, the closing rating of each of [limit] equal slices
+     * of time. The first point always stays, so the line starts where the period does.
+     */
+    fun forGraph(limit: Int, zone: ZoneId = ZoneId.systemDefault()): List<RatingPoint> {
+        if (points.size < 2) return points
+        val daily = points.groupBy { Instant.ofEpochMilli(it.dateMillis).atZone(zone).toLocalDate() }.values.map { it.last() }
+        if (daily.size <= limit) return (listOf(points.first()) + daily).distinctBy { it.dateMillis }
+        val first = daily.first().dateMillis
+        val span = (daily.last().dateMillis - first).coerceAtLeast(1L)
+        val slices = daily.groupBy { ((it.dateMillis - first) * (limit - 1) / span) }.values.map { it.last() }
+        return (listOf(points.first()) + slices).distinctBy { it.dateMillis }
     }
 
     companion object {

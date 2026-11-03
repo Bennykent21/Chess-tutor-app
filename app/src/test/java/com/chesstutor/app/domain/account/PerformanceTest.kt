@@ -100,27 +100,43 @@ class PerformanceTest {
     }
 
     @Test
-    fun aPeriodStartsWithTheRatingThePlayerHadThen() {
+    fun aPeriodRunsFromTheRatingHeldThenToToday() {
         val day = 86_400_000L
         val trend = RatingTrend(null, listOf(RatingPoint(10 * day, 1400), RatingPoint(60 * day, 1450), RatingPoint(70 * day, 1480)))
         assertEquals(
-            "the line begins at the period's start, at the rating held then",
-            listOf(RatingPoint(50 * day, 1400), RatingPoint(60 * day, 1450), RatingPoint(70 * day, 1480)),
+            "the line begins at the period's start, at the rating held then, and carries on to today",
+            listOf(RatingPoint(50 * day, 1400), RatingPoint(60 * day, 1450), RatingPoint(70 * day, 1480), RatingPoint(80 * day, 1480)),
             trend.within(80 * day, GraphPeriod.MONTH.days).points,
         )
-        assertEquals("a quiet spell keeps the last rating", listOf(RatingPoint(75 * day, 1480)), trend.within(80 * day, 5).points)
-        assertEquals("all of it", trend, trend.within(80 * day, GraphPeriod.ALL.days))
+        assertEquals(
+            "phone test 3 Nov: a quiet month is a flat line, not the whole history",
+            listOf(RatingPoint(75 * day, 1480), RatingPoint(80 * day, 1480)),
+            trend.within(80 * day, 5).points,
+        )
+        assertEquals("all of it, up to today", trend.points + RatingPoint(80 * day, 1480), trend.within(80 * day, GraphPeriod.ALL.days).points)
     }
 
+    /** Phone test 3 Nov: many games a day made the line spike up and down on one spot. */
     @Test
-    fun thinningKeepsTheEndsAndTheLimit() {
-        val points = List(1000) { RatingPoint(it.toLong(), it) }
-        val thin = RatingTrend(null, points).thinned(150)
-        assertEquals(150, thin.size)
-        assertEquals(points.first(), thin.first())
-        assertEquals(points.last(), thin.last())
-        assertEquals("oldest first", thin.sortedBy { it.dateMillis }, thin)
-        assertEquals("a short trend is left alone", points.take(5), RatingTrend(null, points.take(5)).thinned(150))
+    fun theGraphTakesEachDaysClosingRating() {
+        val hour = 3_600_000L
+        val day = 24 * hour
+        val zone = java.time.ZoneOffset.UTC
+        val points = listOf(
+            RatingPoint(0, 1500), RatingPoint(2 * hour, 1520), RatingPoint(3 * hour, 1490),
+            RatingPoint(day + hour, 1510), RatingPoint(day + 5 * hour, 1530),
+        )
+        assertEquals(
+            "the period's first point, then each day's last game",
+            listOf(RatingPoint(0, 1500), RatingPoint(3 * hour, 1490), RatingPoint(day + 5 * hour, 1530)),
+            RatingTrend(null, points).forGraph(90, zone),
+        )
+        val long = List(1000) { RatingPoint(it * day, 1000 + it) }
+        val graph = RatingTrend(null, long).forGraph(90, zone)
+        assertTrue("at most about the limit: ${graph.size}", graph.size in 85..91)
+        assertEquals(long.first(), graph.first())
+        assertEquals(long.last(), graph.last())
+        assertEquals("oldest first", graph.sortedBy { it.dateMillis }, graph)
     }
 
     @Test
