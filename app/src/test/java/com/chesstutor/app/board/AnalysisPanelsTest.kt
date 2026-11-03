@@ -115,7 +115,6 @@ class AnalysisPanelsTest {
                 CtScreenBackground {
                     Column(Modifier.padding(CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                         EngineLinesPanel(position = position, lines = lines, engineName = "Stockfish", onPlayLine = {})
-                        AnalysisToolbar(view, drawing = true, onStart = {}, onBack = {}, onForward = {}, onEnd = {}, onToggleDrawing = {})
                         AnalysisMoveList(view = view, onSelect = { selected = it })
                     }
                 }

@@ -8,8 +8,6 @@ data class Evaluation(
   val centipawns: Int? = null,
   val mateInMoves: Int? = null
 ) {
-  val isMate: Boolean get() = mateInMoves != null
-
   fun format(): String {
     val mate = mateInMoves
     if (mate != null) {
@@ -20,27 +18,7 @@ data class Evaluation(
     return if (pawns > 0) "+${String.format(java.util.Locale.ROOT, "%.1f", pawns)}" else String.format(java.util.Locale.ROOT, "%.1f", pawns)
   }
 
-  fun winningPercentageWhite(): Float {
-    val mate = mateInMoves
-    if (mate != null) return if (mate > 0) 0.98f else 0.02f
-    val cp = centipawns ?: 0
-    val pct = 50.0 + 50.0 * (2.0 / (1.0 + kotlin.math.exp(-0.00368208 * cp.toDouble())) - 1.0)
-    return (pct / 100.0).toFloat().coerceIn(0.04f, 0.96f)
-  }
-
-  fun scoreForSide(color: PieceColor): Float {
-    val mate = mateInMoves
-    if (mate != null) {
-      val base = if (mate > 0) 10000f else -10000f
-      return if (color == PieceColor.WHITE) base else -base
-    }
-    val cp = centipawns ?: 0
-    val raw = cp / 100f
-    return if (color == PieceColor.WHITE) raw else -raw
-  }
-
   companion object {
-    val EVEN = Evaluation(centipawns = 0)
     fun cp(value: Int) = Evaluation(centipawns = value)
     fun mate(moves: Int) = Evaluation(mateInMoves = moves)
   }
@@ -96,25 +74,6 @@ data class HeuristicBotProfile(
 }
 
 typealias StockfishProfile = HeuristicBotProfile
-
-enum class MoveQuality(val label: String, val badge: String) {
-  BEST("Best Move", "★"),
-  EXCELLENT("Excellent", "✦"),
-  GOOD("Good", "✓"),
-  INACCURACY("Inaccuracy", "?!"),
-  MISTAKE("Mistake", "?"),
-  BLUNDER("Blunder", "??")
-}
-
-data class MoveAnalysisResult(
-  val quality: MoveQuality,
-  val playedMove: Move,
-  val bestMove: Move,
-  val evalBefore: Evaluation,
-  val evalAfter: Evaluation,
-  val evalDiffCentipawns: Int,
-  val explanation: String
-)
 
 enum class TrainingLevel(
   val elo: Int,

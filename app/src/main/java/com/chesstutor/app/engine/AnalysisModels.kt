@@ -47,5 +47,4 @@ data class PositionAnalysis(
     /** Which engine produced this answer. */
     val source: EngineSource = EngineSource.UNKNOWN,
 ) {
-    val isForcedMate get() = mateInMoves != null
 }

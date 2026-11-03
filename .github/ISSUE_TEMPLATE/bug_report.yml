@@ -1,0 +1,35 @@
+name: Bug report
+description: Something in Chess Tutor does not work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      placeholder: |
+        1. Open Puzzles
+        2. Tap ...
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings > About shows it (for example 1.0.0).
+    validations:
+      required: true
+  - type: input
+    id: phone
+    attributes:
+      label: Phone and Android version
+      placeholder: Pixel 7, Android 15
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag pictures here if they help.

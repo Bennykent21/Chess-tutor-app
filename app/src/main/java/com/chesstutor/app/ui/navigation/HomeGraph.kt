@@ -8,7 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -46,7 +45,7 @@ import java.time.LocalDate
 internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
     navigation(startDestination = TopTab.HOME.startRoute, route = TopTab.HOME.graphRoute) {
         composable(TopTab.HOME.startRoute) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val home by homeModel.home.collectAsStateWithLifecycle()
             LaunchedEffect(state.effectiveUserRating) { homeModel.setPlayerRating(state.effectiveUserRating) }
             LaunchedEffect(dueReviews) { homeModel.setDueMistakes(dueReviews) }
@@ -106,7 +105,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             route = AppRoutes.BOT_PATTERN,
             arguments = listOf(navArgument(AppRoutes.BOT_ID_ARG) { type = NavType.StringType })
         ) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val myBots by homeModel.myBots.collectAsStateWithLifecycle()
             val botId = entry.arguments?.getString(AppRoutes.BOT_ID_ARG).orEmpty()
             val bot = remember(botId, myBots) { homeModel.findBot(botId) }
@@ -151,7 +150,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                 defaultValue = null
             })
         ) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val draft by homeModel.draft.collectAsStateWithLifecycle()
             BotBuilderScreen(
                 draft = draft,
@@ -176,7 +175,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             route = AppRoutes.BUILDER_OPENINGS_PATTERN,
             arguments = listOf(navArgument(AppRoutes.SIDE_ARG) { type = NavType.StringType })
         ) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val draft by homeModel.draft.collectAsStateWithLifecycle()
             val tree by homeModel.openingTree.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) { homeModel.loadOpenings() }
@@ -194,7 +193,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.BOTS) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val home by homeModel.home.collectAsStateWithLifecycle()
             BotsScreen(
                 roster = home.roster,
@@ -209,7 +208,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.WATCH) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val draft by homeModel.watchDraft.collectAsStateWithLifecycle()
             val myBots by homeModel.myBots.collectAsStateWithLifecycle()
             WatchSetupScreen(
@@ -223,7 +222,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.POSITION) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val draft by homeModel.positionDraft.collectAsStateWithLifecycle()
             val myBots by homeModel.myBots.collectAsStateWithLifecycle()
             PositionSetupScreen(
@@ -238,7 +237,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.EXPLORE) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val draft by homeModel.exploreDraft.collectAsStateWithLifecycle()
             ExploreSetupScreen(
                 draft = draft,
@@ -252,7 +251,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.BATTLE) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val draft by homeModel.battle.collectAsStateWithLifecycle()
             BattleSetupScreen(
                 draft = draft,
@@ -265,7 +264,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.BATTLE_PICK) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val tree by homeModel.openingTree.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) { homeModel.loadOpenings() }
             OpeningPickerScreen(
@@ -278,7 +277,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.PLAY) { entry ->
-            val homeModel = homeViewModel(navController, entry)
+            val homeModel = homeViewModel()
             val game by homeModel.game.collectAsStateWithLifecycle()
             val current = game
             if (current == null) {
@@ -310,13 +309,12 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
     }
 }
 
-/** The Home tab's view model, shared by Home, the bot pages and the game (scoped to its graph). */
+/** The Home tab's view model, shared by Home, the bot pages and the game (it lives as long as the app). */
 @Composable
-internal fun homeViewModel(navController: NavHostController, entry: NavBackStackEntry): HomeViewModel {
-    val owner = remember(entry) { navController.getBackStackEntry(TopTab.HOME.graphRoute) }
+internal fun Shell.homeViewModel(): HomeViewModel {
     val context = LocalContext.current.applicationContext
     return viewModel(
-        viewModelStoreOwner = owner,
+        viewModelStoreOwner = appOwner,
         factory = HomeViewModel.Factory(
             engine = AppContainer.provideEngineService(context),
             openings = { AppContainer.provideOpeningLoader(context).load() },

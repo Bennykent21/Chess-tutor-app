@@ -4,11 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -37,9 +35,9 @@ import com.chesstutor.app.navigation.TopTab
 internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
     navigation(startDestination = TopTab.LEARN.startRoute, route = TopTab.LEARN.graphRoute) {
         composable(TopTab.LEARN.startRoute) { entry ->
-            val learn = learnViewModel(navController, entry)
+            val learn = learnViewModel()
             val lessons by learn.learn.collectAsStateWithLifecycle()
-            val trainer by trainerViewModel(navController, entry).trainer.collectAsStateWithLifecycle()
+            val trainer by trainerViewModel().trainer.collectAsStateWithLifecycle()
             LearnScreen(
                 learn = lessons,
                 trainerDue = trainer.dueTotal,
@@ -54,7 +52,7 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.TRAINER) { entry ->
-            val model = trainerViewModel(navController, entry)
+            val model = trainerViewModel()
             val trainer by model.trainer.collectAsStateWithLifecycle()
             OpeningTrainerScreen(
                 state = trainer,
@@ -66,9 +64,9 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             )
         }
         composable(AppRoutes.TRAINER_DRILL) { entry ->
-            val model = trainerViewModel(navController, entry)
+            val model = trainerViewModel()
             val drill by model.drill.collectAsStateWithLifecycle()
-            val lessons by learnViewModel(navController, entry).learn.collectAsStateWithLifecycle()
+            val lessons by learnViewModel().learn.collectAsStateWithLifecycle()
             val courseId = drill?.let { OpeningCourses.courseFor(it.opening.family, lessons.library.courses)?.id }
             val leave = {
                 model.close()
@@ -91,7 +89,7 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             route = AppRoutes.LEARN_CATEGORY_PATTERN,
             arguments = listOf(navArgument(AppRoutes.CATEGORY_ARG) { type = NavType.StringType })
         ) { entry ->
-            val learn = learnViewModel(navController, entry)
+            val learn = learnViewModel()
             val lessons by learn.learn.collectAsStateWithLifecycle()
             val category = LessonCategory.fromKey(entry.arguments?.getString(AppRoutes.CATEGORY_ARG).orEmpty())
             if (category == null) {
@@ -109,8 +107,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             route = AppRoutes.COURSE_PATTERN,
             arguments = listOf(navArgument(AppRoutes.COURSE_ID_ARG) { type = NavType.StringType })
         ) { entry ->
-            val learn = learnViewModel(navController, entry)
-            val homeModel = homeViewModel(navController, entry)
+            val learn = learnViewModel()
+            val homeModel = homeViewModel()
             val lessons by learn.learn.collectAsStateWithLifecycle()
             val courseId = entry.arguments?.getString(AppRoutes.COURSE_ID_ARG).orEmpty()
             val course = lessons.library.course(courseId)
@@ -138,7 +136,7 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             route = AppRoutes.LESSON_OPEN_PATTERN,
             arguments = listOf(navArgument(AppRoutes.LESSON_ID_ARG) { type = NavType.StringType })
         ) { entry ->
-            val learn = learnViewModel(navController, entry)
+            val learn = learnViewModel()
             val lessonId = entry.arguments?.getString(AppRoutes.LESSON_ID_ARG).orEmpty()
             LaunchedEffect(lessonId) {
                 learn.openLesson(lessonId)
@@ -148,8 +146,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             }
         }
         composable(AppRoutes.LESSON) { entry ->
-            val learn = learnViewModel(navController, entry)
-            val homeModel = homeViewModel(navController, entry)
+            val learn = learnViewModel()
+            val homeModel = homeViewModel()
             val player by learn.player.collectAsStateWithLifecycle()
             val course = player?.course
             LessonPlayerScreen(
@@ -189,13 +187,12 @@ private fun NavHostController.relatedPuzzles(course: Course): (() -> Unit)? {
     }
 }
 
-/** The Learn tab's view model, shared by the hub, its pages and the lesson player (scoped to its graph). */
+/** The Learn tab's view model, shared by the hub, its pages and the lesson player (it lives as long as the app). */
 @Composable
-private fun learnViewModel(navController: NavHostController, entry: NavBackStackEntry): LearnViewModel {
-    val owner = remember(entry) { navController.getBackStackEntry(TopTab.LEARN.graphRoute) }
+internal fun Shell.learnViewModel(): LearnViewModel {
     val context = LocalContext.current.applicationContext
     return viewModel(
-        viewModelStoreOwner = owner,
+        viewModelStoreOwner = appOwner,
         factory = LearnViewModel.Factory(
             progress = AppContainer.provideLessonProgress(context),
             loadLibrary = { AppContainer.provideLessonLoader(context).load() },
@@ -204,13 +201,12 @@ private fun learnViewModel(navController: NavHostController, entry: NavBackStack
     )
 }
 
-/** The opening trainer's view model, shared by the Learn hub, the trainer list and the drill (scoped to the Learn graph). */
+/** The opening trainer's view model, shared by the Learn hub, the trainer list and the drill (it lives as long as the app). */
 @Composable
-private fun trainerViewModel(navController: NavHostController, entry: NavBackStackEntry): OpeningTrainerViewModel {
-    val owner = remember(entry) { navController.getBackStackEntry(TopTab.LEARN.graphRoute) }
+internal fun Shell.trainerViewModel(): OpeningTrainerViewModel {
     val context = LocalContext.current.applicationContext
     return viewModel(
-        viewModelStoreOwner = owner,
+        viewModelStoreOwner = appOwner,
         factory = OpeningTrainerViewModel.Factory(AppContainer.provideTraining(context)) { AppContainer.provideOpeningLoader(context).load() },
     )
 }
