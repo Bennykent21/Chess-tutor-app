@@ -1,0 +1,21 @@
+{
+  "id": "caro-kann",
+  "title": "Caro-Kann Defence",
+  "side": "black",
+  "start": "e4 c6",
+  "about": "Main lines: ...Bf5 against the Advance and the Classical, ...cxd5 against the Exchange, ...Bg4 against the Two Knights, ...d5 against White's rarer second moves. Every other own move is the sound move players at this level choose most, else Stockfish's.",
+  "choices": {
+    "e4 c6 d4": "d5",
+    "e4 c6 d4 d5 e5": "Bf5",
+    "e4 c6 d4 d5 Nc3": "dxe4",
+    "e4 c6 d4 d5 Nc3 dxe4 Nxe4": "Bf5",
+    "e4 c6 d4 d5 Nd2": "dxe4",
+    "e4 c6 d4 d5 Nd2 dxe4 Nxe4": "Bf5",
+    "e4 c6 d4 d5 exd5": "cxd5",
+    "e4 c6 Nc3": "d5",
+    "e4 c6 Nc3 d5 Nf3": "Bg4",
+    "e4 c6 Nf3": "d5",
+    "e4 c6 c4": "d5",
+    "e4 c6 d3": "d5"
+  }
+}
