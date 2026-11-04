@@ -60,12 +60,13 @@ private fun OpeningCardEntity.toDomain() = CardState(
     bookId = bookId, key = positionKey, level = level(level), stage = stage, easeFactor = easeFactor,
     intervalDays = intervalDays, dueAt = Instant.ofEpochMilli(dueAt), attempts = attempts,
     introducedAt = Instant.ofEpochMilli(introducedAt), lastReviewedAt = lastReviewedAt?.let(Instant::ofEpochMilli),
+    lapses = lapses, streak = streak,
 )
 
 private fun CardState.toEntity() = OpeningCardEntity(
     cardId = id, bookId = bookId, positionKey = key, level = level.ordinal, stage = stage, easeFactor = easeFactor,
     intervalDays = intervalDays, dueAt = dueAt.toEpochMilli(), attempts = attempts, introducedAt = introducedAt.toEpochMilli(),
-    lastReviewedAt = lastReviewedAt?.toEpochMilli(),
+    lastReviewedAt = lastReviewedAt?.toEpochMilli(), lapses = lapses, streak = streak,
 )
 
 private fun OpeningReviewEntity.toDomain() = CardReview(cardId, bookId, level(level), Instant.ofEpochMilli(at), firstTryRight, hinted)

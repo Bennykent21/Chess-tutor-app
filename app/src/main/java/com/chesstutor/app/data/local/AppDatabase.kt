@@ -236,7 +236,8 @@ abstract class AppDatabase : RoomDatabase() {
                     "CREATE TABLE IF NOT EXISTS opening_card (" +
                         "cardId TEXT NOT NULL, bookId TEXT NOT NULL, positionKey TEXT NOT NULL, level INTEGER NOT NULL, " +
                         "stage INTEGER NOT NULL, easeFactor REAL NOT NULL, intervalDays INTEGER NOT NULL, dueAt INTEGER NOT NULL, " +
-                        "attempts INTEGER NOT NULL, introducedAt INTEGER NOT NULL, lastReviewedAt INTEGER, PRIMARY KEY(cardId))"
+                        "attempts INTEGER NOT NULL, introducedAt INTEGER NOT NULL, lastReviewedAt INTEGER, " +
+                        "lapses INTEGER NOT NULL, streak INTEGER NOT NULL, PRIMARY KEY(cardId))"
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_opening_card_bookId ON opening_card (bookId)")
                 db.execSQL(

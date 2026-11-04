@@ -5,6 +5,7 @@ import com.chesstutor.app.domain.ReviewScheduler
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import kotlin.math.ceil
 
 /**
@@ -23,11 +24,22 @@ data class CardState(
     val attempts: Int = 0,
     val introducedAt: Instant,
     val lastReviewedAt: Instant? = null,
+    /** Misses after the first recall: how often this card has slipped once learned. */
+    val lapses: Int = 0,
+    /** Right first tries without a hint in a row. */
+    val streak: Int = 0,
 ) {
     val id: String get() = RepertoireCards.cardId(bookId, key)
 
     /** Missed last time, or not yet recalled once. */
     val learning: Boolean get() = stage < 0
+
+    /**
+     * A line the learner finds hard to hold (D76): missed at least [RepertoireCards.TRICKY_LAPSES]
+     * times once learned, and not yet right [RepertoireCards.TRICKY_CLEAR] times running since.
+     * It comes back sooner and is played from the start of its line.
+     */
+    val tricky: Boolean get() = lapses >= RepertoireCards.TRICKY_LAPSES && streak < RepertoireCards.TRICKY_CLEAR
 
     fun isDue(now: Instant): Boolean = !dueAt.isAfter(now)
 }
@@ -54,6 +66,12 @@ enum class CardAnswer {
 }
 
 object RepertoireCards {
+    const val TRICKY_LAPSES = 2
+    const val TRICKY_CLEAR = 3
+
+    /** A tricky card never waits longer than this. */
+    const val TRICKY_MAX_DAYS = 3L
+
     fun cardId(bookId: String, key: String): String = "$bookId|$key"
 
     fun judge(node: RepertoireNode, uci: String): CardAnswer = when (uci) {
@@ -69,7 +87,8 @@ object RepertoireCards {
     /**
      * The first try at a card decides its schedule, as in the mistakes review: right moves it
      * further out, right with a hint keeps it at a day, wrong (or the answer shown) brings it
-     * back now.
+     * back now. A miss after the first recall is a lapse; a tricky card's next review is never
+     * more than [TRICKY_MAX_DAYS] away.
      */
     fun afterRecall(card: CardState, right: Boolean, hinted: Boolean, now: Instant): Pair<CardState, CardReview> {
         val item = ReviewScheduler.recordAttempt(
@@ -79,10 +98,14 @@ object RepertoireCards {
             ),
             correct = right, usedHint = hinted, now = now,
         )
-        val next = card.copy(
+        val updated = card.copy(
             stage = item.stage, easeFactor = item.easeFactor, intervalDays = item.intervalDays,
             dueAt = item.dueAt, attempts = item.attempts, lastReviewedAt = now,
+            lapses = card.lapses + if (!right && card.attempts > 0) 1 else 0,
+            streak = if (right && !hinted) card.streak + 1 else 0,
         )
+        val soonest = now.plus(TRICKY_MAX_DAYS, ChronoUnit.DAYS)
+        val next = if (updated.tricky && updated.dueAt.isAfter(soonest)) updated.copy(dueAt = soonest) else updated
         return next to CardReview(card.id, card.bookId, card.level, now, firstTryRight = right && !hinted, hinted = hinted)
     }
 }
