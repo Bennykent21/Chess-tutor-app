@@ -108,6 +108,31 @@ class RepertoireViewModelTest {
     }
 
     @Test
+    fun aWrongGuessIsNotPlayedTheRightMoveIsShownAndTheLearnerPlaysIt() = runTest(dispatcher) {
+        val vm = model(InMemoryRepertoireProgressRepository())
+        vm.startLearn("italian")
+        advanceUntilIdle()
+        val board = vm.run.value!!.board
+        val start = board.state.value.position
+        // 1.d4 is as good as 1.e4, but not this repertoire's move: named, drawn, not played.
+        board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "d2d4" })
+        advanceUntilIdle()
+        assertEquals(RunMoment.Also("1.e4", "e2e4"), vm.run.value!!.moment)
+        assertEquals(0, board.state.value.moves.size)
+        // A wrong move slides back too, and the right one is drawn.
+        board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "a2a3" })
+        advanceUntilIdle()
+        assertEquals(RunMoment.Shown("1.e4", "e2e4"), vm.run.value!!.moment)
+        assertEquals(0, board.state.value.moves.size)
+        // Playing it brings the reveal, which says it was not a first-try guess.
+        board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "e2e4" })
+        advanceUntilIdle()
+        val reveal = vm.run.value!!.moment as RunMoment.Reveal
+        assertFalse(reveal.guessed)
+        assertEquals(listOf("e2e4"), board.state.value.moves.map { it.uci })
+    }
+
+    @Test
     fun aWrongMoveInReviewCountsAsMissedAndShowsTheAnswer() = runTest(dispatcher) {
         val repo = InMemoryRepertoireProgressRepository()
         val card = RepertoireCards.introduce(book.id, book.nodes.getValue(TestRepertoire.key("${TestRepertoire.P} g8f6")), day0.minus(Duration.ofDays(1)))

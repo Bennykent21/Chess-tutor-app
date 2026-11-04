@@ -49,16 +49,19 @@ object LearnPlanner {
 
 /** What happened on the learner's move in a learn run. */
 enum class LearnMoveResult {
-    /** First time at a new card: the guess was the repertoire move. */
+    /** First time at a new card: the first guess was the repertoire move. */
     GUESSED,
 
-    /** First time at a new card: another move. The move is shown with its note; no penalty. */
+    /**
+     * First time at a new card: another move. It is not played: the repertoire move is shown
+     * and the learner plays it (no penalty in the guess pass), then its note follows.
+     */
     REVEALED,
 
     /** The repertoire move. */
     RIGHT,
 
-    /** Just as good, not the repertoire's move: try again, no penalty. */
+    /** Just as good, not the repertoire's move: the repertoire move is shown, try again, no penalty. */
     ALSO,
 
     /** The answer is shown; on a new card in the recall pass this sets it back to Learning. */
@@ -87,6 +90,9 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
     var shown: String? = null
         private set
     private var hinted = false
+
+    /** The ply where the guess pass showed the answer after a wrong guess. */
+    private var revealedAt: Int? = null
     private val missed = HashSet<String>()
     private val results = LinkedHashMap<String, Pair<CardState, CardReview>>()
 
@@ -104,8 +110,15 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
         val expected = segment.moves[ply]
         val answer = RepertoireCards.judge(card, uci)
         if (pass == Pass.GUESS && isNewCard) {
-            advance(expected)
-            return if (answer == CardAnswer.RIGHT) LearnMoveResult.GUESSED else LearnMoveResult.REVEALED.also { shown = expected }
+            if (answer == CardAnswer.RIGHT) {
+                val firstTry = revealedAt != ply
+                advance(expected)
+                return if (firstTry) LearnMoveResult.GUESSED else LearnMoveResult.RIGHT
+            }
+            // Not played: the right move is shown, and the learner plays it.
+            revealedAt = ply
+            shown = expected
+            return if (answer == CardAnswer.ALSO) LearnMoveResult.ALSO else LearnMoveResult.REVEALED
         }
         return when (answer) {
             CardAnswer.RIGHT -> {
@@ -153,6 +166,7 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
         position = RepertoireIndex.play(position, uci)!!
         ply++
         shown = null
+        revealedAt = null
         if (ply >= segment.moves.size) {
             if (pass == Pass.GUESS) {
                 pass = Pass.RECALL

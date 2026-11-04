@@ -116,8 +116,12 @@ class RepertoireTrainerTest {
         run.submit("f1c4")
         run.playOpponent()
         assertTrue(run.isNewCard)
-        // A wrong guess costs nothing: the move is shown and played.
+        // A wrong guess costs nothing: it is not played, the right move is shown, and the learner plays it.
         assertEquals(LearnMoveResult.REVEALED, run.submit("b1c3"))
+        assertEquals(LearnRun.Pass.GUESS, run.pass)
+        assertEquals("d2d3", run.shown)
+        assertTrue(run.isNewCard)
+        assertEquals("after a reveal, playing it is RIGHT, not GUESSED", LearnMoveResult.RIGHT, run.submit("d2d3"))
         assertEquals("the segment ended, so the recall pass starts from the top", LearnRun.Pass.RECALL, run.pass)
         assertTrue(run.outcome.isEmpty())
         for (uci in "e2e4 e7e5 g1f3 b8c6 f1c4 g8f6".split(' ')) {

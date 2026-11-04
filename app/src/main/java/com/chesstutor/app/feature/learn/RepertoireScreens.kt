@@ -158,11 +158,18 @@ private fun CupRail(ui: RepertoireBookUi) {
             val track = CtColors.Track
             val accent = CtColors.Accent
             Canvas(Modifier.fillMaxSize()) {
+                // The rail runs only in the gaps between the cups, never through them.
                 val y = size.height / 2
-                val left = 24.dp.toPx()
-                val right = size.width - 24.dp.toPx()
-                drawLine(track, Offset(left, y), Offset(right, y), strokeWidth = 2.dp.toPx())
-                drawLine(accent, Offset(left, y), Offset(left + (right - left) * filled, y), strokeWidth = 2.dp.toPx())
+                val gap = 28.dp.toPx()
+                val centres = listOf(24.dp.toPx(), size.width / 2, size.width - 24.dp.toPx())
+                for (i in 0..1) {
+                    val start = centres[i] + gap
+                    val end = centres[i + 1] - gap
+                    if (end <= start) continue
+                    val done = (filled * 2 - i).coerceIn(0f, 1f)
+                    drawLine(track, Offset(start, y), Offset(end, y), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                    if (done > 0f) drawLine(accent, Offset(start, y), Offset(start + (end - start) * done, y), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                }
             }
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 RepertoireLevel.entries.forEach { level ->
@@ -295,6 +302,7 @@ fun RepertoireRunScreen(
         board = {
             val arrow = when (moment) {
                 is RunMoment.Shown -> moment.uci
+                is RunMoment.Also -> moment.uci
                 is RunMoment.CardDone -> moment.shown
                 else -> null
             }
@@ -377,8 +385,11 @@ private fun RunWords(run: RunUi) {
             moment.share?.let { Text("Played in ${percent(it)} of games", style = CtType.Caption.copy(color = CtColors.Text2)) }
             moment.pitfall?.let { Text(it, style = CtType.Caption.copy(color = CtColors.Error)) }
         }
-        is RunMoment.Also -> Text("Also good, but your move here is ${moment.san}.", style = CtType.Chat)
-        is RunMoment.Shown -> Text("Your move here is ${moment.san}.", style = CtType.Chat)
+        is RunMoment.Also -> Text(
+            moment.san?.let { "Also good, but your move here is $it. Play it to go on." } ?: "Also good, but not the move to remember here. Try again.",
+            style = CtType.Chat,
+        )
+        is RunMoment.Shown -> Text("Your move here is ${moment.san}. Play it to go on.", style = CtType.Chat)
         is RunMoment.Branch -> {
             val answer = moment.question.answer.uci
             Text(
