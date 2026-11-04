@@ -28,6 +28,10 @@ import com.chesstutor.app.feature.learn.LessonPlayerScreen
 import com.chesstutor.app.feature.learn.OpeningDrillScreen
 import com.chesstutor.app.feature.learn.OpeningTrainerScreen
 import com.chesstutor.app.feature.learn.OpeningTrainerViewModel
+import com.chesstutor.app.feature.learn.RepertoireActions
+import com.chesstutor.app.feature.learn.RepertoirePage
+import com.chesstutor.app.feature.learn.RepertoireRunScreen
+import com.chesstutor.app.feature.learn.RepertoireViewModel
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.TopTab
 
@@ -38,9 +42,10 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val learn = learnViewModel()
             val lessons by learn.learn.collectAsStateWithLifecycle()
             val trainer by trainerViewModel().trainer.collectAsStateWithLifecycle()
+            val repertoires by repertoireViewModel().state.collectAsStateWithLifecycle()
             LearnScreen(
                 learn = lessons,
-                trainerDue = trainer.dueTotal,
+                trainerDue = trainer.dueTotal + repertoires.dueTotal,
                 actions = LearnHubActions(
                     onOpenCategory = { category -> navController.navigate(AppRoutes.learnCategory(category.key)) { launchSingleTop = true } },
                     onOpenLesson = { id ->
@@ -54,13 +59,76 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
         composable(AppRoutes.TRAINER) { entry ->
             val model = trainerViewModel()
             val trainer by model.trainer.collectAsStateWithLifecycle()
+            val repertoire = repertoireViewModel()
+            val repertoires by repertoire.state.collectAsStateWithLifecycle()
             OpeningTrainerScreen(
                 state = trainer,
                 onOpen = { id ->
                     model.start(id)
                     navController.navigate(AppRoutes.TRAINER_DRILL) { launchSingleTop = true }
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                repertoires = repertoires.books,
+                onOpenRepertoire = { id -> navController.navigate(AppRoutes.repertoire(id)) { launchSingleTop = true } },
+                onReviewRepertoires = {
+                    repertoire.startReview()
+                    navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
+                },
+            )
+        }
+        composable(
+            route = AppRoutes.REPERTOIRE_PATTERN,
+            arguments = listOf(navArgument(AppRoutes.REPERTOIRE_ID_ARG) { type = NavType.StringType })
+        ) { entry ->
+            val repertoire = repertoireViewModel()
+            val repertoires by repertoire.state.collectAsStateWithLifecycle()
+            val id = entry.arguments?.getString(AppRoutes.REPERTOIRE_ID_ARG).orEmpty()
+            val ui = repertoires.book(id)
+            if (ui == null) {
+                if (!repertoires.loading) LaunchedEffect(Unit) { navController.popBackStack() }
+                return@composable
+            }
+            val homeModel = homeViewModel()
+            val openRun: (() -> Unit) -> () -> Unit = { start ->
+                {
+                    start()
+                    navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
+                }
+            }
+            RepertoirePage(
+                ui = ui,
+                actions = RepertoireActions(
+                    onBack = { navController.popBackStack() },
+                    onReview = openRun { repertoire.startReview(id) },
+                    onLearn = openRun { repertoire.startLearn(id) },
+                    onTricky = openRun { repertoire.startTricky(id) },
+                    onPlayOut = {
+                        homeModel.presetBattle(ui.battleLine, ui.book.side)
+                        navController.navigateToTab(TopTab.HOME)
+                        navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true }
+                    },
+                ),
+            )
+        }
+        composable(AppRoutes.REPERTOIRE_RUN) {
+            val repertoire = repertoireViewModel()
+            val run by repertoire.run.collectAsStateWithLifecycle()
+            val leave = {
+                repertoire.close()
+                navController.popBackStack()
+            }
+            BackHandler { leave() }
+            RepertoireRunScreen(
+                run = run,
+                settings = state.appSettings,
+                onFeedback = viewModel::playBoardFeedback,
+                onNext = repertoire::next,
+                onHint = repertoire::hint,
+                onShowAnswer = repertoire::showAnswer,
+                onPickBranch = repertoire::pickBranch,
+                onLearnMore = repertoire::learnMore,
+                onDismissMastered = repertoire::dismissMastered,
+                onBack = { leave() },
             )
         }
         composable(AppRoutes.TRAINER_DRILL) { entry ->
@@ -197,6 +265,21 @@ internal fun Shell.learnViewModel(): LearnViewModel {
             progress = AppContainer.provideLessonProgress(context),
             loadLibrary = { AppContainer.provideLessonLoader(context).load() },
             practice = AppContainer.provideTraining(context),
+        ),
+    )
+}
+
+/** The taught openings (Phase 10), shared by the hub, the trainer list, the opening page and its runs (it lives as long as the app). */
+@Composable
+internal fun Shell.repertoireViewModel(): RepertoireViewModel {
+    val context = LocalContext.current.applicationContext
+    val app = viewModel
+    return viewModel(
+        viewModelStoreOwner = appOwner,
+        factory = RepertoireViewModel.Factory(
+            repository = AppContainer.provideRepertoireProgress(context),
+            loadBooks = { AppContainer.provideRepertoireLoader(context).load() },
+            rating = { app.state.value.effectiveUserRating },
         ),
     )
 }

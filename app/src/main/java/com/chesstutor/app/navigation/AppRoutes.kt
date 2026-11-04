@@ -67,6 +67,11 @@ object AppRoutes {
     /** The opening trainer's list (plan 6C), and one line on the board (full screen). */
     const val TRAINER = "learn/trainer"
     const val TRAINER_DRILL = "learn/trainer/drill"
+    /** A taught opening's page (Phase 10), and a learn, review or tricky-lines run on the board (full screen). */
+    const val REPERTOIRE_ID_ARG = "repertoireId"
+    const val REPERTOIRE_PATTERN = "learn/repertoire/{$REPERTOIRE_ID_ARG}"
+    fun repertoire(id: String): String = "learn/repertoire/${encode(id)}"
+    const val REPERTOIRE_RUN = "learn/repertoire-run"
     /** Opens one lesson from another tab (Home's Continue card), then shows the player. */
     const val LESSON_ID_ARG = "lessonId"
     const val LESSON_OPEN_PATTERN = "learn/open/{$LESSON_ID_ARG}"
@@ -125,7 +130,7 @@ object AppRoutes {
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 
     private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN, GAMES_PATTERN, STATS_PATTERN, TRAINING)
-    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN)
     private val homePages = setOf(BOTS)
     private val puzzlePages = setOf(PUZZLE_LEVELS)
 

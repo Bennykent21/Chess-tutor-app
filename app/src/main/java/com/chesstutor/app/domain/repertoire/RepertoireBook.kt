@@ -68,6 +68,8 @@ data class RepertoireNode(
     /** Own nodes: the repertoire move and other moves that are just as good. */
     val move: String?,
     val also: List<String>,
+    /** Own nodes: how often players at this level choose [move] here, when the data says. */
+    val moveShare: Double? = null,
     val pitfall: Pitfall?,
     /** Opponent nodes: the replies in the tree, most common first. */
     val replies: List<RepertoireReply>,

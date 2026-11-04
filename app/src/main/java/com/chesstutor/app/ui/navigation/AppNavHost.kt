@@ -103,6 +103,7 @@ private fun AppShell(
     shell.homeViewModel()
     shell.learnViewModel()
     shell.trainerViewModel()
+    shell.repertoireViewModel()
     shell.puzzlesViewModel()
     shell.accountViewModel()
 

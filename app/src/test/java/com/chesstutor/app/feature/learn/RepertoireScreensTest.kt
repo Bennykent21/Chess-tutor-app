@@ -1,0 +1,139 @@
+package com.chesstutor.app.feature.learn
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.chesstutor.app.board.MoveEffects
+import com.chesstutor.app.data.settings.AppSettings
+import com.chesstutor.app.design.Appearance
+import com.chesstutor.app.design.AppTheme
+import com.chesstutor.app.design.CtBoardScreenTags
+import com.chesstutor.app.design.CtTheme
+import com.chesstutor.app.domain.repertoire.BranchQuestion
+import com.chesstutor.app.domain.repertoire.LevelProgress
+import com.chesstutor.app.domain.repertoire.Mastery
+import com.chesstutor.app.domain.repertoire.NoteKind
+import com.chesstutor.app.domain.repertoire.RepertoireIndex
+import com.chesstutor.app.domain.repertoire.RepertoireLevel
+import com.chesstutor.app.domain.repertoire.RepertoireNote
+import com.chesstutor.app.domain.repertoire.TestRepertoire
+import com.chesstutor.app.domain.repertoire.TestRepertoire.P
+import com.github.takahirom.roborazzi.captureRoboImage
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import java.time.Instant
+import java.time.ZoneOffset
+
+/** The opening trainer's page, runs and mastery sheet (Phase 10, mock-up round 2), at phone size. */
+@RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "w360dp-h780dp-xxhdpi")
+class RepertoireScreensTest {
+
+    @get:Rule
+    val compose = createComposeRule()
+
+    private val book = TestRepertoire.italian()
+    private val index = RepertoireIndex(book)
+
+    private fun pageUi(): RepertoireBookUi = RepertoireBookUi(
+        book = book,
+        index = index,
+        levels = LevelProgress(book.id),
+        mastery = RepertoireLevel.entries.associateWith { Mastery.of(book, it, emptyMap(), emptyList(), ZoneOffset.UTC) },
+        due = 12,
+        tricky = 3,
+        fresh = 5,
+        chart = ReplyChart("3.Bc4", listOf(ChartReply("Bc5", 0.44, false), ChartReply("Nf6", 0.35, false), ChartReply("Nd4", 0.06, true), ChartReply("Be7", 0.05, false))),
+        introduced = 4,
+        total = 9,
+    )
+
+    @Test
+    fun thePageLeadsWithReviewAndShowsTheCupsAndTheBranches() {
+        var reviewed = false
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                RepertoirePage(pageUi(), RepertoireActions(onBack = {}, onReview = { reviewed = true }, onLearn = {}, onTricky = {}, onPlayOut = {}))
+            }
+        }
+        compose.onNodeWithText("Italian Game").assertExists()
+        compose.onNodeWithText("Tricky lines").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page.png")
+        compose.onNodeWithText("Review 12").performClick()
+        assertEquals(true, reviewed)
+    }
+
+    @Test
+    fun thePageInTheDark() {
+        compose.setContent {
+            CtTheme(theme = AppTheme.PARCHMENT, appearance = Appearance.DARK, reduceMotion = true) {
+                RepertoirePage(pageUi(), RepertoireActions(onBack = {}, onReview = {}, onLearn = {}, onTricky = {}, onPlayOut = {}))
+            }
+        }
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_dark.png")
+    }
+
+    private fun runUi(moment: RunMoment, line: List<String>, mastered: RepertoireLevel? = null): RunUi {
+        val board = RepertoireBoard(line = { line to (moment == RunMoment.YourMove) }, submit = { MoveEffects.ILLEGAL })
+        return RunUi(
+            kind = RunKind.LEARN, title = "Italian Game", side = book.side, board = board, moment = moment,
+            against = if (moment == RunMoment.YourMove) "3...Nf6" else null, step = 2, steps = 5, tricky = false,
+            mastered = mastered, masteredBook = "Italian Game", nextLevelCards = 55,
+        )
+    }
+
+    @Test
+    fun theBoardStaysPutFromQuestionToRevealToBranchToTheCup() {
+        val toNf6 = "$P g8f6".split(' ')
+        val node = book.at(index.positionOf(TestRepertoire.key(P)))!!
+        val branch = BranchQuestion.at(node, band = null)!!
+        var shown by mutableStateOf(runUi(RunMoment.YourMove, toNf6))
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                RepertoireRunScreen(
+                    run = shown, settings = AppSettings(), onFeedback = {}, onNext = {}, onHint = {}, onShowAnswer = {},
+                    onPickBranch = {}, onLearnMore = {}, onDismissMastered = {}, onBack = {},
+                )
+            }
+        }
+        compose.onNodeWithText("What do you play against 3...Nf6?").assertExists()
+        val board = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_learn.png")
+
+        val note = RepertoireNote(NoteKind.PLAN, "Calm and solid. The pawn guards e4, so the knight on f6 has nothing to hit. Castle next, then c3 and d4 when you are ready.")
+        shown = runUi(RunMoment.Reveal("4.d3", guessed = false, note = note, share = 0.41, pitfall = "Many players here play 4.Ng5, a mistake."), toNf6 + "d2d3")
+        compose.waitForIdle()
+        compose.onNodeWithText("Played in 41% of games").assertExists()
+        assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_reveal.png")
+
+        shown = runUi(RunMoment.Branch(branch, listOf("3...Bc5", "3...Nf6", "3...Nd4"), picked = null), P.split(' '))
+        compose.waitForIdle()
+        compose.onNodeWithText("What do most players at your level play here?").assertExists()
+        compose.onNodeWithText("Nd4").assertExists()
+        assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_branch.png")
+
+        shown = runUi(RunMoment.CardDone(right = true, dueAt = Instant.now().plusSeconds(3 * 86_400), played = "d2d3", shown = null), toNf6 + "d2d3")
+        compose.waitForIdle()
+        assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
+
+        shown = runUi(RunMoment.Finished(right = 5, total = 5), toNf6 + "d2d3", mastered = RepertoireLevel.CORE)
+        compose.waitForIdle()
+        compose.onNodeWithText("Core mastered").assertExists()
+        compose.onNodeWithText("Standard is open: 55 new positions.").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_mastered.png")
+    }
+}
