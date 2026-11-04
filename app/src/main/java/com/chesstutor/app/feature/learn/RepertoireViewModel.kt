@@ -88,8 +88,11 @@ sealed interface RunMoment {
     /** A new move, shown after the learner's guess, with its note and how often it is played. */
     data class Reveal(val san: String, val guessed: Boolean, val note: RepertoireNote?, val share: Double?, val pitfall: String?) : RunMoment
 
-    /** Just as good, but not this repertoire's move: try again. */
-    data class Also(val san: String) : RunMoment
+    /**
+     * Just as good, but not this repertoire's move. The first time a move is met it is named and
+     * drawn ([san], [uci]); in a recall or review it stays hidden (null), so the card is still recalled.
+     */
+    data class Also(val san: String?, val uci: String?) : RunMoment
 
     /** The move to play is drawn on the board (after a wrong move or "Show me"). */
     data class Shown(val san: String, val uci: String) : RunMoment
@@ -219,37 +222,41 @@ class RepertoireViewModel(
         val line = run.segment.moves.take(run.ply)
         val expected = run.segment.moves.getOrNull(run.ply) ?: return MoveEffects.ILLEGAL
         val card = run.node
+        // A new move in the guess pass is followed by its note once it is on the board.
+        val firstMeeting = run.pass == LearnRun.Pass.GUESS && run.isNewCard
         val result = run.submit(move.uci) ?: return MoveEffects.ILLEGAL
         hintFrom = null
+        val san = numbered(before, legal(before, expected), line.size)
         return when (result) {
-            LearnMoveResult.GUESSED, LearnMoveResult.REVEALED -> {
-                val played = legal(before, expected)
-                // The board stays on this move while the reveal shows, even when the pass starts again.
-                frozen = line + expected
-                val after = LegalMoveGenerator.makeMove(before, played)
-                moment = RunMoment.Reveal(
-                    san = numbered(before, played, line.size),
-                    guessed = result == LearnMoveResult.GUESSED,
-                    note = run.book.at(after)?.note,
-                    share = card?.moveShare,
-                    pitfall = card?.pitfall?.let { p -> "Many players here play ${numbered(before, legal(before, p.uci), line.size)}, a ${p.verdict.name.lowercase()}." },
-                )
-                publish()
-                // A wrong guess costs nothing: it sounds like the move the board now shows.
-                MoveEffects.feedbackFor(before, played, after)
-            }
-            LearnMoveResult.RIGHT -> {
-                moment = RunMoment.YourMove
-                follow()
-                if (run.pass == LearnRun.Pass.DONE) MoveEffects.CORRECT else MoveEffects.feedbackFor(before, move, LegalMoveGenerator.makeMove(before, move))
+            LearnMoveResult.GUESSED, LearnMoveResult.RIGHT -> {
+                val after = LegalMoveGenerator.makeMove(before, move)
+                if (firstMeeting) {
+                    // The board stays on this move while the note shows, even when the pass starts again.
+                    frozen = line + expected
+                    moment = RunMoment.Reveal(
+                        san = san,
+                        guessed = result == LearnMoveResult.GUESSED,
+                        note = run.book.at(after)?.note,
+                        share = card?.moveShare,
+                        pitfall = card?.pitfall?.let { p -> "Many players here play ${numbered(before, legal(before, p.uci), line.size)}, a ${p.verdict.name.lowercase()}." },
+                    )
+                    publish()
+                    if (result == LearnMoveResult.GUESSED) MoveEffects.CORRECT else MoveEffects.feedbackFor(before, move, after)
+                } else {
+                    moment = RunMoment.YourMove
+                    follow()
+                    if (run.pass == LearnRun.Pass.DONE) MoveEffects.CORRECT else MoveEffects.feedbackFor(before, move, after)
+                }
             }
             LearnMoveResult.ALSO -> {
-                moment = RunMoment.Also(numbered(before, legal(before, expected), line.size))
+                // Met for the first time, the arrow shows the repertoire move; in a recall it stays hidden.
+                moment = if (firstMeeting) RunMoment.Also(san, expected) else RunMoment.Also(null, null)
                 publish()
                 MoveEffects.ILLEGAL
             }
-            LearnMoveResult.WRONG -> {
-                moment = RunMoment.Shown(numbered(before, legal(before, expected), line.size), expected)
+            LearnMoveResult.REVEALED, LearnMoveResult.WRONG -> {
+                // The wrong move slides back and the right one is drawn; the learner plays it.
+                moment = RunMoment.Shown(san, expected)
                 publish()
                 MoveEffects.WRONG
             }
@@ -361,7 +368,7 @@ class RepertoireViewModel(
                 }
             }
             CardAnswer.ALSO -> {
-                moment = RunMoment.Also(numbered(before, legal(before, expected), session.ply))
+                moment = RunMoment.Also(null, null)
                 publish()
                 MoveEffects.ILLEGAL
             }
