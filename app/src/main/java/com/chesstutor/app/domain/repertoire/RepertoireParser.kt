@@ -25,7 +25,7 @@ class RepertoireFormatException(message: String) : IllegalArgumentException(mess
  *   "source": { "data", "games", "bands": [{ "id", "chesscom": [from, to|null] }], "minGames", "minShare", "engine" },
  *   "nodes": [ { "key", "ply", "turn": "own"|"opponent", "games": [..], "data", "level": 0|1|2, "reach",
  *                "eval" | "mate", "name", "note": { "kind": "branch"|"plan"|"trap", "text" },
- *                own: "move", "also": [..], "pitfall": { "uci", "share", "verdict", "loss" },
+ *                own: "move", "also": [..], "moveShare", "pitfall": { "uci", "share", "verdict", "loss" },
  *                opponent: "replies": [ { "uci", "games", "share": [pooled, band..], "data", "verdict", "loss",
  *                                         "trap": "punish", "level" } ] } ] }
  * ```
@@ -124,6 +124,7 @@ object RepertoireParser {
                 mate = (obj["mate"] as? Number)?.toInt(),
                 move = move,
                 also = (obj["also"] as? List<*>).orEmpty().mapIndexed { i, v -> legalMove(v as? String ?: fail(at, "also[$i] must be text"), "also") },
+                moveShare = (obj["moveShare"] as? Number)?.toDouble(),
                 pitfall = (obj["pitfall"] as? Map<*, *>)?.let { pitfall(it.obj("$at pitfall"), "$at pitfall").also { p -> legalMove(p.uci, "pitfall") } },
                 replies = replies,
                 note = (obj["note"] as? Map<*, *>)?.let { note(it.obj("$at note"), "$at note") },

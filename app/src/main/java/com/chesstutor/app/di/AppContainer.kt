@@ -16,6 +16,8 @@ import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.data.puzzle.RoomPuzzleRepository
 import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
 import com.chesstutor.app.data.puzzle.SharedPrefsRushRecords
+import com.chesstutor.app.data.repertoire.RepertoireAssetLoader
+import com.chesstutor.app.data.repertoire.RoomRepertoireProgressRepository
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.data.repository.RoomGameRepository
 import com.chesstutor.app.data.repository.RatingRepository
@@ -162,6 +164,26 @@ object AppContainer {
     fun provideTraining(context: Context): RoomTrainingRepository {
         return trainingInstance ?: synchronized(this) {
             trainingInstance ?: RoomTrainingRepository(AppDatabase.getInstance(context)).also { trainingInstance = it }
+        }
+    }
+
+    @Volatile
+    private var repertoireLoaderInstance: RepertoireAssetLoader? = null
+
+    /** The taught openings (Phase 10, `assets/repertoire`), read on first use and kept for the process. */
+    fun provideRepertoireLoader(context: Context): RepertoireAssetLoader {
+        return repertoireLoaderInstance ?: synchronized(this) {
+            repertoireLoaderInstance ?: RepertoireAssetLoader(context.applicationContext.assets).also { repertoireLoaderInstance = it }
+        }
+    }
+
+    @Volatile
+    private var repertoireProgressInstance: RoomRepertoireProgressRepository? = null
+
+    /** The opening trainer's cards, review log and levels (Room `opening_card`, `opening_review`, `opening_level`). */
+    fun provideRepertoireProgress(context: Context): RoomRepertoireProgressRepository {
+        return repertoireProgressInstance ?: synchronized(this) {
+            repertoireProgressInstance ?: RoomRepertoireProgressRepository(AppDatabase.getInstance(context)).also { repertoireProgressInstance = it }
         }
     }
 

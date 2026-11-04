@@ -829,6 +829,9 @@ def expand_own(item, ply, stats, analysis, choices, params, start):
     node = {"key": key, "ply": ply, "turn": "own", "games": totals, "data": sum(totals) >= params.min_games,
             "eval": white_eval(board, lines), "level": level, "reach": item.reach, "move": move,
             "also": sorted(u for u in sound if u != move and scores[move] - scores[u] <= params.also_margin)}
+    if sum(totals) >= params.min_games:
+        # How often players at this level choose the repertoire move here (shown on the reveal).
+        node["moveShare"] = round(sum(stats.get(move, [0])) / sum(totals), 4)
     pitfalls = [(s, u) for u, s in popular(stats, params).items()
                 if u != move and s >= params.pitfall_share and best - scores[u] > INACCURACY]
     if pitfalls:
