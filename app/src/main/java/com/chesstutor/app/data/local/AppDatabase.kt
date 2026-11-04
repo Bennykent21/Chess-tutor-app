@@ -26,7 +26,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CoursePracticeEntity::class,
         OpeningDrillEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -217,6 +217,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Phase 10: the mistakes review keeps the scheduler's ease and interval (they were lost on every load). */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE review_items ADD COLUMN easeFactor REAL NOT NULL DEFAULT 2.5")
+                db.execSQL("ALTER TABLE review_items ADD COLUMN intervalDays INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -230,6 +238,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
+            MIGRATION_13_14,
         )
 
         @Volatile
