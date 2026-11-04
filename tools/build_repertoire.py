@@ -192,6 +192,11 @@ def parse_args(argv=None):
     s.set_defaults(min_games=150, min_band_games=40, min_reply_games=8, nodes=30_000, multipv=3,
                    core_reach=0.2, standard_reach=0.08, deep_reach=0.03, deep_ply=12, ceilings="8,20,40",
                    engine_cache=os.path.join(CACHE, "engine-sample.jsonl"))
+    v = sub.add_parser("preview", help="write the debug-only preview openings from made-up counts")
+    v.add_argument("--games", type=int, default=6000)
+    add_thresholds(v)
+    v.set_defaults(min_games=120, min_band_games=40, min_reply_games=12, nodes=400_000, deep_reach=0.01,
+                   engine_cache=os.path.join(CACHE, "engine-preview.jsonl"))
     return p.parse_args(argv)
 
 
@@ -1350,9 +1355,85 @@ def sample(args):
     print(f"wrote sample.json.gz: {len(nodes)} positions, cards per level {cards_per_level(nodes)}, {sizes[1]:,} bytes")
 
 
+# Made-up game counts for the debug-only preview (app/src/debug/assets): plausible weights, not data.
+# Each entry: the SAN path from the start -> {next move: weight}. Games stop where the book stops.
+PREVIEW_BOOKS = {
+    "italian": {
+        "": {"e4": 1}, "e4": {"e5": 1}, "e4 e5": {"Nf3": 1}, "e4 e5 Nf3": {"Nc6": 1}, "e4 e5 Nf3 Nc6": {"Bc4": 1},
+        "e4 e5 Nf3 Nc6 Bc4": {"Bc5": 45, "Nf6": 33, "Nd4": 7, "Be7": 6, "d6": 5, "h6": 4},
+        "e4 e5 Nf3 Nc6 Bc4 Bc5": {"c3": 55, "O-O": 25, "d3": 20},
+        "e4 e5 Nf3 Nc6 Bc4 Bc5 c3": {"Nf6": 60, "d6": 20, "Qe7": 12, "Bb6": 8},
+        "e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6": {"d3": 60, "d4": 40},
+        "e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3": {"d6": 40, "O-O": 30, "a6": 15, "h6": 15},
+        "e4 e5 Nf3 Nc6 Bc4 Bc5 c3 d6": {"d4": 50, "d3": 50},
+        "e4 e5 Nf3 Nc6 Bc4 Nf6": {"d3": 45, "Ng5": 40, "Nc3": 15},
+        "e4 e5 Nf3 Nc6 Bc4 Nf6 d3": {"Bc5": 45, "Be7": 35, "h6": 10, "d6": 10},
+        "e4 e5 Nf3 Nc6 Bc4 Nf6 d3 Bc5": {"c3": 60, "O-O": 40},
+        "e4 e5 Nf3 Nc6 Bc4 Nf6 d3 Be7": {"O-O": 70, "c3": 30},
+        "e4 e5 Nf3 Nc6 Bc4 Nd4": {"Nxe5": 55, "Nxd4": 30, "O-O": 15},
+        "e4 e5 Nf3 Nc6 Bc4 Nd4 Nxe5": {"Qg5": 80, "d6": 20},
+        "e4 e5 Nf3 Nc6 Bc4 Be7": {"d4": 55, "d3": 45},
+        "e4 e5 Nf3 Nc6 Bc4 d6": {"d4": 50, "c3": 50},
+    },
+    "caro-kann": {
+        "": {"e4": 1}, "e4": {"c6": 1},
+        "e4 c6": {"d4": 70, "Nc3": 12, "Nf3": 8, "c4": 5, "d3": 5},
+        "e4 c6 d4": {"d5": 1},
+        "e4 c6 d4 d5": {"e5": 35, "Nc3": 25, "exd5": 25, "Nd2": 10, "f3": 5},
+        "e4 c6 d4 d5 e5": {"Bf5": 1},
+        "e4 c6 d4 d5 e5 Bf5": {"Nf3": 40, "Nc3": 20, "Be2": 20, "h4": 10, "c3": 10},
+        "e4 c6 d4 d5 Nc3": {"dxe4": 1}, "e4 c6 d4 d5 Nc3 dxe4": {"Nxe4": 1},
+        "e4 c6 d4 d5 Nc3 dxe4 Nxe4": {"Bf5": 1},
+        "e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5": {"Ng3": 80, "Nc5": 20},
+        "e4 c6 d4 d5 Nd2": {"dxe4": 1}, "e4 c6 d4 d5 Nd2 dxe4": {"Nxe4": 1},
+        "e4 c6 d4 d5 Nd2 dxe4 Nxe4": {"Bf5": 1},
+        "e4 c6 d4 d5 exd5": {"cxd5": 1},
+        "e4 c6 d4 d5 exd5 cxd5": {"Bd3": 40, "c4": 30, "Nf3": 30},
+        "e4 c6 d4 d5 f3": {"e6": 50, "dxe4": 50},
+        "e4 c6 Nc3": {"d5": 1}, "e4 c6 Nc3 d5": {"Nf3": 60, "d4": 40},
+        "e4 c6 Nc3 d5 Nf3": {"Bg4": 1},
+        "e4 c6 Nf3": {"d5": 1}, "e4 c6 Nf3 d5": {"e5": 50, "Nc3": 30, "exd5": 20},
+        "e4 c6 c4": {"d5": 1}, "e4 c6 c4 d5": {"exd5": 70, "cxd5": 30},
+        "e4 c6 d3": {"d5": 1}, "e4 c6 d3 d5": {"Nd2": 70, "e5": 30},
+    },
+}
+
+
+def preview(args):
+    """Debug-only preview openings from PREVIEW_BOOKS (made-up counts, real Stockfish), so the
+    trainer screens can be tried before the Lichess data is built."""
+    rng = random.Random(21)
+    out_dir = os.path.join(ROOT, "app", "src", "debug", "assets", "repertoire")
+    analyzer = Analyzer(args.stockfish, args.nodes, args.multipv, args.workers, args.engine_cache)
+    names = opening_names()
+    try:
+        for opening_id, book in PREVIEW_BOOKS.items():
+            config = load_config(opening_id) | {}
+            config["title"] = config["title"] + " (preview)"
+            counter = Counter([config["start"].split()], 24, 10_000_000)
+            for g in range(args.games):
+                sans = []
+                while True:
+                    options = book.get(" ".join(sans))
+                    if not options:
+                        break
+                    sans.append(rng.choices(list(options), weights=list(options.values()))[0])
+                speed = rng.choice(["Blitz", "Rapid"])
+                headers = {"Event": f"Rated {speed} game", "WhiteElo": str(rng.randrange(900, 2300)), "BlackElo": str(rng.randrange(900, 2300))}
+                counter.add(headers, " ".join(f"{i // 2 + 1}. {s}" if i % 2 == 0 else s for i, s in enumerate(sans)) + " 1-0")
+            meta = counter.meta() | {"input": "made-up counts (preview, debug builds only)", "done": True}
+            counts = {p: e[:NBANDS] for p, e in counter.counts.items()}
+            params = Params(args)
+            nodes = build_within_ceilings(config, position_edges(counts, config["start"].split()), analyzer, params, names)
+            sizes = write_asset(asset_of(config, nodes, meta, params, args), os.path.join(out_dir, f"{opening_id}.json.gz"))
+            print(f"{opening_id}: {len(nodes)} positions, cards per level {cards_per_level(nodes)}, {sizes[1]:,} bytes")
+    finally:
+        analyzer.close()
+
+
 def main(argv=None):
     args = parse_args(argv)
-    {"fetch": fetch, "count": count, "build": build, "keys": keys, "sample": sample}[args.step](args)
+    {"fetch": fetch, "count": count, "build": build, "keys": keys, "sample": sample, "preview": preview}[args.step](args)
 
 
 if __name__ == "__main__":
