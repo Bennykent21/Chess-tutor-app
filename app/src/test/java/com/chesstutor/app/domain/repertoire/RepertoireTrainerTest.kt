@@ -205,6 +205,70 @@ class RepertoireTrainerTest {
         assertEquals(key("$P g8f6"), due.position.repetitionKey())
     }
 
+    // ---------------------------------------------------------------- tricky lines (D76)
+
+    @Test
+    fun twoSlipsAfterLearningMakeALineTrickyUntilThreeCleanRecalls() {
+        val node = book.nodes.getValue(key("$P g8f6"))
+        var card = RepertoireCards.introduce(book.id, node, day0)
+        // A miss in the very first recall is learning, not a lapse.
+        card = RepertoireCards.afterRecall(card, right = false, hinted = false, now = day0).first
+        assertEquals(0, card.lapses)
+        card = RepertoireCards.afterRecall(card, right = true, hinted = false, now = day0).first
+        card = RepertoireCards.afterRecall(card, right = false, hinted = false, now = day(1)).first
+        assertEquals(1, card.lapses)
+        assertFalse(card.tricky)
+        card = RepertoireCards.afterRecall(card, right = true, hinted = false, now = day(1)).first
+        card = RepertoireCards.afterRecall(card, right = false, hinted = false, now = day(2)).first
+        assertTrue(card.tricky)
+        // Right again: still tricky, so it comes back within three days however far the scheduler would push it.
+        for ((n, d) in listOf(2L, 4L, 6L).withIndex()) {
+            card = RepertoireCards.afterRecall(card.copy(stage = 4, easeFactor = 3f), right = true, hinted = false, now = day(d)).first
+            if (n < 2) {
+                assertTrue(card.tricky)
+                assertFalse(card.dueAt.isAfter(day(d + RepertoireCards.TRICKY_MAX_DAYS)))
+            }
+        }
+        assertFalse("three clean recalls in a row clear it", card.tricky)
+        assertTrue(card.dueAt.isAfter(day(6 + RepertoireCards.TRICKY_MAX_DAYS)))
+    }
+
+    @Test
+    fun aHintedRightAnswerDoesNotCountTowardsClearing() {
+        val card = RepertoireCards.introduce(book.id, book.nodes.getValue(key("")), day0).copy(attempts = 5, lapses = 2, streak = 2)
+        val after = RepertoireCards.afterRecall(card, right = true, hinted = true, now = day0).first
+        assertEquals(0, after.streak)
+        assertTrue(after.tricky)
+    }
+
+    @Test
+    fun aTrickyCardIsPlayedFromTheStartOfItsLine() {
+        val tricky = RepertoireCards.introduce(book.id, book.nodes.getValue(key("$P g8f6")), day0).copy(attempts = 4, lapses = 2)
+        val plain = RepertoireCards.introduce(book.id, book.nodes.getValue(key("$P f8c5")), day0.plusSeconds(1))
+        assertEquals(listOf(key("$P g8f6")), ReviewQueue.tricky(listOf(index), listOf(plain, tricky)).map { it.node.key })
+        val due = ReviewQueue.build(listOf(index), listOf(tricky), day(1)).single()
+        assertTrue(due.fromStart)
+
+        val session = ReviewSession(listOf(due)) { day(1) }
+        assertFalse(session.atCard)
+        // Earlier moves are practice: a slip is shown and costs nothing, an alternative asks again.
+        assertEquals(CardAnswer.WRONG, session.submit("a2a3"))
+        assertEquals("e2e4", session.shown)
+        assertEquals(CardAnswer.ALSO, session.submit("d2d4"))
+        assertEquals(CardAnswer.RIGHT, session.submit("e2e4"))
+        assertNull("the opponent's move is played for them", session.submit("e7e5"))
+        assertTrue(session.playOpponent())
+        session.submit("g1f3")
+        session.playOpponent()
+        session.submit("f1c4")
+        session.playOpponent()
+        assertTrue(session.atCard)
+        assertEquals(CardAnswer.RIGHT, session.submit("d2d3"))
+        val (card, review) = session.outcome.single()
+        assertTrue("the practice slip did not count", review.firstTryRight)
+        assertEquals(1, card.streak)
+    }
+
     // ---------------------------------------------------------------- mastery and levels
 
     private fun reviewAll(states: Map<String, CardState>, at: Instant, right: (CardState) -> Boolean = { true }): Pair<Map<String, CardState>, List<CardReview>> {

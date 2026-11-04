@@ -25,6 +25,9 @@ data class OpeningCardEntity(
     val attempts: Int,
     val introducedAt: Long,
     val lastReviewedAt: Long?,
+    /** Misses after the first recall, and clean first tries in a row: tricky lines (D76). */
+    val lapses: Int,
+    val streak: Int,
 )
 
 /** Every scheduled recall, for the mastery numbers (D72). Append-only. */
