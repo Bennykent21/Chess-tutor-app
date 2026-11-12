@@ -101,7 +101,8 @@ fun PositionSetupScreen(
  * A board screen for setting up a position (From a position and Explore): the pieces to place
  * and who moves first sit above the fixed board, and the [nextLabel] button at the bottom opens
  * a sheet with the page's own [options] (side, opponent or strength) and the [startLabel]
- * button (D63: above the board they did not fit on a phone). Start position, kings only and a
+ * button (D63: above the board they did not fit on a phone). Without [options] the bottom
+ * button starts at once. Start position, kings only and a
  * FEN are in the menu. [SetupBoard.problem] keeps the button off until the position can be played.
  */
 @Composable
@@ -116,7 +117,7 @@ internal fun SetupBoardScreen(
     nextLabel: String,
     startLabel: String,
     onStart: () -> Unit,
-    options: @Composable ColumnScope.() -> Unit,
+    options: (@Composable ColumnScope.() -> Unit)?,
 ) {
     val problem = remember(board) { board.problem() }
     var fenOpen by remember { mutableStateOf(false) }
@@ -148,11 +149,13 @@ internal fun SetupBoardScreen(
             if (problem != null) Text(problem, style = CtType.BodySmall.copy(color = CtColors.Error), maxLines = 2)
         },
         board = { EditorBoard(board, theme) { square -> onBoard(board.place(square, brush)) } },
-        controls = { CtButton(text = nextLabel, enabled = problem == null, onClick = { optionsOpen = true }, modifier = Modifier.weight(1f)) },
+        controls = {
+            CtButton(text = nextLabel, enabled = problem == null, onClick = { if (options == null) onStart() else optionsOpen = true }, modifier = Modifier.weight(1f))
+        },
         overlay = {
             FenSheet(fenOpen, board, onBoard, onDismiss = { fenOpen = false })
             CtSheet(visible = optionsOpen, onDismiss = { optionsOpen = false }) {
-                options()
+                options?.invoke(this)
                 CtButton(
                     text = startLabel,
                     onClick = {

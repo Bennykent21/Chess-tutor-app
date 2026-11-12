@@ -78,6 +78,7 @@ data class HomeActions(
     val onPractiseTheme: (String) -> Unit = {},
     /** The Bots page: every bot, your own, build one, watch two (D42). */
     val onOpenBots: () -> Unit = {},
+    val onPlayFriend: () -> Unit = {},
 )
 
 /**
@@ -158,22 +159,25 @@ fun HomeScreen(
                     CtArtTile(title = "Opening battle", scene = CtScene.BATTLE, modifier = tile, compact = true, onClick = actions.onOpeningBattle)
                     CtArtTile(title = "From a position", scene = CtScene.POSITION, modifier = tile, compact = true, onClick = actions.onFromPosition)
                     CtArtTile(title = "Explore", scene = CtScene.EXPLORE, modifier = tile, compact = true, onClick = actions.onExplore)
-                    PlayAFriend(tile)
+                    PlayAFriend(tile, actions.onPlayFriend)
                 }
             }
         }
     }
 }
 
-/** Friend play is on the way (the developer's plan), so it shows here but does nothing yet. */
+/** Two people on this phone (Phase 11). A plain tile: it has no scene of its own yet. */
 @Composable
-private fun PlayAFriend(modifier: Modifier) {
+private fun PlayAFriend(modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier = modifier.clip(CtShapes.CardSmall).background(CtColors.Surface).padding(horizontal = 10.dp, vertical = CtSpacing.sm),
+        modifier = modifier
+            .clip(CtShapes.CardSmall)
+            .background(CtColors.Surface)
+            .ctPressable(onClickLabel = "Play a friend", onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = CtSpacing.sm),
         verticalArrangement = Arrangement.Bottom,
     ) {
         Text("Play a friend", style = CtType.Label, maxLines = 1)
-        Text("Coming soon", style = CtType.Caption, maxLines = 1)
     }
 }
 

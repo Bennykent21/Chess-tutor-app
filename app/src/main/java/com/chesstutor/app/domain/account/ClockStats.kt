@@ -73,7 +73,8 @@ object ClockStats {
             records = ClockRecords(
                 current = current ?: rated.lastOrNull(),
                 peak = (rated + listOfNotNull(current)).maxOrNull(),
-                bestWin = wins.maxByOrNull { it.opponentRating },
+                // A friend has no rating, so a win against one is never the "best win".
+                bestWin = wins.filter { it.opponentRating > 0 }.maxByOrNull { it.opponentRating },
                 longestWinStreak = longestRun(byDate.map { it.outcome == GameOutcome.WIN }),
                 averageOpponent = finished.map { it.opponentRating }.filter { it > 0 }.takeIf { it.isNotEmpty() }?.average()?.toInt(),
             ),
