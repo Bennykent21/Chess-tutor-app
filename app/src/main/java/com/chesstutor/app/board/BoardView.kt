@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.ColorFilter
@@ -120,6 +121,8 @@ internal fun BoardCanvas(
     showLegalDots: Boolean,
     marks: BoardMarks,
     motion: BoardMotion,
+    /** This side's pieces are drawn upside down, for a player sitting across the phone. */
+    turned: PieceColor? = null,
 ) {
     val painters = rememberPiecePainters(theme.pieceSet)
     val textMeasurer = rememberTextMeasurer()
@@ -143,7 +146,7 @@ internal fun BoardCanvas(
         if (showCoordinates) drawCoordinates(theme.colors, whiteAtBottom, cell, textMeasurer, coordinateStyle)
         if (showLegalDots) drawLegalTargets(position, marks.legalTargets, whiteAtBottom, cell)
         motion.dragged?.let { drawHoverOutline(it, whiteAtBottom, cell) }
-        drawPieces(position, painters, whiteAtBottom, cell, motion)
+        drawPieces(position, painters, whiteAtBottom, cell, motion, turned)
         marks.rings.forEach { drawRing(it, whiteAtBottom, cell) }
         marks.arrows.forEach { drawArrow(it, whiteAtBottom, cell) }
         marks.badge?.let { drawBadge(it, whiteAtBottom, cell, textMeasurer, badgeStyle, badgeIcon) }
@@ -305,13 +308,15 @@ private fun DrawScope.drawLegalTargets(position: Position, targets: Set<Square>,
 /** How much bigger a dragged piece is drawn. */
 private const val LIFT_SCALE = 1.25f
 
-private fun DrawScope.drawPiece(painter: Painter, topLeft: Offset, size: Float, alpha: Float = 1f) {
-    translate(topLeft.x, topLeft.y) {
-        with(painter) { draw(Size(size, size), alpha = alpha) }
+private fun DrawScope.drawPiece(painter: Painter, topLeft: Offset, size: Float, alpha: Float = 1f, turned: Boolean = false) {
+    rotate(if (turned) 180f else 0f, pivot = topLeft + Offset(size / 2f, size / 2f)) {
+        translate(topLeft.x, topLeft.y) {
+            with(painter) { draw(Size(size, size), alpha = alpha) }
+        }
     }
 }
 
-private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painter>, whiteAtBottom: Boolean, cell: Float, motion: BoardMotion) {
+private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painter>, whiteAtBottom: Boolean, cell: Float, motion: BoardMotion, turned: PieceColor?) {
     val sliding = motion.isSliding
     // Squares whose piece is drawn by the motion layer instead of in place.
     val landing = if (sliding) motion.slides.map { it.to }.toSet() else emptySet()
@@ -320,7 +325,7 @@ private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painte
         motion.captured?.let { (square, piece) ->
             // The captured piece is gone a little before the slide lands (180 of 220 ms).
             val fade = (motion.slideProgress * CtMotion.PIECE_SLIDE_MS / CtMotion.FADE_MS).coerceIn(0f, 1f)
-            painters[piece]?.let { drawPiece(it, cellTopLeft(square, whiteAtBottom, cell), cell, alpha = 1f - fade) }
+            painters[piece]?.let { drawPiece(it, cellTopLeft(square, whiteAtBottom, cell), cell, alpha = 1f - fade, turned = piece.color == turned) }
         }
     }
     for (index in 0 until 64) {
@@ -333,14 +338,14 @@ private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painte
         if (shake != null && shake.first == square) topLeft += Offset(shake.second * cell, 0f)
         // The dragged piece leaves a faint ghost on its square.
         val alpha = if (motion.dragged?.from == square) 0.3f else 1f
-        drawPiece(painter, topLeft, cell, alpha)
+        drawPiece(painter, topLeft, cell, alpha, turned = piece.color == turned)
     }
     if (sliding) {
         motion.slides.forEach { slide ->
             val painter = painters[slide.piece] ?: return@forEach
             val start = cellTopLeft(slide.from, whiteAtBottom, cell)
             val end = cellTopLeft(slide.to, whiteAtBottom, cell)
-            drawPiece(painter, lerp(start, end, motion.slideProgress), cell)
+            drawPiece(painter, lerp(start, end, motion.slideProgress), cell, turned = slide.piece.color == turned)
         }
     }
     motion.dragged?.let { dragged ->
@@ -350,8 +355,11 @@ private fun DrawScope.drawPieces(position: Position, painters: Map<Piece, Painte
         // caches its last size, and every other piece of that kind would draw enlarged.
         val lifted = cell * LIFT_SCALE
         val topLeft = dragged.position - Offset(lifted / 2f, lifted * 0.75f)
-        translate(topLeft.x, topLeft.y) {
-            scale(LIFT_SCALE, pivot = Offset.Zero) { with(painter) { draw(Size(cell, cell)) } }
+        // For the player across the phone, "above the finger" is the other way up.
+        rotate(if (dragged.piece.color == turned) 180f else 0f, pivot = dragged.position) {
+            translate(topLeft.x, topLeft.y) {
+                scale(LIFT_SCALE, pivot = Offset.Zero) { with(painter) { draw(Size(cell, cell)) } }
+            }
         }
     }
 }

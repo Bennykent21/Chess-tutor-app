@@ -93,6 +93,8 @@ fun BoardHost(
     /** Game review: the last move tinted by its quality, and the quality badge on its square. */
     lastMoveColor: Long? = null,
     badge: SquareBadge? = null,
+    /** This side's pieces are drawn upside down, for a friend sitting across the phone. */
+    turned: PieceColor? = null,
 ) {
     val state by session.state.collectAsState()
     var drawPreview by remember { mutableStateOf<Pair<Square, Square>?>(null) }
@@ -297,6 +299,7 @@ fun BoardHost(
                 showLegalDots = showLegalDots,
                 marks = marks,
                 motion = motion,
+                turned = turned,
             )
             SquareSemantics(state, selected, shownWhiteAtBottom, cellDp.value) { square ->
                 handle(BoardInput.tap(selected, square, state.position, state.legalMoves, state.movable, autoQueen))

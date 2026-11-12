@@ -96,6 +96,11 @@ object AppRoutes {
     /** "Watch two bots": pick both, then a bot-vs-bot game. */
     const val WATCH = "home/watch"
     const val BATTLE_PICK = "home/battle/pick"
+    /** Play a friend (Phase 11): the setup page, its opening and position pickers, and the game. */
+    const val FRIEND = "home/friend"
+    const val FRIEND_OPENING = "home/friend/opening"
+    const val FRIEND_POSITION = "home/friend/position"
+    const val FRIEND_PLAY = "home/friend/play"
     /** The bot builder: a new bot, or one of "My bots" to edit. */
     const val BUILDER_PATTERN = "home/builder?$BOT_ID_ARG={$BOT_ID_ARG}"
     /** The full opening list for the bot being built; the side is "white" or "black". */
