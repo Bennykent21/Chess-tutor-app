@@ -13,12 +13,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * The board side of a game against a bot: the player may move only their own pieces, only
- * on their turn, and only while [open]. [BotGame] plays the bot's moves with [play].
+ * The board side of a game: the people at this phone may move only the sides in [players], only
+ * on their turn, and only while [open]. [BotGame] plays the bot's moves with [play], and a friend
+ * game on one phone gives both sides to its players.
  */
 class PlaySession(
     start: Position,
-    private val player: PieceColor,
+    private val players: Set<PieceColor>,
     private val onPlayerMove: (Move) -> Unit,
 ) : BoardSession {
     private val history = ArrayDeque<GameState>().apply { add(GameState(start)) }
@@ -40,7 +41,7 @@ class PlaySession(
     val positions: List<Position> get() = history.map { it.position }
 
     override fun onMove(move: Move): BoardFeedback {
-        if (mutableState.value.movable != player) return MoveEffects.ILLEGAL
+        if (mutableState.value.movable == null) return MoveEffects.ILLEGAL
         val feedback = play(move)
         onPlayerMove(move)
         return feedback
@@ -65,7 +66,7 @@ class PlaySession(
         publish(previous = history.getOrNull(history.size - 2)?.position, animate = false)
     }
 
-    private fun movableNow(): PieceColor? = if (open && game.position.sideToMove == player && !game.isOver) player else null
+    private fun movableNow(): PieceColor? = game.position.sideToMove.takeIf { open && it in players && !game.isOver }
 
     private fun publish(previous: Position?, animate: Boolean) {
         val current = history.last()
