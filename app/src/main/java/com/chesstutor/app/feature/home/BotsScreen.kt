@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -28,8 +30,8 @@ import com.chesstutor.app.domain.bot.CustomBot
 import com.chesstutor.app.domain.bot.RosterBot
 
 /**
- * Bots (D42): every bot to play, your own bots, and buttons to build a new one or watch two
- * play each other. Reached from Home's "More ways to play".
+ * Play (D42): a friend at this phone, every bot, your own bots, and buttons to build a new one
+ * or watch two play each other. Reached from Home's Play button.
  */
 @Composable
 fun BotsScreen(
@@ -38,17 +40,25 @@ fun BotsScreen(
     onOpenBot: (String) -> Unit,
     onNewBot: () -> Unit,
     onWatch: () -> Unit,
+    onPlayFriend: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtTopBar(title = "Bots", onBack = onBack)
+            CtTopBar(title = "Play", onBack = onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     CtButton(text = "Build a bot", icon = Icons.Rounded.Add, onClick = onNewBot, modifier = Modifier.weight(1f))
                     CtButton(text = "Watch two", icon = Icons.Rounded.Visibility, style = CtButtonStyle.Secondary, onClick = onWatch, modifier = Modifier.weight(1f))
                 }
+                CtButton(
+                    text = "Play a friend",
+                    icon = Icons.Rounded.Group,
+                    style = CtButtonStyle.Secondary,
+                    onClick = onPlayFriend,
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                )
                 if (myBots.isNotEmpty()) {
                     CtSectionHeader(title = "My bots")
                     BotGrid(myBots.map { it.asRosterBot() }, onOpenBot)

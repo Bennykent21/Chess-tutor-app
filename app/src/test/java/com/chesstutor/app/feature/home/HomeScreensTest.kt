@@ -165,6 +165,7 @@ class HomeScreensTest {
         var opened: String? = null
         var built = false
         var watched = false
+        var friend = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 BotsScreen(
@@ -173,6 +174,7 @@ class HomeScreensTest {
                     onOpenBot = { opened = it },
                     onNewBot = { built = true },
                     onWatch = { watched = true },
+                    onPlayFriend = { friend = true },
                     onBack = {},
                 )
             }
@@ -183,6 +185,8 @@ class HomeScreensTest {
         assertTrue(built)
         compose.onNodeWithText("Watch two").performClick()
         assertTrue(watched)
+        compose.onNodeWithText("Play a friend").performClick()
+        assertTrue(friend)
         compose.onNodeWithText("Pebble").performScrollTo().performClick()
         assertEquals("pebble", opened)
     }
