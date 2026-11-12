@@ -68,7 +68,6 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                     onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
                     onExplore = { navController.navigate(AppRoutes.EXPLORE) { launchSingleTop = true } },
                     onOpenBots = { navController.navigate(AppRoutes.BOTS) { launchSingleTop = true } },
-                    onPlayFriend = { navController.navigate(AppRoutes.FRIEND) { launchSingleTop = true } },
                     onNewBot = {
                         homeModel.newBot()
                         navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
@@ -206,6 +205,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                     navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
                 },
                 onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
+                onPlayFriend = { navController.navigate(AppRoutes.FRIEND) { launchSingleTop = true } },
                 onBack = { navController.popBackStack() },
             )
         }
