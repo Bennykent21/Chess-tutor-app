@@ -316,5 +316,208 @@ class Notes(unittest.TestCase):
         self.assertFalse(ok, why)
 
 
+class FakeDatabase:
+    """Plays the explorer: answers fetcher calls from made-up SAN-prefix counts, all in one band."""
+
+    def __init__(self, lines, band=1, castle_as_rook=True):
+        self.edges = br.position_edges(counts_of(lines, band=band), [])
+        self.castle_as_rook = castle_as_rook
+        self.calls = []
+
+    def __call__(self, fen, ratings, speeds, since, until, moves):
+        self.calls.append((fen, tuple(ratings), tuple(speeds), since, until, moves))
+        board = chess.Board(fen)
+        group = br.EXPLORER_BANDS.index(list(ratings))
+        out = []
+        for uci, row in self.edges.get(br.fen4(board), {}).items():
+            if row[group]:
+                move = chess.Move.from_uci(uci)
+                if self.castle_as_rook and board.is_castling(move):
+                    # Lichess writes castling as the king taking its own rook.
+                    rook = chess.square(7 if move.to_square > move.from_square else 0, chess.square_rank(move.from_square))
+                    uci = chess.Move(move.from_square, rook).uci()
+                out.append({"uci": uci, "san": "?", "white": row[group], "draws": 0, "black": 0})
+        return {"white": 0, "draws": 0, "black": 0, "moves": out}
+
+
+class ExplorerSource(unittest.TestCase):
+    def explorer(self, db, tmp, **kw):
+        return br.Explorer(db, os.path.join(tmp, "explorer.jsonl"), **kw)
+
+    def test_bands_cover_every_bucket_once_in_order(self):
+        flat = [r for group in br.EXPLORER_BANDS for r in group]
+        self.assertEqual(flat, br.EXPLORER_BUCKETS)
+        self.assertEqual(len(br.EXPLORER_BANDS), br.NBANDS)
+
+    def test_games_land_in_the_mapped_band(self):
+        db = FakeDatabase({"e4 e5 Nf3": 7}, band=2)
+        with tempfile.TemporaryDirectory() as tmp:
+            rows = self.explorer(db, tmp).position(br.fen4(chess.Board()))
+        self.assertEqual(rows, {"e2e4": [0, 0, 7, 0]})
+        self.assertEqual([c[1] for c in db.calls], [tuple(g) for g in br.EXPLORER_BANDS])
+
+    def test_cache_makes_a_second_run_ask_nothing_and_a_stopped_run_resume(self):
+        db = FakeDatabase({"e4 e5": 5})
+        key = br.fen4(chess.Board())
+        with tempfile.TemporaryDirectory() as tmp:
+            first = self.explorer(db, tmp)
+            first.position(key)
+            self.assertEqual(first.asked, 4)
+            # A run cut off mid-line leaves a broken last line; it is ignored.
+            with open(os.path.join(tmp, "explorer.jsonl"), "a", encoding="utf-8") as f:
+                f.write('{"k": "broken')
+            again = self.explorer(FakeDatabase({}), tmp)
+            self.assertEqual(again.position(key), {"e2e4": [0, 5, 0, 0]})
+            self.assertEqual(again.asked, 0)
+            # Other settings are other cache entries.
+            other = self.explorer(db, tmp, since="2026-01")
+            other.position(key)
+            self.assertEqual(other.asked, 4)
+
+    def test_transpositions_share_one_cache_entry(self):
+        db = FakeDatabase({"e4 e5 Nf3 Nc6": 5, "Nf3 Nc6 e4 e5": 5})
+        with tempfile.TemporaryDirectory() as tmp:
+            ex = self.explorer(db, tmp)
+            ex.position(br.fen4(br.board_at("e4 e5 Nf3 Nc6")))
+            ex.position(br.fen4(br.board_at("Nf3 Nc6 e4 e5")))
+            self.assertEqual(ex.asked, 4)
+            self.assertEqual(ex.hits, 4)
+
+    def test_castling_is_normalised(self):
+        board = chess.Board("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
+        answer = {"moves": [{"uci": "e1h1", "white": 3, "draws": 1, "black": 1}, {"uci": "e1a1", "white": 2, "draws": 0, "black": 0},
+                            {"uci": "a1a8", "white": 1, "draws": 0, "black": 0}, {"uci": "e1e5", "white": 9, "draws": 0, "black": 0},
+                            {"uci": "h1h2", "white": 0, "draws": 0, "black": 0}]}
+        self.assertEqual(br.normalise_moves(board, answer), [["e1g1", 5], ["e1c1", 2], ["a1a8", 1]])
+
+    def test_fake_database_castles_as_the_real_one_and_it_is_normalised(self):
+        db = FakeDatabase({"e4 e5 Nf3 Nc6 Bc4 Nf6 O-O": 9})
+        key = br.fen4(br.board_at("e4 e5 Nf3 Nc6 Bc4 Nf6"))
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(self.explorer(db, tmp).position(key), {"e1g1": [0, 9, 0, 0]})
+        raw = db(chess.Board(key + " 0 1").fen(), [1400, 1600], (), None, None, 5)
+        self.assertEqual(raw["moves"][0]["uci"], "e1h1")
+
+    def test_request_url_and_pacing(self):
+        sleeps, seen = [], []
+
+        class Reply:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'{"moves": []}'
+
+        def opener(request, timeout):
+            seen.append(request)
+            return Reply()
+
+        client = br.ExplorerClient("SECRET", pause=0.5, sleep=sleeps.append, opener=opener)
+        client(chess.STARTING_FEN, [1400, 1600], ("blitz", "rapid"), "2025-11", None, 40)
+        request = seen[0]
+        self.assertEqual(request.get_header("Authorization"), "Bearer SECRET")
+        self.assertIn("ratings=1400%2C1600", request.full_url)
+        self.assertIn("since=2025-11", request.full_url)
+        self.assertNotIn("until", request.full_url)
+        self.assertIn("topGames=0", request.full_url)
+        self.assertEqual(sleeps, [0.5])
+
+    def test_429_waits_a_minute_and_network_errors_back_off(self):
+        import io
+        import urllib.error
+        sleeps = []
+        outcomes = [urllib.error.HTTPError("u", 429, "slow", {}, io.BytesIO(b"")),
+                    urllib.error.URLError("flaky"), TimeoutError("slow line"), "ok"]
+
+        class Reply:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'{"moves": [], "white": 1}'
+
+        def opener(request, timeout):
+            outcome = outcomes.pop(0)
+            if isinstance(outcome, Exception):
+                raise outcome
+            return Reply()
+
+        client = br.ExplorerClient("t", pause=0.1, sleep=sleeps.append, opener=opener)
+        self.assertEqual(client(chess.STARTING_FEN, [1400], ("blitz",), None, None, 5)["white"], 1)
+        self.assertEqual(sleeps, [60, 2, 4, 0.1])
+
+    def test_refused_token_and_giving_up_are_clear(self):
+        import io
+        import urllib.error
+
+        def refuse(request, timeout):
+            raise urllib.error.HTTPError("u", 401, "no", {}, io.BytesIO(b""))
+
+        client = br.ExplorerClient("t", sleep=lambda s: None, opener=refuse)
+        with self.assertRaises(SystemExit) as caught:
+            client(chess.STARTING_FEN, [1400], ("blitz",), None, None, 5)
+        self.assertIn("lichess.org/account/oauth/token/create", str(caught.exception))
+
+        def down(request, timeout):
+            raise urllib.error.URLError("down")
+
+        client = br.ExplorerClient("t", sleep=lambda s: None, opener=down, retries=2)
+        with self.assertRaises(RuntimeError):
+            client(chess.STARTING_FEN, [1400], ("blitz",), None, None, 5)
+
+    def test_missing_token_tells_how_to_make_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "token.txt")
+            with self.assertRaises(SystemExit) as caught:
+                br.load_token({}, path)
+            message = str(caught.exception)
+            self.assertIn("https://lichess.org/account/oauth/token/create", message)
+            self.assertIn("no scopes", message)
+            self.assertIn("tools/.cache/lichess-token.txt", message)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("  fromfile\n")
+            self.assertEqual(br.load_token({}, path), "fromfile")
+            self.assertEqual(br.load_token({"LICHESS_TOKEN": "fromenv"}, path), "fromenv")
+
+    def test_start_line_keeps_only_the_start_move(self):
+        db = FakeDatabase({"e4 e5": 5, "e4 c5": 50})
+        with tempfile.TemporaryDirectory() as tmp:
+            edges = br.ExplorerEdges(self.explorer(db, tmp), ["e4", "e5"])
+            self.assertEqual(list(edges.get(br.fen4(chess.Board()))), ["e2e4"])
+            self.assertEqual(edges.start_games(), 5)
+            after_e4 = br.fen4(br.board_at("e4"))
+            self.assertEqual(list(edges.get(after_e4)), ["e7e5"], "c5 games are not on the start line")
+
+    def test_build_from_the_explorer_matches_build_from_counts(self):
+        lines, scores = Tree.LINES, Tree.SCORES
+        edges = br.position_edges(counts_of(lines), ITALIAN["start"].split())
+        from_counts = br.build_within_ceilings(ITALIAN, edges, FakeAnalyzer(scores), params(**SMALL), {})
+        with tempfile.TemporaryDirectory() as tmp:
+            ex = self.explorer(FakeDatabase(lines), tmp)
+            lazy = br.ExplorerEdges(ex, ITALIAN["start"].split())
+            p2 = params(**SMALL)
+            from_explorer = br.build_within_ceilings(ITALIAN, lazy, FakeAnalyzer(scores), p2, {})
+            self.assertEqual(from_explorer, from_counts)
+            self.assertGreater(ex.asked, 0)
+            # Only positions the tree visited were asked about, four requests each.
+            self.assertLessEqual(ex.asked, 4 * (len(from_explorer) + 12))
+            args = br.parse_args(["build", "t", "--source", "explorer"])
+            asset = br.asset_of(ITALIAN, from_explorer, br.explorer_meta(args, lazy), p2, args)
+            self.assertEqual(asset["source"]["games"], 903)
+            self.assertIn("AVERAGE rating", asset["source"]["data"])
+            self.assertEqual(asset["source"]["bands"][0]["explorerBuckets"], [400, 1000, 1200])
+            self.assertIn("average rating", asset["source"]["ratingBasis"])
+            # A rebuild asks nothing.
+            again = self.explorer(FakeDatabase({}), tmp)
+            br.build_within_ceilings(ITALIAN, br.ExplorerEdges(again, ITALIAN["start"].split()), FakeAnalyzer(scores), params(**SMALL), {})
+            self.assertEqual(again.asked, 0)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
