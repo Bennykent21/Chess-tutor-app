@@ -49,6 +49,7 @@ enum class GameEnd(val label: String) {
     FIFTY_MOVES("by the 50-move rule"),
     TIMEOUT("on time"),
     RESIGNATION("by resignation"),
+    AGREEMENT("by agreement"),
 }
 
 /** The end of a game: [winner] is null for a draw. */
