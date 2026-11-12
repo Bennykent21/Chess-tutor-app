@@ -26,12 +26,27 @@ Steps (each one resumes where it stopped):
       pruned so memory stays small, and no count is ever too low by more than the number of
       buckets (printed). Checkpoints to tools/.cache/repertoire/counts.json.gz.
 
-  build italian caro-kann
+  build italian caro-kann [--source explorer]
       Turns the counts into each opening's tree (tools/repertoire/<id>.json), asks
       Stockfish about every position (cached in tools/.cache/repertoire/engine.jsonl, fixed
       node counts so any computer gets the same answer), checks the notes
       (tools/repertoire/<id>.notes.json), writes app/src/main/assets/repertoire/<id>.json.gz
       and a quality report (tools/.cache/repertoire/report-<id>.md).
+      With --source explorer there are no counts: the numbers come from the Lichess opening
+      explorer API instead (no bulk download), one position at a time, only for positions the
+      tree visits, each answer cached in tools/.cache/repertoire/explorer.jsonl (a stopped run
+      resumes, a rebuild asks nothing). It needs a free token: create one at
+      https://lichess.org/account/oauth/token/create (no scopes) and save it as the only text in
+      tools/.cache/lichess-token.txt (gitignored) or in the environment variable LICHESS_TOKEN.
+      Four requests per position, one at a time with --pause seconds between them; on HTTP 429 it
+      waits 60 s. IMPORTANT: the explorer can only filter by the AVERAGE rating of a game, in
+      fixed buckets, so the four bands become games with average rating under 1400 (buckets
+      400, 1000, 1200), 1400 to 1800 (1400, 1600), 1800 to 2000 (1800) and 2000 up (2000, 2200,
+      2500), not the mover's own rating. It counts games since --since (default 2025-11).
+
+  explore italian --positions 20
+      Explorer smoke test: prints the top replies and band shares for about 20 positions
+      after the opening's start line (needs the token).
 
   keys      Writes app/src/test/resources/repertoire/keys.tsv: positions and their keys, so a
             Kotlin test proves the app's Position.repetitionKey() matches fen4() here.
@@ -68,6 +83,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -182,7 +199,15 @@ def parse_args(argv=None):
     b.add_argument("openings", nargs="+")
     b.add_argument("--counts", default=os.path.join(CACHE, "counts.json.gz"))
     b.add_argument("--out", default=ASSETS)
+    b.add_argument("--source", choices=["dump", "explorer"], default="dump",
+                   help="dump: the counts file; explorer: the Lichess opening explorer API")
     add_thresholds(b)
+    add_explorer_options(b)
+
+    x = sub.add_parser("explore", help="explorer smoke test: top replies per band for some positions")
+    x.add_argument("opening")
+    x.add_argument("--positions", type=int, default=20)
+    add_explorer_options(x)
 
     sub.add_parser("keys", help="write the shared key fixture")
 
@@ -1104,6 +1129,18 @@ def check_notes(notes, nodes, analyzer):
 
 # ------------------------------------------------------------------ output
 
+def bands_of(meta):
+    """The bands for the asset header. From the explorer they are ranges of the game's average rating."""
+    if not meta.get("explorer"):
+        return BANDS
+    return [{"id": b["id"], "averageGameRating": EXPLORER_BAND_RANGES[i], "explorerBuckets": EXPLORER_BANDS[i],
+             "chesscom": b["chesscom"]} for i, b in enumerate(BANDS)]
+
+
+def rating_basis(meta):
+    return "average rating of the game (Lichess opening explorer buckets)" if meta.get("explorer")         else "rating of the player making the move"
+
+
 def asset_of(config, nodes, meta, params, args):
     def reply_of(reply):
         out = {k: v for k, v in reply.items() if v is not None}
@@ -1129,7 +1166,7 @@ def asset_of(config, nodes, meta, params, args):
         "start": [m for m in uci_line(config["start"].split())],
         "source": {
             "data": meta.get("input"), "games": meta.get("games"), "matched": meta.get("perFilter", {}).get(config["start"]),
-            "speeds": sorted(SPEEDS), "bands": BANDS, "maxUndercount": meta.get("maxUndercount"),
+            "speeds": sorted(SPEEDS), "bands": bands_of(meta), "ratingBasis": rating_basis(meta), "maxUndercount": meta.get("maxUndercount"),
             "minGames": params.min_games, "minShare": params.min_share, "minReplyGames": params.min_reply_games,
             "minBandGames": params.min_band_games,
             "levels": {"core": [round(params.core_reach, 4), params.core_ply], "standard": [round(params.standard_reach, 4), params.standard_ply],
@@ -1193,17 +1230,28 @@ def report(config, nodes, note_rows, sizes, meta):
 
 
 def build(args):
-    meta, counts = load_counts(args.counts)
-    if not meta.get("done"):
-        print("warning: the counts are from an unfinished count run", file=sys.stderr)
+    explorer = None
+    if getattr(args, "source", "dump") == "explorer":
+        explorer, counts, meta = make_explorer(args), None, None
+    else:
+        meta, counts = load_counts(args.counts)
+        if not meta.get("done"):
+            print("warning: the counts are from an unfinished count run", file=sys.stderr)
     analyzer = Analyzer(args.stockfish, args.nodes, args.multipv, args.workers, args.engine_cache)
     names = opening_names()
     try:
         for opening_id in args.openings:
             config = load_config(opening_id)
             params = Params(args)
-            edges = position_edges(counts, config["start"].split())
+            if explorer:
+                edges = ExplorerEdges(explorer, config["start"].split())
+            else:
+                edges = position_edges(counts, config["start"].split())
             nodes = build_within_ceilings(config, edges, analyzer, params, names)
+            if explorer:
+                meta = explorer_meta(args, edges)
+                meta["perFilter"] = {config["start"]: meta["games"]}
+                print(f"  explorer: {explorer.asked:,} requests, {explorer.hits:,} answers from the cache")
             notes_path = os.path.join(CONFIGS, f"{opening_id}.notes.json")
             notes = []
             if os.path.exists(notes_path):
@@ -1219,6 +1267,226 @@ def build(args):
             print(text)
     finally:
         analyzer.close()
+
+
+# ------------------------------------------------------------------ the Lichess opening explorer
+
+EXPLORER_URL = "https://explorer.lichess.ovh/lichess"
+TOKEN_FILE = os.path.join(ROOT, "tools", ".cache", "lichess-token.txt")
+USER_AGENT = "chess-tutor build_repertoire.py (open-source opening trainer data build; one request at a time)"
+# The explorer only filters by the game's AVERAGE rating, in fixed buckets (a bucket is that value
+# up to the next). Our four bands (the mover's rating, D68) are matched as closely as buckets allow.
+EXPLORER_BUCKETS = [400, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500]
+EXPLORER_BANDS = [[400, 1000, 1200], [1400, 1600], [1800], [2000, 2200, 2500]]
+EXPLORER_BAND_RANGES = [[0, 1400], [1400, 1800], [1800, 2000], [2000, None]]  # average game rating
+TOKEN_HELP = ("The Lichess opening explorer needs a free API token. Create one at "
+              "https://lichess.org/account/oauth/token/create (tick no scopes), then save it as the only "
+              "text in tools/.cache/lichess-token.txt (or set the environment variable LICHESS_TOKEN).")
+
+
+def load_token(environ=None, path=TOKEN_FILE):
+    """The Lichess token from LICHESS_TOKEN or the token file; a clear error when there is none."""
+    environ = os.environ if environ is None else environ
+    token = (environ.get("LICHESS_TOKEN") or "").strip()
+    if not token and os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            token = f.read().strip()
+    if not token:
+        raise SystemExit("No Lichess token found. " + TOKEN_HELP)
+    return token
+
+
+class ExplorerClient:
+    """The real HTTP call: one request at a time, a pause after each, patient with 429 and flaky
+    networks. Called as client(fen, ratings, speeds, since, until, moves); returns the parsed JSON."""
+
+    def __init__(self, token, pause=0.3, sleep=time.sleep, opener=urllib.request.urlopen, retries=6):
+        self._token = token  # never printed or logged
+        self.pause, self.sleep, self.opener, self.retries = pause, sleep, opener, retries
+
+    def url(self, fen, ratings, speeds, since, until, moves):
+        query = {"variant": "standard", "fen": fen, "speeds": ",".join(speeds),
+                 "ratings": ",".join(str(r) for r in ratings), "moves": moves, "topGames": 0, "recentGames": 0}
+        if since:
+            query["since"] = since
+        if until:
+            query["until"] = until
+        return EXPLORER_URL + "?" + urllib.parse.urlencode(query)
+
+    def __call__(self, fen, ratings, speeds, since, until, moves):
+        request = urllib.request.Request(self.url(fen, ratings, speeds, since, until, moves), headers={
+            "Authorization": "Bearer " + self._token, "User-Agent": USER_AGENT, "Accept": "application/json"})
+        failures = 0
+        while True:
+            try:
+                with self.opener(request, timeout=60) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                self.sleep(self.pause)
+                return data
+            except urllib.error.HTTPError as e:
+                if e.code == 429:
+                    print("  the explorer says slow down (429); waiting 60 seconds", flush=True)
+                    self.sleep(60)
+                    continue
+                if e.code in (401, 403):
+                    raise SystemExit(f"The explorer refused the token (HTTP {e.code}). " + TOKEN_HELP)
+                if e.code < 500:
+                    raise RuntimeError(f"the explorer answered HTTP {e.code} for {fen}")
+                error = e
+            except (urllib.error.URLError, OSError, ValueError) as e:
+                error = e
+            failures += 1
+            if failures > self.retries:
+                raise RuntimeError(f"the explorer could not be reached after {failures} tries: {error}")
+            wait = min(2 ** failures, 120)
+            print(f"  network trouble ({type(error).__name__}); trying again in {wait} s", flush=True)
+            self.sleep(wait)
+
+
+def normalise_moves(board, answer):
+    """[[uci, games]] from an explorer answer, in the script's UCI (castling as e1g1, not the
+    king-takes-rook e1h1). Moves that are not legal here are dropped."""
+    out = []
+    for m in answer.get("moves", []):
+        try:
+            move = board.parse_uci(m["uci"])
+        except ValueError:
+            continue
+        games = int(m.get("white", 0)) + int(m.get("draws", 0)) + int(m.get("black", 0))
+        if games:
+            out.append([move.uci(), games])
+    return out
+
+
+class Explorer:
+    """Move counts per position and rating band from the explorer, cached on disk as JSON lines
+    {"k": key|ratings|speeds|since|until, "moves": [[uci, games]]}, one line per position and bucket group."""
+
+    def __init__(self, fetcher, cache_path, speeds=("blitz", "rapid", "classical"), since=None, until=None, moves=40):
+        self.fetcher, self.cache_path = fetcher, cache_path
+        self.speeds, self.since, self.until, self.moves = tuple(speeds), since, until, moves
+        self.cache = {}
+        self.asked = 0
+        self.hits = 0
+        if os.path.exists(cache_path):
+            with open(cache_path, encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        entry = json.loads(line)
+                    except ValueError:
+                        continue  # a line cut off by a stopped run
+                    self.cache[entry["k"]] = entry["moves"]
+
+    def cache_key(self, key, ratings):
+        return "|".join([key, ",".join(str(r) for r in ratings), ",".join(self.speeds), self.since or "", self.until or ""])
+
+    def band_moves(self, key, board, band):
+        ratings = EXPLORER_BANDS[band]
+        ckey = self.cache_key(key, ratings)
+        if ckey in self.cache:
+            self.hits += 1
+            return self.cache[ckey]
+        answer = self.fetcher(board.fen(), ratings, self.speeds, self.since, self.until, self.moves)
+        moves = normalise_moves(board, answer)
+        self.asked += 1
+        self.cache[ckey] = moves
+        os.makedirs(os.path.dirname(self.cache_path) or ".", exist_ok=True)
+        with open(self.cache_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"k": ckey, "moves": moves}, separators=(",", ":")) + "\n")
+        return moves
+
+    def position(self, key):
+        """uci -> games per band, for the position with this 4-field key."""
+        board = chess.Board(key + " 0 1")
+        rows = {}
+        if board.is_game_over(claim_draw=False):
+            return rows
+        for band in range(NBANDS):
+            for uci, games in self.band_moves(key, board, band):
+                rows.setdefault(uci, [0] * NBANDS)[band] += games
+        return rows
+
+
+class ExplorerEdges:
+    """Stands in for position_edges()'s result but asks the explorer the first time a position is
+    looked at. On the opening's start line only the start move is kept, as the dump path counts
+    only games that follow the whole start line."""
+
+    def __init__(self, explorer, start):
+        self.explorer = explorer
+        self.memo = {}
+        self.forced = {}
+        board = chess.Board()
+        for san in start:
+            move = board.parse_san(san)
+            self.forced[fen4(board)] = move.uci()
+            board.push(move)
+        self.last_forced = fen4(chess.Board()) if not start else list(self.forced)[-1]
+
+    def get(self, key, default=None):
+        rows = self.memo.get(key)
+        if rows is None:
+            rows = self.explorer.position(key)
+            if key in self.forced:
+                rows = {u: r for u, r in rows.items() if u == self.forced[key]}
+            self.memo[key] = rows
+        return rows if rows else ({} if default is None else default)
+
+    def start_games(self):
+        """Games that go through the whole start line (all bands)."""
+        return sum(sum(r) for r in self.get(self.last_forced).values())
+
+
+def explorer_meta(args, edges):
+    return {"input": "Lichess opening explorer (explorer.lichess.ovh), games since " + (args.since or "the beginning")
+                     + (f" until {args.until}" if args.until else "") + f", speeds {args.speeds}"
+                     + "; bands by the AVERAGE rating of the game, not the mover's own rating",
+            "games": edges.start_games(), "perFilter": {}, "maxUndercount": 0, "done": True, "explorer": True}
+
+
+def make_explorer(args):
+    client = ExplorerClient(load_token(), pause=args.pause)
+    return Explorer(client, args.explorer_cache, args.speeds.split(","), args.since or None, args.until or None,
+                    args.explorer_moves)
+
+
+def explore(args):
+    """Prints the top replies per band for about --positions positions after the opening's start line."""
+    config = load_config(args.opening)
+    explorer = make_explorer(args)
+    edges = ExplorerEdges(explorer, config["start"].split())
+    board = chess.Board()
+    for san in config["start"].split():
+        board.push_san(san)
+    queue, seen = [board], set()
+    while queue and len(seen) < args.positions:
+        board = queue.pop(0)
+        key = fen4(board)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows = edges.get(key)
+        totals = [sum(r[i] for r in rows.values()) for i in range(NBANDS)]
+        print(f"{key}  games per band {totals}")
+        top = sorted(rows.items(), key=lambda kv: -sum(kv[1]))
+        for uci, row in top[:3]:
+            shown = " ".join("   -" if not totals[i] else f"{100 * row[i] / totals[i]:3.0f}%" for i in range(NBANDS))
+            print(f"    {board.san(chess.Move.from_uci(uci)):6} pooled {100 * sum(row) / max(sum(totals), 1):3.0f}%  bands {shown}")
+        for uci, _ in top[:2]:
+            child = board.copy(stack=False)
+            child.push(chess.Move.from_uci(uci))
+            queue.append(child)
+    print(f"{explorer.asked} requests, {explorer.hits} answered from the cache")
+
+
+def add_explorer_options(p):
+    g = p.add_argument_group("explorer (--source explorer)")
+    g.add_argument("--since", default="2025-11", help="only games from this month on (YYYY-MM); '' for all time")
+    g.add_argument("--until", default="", help="only games up to this month (YYYY-MM)")
+    g.add_argument("--speeds", default="blitz,rapid,classical")
+    g.add_argument("--pause", type=float, default=0.3, help="seconds to wait after each request")
+    g.add_argument("--explorer-moves", type=int, default=40, help="moves asked for per position")
+    g.add_argument("--explorer-cache", default=os.path.join(CACHE, "explorer.jsonl"))
 
 
 # ------------------------------------------------------------------ fixtures
@@ -1433,7 +1701,7 @@ def preview(args):
 
 def main(argv=None):
     args = parse_args(argv)
-    {"fetch": fetch, "count": count, "build": build, "keys": keys, "sample": sample, "preview": preview}[args.step](args)
+    {"fetch": fetch, "count": count, "build": build, "explore": explore, "keys": keys, "sample": sample, "preview": preview}[args.step](args)
 
 
 if __name__ == "__main__":
