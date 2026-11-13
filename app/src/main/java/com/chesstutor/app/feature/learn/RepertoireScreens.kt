@@ -36,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
@@ -74,6 +73,13 @@ import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.domain.repertoire.MasteryProgress
 import com.chesstutor.app.domain.repertoire.RepertoireLevel
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.rounded.AutoStories
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.text.style.TextOverflow
+import com.chesstutor.app.design.ctPressable
+import com.chesstutor.app.domain.repertoire.Variation
 import kotlin.math.roundToInt
 
 /** What the opening page can open. Null hides the row. */
@@ -84,13 +90,17 @@ data class RepertoireActions(
     val onTricky: () -> Unit,
     val onSparring: (() -> Unit)? = null,
     val onPlayOut: (() -> Unit)? = null,
+    /** Learns the next new moves inside one variation (its moves from the start). */
+    val onLearnVariation: (List<String>) -> Unit = {},
+    /** Opens the course that teaches the opening's ideas, when there is one. */
+    val onIdeas: (() -> Unit)? = null,
 )
 
 /**
- * One taught opening (Phase 10, mock-up round 2, direction A with B's cups and the branches
- * chart): its scene, the three levels as a rail of cups, the main action (review what is due,
- * else learn new moves), tricky lines, sparring and play it out, and how the opponent answers
- * at the first branch at the learner's level.
+ * One taught opening (Phase 10, mock-up round 2, direction A with B's cups; D77): its scene, how
+ * ready the learner is, the three levels as a rail of cups, the main action (review what is due,
+ * else learn new moves), its ideas, tricky lines, sparring and play it out, and its variations:
+ * each as long as it is common at the learner's level and filled as far as it is learnt.
  */
 @Composable
 fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: Modifier = Modifier) {
@@ -105,6 +115,7 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
         }
         Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
             Spacer(Modifier.height(CtSpacing.xs))
+            if (ui.introduced > 0) Readiness(ui.readiness)
             CupRail(ui)
             Spacer(Modifier.height(CtSpacing.xxs))
             if (ui.due > 0) {
@@ -115,6 +126,7 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
             }
         }
         Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
+            actions.onIdeas?.let { CtListRow(title = "Ideas", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.AutoStories, size = 36.dp) }) }
             if (ui.tricky > 0) {
                 CtListRow(
                     title = "Tricky lines", icon = null, onClick = actions.onTricky,
@@ -125,9 +137,74 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
             actions.onSparring?.let { CtListRow(title = "Sparring", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.SportsEsports, size = 36.dp) }) }
             actions.onPlayOut?.let { CtListRow(title = "Play it out", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Flag, size = 36.dp) }) }
         }
-        ui.chart?.let { chart ->
+        if (ui.variations.isNotEmpty()) {
             Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md, bottom = CtSpacing.xl)) {
-                BranchChart(chart)
+                VariationList(ui.variations, actions.onLearnVariation)
+            }
+        }
+    }
+}
+
+/** How much of what the learner meets is solid: one number, no sentence. */
+@Composable
+private fun Readiness(readiness: Double) {
+    Row(
+        modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "${percent(readiness)} ready" },
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
+    ) {
+        Text(percent(readiness), style = CtType.BigNumber)
+        Text("ready", style = CtType.Body.copy(color = CtColors.Text2), modifier = Modifier.padding(bottom = 6.dp))
+    }
+}
+
+/**
+ * The opponent's choices (D77): each bar is as long as the choice is common, solid moves fill
+ * it dark and moves met once fill it pale. A tap learns the next new moves of that variation;
+ * one with nothing open yet is faint and locked.
+ */
+@Composable
+private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -> Unit) {
+    val longest = variations.maxOf { it.share }.coerceAtLeast(0.01)
+    Text("Variations", style = CtType.TitleSmall)
+    Spacer(Modifier.height(CtSpacing.xs))
+    variations.forEach { v ->
+        val open = v.cards > 0
+        val fresh = v.cards > v.introduced
+        val spoken = buildString {
+            append("${v.label}, ${percent(v.share)} of games")
+            if (open) append(", ${v.solid} of ${v.cards} solid") else append(", locked")
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = CtSpacing.touchTarget)
+                .then(if (fresh) Modifier.ctPressable(onClickLabel = "Learn ${v.label}") { onLearn(v.path) } else Modifier)
+                .semantics(mergeDescendants = true) { contentDescription = spoken }
+                .padding(vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+                // The name takes the room it needs; only a name too long for the row is cut.
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+                    Text(v.label, style = CtType.Label.copy(color = if (open) CtColors.Text else CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (v.name != null) Text(v.move, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1)
+                }
+                if (!open) Icon(Icons.Rounded.Lock, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(13.dp))
+                Text(percent(v.share), style = CtType.Caption.copy(color = CtColors.Text2))
+            }
+            val track = CtColors.Track
+            val solid = CtColors.Text
+            val met = CtColors.Text2.copy(alpha = 0.55f)
+            Canvas(Modifier.fillMaxWidth((v.share / longest).toFloat().coerceIn(0.04f, 1f)).height(6.dp)) {
+                val radius = CornerRadius(size.height / 2)
+                drawRoundRect(track, cornerRadius = radius)
+                if (v.cards > 0) {
+                    val metWidth = size.width * v.introduced / v.cards
+                    val solidWidth = size.width * v.solid / v.cards
+                    if (metWidth > 0f) drawRoundRect(met, size = Size(metWidth, size.height), cornerRadius = radius)
+                    if (solidWidth > 0f) drawRoundRect(solid, size = Size(solidWidth, size.height), cornerRadius = radius)
+                }
             }
         }
     }
@@ -223,44 +300,6 @@ private fun LevelLabel(level: RepertoireLevel, progress: MasteryProgress?, won: 
     }
 }
 
-/** The replies at the first branch as lines from the move, each as thick as it is common; mistakes in the error colour. */
-@Composable
-private fun BranchChart(chart: ReplyChart) {
-    val rowHeight = 36.dp
-    val shown = chart.replies.take(5)
-    val spoken = "After ${chart.after}: " + shown.joinToString { "${it.san} ${percent(it.share)}" }
-    Column(Modifier.semantics(mergeDescendants = true) { contentDescription = spoken }) {
-        Text("After ${chart.after}", style = CtType.TitleSmall)
-        Spacer(Modifier.height(CtSpacing.xs))
-        Row {
-            val accent = CtColors.Accent
-            val error = CtColors.Error
-            val ink = CtColors.Text
-            Canvas(Modifier.width(132.dp).height(rowHeight * shown.size)) {
-                val origin = Offset(6.dp.toPx(), size.height / 2)
-                drawCircle(ink, radius = 5.dp.toPx(), center = origin)
-                shown.forEachIndexed { i, reply ->
-                    val end = Offset(size.width, (i + 0.5f) * rowHeight.toPx())
-                    val path = Path().apply {
-                        moveTo(origin.x, origin.y)
-                        cubicTo(size.width * 0.5f, origin.y, size.width * 0.5f, end.y, end.x, end.y)
-                    }
-                    val width = (reply.share * 28.dp.toPx()).toFloat().coerceAtLeast(2.dp.toPx())
-                    drawPath(path, if (reply.error) error else accent, style = Stroke(width = width, cap = StrokeCap.Round))
-                }
-            }
-            Column(Modifier.padding(start = CtSpacing.sm)) {
-                shown.forEach { reply ->
-                    Row(Modifier.height(rowHeight), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-                        Text(reply.san, style = CtType.Label.copy(color = if (reply.error) CtColors.Error else CtColors.Text))
-                        Text(percent(reply.share), style = CtType.BodySmall.copy(color = if (reply.error) CtColors.Error else CtColors.Text2))
-                    }
-                }
-            }
-        }
-    }
-}
-
 private fun percent(share: Double): String = "${(share * 100).roundToInt()}%"
 
 /**
@@ -322,6 +361,7 @@ fun RepertoireRunScreen(
         controls = {
             when (moment) {
                 is RunMoment.Reveal, is RunMoment.CardDone -> CtButton(text = "Next", onClick = onNext, modifier = Modifier.weight(1f))
+                is RunMoment.Intro -> CtButton(text = "Start", onClick = onNext, modifier = Modifier.weight(1f))
                 is RunMoment.Branch -> if (moment.picked == null) {
                     moment.question.choices.forEachIndexed { i, reply ->
                         CtButton(text = moment.sans[i].substringAfterLast('.'), onClick = { onPickBranch(reply.uci) }, style = CtButtonStyle.Secondary, modifier = Modifier.weight(1f))
@@ -368,6 +408,7 @@ private fun moodOf(moment: RunMoment): MascotMood = when (moment) {
     is RunMoment.CardDone -> if (moment.right) MascotMood.PROUD else MascotMood.KIND
     is RunMoment.Branch -> if (moment.picked == null) MascotMood.THINKING else MascotMood.READY
     is RunMoment.Finished -> MascotMood.PROUD
+    is RunMoment.Intro -> MascotMood.READY
     else -> MascotMood.THINKING
 }
 
@@ -379,6 +420,10 @@ private fun RunWords(run: RunUi) {
             if (run.tricky) Text("A tricky line, from the start.", style = CtType.Caption.copy(color = CtColors.Text2))
         }
         RunMoment.FromTheTop -> Text("Now from the start, from memory.", style = CtType.Chat)
+        is RunMoment.Intro -> {
+            Text(moment.name, style = CtType.TitleSmall)
+            Text(moment.text ?: "Guess each move first. Then the line again, from memory.", style = CtType.Chat)
+        }
         is RunMoment.Reveal -> {
             Text(moment.san, style = CtType.TitleSmall)
             moment.note?.let { Text(it.text, style = CtType.Chat) }

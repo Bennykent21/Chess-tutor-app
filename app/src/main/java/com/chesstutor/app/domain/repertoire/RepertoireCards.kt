@@ -145,7 +145,7 @@ object Mastery {
         reviews: List<CardReview>,
         zone: ZoneId,
     ): MasteryProgress {
-        val ids = book.nodes.values.filter { it.own && it.level == level }.map { RepertoireCards.cardId(book.id, it.key) }.toSet()
+        val ids = book.nodes.values.filter { book.isCard(it) && it.level == level }.map { RepertoireCards.cardId(book.id, it.key) }.toSet()
         val cards = ids.mapNotNull { states[it] }
         val recent = reviews.filter { it.cardId in ids }.sortedBy { it.at }.takeLast(WINDOW)
         return MasteryProgress(

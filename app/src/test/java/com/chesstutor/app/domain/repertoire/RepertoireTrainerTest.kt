@@ -91,10 +91,19 @@ class RepertoireTrainerTest {
     // ---------------------------------------------------------------- learn
 
     @Test
+    fun theDefiningMovesAreNotCards() {
+        assertTrue(book.cards().none { it.ply < P.split(' ').size })
+        assertEquals(listOf(key("$P f8c5"), key("$P g8f6"), key("$P f8c5 c2c3 g8f6")), book.cards(CORE).map { it.key })
+        assertEquals(key(P), book.startPosition.repetitionKey())
+        assertEquals(5, book.startPlies("$P g8f6".split(' ')))
+        assertEquals("a path that does not start with the opening", 0, book.startPlies(listOf("d2d4")))
+    }
+
+    @Test
     fun learningStartsAtTheTopOfTheMostCommonLine() {
         val first = LearnPlanner.next(index, CORE, emptySet())!!
         assertEquals("$P f8c5 c2c3 g8f6 d2d3".split(' '), first.moves)
-        assertEquals(listOf(key(""), key("e2e4 e7e5"), key("e2e4 e7e5 g1f3 b8c6"), key("$P f8c5"), key("$P f8c5 c2c3 g8f6")), first.newCards)
+        assertEquals(listOf(key("$P f8c5"), key("$P f8c5 c2c3 g8f6")), first.newCards)
         val second = LearnPlanner.next(index, CORE, first.newCards.toSet())!!
         assertEquals("4...Be7 and 4...Bc5 are not open yet", listOf(key("$P g8f6")), second.newCards)
         assertEquals("$P g8f6 d2d3".split(' '), second.moves)
@@ -104,17 +113,23 @@ class RepertoireTrainerTest {
     }
 
     @Test
+    fun aVariationCanBeChosen() {
+        val twoKnights = LearnPlanner.next(index, CORE, emptySet(), within = "$P g8f6".split(' '))!!
+        assertEquals("$P g8f6 d2d3".split(' '), twoKnights.moves)
+        assertEquals(listOf(key("$P g8f6")), twoKnights.newCards)
+        assertNull("nothing new left inside it", LearnPlanner.next(index, CORE, twoKnights.newCards.toSet(), within = "$P g8f6".split(' ')))
+        assertEquals("Giuoco Pianissimo", LearnSegment(emptyList(), emptyList(), "Italian Game: Giuoco Pianissimo").variation)
+        assertEquals("Italian Game", LearnSegment(emptyList(), emptyList(), "Italian Game").variation)
+    }
+
+    @Test
     fun aLearnRunGuessesFirstThenRecalls() {
         val segment = LearnSegment("$P g8f6 d2d3".split(' '), listOf(key("$P g8f6")))
         val run = LearnRun(index, segment) { day0 }
-        // Known cards on the way are practice: an alternative asks again, the right move goes on.
-        assertEquals(LearnMoveResult.ALSO, run.submit("d2d4"))
-        assertEquals(LearnMoveResult.RIGHT, run.submit("e2e4"))
+        assertEquals("the defining moves are already on the board", 5, run.ply)
+        assertEquals(key(P), run.position.repetitionKey())
+        assertFalse(run.isOwnTurn)
         assertTrue(run.playOpponent())
-        assertEquals(LearnMoveResult.RIGHT, run.submit("g1f3"))
-        run.playOpponent()
-        run.submit("f1c4")
-        run.playOpponent()
         assertTrue(run.isNewCard)
         // A wrong guess costs nothing: it is not played, the right move is shown, and the learner plays it.
         assertEquals(LearnMoveResult.REVEALED, run.submit("b1c3"))
@@ -123,10 +138,9 @@ class RepertoireTrainerTest {
         assertTrue(run.isNewCard)
         assertEquals("after a reveal, playing it is RIGHT, not GUESSED", LearnMoveResult.RIGHT, run.submit("d2d3"))
         assertEquals("the segment ended, so the recall pass starts from the top", LearnRun.Pass.RECALL, run.pass)
+        assertEquals("the top is where the defining moves end", 5, run.ply)
         assertTrue(run.outcome.isEmpty())
-        for (uci in "e2e4 e7e5 g1f3 b8c6 f1c4 g8f6".split(' ')) {
-            if (run.isOwnTurn) run.submit(uci) else run.playOpponent()
-        }
+        assertTrue(run.playOpponent())
         assertTrue(run.isNewCard)
         assertEquals(LearnMoveResult.WRONG, run.submit("b1c3"))
         assertEquals("d2d3", run.shown)
@@ -156,10 +170,11 @@ class RepertoireTrainerTest {
         val segment = LearnPlanner.next(caro, CORE, emptySet())!!
         assertEquals(listOf("e2e4", "c7c6", "d2d4", "d7d5", "e4e5", "c8f5"), segment.moves)
         val run = LearnRun(caro, segment) { day0 }
+        assertEquals("after 1.e4 c6, White moves first", 2, run.ply)
         assertFalse(run.isOwnTurn)
         assertTrue(run.playOpponent())
         assertTrue(run.isOwnTurn)
-        assertEquals(LearnMoveResult.GUESSED, run.submit("c7c6"))
+        assertEquals(LearnMoveResult.GUESSED, run.submit("d7d5"))
     }
 
     // ---------------------------------------------------------------- review
@@ -176,23 +191,23 @@ class RepertoireTrainerTest {
         assertEquals(listOf("italian", "caro-kann", "italian", "caro-kann", "italian"), queue.map { it.book.id })
 
         val session = ReviewSession(queue) { day(1) }
-        // The first card is 1.e4: an alternative asks again without penalty, then the right move.
-        assertEquals(CardAnswer.ALSO, session.submit("d2d4"))
-        assertEquals(CardAnswer.RIGHT, session.submit("e2e4"))
+        // The first card is 4.c3: an alternative asks again without penalty, then the right move.
+        assertEquals(CardAnswer.ALSO, session.submit("d2d3"))
+        assertEquals(CardAnswer.RIGHT, session.submit("c2c3"))
         assertTrue(session.done)
         session.next()
-        // 1...c6: wrong first, then right: counts as missed.
+        // 2...d5: wrong first, then right: counts as missed.
         assertEquals(CardAnswer.WRONG, session.submit("e7e5"))
-        assertEquals("c7c6", session.shown)
-        assertEquals(CardAnswer.RIGHT, session.submit("c7c6"))
+        assertEquals("d7d5", session.shown)
+        assertEquals(CardAnswer.RIGHT, session.submit("d7d5"))
         session.next()
         // A hint keeps a right answer close.
         session.hint()
-        session.submit("g1f3")
+        session.submit("d2d3")
         session.next()
         session.showAnswer()
         session.next()
-        session.submit("f1c4")
+        session.submit("d2d3")
         session.next()
         assertTrue(session.finished)
         val stages = session.outcome.map { it.first.stage }
@@ -247,25 +262,24 @@ class RepertoireTrainerTest {
 
     @Test
     fun aTrickyCardIsPlayedFromTheStartOfItsLine() {
-        val tricky = RepertoireCards.introduce(book.id, book.nodes.getValue(key("$P g8f6")), day0).copy(attempts = 4, lapses = 2)
+        val deep = key("$P f8c5 c2c3 g8f6")
+        val tricky = RepertoireCards.introduce(book.id, book.nodes.getValue(deep), day0).copy(attempts = 4, lapses = 2)
         val plain = RepertoireCards.introduce(book.id, book.nodes.getValue(key("$P f8c5")), day0.plusSeconds(1))
-        assertEquals(listOf(key("$P g8f6")), ReviewQueue.tricky(listOf(index), listOf(plain, tricky)).map { it.node.key })
+        assertEquals(listOf(deep), ReviewQueue.tricky(listOf(index), listOf(plain, tricky)).map { it.node.key })
         val due = ReviewQueue.build(listOf(index), listOf(tricky), day(1)).single()
         assertTrue(due.fromStart)
 
         val session = ReviewSession(listOf(due)) { day(1) }
         assertFalse(session.atCard)
+        assertEquals("the line starts where the defining moves end", 5, session.ply)
+        assertNull("the opponent's move is played for them", session.submit("f8c5"))
+        assertTrue(session.playOpponent())
         // Earlier moves are practice: a slip is shown and costs nothing, an alternative asks again.
         assertEquals(CardAnswer.WRONG, session.submit("a2a3"))
-        assertEquals("e2e4", session.shown)
-        assertEquals(CardAnswer.ALSO, session.submit("d2d4"))
-        assertEquals(CardAnswer.RIGHT, session.submit("e2e4"))
-        assertNull("the opponent's move is played for them", session.submit("e7e5"))
+        assertEquals("c2c3", session.shown)
+        assertEquals(CardAnswer.ALSO, session.submit("e1g1"))
+        assertEquals(CardAnswer.RIGHT, session.submit("c2c3"))
         assertTrue(session.playOpponent())
-        session.submit("g1f3")
-        session.playOpponent()
-        session.submit("f1c4")
-        session.playOpponent()
         assertTrue(session.atCard)
         assertEquals(CardAnswer.RIGHT, session.submit("d2d3"))
         val (card, review) = session.outcome.single()
@@ -288,8 +302,8 @@ class RepertoireTrainerTest {
         states = afterOne
         reviews += first
         val progress = Mastery.of(book, CORE, states, reviews, zone)
-        assertEquals(6, progress.total)
-        assertEquals(6, progress.introduced)
+        assertEquals(3, progress.total)
+        assertEquals(3, progress.introduced)
         assertEquals(0, progress.settled)
         assertFalse(progress.mastered)
         assertEquals(CORE, LevelUnlocks.update(book, LevelProgress(book.id), states, reviews, day0, zone).unlocked)
@@ -305,7 +319,7 @@ class RepertoireTrainerTest {
             reviews += logged
         }
         val twoDays = Mastery.of(book, CORE, states, reviews, zone)
-        assertEquals(6, twoDays.settled)
+        assertEquals(3, twoDays.settled)
         assertEquals(2, twoDays.recentDays)
         assertFalse("two days are not enough", twoDays.mastered)
         val (next, logged) = reviewAll(states, day(4))

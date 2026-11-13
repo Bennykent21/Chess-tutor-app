@@ -42,7 +42,7 @@ object ReviewQueue {
         val byBook = indexes.associateBy { it.book.id }
         return states.mapNotNull { state ->
             val index = byBook[state.bookId] ?: return@mapNotNull null
-            val node = index.book.nodes[state.key]?.takeIf { it.own } ?: return@mapNotNull null
+            val node = index.book.nodes[state.key]?.takeIf { index.book.isCard(it) } ?: return@mapNotNull null
             val path = index.pathTo(state.key) ?: return@mapNotNull null
             DueCard(index, node, state, path, fromStart = state.tricky)
         }
@@ -167,8 +167,9 @@ class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = I
         missed = false
         val card = current ?: return
         if (card.fromStart) {
-            position = Position.initial()
-            ply = 0
+            // The opening's defining moves are already on the board.
+            ply = card.book.startPlies(card.path)
+            position = card.path.take(ply).fold(Position.initial()) { p, uci -> RepertoireIndex.play(p, uci)!! }
         } else {
             position = card.position
             ply = card.path.size
