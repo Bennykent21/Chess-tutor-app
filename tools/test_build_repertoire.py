@@ -259,13 +259,41 @@ class Tree(unittest.TestCase):
                 card = nodes.get(br.child_key(after["key"], after["replies"][0]["uci"]))
             self.assertLessEqual(depth, p.extension)
 
-    def test_levels_never_get_easier_down_a_line(self):
+    def test_levels_never_get_easier_than_the_easiest_way_in(self):
         nodes, _ = self.build()
+        parents = {}
         for node in nodes.values():
-            if node["turn"] == "own":
-                after = nodes.get(br.child_key(node["key"], node["move"]))
-                if after:
-                    self.assertGreaterEqual(after["level"], node["level"])
+            moves = [node["move"]] if node["turn"] == "own" else [r["uci"] for r in node["replies"]]
+            for uci in moves:
+                parents.setdefault(br.child_key(node["key"], uci), []).append(node["level"])
+        for key, levels in parents.items():
+            if key in nodes:
+                self.assertGreaterEqual(nodes[key]["level"], min(levels))
+
+    def test_a_rare_transposition_does_not_push_a_main_line_down(self):
+        def own(path, move, level):
+            return {"key": br.fen4(br.board_at(path)), "turn": "own", "move": br.board_at(path).parse_san(move).uci(), "level": level}
+
+        def opponent(path, replies, level):
+            board = br.board_at(path)
+            return {"key": br.fen4(board), "turn": "opponent", "level": level,
+                    "replies": [{"uci": board.parse_san(r).uci(), "level": level} for r in replies]}
+
+        # 3.Nc3 dxe4 4.Nxe4 is the main line; 3.Nd2 dxe4 4.Nxe4 reaches the same card from a rare line.
+        main = opponent("e4 c6 d4 d5 Nc3 dxe4", ["Nxe4"], 0)
+        rare = opponent("e4 c6 d4 d5 Nd2 dxe4", ["Nxe4"], 2)
+        card = own("e4 c6 d4 d5 Nc3 dxe4 Nxe4", "Bf5", 0)
+        self.assertNotEqual(main["key"], rare["key"])
+        self.assertEqual(card["key"], br.child_key(rare["key"], rare["replies"][0]["uci"]), "the two lines meet")
+        nodes = {n["key"]: n for n in (main, rare, card)}
+        br.settle_levels(nodes)
+        self.assertEqual(0, card["level"])
+        self.assertEqual(0, main["replies"][0]["level"])
+        # A card with only a deep way in still follows it down.
+        lone = {k: dict(v) for k, v in nodes.items() if k != main["key"]}
+        lone[card["key"]]["level"] = 0
+        br.settle_levels(lone)
+        self.assertEqual(2, lone[card["key"]]["level"])
 
     def test_ceilings_raise_the_reach_cut(self):
         nodes, p = self.build(ceilings="5,8,12")

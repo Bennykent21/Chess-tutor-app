@@ -158,7 +158,7 @@ def add_thresholds(p):
     g.add_argument("--min-share", type=float, default=0.03, help="share a reply needs to join the tree")
     g.add_argument("--min-reply-games", type=int, default=30, help="games a reply needs to join the tree")
     g.add_argument("--min-band-games", type=int, default=300, help="games in a band before its share counts")
-    g.add_argument("--core-reach", type=float, default=0.10)
+    g.add_argument("--core-reach", type=float, default=0.05)
     g.add_argument("--core-ply", type=int, default=14)
     g.add_argument("--punish-reach", type=float, default=0.02, help="punish lines join Core from this reach")
     g.add_argument("--punish-ply", type=int, default=16)
@@ -947,26 +947,35 @@ def child_key(key, uci):
 
 
 def settle_levels(nodes):
-    """Every reply gets the level of the card it leads to; no card is easier than the card before it."""
+    """No card is easier than the easiest way into it, and every reply gets the level of the card
+    it leads to. A position reached both by a common line and by a rare transposition keeps the
+    common line's level: the rare way in must not push the Caro-Kann main line down to Deep."""
+    base = {key: node["level"] for key, node in nodes.items()}
+    parents = {}
+    for node in nodes.values():
+        moves = [node["move"]] if node["turn"] == "own" else [reply["uci"] for reply in node["replies"]]
+        for uci in moves:
+            child = child_key(node["key"], uci)
+            if child in nodes:
+                parents.setdefault(child, []).append(node["key"])
     for _ in range(64):
         changed = False
-        for node in nodes.values():
-            if node["turn"] == "own":
-                nxt = nodes.get(child_key(node["key"], node["move"]))
-                if nxt is not None and nxt["level"] < node["level"]:
-                    nxt["level"] = node["level"]
-                    changed = True
-            else:
-                for reply in node["replies"]:
-                    card = nodes.get(child_key(node["key"], reply["uci"]))
-                    if card is None:
-                        continue
-                    if card["level"] < node["level"]:
-                        card["level"] = node["level"]
-                        changed = True
-                    reply["level"] = card["level"]
+        for key, node in nodes.items():
+            ways_in = parents.get(key)
+            if not ways_in:
+                continue
+            wanted = max(base[key], min(nodes[parent]["level"] for parent in ways_in))
+            if wanted != node["level"]:
+                node["level"] = wanted
+                changed = True
         if not changed:
-            return
+            break
+    for node in nodes.values():
+        if node["turn"] != "own":
+            for reply in node["replies"]:
+                card = nodes.get(child_key(node["key"], reply["uci"]))
+                if card is not None:
+                    reply["level"] = card["level"]
 
 
 def cards_per_level(nodes):
