@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chesstutor.app.board.MoveEffects
 import com.chesstutor.app.data.settings.AppSettings
@@ -26,6 +27,7 @@ import com.chesstutor.app.domain.repertoire.RepertoireNote
 import com.chesstutor.app.domain.repertoire.TestRepertoire
 import com.chesstutor.app.domain.repertoire.TestRepertoire.P
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.chesstutor.app.domain.repertoire.Variation
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -58,18 +60,33 @@ class RepertoireScreensTest {
         chart = ReplyChart("3.Bc4", listOf(ChartReply("Bc5", 0.44, false), ChartReply("Nf6", 0.35, false), ChartReply("Nd4", 0.06, true), ChartReply("Be7", 0.05, false))),
         introduced = 4,
         total = 9,
+        variations = listOf(
+            Variation("$P f8c5".split(' '), "3...Bc5", "Giuoco Piano", 0.44, cards = 4, introduced = 3, solid = 2),
+            Variation("$P g8f6".split(' '), "3...Nf6", "Two Knights Defense", 0.35, cards = 3, introduced = 0, solid = 0),
+            Variation("$P c6d4".split(' '), "3...Nd4", null, 0.06, cards = 0, introduced = 0, solid = 0),
+        ),
+        readiness = 0.42,
     )
 
     @Test
-    fun thePageLeadsWithReviewAndShowsTheCupsAndTheBranches() {
+    fun thePageLeadsWithReviewAndShowsTheCupsAndTheVariations() {
         var reviewed = false
+        var learnt: List<String>? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                RepertoirePage(pageUi(), RepertoireActions(onBack = {}, onReview = { reviewed = true }, onLearn = {}, onTricky = {}, onPlayOut = {}))
+                RepertoirePage(
+                    pageUi(),
+                    RepertoireActions(onBack = {}, onReview = { reviewed = true }, onLearn = {}, onTricky = {}, onPlayOut = {}, onLearnVariation = { learnt = it }, onIdeas = {}),
+                )
             }
         }
         compose.onNodeWithText("Italian Game").assertExists()
         compose.onNodeWithText("Tricky lines").assertExists()
+        compose.onNodeWithText("42%").assertExists()
+        compose.onNodeWithText("Ideas").assertExists()
+        compose.onNodeWithText("Two Knights Defense").performScrollTo().performClick()
+        assertEquals("$P g8f6".split(' '), learnt)
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_variations.png")
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page.png")
         compose.onNodeWithText("Review 12").performClick()
         assertEquals(true, reviewed)

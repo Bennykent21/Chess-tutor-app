@@ -110,9 +110,21 @@ class RepertoireBook(
 
     fun at(position: Position): RepertoireNode? = nodes[position.repetitionKey()]
 
+    /** Where the opening's defining moves end. They are played for the learner, never asked. */
+    val startPosition: Position by lazy { start.fold(Position.initial()) { p, uci -> RepertoireIndex.play(p, uci) ?: p } }
+
+    /** What the opening is about: the note where its defining moves end. */
+    val intro: RepertoireNote? get() = at(startPosition)?.note
+
+    /** A card: the learner's turn after the defining moves (1.e4 in the Italian is not something to learn). */
+    fun isCard(node: RepertoireNode): Boolean = node.own && node.ply >= start.size
+
     /** The learner's positions up to [upTo], shallowest first. */
     fun cards(upTo: RepertoireLevel = RepertoireLevel.DEEP): List<RepertoireNode> =
-        nodes.values.filter { it.own && it.level <= upTo }.sortedWith(compareBy({ it.ply }, { -it.reach }, { it.key }))
+        nodes.values.filter { isCard(it) && it.level <= upTo }.sortedWith(compareBy({ it.ply }, { -it.reach }, { it.key }))
+
+    /** How many of [path]'s first moves are the defining moves, which a run plays by itself. */
+    fun startPlies(path: List<String>): Int = if (path.take(start.size) == start) start.size else 0
 
     /** The data band for a player of [chessComRating], or null when unknown. */
     fun bandFor(chessComRating: Int?): Int? =

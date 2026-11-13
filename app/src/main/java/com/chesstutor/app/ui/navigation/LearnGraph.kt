@@ -89,6 +89,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 return@composable
             }
             val homeModel = homeViewModel()
+            val lessons by learnViewModel().learn.collectAsStateWithLifecycle()
+            val ideas = OpeningCourses.courseFor(ui.book.title, lessons.library.courses)
             val openRun: (() -> Unit) -> () -> Unit = { start ->
                 {
                     start()
@@ -101,6 +103,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     onBack = { navController.popBackStack() },
                     onReview = openRun { repertoire.startReview(id) },
                     onLearn = openRun { repertoire.startLearn(id) },
+                    onLearnVariation = { path -> openRun { repertoire.startLearn(id, path) }() },
+                    onIdeas = ideas?.let { course -> { navController.navigate(AppRoutes.course(course.id)) { launchSingleTop = true } } },
                     onTricky = openRun { repertoire.startTricky(id) },
                     onPlayOut = {
                         homeModel.presetBattle(ui.battleLine, ui.book.side)
@@ -180,6 +184,9 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val lessons by learn.learn.collectAsStateWithLifecycle()
             val courseId = entry.arguments?.getString(AppRoutes.COURSE_ID_ARG).orEmpty()
             val course = lessons.library.course(courseId)
+            val repertoires by repertoireViewModel().state.collectAsStateWithLifecycle()
+            // The trainer's opening for this course, when it teaches it (D77).
+            val book = course?.let { c -> repertoires.books.firstOrNull { OpeningCourses.courseFor(it.book.title, listOf(c)) != null } }
             CourseScreen(
                 course = course,
                 progress = lessons.progress,
@@ -197,6 +204,7 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     }
                 },
                 practice = course?.let { lessons.practice[it.id] },
+                onTrainLines = book?.let { b -> { navController.navigate(AppRoutes.repertoire(b.book.id)) { launchSingleTop = true } } },
             )
         }
         // Home's Continue card: opens one lesson, then shows the player.

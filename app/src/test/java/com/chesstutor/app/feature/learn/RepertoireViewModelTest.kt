@@ -56,7 +56,7 @@ class RepertoireViewModelTest {
             seen += run.moment
             when (val moment = run.moment) {
                 is RunMoment.Finished -> return
-                is RunMoment.Reveal, is RunMoment.CardDone -> vm.next()
+                is RunMoment.Reveal, is RunMoment.CardDone, is RunMoment.Intro -> vm.next()
                 is RunMoment.Branch -> if (moment.picked == null) vm.pickBranch(moment.question.choices[branchPick].uci) else vm.next()
                 else -> {
                     val position = run.board.state.value.position
@@ -73,9 +73,9 @@ class RepertoireViewModelTest {
         val vm = model(InMemoryRepertoireProgressRepository())
         val ui = vm.state.value.book("italian")!!
         assertEquals(RepertoireLevel.CORE, ui.levels.unlocked)
-        assertEquals(6, ui.fresh)
+        assertEquals("1.e4, 2.Nf3 and 3.Bc4 are the opening itself, not cards", 3, ui.fresh)
         assertEquals(0, ui.due)
-        assertEquals(6, ui.mastery.getValue(RepertoireLevel.CORE).total)
+        assertEquals(3, ui.mastery.getValue(RepertoireLevel.CORE).total)
         val chart = ui.chart!!
         assertEquals("3.Bc4", chart.after)
         assertEquals(listOf("Bc5", "Nf6", "Nd4"), chart.replies.map { it.san })
@@ -88,20 +88,23 @@ class RepertoireViewModelTest {
         val repo = InMemoryRepertoireProgressRepository()
         val vm = model(repo)
         vm.startLearn("italian")
+        advanceUntilIdle()
+        assertEquals("the line's name first; no story without a note", RunMoment.Intro("Italian Game", null), vm.run.value!!.moment)
+        assertEquals("the defining moves are on the board", 5, vm.run.value!!.board.state.value.moves.size)
         val seen = mutableListOf<RunMoment>()
         playThrough(vm, seen)
         val reveals = seen.filterIsInstance<RunMoment.Reveal>().distinctBy { it.san }
-        assertEquals(listOf("1.e4", "2.Nf3", "3.Bc4", "4.c3", "5.d3"), reveals.map { it.san })
+        assertEquals(listOf("4.c3", "5.d3"), reveals.map { it.san })
         assertTrue("the first move was guessed right", reveals.first().guessed)
         assertTrue("the branch after 3.Bc4 was asked", seen.any { it is RunMoment.Branch })
         assertTrue("the recall pass started from the top", seen.any { it == RunMoment.FromTheTop })
         val finished = seen.last() as RunMoment.Finished
-        assertEquals(5, finished.total)
-        assertEquals(5, finished.right)
+        assertEquals(2, finished.total)
+        assertEquals(2, finished.right)
         val cards = repo.observeCards().first()
-        assertEquals(5, cards.size)
+        assertEquals(2, cards.size)
         assertTrue(cards.values.all { it.stage == 0 && it.dueAt == day0.plus(Duration.ofDays(1)) })
-        assertEquals(5, repo.reviews("italian").size)
+        assertEquals(2, repo.reviews("italian").size)
         advanceUntilIdle()
         assertEquals(1, vm.state.value.book("italian")!!.fresh)
         assertTrue(vm.run.value!!.moreToLearn)
@@ -112,24 +115,31 @@ class RepertoireViewModelTest {
         val vm = model(InMemoryRepertoireProgressRepository())
         vm.startLearn("italian")
         advanceUntilIdle()
+        vm.next()
+        advanceUntilIdle()
+        val branch = vm.run.value!!.moment as RunMoment.Branch
+        vm.pickBranch(branch.question.choices.first().uci)
+        vm.next()
+        advanceUntilIdle()
         val board = vm.run.value!!.board
         val start = board.state.value.position
-        // 1.d4 is as good as 1.e4, but not this repertoire's move: named, drawn, not played.
-        board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "d2d4" })
+        assertEquals(6, board.state.value.moves.size)
+        // 4.d3 is as good as 4.c3, but not this repertoire's move: named, drawn, not played.
+        board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "d2d3" })
         advanceUntilIdle()
-        assertEquals(RunMoment.Also("1.e4", "e2e4"), vm.run.value!!.moment)
-        assertEquals(0, board.state.value.moves.size)
+        assertEquals(RunMoment.Also("4.c3", "c2c3"), vm.run.value!!.moment)
+        assertEquals(6, board.state.value.moves.size)
         // A wrong move slides back too, and the right one is drawn.
         board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "a2a3" })
         advanceUntilIdle()
-        assertEquals(RunMoment.Shown("1.e4", "e2e4"), vm.run.value!!.moment)
-        assertEquals(0, board.state.value.moves.size)
+        assertEquals(RunMoment.Shown("4.c3", "c2c3"), vm.run.value!!.moment)
+        assertEquals(6, board.state.value.moves.size)
         // Playing it brings the reveal, which says it was not a first-try guess.
-        board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "e2e4" })
+        board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "c2c3" })
         advanceUntilIdle()
         val reveal = vm.run.value!!.moment as RunMoment.Reveal
         assertFalse(reveal.guessed)
-        assertEquals(listOf("e2e4"), board.state.value.moves.map { it.uci })
+        assertEquals("c2c3", board.state.value.moves.last().uci)
     }
 
     @Test

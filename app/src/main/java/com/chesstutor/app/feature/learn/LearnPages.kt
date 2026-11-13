@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountTree
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
@@ -244,6 +245,8 @@ fun CourseScreen(
     onPracticeSet: (() -> Unit)? = null,
     /** The best go at the practice set so far. */
     practice: PracticeResult? = null,
+    /** Opens the opening trainer's page for this opening, when it teaches it (D77); null hides the row. */
+    onTrainLines: (() -> Unit)? = null,
 ) {
     CtScreenBackground(modifier) {
         if (course == null) {
@@ -277,9 +280,10 @@ fun CourseScreen(
                         LessonRow(number = i + 1, lesson = lesson, done = progress[lesson.id]?.completed == true, onClick = { onOpenLesson(lesson.id) })
                     }
                 }
-                if (onPractise != null || onRelatedPuzzles != null || onPracticeSet != null) {
+                if (onPractise != null || onRelatedPuzzles != null || onPracticeSet != null || onTrainLines != null) {
                     CtSectionHeader(title = "Practise")
                 }
+                onTrainLines?.let { CtListRow(title = "Train the lines", icon = Icons.Rounded.AccountTree, onClick = it) }
                 onPracticeSet?.let {
                     CtListRow(
                         title = "Practice set",

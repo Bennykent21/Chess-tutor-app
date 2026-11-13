@@ -25,6 +25,8 @@ import com.chesstutor.app.domain.repertoire.Mastery
 import com.chesstutor.app.domain.repertoire.MasteryProgress
 import com.chesstutor.app.domain.repertoire.RepertoireBook
 import com.chesstutor.app.domain.repertoire.RepertoireIndex
+import com.chesstutor.app.domain.repertoire.Variation
+import com.chesstutor.app.domain.repertoire.RepertoireVariations
 import com.chesstutor.app.domain.repertoire.RepertoireLevel
 import com.chesstutor.app.domain.repertoire.RepertoireNote
 import com.chesstutor.app.domain.repertoire.RepertoireProgressRepository
@@ -57,6 +59,10 @@ data class RepertoireBookUi(
     /** Cards met so far, of all the opening's cards. */
     val introduced: Int = 0,
     val total: Int = 0,
+    /** The opponent's choices, each with its share and the learner's progress in it (D77). */
+    val variations: List<Variation> = emptyList(),
+    /** How much of what the learner meets in the open levels is solid, 0 to 1. */
+    val readiness: Double = 0.0,
 ) {
     /** The opening database's name where the start line ends, for Opening Battle ("Caro-Kann Defense"). */
     val battleLine: String
@@ -81,6 +87,9 @@ enum class RunKind { LEARN, REVIEW, TRICKY }
 sealed interface RunMoment {
     /** The learner's turn: the zone asks "what do you play against ...?". */
     data object YourMove : RunMoment
+
+    /** Before a learn run: the variation's name and, the first time, what the opening is about. */
+    data class Intro(val name: String, val text: String?) : RunMoment
 
     /** The recall pass of a learn run starts again from the first move. */
     data object FromTheTop : RunMoment
@@ -191,20 +200,30 @@ class RepertoireViewModel(
             chart = chartOf(index, band(book)),
             introduced = book.cards().count { it.key in introduced },
             total = book.cards().size,
+            variations = RepertoireVariations.of(index, band(book), progress.unlocked, mine.associateBy { it.key }),
+            readiness = RepertoireVariations.readiness(book, progress.unlocked, mine.associateBy { it.key }),
         )
     }
 
     // ------------------------------------------------------------------ learn
 
-    fun startLearn(bookId: String) {
+    /**
+     * The next line of [bookId] to learn, inside the variation that starts with [within] when given
+     * (a row of the opening page), else wherever the learner meets new moves most often.
+     */
+    fun startLearn(bookId: String, within: List<String>? = null) {
         val index = indexes.value?.firstOrNull { it.book.id == bookId } ?: return
         val open = levels.value[bookId]?.unlocked ?: RepertoireLevel.CORE
         val introduced = cards.value.values.filter { it.bookId == bookId }.map { it.key }.toSet()
-        val segment = LearnPlanner.next(index, open, introduced) ?: return
-        startSegment(index, segment)
+        val segment = within?.let { LearnPlanner.next(index, open, introduced, within = it) } ?: LearnPlanner.next(index, open, introduced) ?: return
+        startSegment(index, segment, firstTime = introduced.isEmpty())
+        learnWithin = within
     }
 
-    private fun startSegment(index: RepertoireIndex, segment: LearnSegment) {
+    /** The variation the learner chose on the opening page, so "Learn more" stays in it. */
+    private var learnWithin: List<String>? = null
+
+    private fun startSegment(index: RepertoireIndex, segment: LearnSegment, firstTime: Boolean) {
         clear()
         val run = LearnRun(index, segment, clock)
         learn = run
@@ -212,8 +231,11 @@ class RepertoireViewModel(
             line = { (frozen ?: segment.moves.take(run.ply)) to (run.isOwnTurn && moment.lets()) },
             submit = ::submitLearn,
         )
-        mutableRun.value = RunUi(RunKind.LEARN, index.book.title, index.book.side, board, moment, null, 0, segment.newCards.size, tricky = false)
-        follow()
+        val name = segment.variation ?: index.book.title
+        // The opening's own story comes once, before its first line.
+        moment = RunMoment.Intro(name, index.book.intro?.text?.takeIf { firstTime })
+        mutableRun.value = RunUi(RunKind.LEARN, name, index.book.side, board, moment, null, 0, segment.newCards.size, tricky = false)
+        publish()
     }
 
     private fun submitLearn(move: Move): BoardFeedback {
@@ -398,11 +420,15 @@ class RepertoireViewModel(
             is RunMoment.Reveal -> {
                 frozen = null
                 val run = learn ?: return
-                moment = if (run.pass == LearnRun.Pass.RECALL && run.ply == 0) RunMoment.FromTheTop else RunMoment.YourMove
+                moment = if (run.pass == LearnRun.Pass.RECALL && run.ply == run.startPly) RunMoment.FromTheTop else RunMoment.YourMove
                 mutableRun.value?.board?.refresh(animate = false)
                 follow()
             }
             is RunMoment.Branch -> if (now.picked != null) {
+                moment = RunMoment.YourMove
+                follow()
+            }
+            is RunMoment.Intro -> {
                 moment = RunMoment.YourMove
                 follow()
             }
@@ -473,8 +499,12 @@ class RepertoireViewModel(
 
     /** Another learn segment of the same opening, after a finished one. */
     fun learnMore() {
-        val bookId = learn?.book?.id ?: return
-        startLearn(bookId)
+        val run = learn ?: return
+        val within = learnWithin
+        val introduced = cards.value.values.filter { it.bookId == run.book.id }.map { it.key }.toSet()
+        val open = levels.value[run.book.id]?.unlocked ?: RepertoireLevel.CORE
+        // Stay in the chosen variation while it has new moves, then go on with the rest.
+        startLearn(run.book.id, within?.takeIf { LearnPlanner.next(run.index, open, introduced, within = it) != null })
     }
 
     fun close() {
@@ -492,6 +522,7 @@ class RepertoireViewModel(
         mastered = null
         masteredBook = null
         moreToLearn = false
+        learnWithin = null
         asked.clear()
     }
 
@@ -536,7 +567,7 @@ class RepertoireViewModel(
             mastered = mastered,
             masteredBook = mastered?.let { masteredBook?.title },
             nextLevelCards = mastered?.let { level ->
-                RepertoireLevel.entries.getOrNull(level.ordinal + 1)?.let { next -> masteredBook?.nodes?.values?.count { it.own && it.level == next } }
+                RepertoireLevel.entries.getOrNull(level.ordinal + 1)?.let { next -> masteredBook?.let { book -> book.nodes.values.count { book.isCard(it) && it.level == next } } }
             } ?: 0,
             moreToLearn = moreToLearn,
         )

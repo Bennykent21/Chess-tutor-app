@@ -4,31 +4,46 @@ import com.chesstutor.app.core.LegalMoveGenerator
 import com.chesstutor.app.core.Position
 import java.time.Instant
 
-/** A stretch of a line to learn: the moves from the start, and the new cards on it in order. */
-data class LearnSegment(val moves: List<String>, val newCards: List<String>)
+/**
+ * A line to learn: the moves from the start, the new cards on it in order, and the opening
+ * database's name for the deepest named position on it ("Italian Game: Giuoco Pianissimo").
+ */
+data class LearnSegment(val moves: List<String>, val newCards: List<String>, val name: String? = null) {
+    /** The variation's own words ("Giuoco Pianissimo"), or the whole name for a family's line. */
+    val variation: String? get() = name?.substringAfter(':', name)?.trim()?.ifEmpty { null }
+}
 
 /**
- * Picks what to learn next (D71, D73): the open card the learner meets most often (highest
+ * Picks what to learn next (D71, D73, D77): the open card the learner meets most often (highest
  * reach) that is not introduced yet, reached by its likeliest move order, then on down the
- * most common replies until [maxNew] new cards. Its earlier cards have at least its reach, so
- * they were introduced first: a line is learnt from the top.
+ * most common replies to the end of the line, at most [maxNew] new cards. Its earlier cards have
+ * at least its reach, so they were introduced first: a line is learnt from the top. [within]
+ * keeps it inside one variation: only cards whose way in starts with those moves.
  */
 object LearnPlanner {
-    const val MAX_NEW = 5
+    const val MAX_NEW = 8
 
-    fun next(index: RepertoireIndex, open: RepertoireLevel, introduced: Set<String>, maxNew: Int = MAX_NEW): LearnSegment? {
+    fun next(
+        index: RepertoireIndex,
+        open: RepertoireLevel,
+        introduced: Set<String>,
+        maxNew: Int = MAX_NEW,
+        within: List<String>? = null,
+    ): LearnSegment? {
         val book = index.book
         val target = book.cards(open)
-            .filter { it.key !in introduced && index.pathTo(it.key) != null }
+            .filter { it.key !in introduced && index.pathTo(it.key)?.let { path -> within == null || path.take(within.size) == within } == true }
             .minWithOrNull(compareByDescending<RepertoireNode> { it.reach }.thenBy { it.ply }.thenBy { it.key })
             ?: return null
         val moves = index.pathTo(target.key)!!.toMutableList()
         val fresh = ArrayList<String>()
         // Cards on the way in that are still new (only where reaches tie, as at the start).
         var position = Position.initial()
+        var name: String? = null
         for (uci in moves) {
-            book.at(position)?.takeIf { it.own && it.key !in introduced && it.level <= open }?.let { fresh += it.key }
+            book.at(position)?.takeIf { book.isCard(it) && it.key !in introduced && it.level <= open }?.let { fresh += it.key }
             position = RepertoireIndex.play(position, uci)!!
+            book.at(position)?.name?.let { name = it }
         }
         var node: RepertoireNode = target
         while (fresh.size < maxNew) {
@@ -36,14 +51,16 @@ object LearnPlanner {
             moves += node.move!!
             position = RepertoireIndex.play(position, node.move)!!
             val opponent = book.at(position) ?: break
+            opponent.name?.let { name = it }
             val reply = opponent.replies.filter { it.level <= open }.maxByOrNull { it.share } ?: break
             val after = RepertoireIndex.play(position, reply.uci)!!
-            val card = book.at(after)?.takeIf { it.own && it.key !in introduced && it.level <= open } ?: break
+            val card = book.at(after)?.takeIf { book.isCard(it) && it.key !in introduced && it.level <= open } ?: break
             moves += reply.uci
             position = after
+            card.name?.let { name = it }
             node = card
         }
-        return LearnSegment(moves, fresh.distinct())
+        return LearnSegment(moves, fresh.distinct(), name)
     }
 }
 
@@ -79,11 +96,15 @@ enum class LearnMoveResult {
 class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private val now: () -> Instant = Instant::now) {
     enum class Pass { GUESS, RECALL, DONE }
 
+    /** The opening's defining moves are on the board from the start of each pass. */
+    val startPly = index.book.startPlies(segment.moves)
+    private val startPosition = segment.moves.take(startPly).fold(Position.initial()) { p, uci -> RepertoireIndex.play(p, uci)!! }
+
     var pass: Pass = Pass.GUESS
         private set
-    var ply: Int = 0
+    var ply: Int = startPly
         private set
-    var position: Position = Position.initial()
+    var position: Position = startPosition
         private set
 
     /** The repertoire move after a reveal or a wrong move, until it is played. */
@@ -170,8 +191,8 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
         if (ply >= segment.moves.size) {
             if (pass == Pass.GUESS) {
                 pass = Pass.RECALL
-                ply = 0
-                position = Position.initial()
+                ply = startPly
+                position = startPosition
             } else {
                 pass = Pass.DONE
             }
