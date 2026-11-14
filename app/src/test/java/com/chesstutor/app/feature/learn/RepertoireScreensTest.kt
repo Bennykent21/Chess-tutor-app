@@ -17,6 +17,7 @@ import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.design.AppTheme
 import com.chesstutor.app.design.CtBoardScreenTags
 import com.chesstutor.app.design.CtTheme
+import com.chesstutor.app.domain.learn.OpenLines
 import com.chesstutor.app.domain.repertoire.LevelProgress
 import com.chesstutor.app.domain.repertoire.Mastery
 import com.chesstutor.app.domain.repertoire.RepertoireIndex
@@ -86,6 +87,30 @@ class RepertoireScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page.png")
         compose.onNodeWithText("Review 12").performClick()
         assertEquals(true, reviewed)
+    }
+
+    @Test
+    fun aLockedOpeningSendsTheLearnerToTheCourseOrTheTest() {
+        var course = false
+        var test = false
+        val locked = pageUi().let { ui ->
+            ui.copy(
+                due = 0, fresh = 0, introduced = 0, readiness = 0.0,
+                open = OpenLines(emptyList(), ui.variations.map { it.path }, rest = false),
+                variations = ui.variations.map { it.copy(locked = true) },
+            )
+        }
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                RepertoirePage(locked, RepertoireActions(onBack = {}, onReview = {}, onLearn = {}, onTricky = {}, onCourse = { course = true }, onTest = { test = true }))
+            }
+        }
+        compose.onNodeWithText("Review", substring = true).assertDoesNotExist()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_locked.png")
+        compose.onNodeWithText("Take the course").performClick()
+        compose.onNodeWithText("Know it already? Take the test").performClick()
+        assertEquals(true, course)
+        assertEquals(true, test)
     }
 
     @Test

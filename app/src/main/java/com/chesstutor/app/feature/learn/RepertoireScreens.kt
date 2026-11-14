@@ -79,7 +79,10 @@ import com.chesstutor.app.design.CtShapes
 import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.ui.unit.sp
-import com.chesstutor.app.design.CtBackBar
+import com.chesstutor.app.design.CtIconButton
+import com.chesstutor.app.design.CtScene
+import com.chesstutor.app.design.CtArt
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import com.chesstutor.app.design.CtRing
 import com.chesstutor.app.design.CtRingPart
 import kotlin.math.roundToInt
@@ -96,6 +99,10 @@ data class RepertoireActions(
     val onLearnVariation: (List<String>) -> Unit = {},
     /** Opens the course that teaches the opening's ideas, when there is one. */
     val onIdeas: (() -> Unit)? = null,
+    /** Opens the opening in Learn, where its locked lines are taught (Phase 12). */
+    val onCourse: (() -> Unit)? = null,
+    /** The opening's test, which opens every line at once (Phase 12). */
+    val onTest: (() -> Unit)? = null,
 )
 
 /**
@@ -107,24 +114,35 @@ data class RepertoireActions(
 @Composable
 fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().background(CtColors.Bg).verticalScroll(rememberScrollState())) {
-        CtBackBar(onBack = actions.onBack)
-        Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+        Box(Modifier.fillMaxWidth().height(236.dp)) {
+            CtArt(CtScene.OPENINGS, Modifier.fillMaxSize(), fadeFrom = 0.45f)
+            CtIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = actions.onBack, modifier = Modifier.padding(CtSpacing.xs))
+            Row(
+                Modifier.align(Alignment.BottomStart).padding(horizontal = CtSpacing.gutter),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+            ) {
                 Column(Modifier.weight(1f)) {
                     Text(ui.book.title, style = CtType.Display)
                     Text(if (ui.book.side == PieceColor.WHITE) "As White" else "As Black", style = CtType.BodySmall.copy(color = CtColors.Text2))
                 }
                 ReadinessRing(ui.readiness)
             }
+        }
+        Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
             CupRail(ui)
             Spacer(Modifier.height(CtSpacing.xxs))
             val newLine = ui.nextLine?.let { "New line · $it" } ?: "New line"
-            if (ui.due > 0) {
-                CtButton(text = "Review ${ui.due}", onClick = actions.onReview, modifier = Modifier.fillMaxWidth())
-                if (ui.fresh > 0) CtButton(text = newLine, onClick = actions.onLearn, style = CtButtonStyle.Secondary, modifier = Modifier.fillMaxWidth())
-            } else if (ui.fresh > 0) {
-                CtButton(text = newLine, onClick = actions.onLearn, modifier = Modifier.fillMaxWidth())
+            // With nothing new open, the next lines wait in their course.
+            val course = actions.onCourse.takeIf { ui.fresh == 0 && (ui.locked || ui.variations.any { it.locked }) }
+            if (ui.due > 0) CtButton(text = "Review ${ui.due}", onClick = actions.onReview, modifier = Modifier.fillMaxWidth())
+            val second = if (ui.due > 0) CtButtonStyle.Secondary else CtButtonStyle.Primary
+            if (ui.fresh > 0) {
+                CtButton(text = newLine, onClick = actions.onLearn, style = second, modifier = Modifier.fillMaxWidth())
+            } else if (course != null) {
+                CtButton(text = "Take the course", onClick = course, style = second, modifier = Modifier.fillMaxWidth())
             }
+            if (ui.locked) actions.onTest?.let { CtButton(text = "Know it already? Take the test", onClick = it, style = CtButtonStyle.Ghost, modifier = Modifier.fillMaxWidth()) }
         }
         if (ui.variations.isNotEmpty()) {
             Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg)) {
