@@ -19,10 +19,8 @@ import com.chesstutor.app.design.CtBoardScreenTags
 import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.repertoire.LevelProgress
 import com.chesstutor.app.domain.repertoire.Mastery
-import com.chesstutor.app.domain.repertoire.NoteKind
 import com.chesstutor.app.domain.repertoire.RepertoireIndex
 import com.chesstutor.app.domain.repertoire.RepertoireLevel
-import com.chesstutor.app.domain.repertoire.RepertoireNote
 import com.chesstutor.app.domain.repertoire.TestRepertoire
 import com.chesstutor.app.domain.repertoire.TestRepertoire.P
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -106,7 +104,7 @@ class RepertoireScreensTest {
             kind = RunKind.LEARN, title = "Two Knights Defense", side = book.side, board = board, moment = moment,
             against = if (moment == RunMoment.YourMove) "3...Nf6" else null, step = 2, steps = 5, tricky = false,
             mastered = mastered, masteredBook = "Italian Game", nextLevelCards = 55, moreToLearn = true,
-            ringSquare = ring, why = why, canWhy = why != null || moment is RunMoment.Reveal,
+            ringSquare = ring, why = why, canWhy = why != null,
         )
     }
 
@@ -127,18 +125,19 @@ class RepertoireScreensTest {
         val board = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_learn.png")
 
-        // A branch note says its first sentence by itself; the ring marks the move.
-        val note = RepertoireNote(NoteKind.BRANCH, "4.d3 protects e4, so the knight on f6 has nothing to take. This is the quiet way.")
-        shown = runUi(RunMoment.Reveal("4.d3", guessed = true, note = note, share = 0.41, pitfall = null), toNf6 + "d2d3", ring = "d3")
+        // The watch: the learner's next move as an arrow, with its note's first sentence.
+        shown = runUi(RunMoment.Watch("d2d3", "4.d3 protects e4, so the knight on f6 has nothing to take."), toNf6)
         compose.waitForIdle()
         compose.onNodeWithText("4.d3 protects e4, so the knight on f6 has nothing to take.").assertExists()
+        compose.onNodeWithText("Skip").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_reveal.png")
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_watch.png")
 
-        // Why opens the whole note under it.
-        shown = runUi(RunMoment.Reveal("4.d3", guessed = true, note = note, share = 0.41, pitfall = null), toNf6 + "d2d3", ring = "d3", why = note.text)
+        // Why opens the whole note under the learner's last move.
+        val note = "4.d3 protects e4, so the knight on f6 has nothing to take. This is the quiet way."
+        shown = runUi(RunMoment.YourMove, toNf6 + "d2d3" + "f8c5", ring = "d3", why = note)
         compose.waitForIdle()
-        compose.onNodeWithText(note.text).assertExists()
+        compose.onNodeWithText(note).assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_why.png")
 

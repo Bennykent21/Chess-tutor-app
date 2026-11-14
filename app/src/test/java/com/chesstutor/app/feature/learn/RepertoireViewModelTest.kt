@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -90,15 +92,12 @@ class RepertoireViewModelTest {
         val vm = model(repo)
         vm.startLearn("italian")
         advanceUntilIdle()
-        assertEquals("no intro: the reply is played and it is the learner's move", RunMoment.YourMove, vm.run.value!!.moment)
-        assertEquals("the defining moves and 3...Bc5 are on the board", 6, vm.run.value!!.board.state.value.moves.size)
+        assertEquals("the line was watched to its end, then it is the learner's turn", RunMoment.FromTheTop, vm.run.value!!.moment)
+        assertEquals("the defining moves and 3...Bc5 are on the board again", 6, vm.run.value!!.board.state.value.moves.size)
         val seen = mutableListOf<RunMoment>()
         playThrough(vm, seen)
-        val reveals = seen.filterIsInstance<RunMoment.Reveal>().distinctBy { it.san }
-        // The last guess's words give way to "From memory" in the same pause, so only 4.c3 is seen here.
-        assertEquals("4.c3", reveals.first().san)
-        assertTrue("the first move was guessed right", reveals.first().guessed)
-        assertTrue("the recall pass started from the top", seen.any { it == RunMoment.FromTheTop })
+        val finishedEarly = seen.first()
+        assertEquals(RunMoment.FromTheTop, finishedEarly)
         val finished = seen.last() as RunMoment.Finished
         assertEquals(2, finished.total)
         assertEquals(2, finished.right)
@@ -112,28 +111,30 @@ class RepertoireViewModelTest {
     }
 
     @Test
-    fun aWrongGuessIsNotPlayedTheRightMoveIsShownAndTheLearnerPlaysIt() = runTest(dispatcher) {
+    fun theLineIsWatchedFirstThenAWrongMoveIsNotPlayed() = runTest(dispatcher) {
         val vm = model(InMemoryRepertoireProgressRepository())
         vm.startLearn("italian")
+        runCurrent()
+        assertEquals("the line starts by playing itself", RunMoment.Watch(null, null), vm.run.value!!.moment)
+        advanceTimeBy(RepertoireViewModel.REPLY_DELAY_MS + RepertoireViewModel.WATCH_MOVE_MS + 1)
+        val arrow = vm.run.value!!.moment as RunMoment.Watch
+        assertEquals("the learner's move shows as an arrow before it is played", "c2c3", arrow.arrow)
         advanceUntilIdle()
         val board = vm.run.value!!.board
         val start = board.state.value.position
         assertEquals(6, board.state.value.moves.size)
-        // 4.d3 is as good as 4.c3, but not this repertoire's move: named, drawn, not played.
+        // 4.d3 is as good as 4.c3, but not this repertoire's move: after watching, it is not named.
         board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "d2d3" })
         advanceUntilIdle()
-        assertEquals(RunMoment.Also("4.c3", "c2c3"), vm.run.value!!.moment)
+        assertEquals(RunMoment.Also(null, null), vm.run.value!!.moment)
         assertEquals(6, board.state.value.moves.size)
         // A wrong move slides back too, and the right one is drawn.
         board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "a2a3" })
         advanceUntilIdle()
         assertEquals(RunMoment.Shown("4.c3", "c2c3"), vm.run.value!!.moment)
         assertEquals(6, board.state.value.moves.size)
-        // Playing it brings the reveal, which says it was not a first-try guess.
         board.onMove(LegalMoveGenerator.generateLegalMoves(start).first { it.uci == "c2c3" })
         advanceUntilIdle()
-        val reveal = vm.run.value!!.moment as RunMoment.Reveal
-        assertFalse(reveal.guessed)
         assertEquals("the learner's move, then the reply by itself", listOf("c2c3", "g8f6"), board.state.value.moves.drop(6).map { it.uci })
     }
 
@@ -170,6 +171,7 @@ class RepertoireViewModelTest {
         val vm = model(InMemoryRepertoireProgressRepository())
         vm.startLearn("italian")
         advanceUntilIdle()
+        assertEquals("the watch is over", RunMoment.FromTheTop, vm.run.value!!.moment)
         vm.hint()
         assertEquals("first the piece to move", "c2", vm.run.value!!.hintFrom)
         vm.hint()

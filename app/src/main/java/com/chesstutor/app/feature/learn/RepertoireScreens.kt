@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Lock
@@ -54,17 +53,14 @@ import com.chesstutor.app.board.moveListOf
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Square
 import com.chesstutor.app.data.settings.AppSettings
-import com.chesstutor.app.design.CtArt
 import com.chesstutor.app.design.CtBoardScreen
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtControl
-import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtMetalIcon
 import com.chesstutor.app.design.CtProgressBar
-import com.chesstutor.app.design.CtScene
 import com.chesstutor.app.design.CtSheet
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
@@ -80,7 +76,12 @@ import com.chesstutor.app.domain.repertoire.Variation
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.ui.draw.clip
 import com.chesstutor.app.design.CtShapes
-import com.chesstutor.app.domain.repertoire.NoteKind
+import androidx.compose.material.icons.rounded.Replay
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.ui.unit.sp
+import com.chesstutor.app.design.CtBackBar
+import com.chesstutor.app.design.CtRing
+import com.chesstutor.app.design.CtRingPart
 import kotlin.math.roundToInt
 
 /** What the opening page can open. Null hides the row. */
@@ -106,28 +107,31 @@ data class RepertoireActions(
 @Composable
 fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().background(CtColors.Bg).verticalScroll(rememberScrollState())) {
-        Box(Modifier.fillMaxWidth().height(236.dp)) {
-            CtArt(CtScene.OPENINGS, Modifier.fillMaxSize(), fadeFrom = 0.45f)
-            CtIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = actions.onBack, modifier = Modifier.padding(CtSpacing.xs))
-            Column(Modifier.align(Alignment.BottomStart).padding(horizontal = CtSpacing.gutter)) {
-                Text(ui.book.title, style = CtType.Display)
-                Text(if (ui.book.side == PieceColor.WHITE) "As White" else "As Black", style = CtType.BodySmall.copy(color = CtColors.Text2))
-            }
-        }
+        CtBackBar(onBack = actions.onBack)
         Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-            Spacer(Modifier.height(CtSpacing.xs))
-            if (ui.introduced > 0) Readiness(ui.readiness)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+                Column(Modifier.weight(1f)) {
+                    Text(ui.book.title, style = CtType.Display)
+                    Text(if (ui.book.side == PieceColor.WHITE) "As White" else "As Black", style = CtType.BodySmall.copy(color = CtColors.Text2))
+                }
+                ReadinessRing(ui.readiness)
+            }
             CupRail(ui)
             Spacer(Modifier.height(CtSpacing.xxs))
+            val newLine = ui.nextLine?.let { "New line · $it" } ?: "New line"
             if (ui.due > 0) {
                 CtButton(text = "Review ${ui.due}", onClick = actions.onReview, modifier = Modifier.fillMaxWidth())
-                if (ui.fresh > 0) CtButton(text = "Learn new moves", onClick = actions.onLearn, style = CtButtonStyle.Secondary, modifier = Modifier.fillMaxWidth())
+                if (ui.fresh > 0) CtButton(text = newLine, onClick = actions.onLearn, style = CtButtonStyle.Secondary, modifier = Modifier.fillMaxWidth())
             } else if (ui.fresh > 0) {
-                CtButton(text = "Learn new moves", onClick = actions.onLearn, modifier = Modifier.fillMaxWidth())
+                CtButton(text = newLine, onClick = actions.onLearn, modifier = Modifier.fillMaxWidth())
             }
         }
-        Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
-            actions.onIdeas?.let { CtListRow(title = "Ideas", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.AutoStories, size = 36.dp) }) }
+        if (ui.variations.isNotEmpty()) {
+            Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg)) {
+                VariationList(ui.variations, actions.onLearnVariation)
+            }
+        }
+        Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.xl)) {
             if (ui.tricky > 0) {
                 CtListRow(
                     title = "Tricky lines", icon = null, onClick = actions.onTricky,
@@ -135,27 +139,24 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
                     trailing = { Text("${ui.tricky}", style = CtType.BodySmall.copy(color = CtColors.Text2)) },
                 )
             }
+            actions.onIdeas?.let { CtListRow(title = "Ideas", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.AutoStories, size = 36.dp) }) }
             actions.onSparring?.let { CtListRow(title = "Sparring", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.SportsEsports, size = 36.dp) }) }
             actions.onPlayOut?.let { CtListRow(title = "Play it out", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Flag, size = 36.dp) }) }
-        }
-        if (ui.variations.isNotEmpty()) {
-            Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md, bottom = CtSpacing.xl)) {
-                VariationList(ui.variations, actions.onLearnVariation)
-            }
         }
     }
 }
 
-/** How much of what the learner meets is solid: one number, no sentence. */
+/** How ready the learner is, as a ring beside the opening's name: the share of what they meet that they know solidly. */
 @Composable
-private fun Readiness(readiness: Double) {
-    Row(
+private fun ReadinessRing(readiness: Double) {
+    val share = readiness.toFloat().coerceIn(0f, 1f)
+    CtRing(
+        parts = listOf(CtRingPart(share, CtColors.Text)),
+        diameter = 60.dp,
+        stroke = 5.dp,
         modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "${percent(readiness)} ready" },
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
     ) {
-        Text(percent(readiness), style = CtType.BigNumber)
-        Text("ready", style = CtType.Body.copy(color = CtColors.Text2), modifier = Modifier.padding(bottom = 6.dp))
+        Text(percent(readiness), style = CtType.Label, modifier = Modifier.align(Alignment.Center))
     }
 }
 
@@ -317,6 +318,8 @@ fun RepertoireRunScreen(
     onHint: () -> Unit,
     onWhy: () -> Unit,
     onLearnMore: () -> Unit,
+    onWatchAgain: () -> Unit = {},
+    onSkipWatch: () -> Unit = {},
     onDismissMastered: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -339,6 +342,7 @@ fun RepertoireRunScreen(
         },
         board = {
             val arrow = when (moment) {
+                is RunMoment.Watch -> moment.arrow
                 is RunMoment.Shown -> moment.uci
                 is RunMoment.Also -> moment.uci
                 is RunMoment.CardDone -> moment.shown
@@ -361,7 +365,10 @@ fun RepertoireRunScreen(
             )
         },
         controls = {
-            if (moment is RunMoment.Finished) {
+            if (moment is RunMoment.Watch) {
+                CtControl(Icons.Rounded.Replay, "Again", onClick = onWatchAgain)
+                CtControl(Icons.Rounded.SkipNext, "Skip", onClick = onSkipWatch)
+            } else if (moment is RunMoment.Finished) {
                 if (run.kind == RunKind.LEARN && run.moreToLearn) {
                     CtButton(text = "Done", onClick = onBack, style = CtButtonStyle.Ghost)
                     CtButton(text = "Next line", onClick = onLearnMore, modifier = Modifier.weight(1f))
@@ -380,6 +387,11 @@ fun RepertoireRunScreen(
 /** A dot per new move of a line, or a thin bar with "3 / 12" for a review. */
 @Composable
 private fun RunProgress(run: RunUi) {
+    if (run.moment is RunMoment.Watch) {
+        // While the line plays itself there is nothing to count yet.
+        Text("WATCH", style = CtType.Caption.copy(color = CtColors.Accent, letterSpacing = 1.2.sp))
+        return
+    }
     val dots = run.kind == RunKind.LEARN || run.steps <= MAX_DOTS
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         if (dots) {
@@ -415,19 +427,15 @@ private fun RunWords(run: RunUi) {
         if (line != null) Text(line, style = CtType.Title)
         when {
             run.why != null -> Text(run.why, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 5, overflow = TextOverflow.Ellipsis)
-            quiet != null -> Text(quiet, style = CtType.Caption.copy(color = if (run.moment is RunMoment.Reveal && run.moment.pitfall != null) CtColors.Error else CtColors.Text2))
+            quiet != null -> Text(quiet, style = CtType.Caption.copy(color = CtColors.Text2))
         }
     }
 }
 
 private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.moment) {
     RunMoment.YourMove -> "Your move" to if (run.tricky) "A tricky line, from the start." else null
-    RunMoment.FromTheTop -> "From memory" to "The same line again."
-    is RunMoment.Reveal -> {
-        val speaks = m.note?.takeIf { it.kind == NoteKind.BRANCH || it.kind == NoteKind.TRAP }?.text?.let(::firstSentence)
-        // With Why open the note itself sits below, so the heading is just the move.
-        (if (run.why != null) m.san else speaks) to m.pitfall
-    }
+    RunMoment.FromTheTop -> "Your turn" to "Play the line back."
+    is RunMoment.Watch -> (m.words ?: "Watch the line") to null
     is RunMoment.Also -> "Also good" to (m.san?.let { "Your move here is $it." } ?: "Not the move to remember here.")
     is RunMoment.Shown -> "Play ${m.san}" to if (run.kind == RunKind.LEARN) null else "This position comes back sooner."
     is RunMoment.CardDone -> (if (m.right) null else "Comes back today") to null
@@ -438,7 +446,6 @@ private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.mome
     }
 }
 
-private fun firstSentence(text: String): String = text.split(Regex("(?<=[.!?])\\s+")).first()
 
 /** A level is won: its cup, what opens next, and the three cups (D76). */
 @Composable

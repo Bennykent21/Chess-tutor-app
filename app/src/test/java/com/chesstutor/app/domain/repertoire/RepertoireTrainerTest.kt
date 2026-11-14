@@ -44,7 +44,8 @@ class RepertoireTrainerTest {
                 val segment = LearnPlanner.next(sampleIndex, level, introduced) ?: break
                 assertTrue(segment.newCards.isNotEmpty() && segment.newCards.size <= LearnPlanner.MAX_NEW)
                 val run = LearnRun(sampleIndex, segment) { day0 }
-                // Play both passes with the repertoire's own moves.
+                // Watch the line, then play it back with the repertoire's own moves.
+                while (run.pass == LearnRun.Pass.WATCH) run.watchNext()
                 while (run.pass != LearnRun.Pass.DONE) {
                     if (run.isOwnTurn) run.submit(segment.moves[run.ply]) else assertTrue(run.playOpponent())
                 }
@@ -123,22 +124,21 @@ class RepertoireTrainerTest {
     }
 
     @Test
-    fun aLearnRunGuessesFirstThenRecalls() {
+    fun aLearnRunIsWatchedThenPlayedBack() {
         val segment = LearnSegment("$P g8f6 d2d3".split(' '), listOf(key("$P g8f6")))
         val run = LearnRun(index, segment) { day0 }
         assertEquals("the defining moves are already on the board", 5, run.ply)
         assertEquals(key(P), run.position.repetitionKey())
-        assertFalse(run.isOwnTurn)
-        assertTrue(run.playOpponent())
-        assertTrue(run.isNewCard)
-        // A wrong guess costs nothing: it is not played, the right move is shown, and the learner plays it.
-        assertEquals(LearnMoveResult.REVEALED, run.submit("b1c3"))
-        assertEquals(LearnRun.Pass.GUESS, run.pass)
-        assertEquals("d2d3", run.shown)
-        assertTrue(run.isNewCard)
-        assertEquals("after a reveal, playing it is RIGHT, not GUESSED", LearnMoveResult.RIGHT, run.submit("d2d3"))
-        assertEquals("the segment ended, so the recall pass starts from the top", LearnRun.Pass.RECALL, run.pass)
-        assertEquals("the top is where the defining moves end", 5, run.ply)
+        assertEquals(LearnRun.Pass.WATCH, run.pass)
+        assertFalse("nobody moves while the line plays itself", run.isOwnTurn)
+        assertNull(run.submit("d2d3"))
+        assertEquals("g8f6", run.nextWatched)
+        assertFalse(run.nextIsOwn)
+        assertEquals("g8f6", run.watchNext())
+        assertTrue("the learner's move comes next, shown with an arrow", run.nextIsOwn)
+        assertEquals("d2d3", run.watchNext())
+        assertEquals("the line was watched, so it is played back from the top", LearnRun.Pass.RECALL, run.pass)
+        assertEquals(5, run.ply)
         assertTrue(run.outcome.isEmpty())
         assertTrue(run.playOpponent())
         assertTrue(run.isNewCard)
@@ -148,15 +148,29 @@ class RepertoireTrainerTest {
         assertEquals(LearnRun.Pass.DONE, run.pass)
         val (card, review) = run.outcome.single()
         assertEquals(key("$P g8f6"), card.key)
-        assertTrue("missed in the recall pass: back to Learning", card.learning)
+        assertTrue("missed in the play-back: back to Learning", card.learning)
         assertFalse(review.firstTryRight)
+    }
+
+    @Test
+    fun theWatchCanBeSeenAgainOrSkipped() {
+        val run = LearnRun(index, LearnSegment("$P g8f6 d2d3".split(' '), listOf(key("$P g8f6")))) { day0 }
+        run.watchNext()
+        run.watchAgain()
+        assertEquals(5, run.ply)
+        assertEquals(LearnRun.Pass.WATCH, run.pass)
+        run.skipWatch()
+        assertEquals(LearnRun.Pass.RECALL, run.pass)
+        assertEquals(5, run.ply)
+        assertNull("no watching once the play-back started", run.watchNext())
     }
 
     @Test
     fun aRightRecallSchedulesTheCardForTomorrow() {
         val segment = LearnSegment(listOf("e2e4"), listOf(key("")))
         val run = LearnRun(index, segment) { day0 }
-        assertEquals(LearnMoveResult.GUESSED, run.submit("e2e4"))
+        assertEquals("e2e4", run.watchNext())
+        assertEquals(LearnRun.Pass.RECALL, run.pass)
         assertEquals(LearnMoveResult.RIGHT, run.submit("e2e4"))
         val (card, review) = run.outcome.single()
         assertEquals(0, card.stage)
@@ -171,10 +185,11 @@ class RepertoireTrainerTest {
         assertEquals(listOf("e2e4", "c7c6", "d2d4", "d7d5", "e4e5", "c8f5"), segment.moves)
         val run = LearnRun(caro, segment) { day0 }
         assertEquals("after 1.e4 c6, White moves first", 2, run.ply)
+        while (run.pass == LearnRun.Pass.WATCH) run.watchNext()
         assertFalse(run.isOwnTurn)
         assertTrue(run.playOpponent())
         assertTrue(run.isOwnTurn)
-        assertEquals(LearnMoveResult.GUESSED, run.submit("d7d5"))
+        assertEquals(LearnMoveResult.RIGHT, run.submit("d7d5"))
     }
 
     // ---------------------------------------------------------------- review
