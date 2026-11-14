@@ -133,6 +133,7 @@ private fun AppShell(
         ) {
             homeGraph(shell)
             learnGraph(shell)
+            trainGraph(shell)
             puzzlesGraph(shell)
             accountGraph(shell)
             composable(

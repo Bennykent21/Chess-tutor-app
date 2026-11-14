@@ -23,7 +23,6 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.SportsEsports
-import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -68,9 +67,7 @@ import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScene
 import com.chesstutor.app.design.CtSheet
 import com.chesstutor.app.design.CtSpacing
-import com.chesstutor.app.design.CtTutor
 import com.chesstutor.app.design.CtType
-import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.domain.repertoire.MasteryProgress
 import com.chesstutor.app.domain.repertoire.RepertoireLevel
 import androidx.compose.foundation.layout.heightIn
@@ -80,6 +77,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.style.TextOverflow
 import com.chesstutor.app.design.ctPressable
 import com.chesstutor.app.domain.repertoire.Variation
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import androidx.compose.ui.draw.clip
+import com.chesstutor.app.design.CtShapes
+import com.chesstutor.app.domain.repertoire.NoteKind
 import kotlin.math.roundToInt
 
 /** What the opening page can open. Null hides the row. */
@@ -303,20 +304,18 @@ private fun LevelLabel(level: RepertoireLevel, progress: MasteryProgress?, won: 
 private fun percent(share: Double): String = "${(share * 100).roundToInt()}%"
 
 /**
- * A learn, review or tricky-lines run on the fixed board (mock-up round 2, direction A):
- * the coach asks, reveals and explains in the zone above the board; the moves follow in the
- * strip below it; the controls sit in their fixed row. The mastery sheet covers the screen
- * when a level is won.
+ * A learn, review or tricky-lines run on the fixed board (mock-up round 3): no coach and no Next
+ * between moves. A right move gets a ring and the reply comes by itself; a slip slides back and
+ * the right move is drawn. Above the board: the progress dots and, at most, one line of words.
+ * Below it the moves; at the bottom Hint and Why, and one button only when the line is over.
  */
 @Composable
 fun RepertoireRunScreen(
     run: RunUi?,
     settings: AppSettings,
     onFeedback: (BoardFeedback) -> Unit,
-    onNext: () -> Unit,
     onHint: () -> Unit,
-    onShowAnswer: () -> Unit,
-    onPickBranch: (uci: String) -> Unit,
+    onWhy: () -> Unit,
     onLearnMore: () -> Unit,
     onDismissMastered: () -> Unit,
     onBack: () -> Unit,
@@ -330,8 +329,8 @@ fun RepertoireRunScreen(
         onBack = onBack,
         modifier = modifier,
         zone = {
-            RunProgress(run)
-            CtTutor(settings.mascot, mood = moodOf(moment), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+            Column(Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                RunProgress(run)
                 RunWords(run)
             }
         },
@@ -353,116 +352,93 @@ fun RepertoireRunScreen(
                 showLegalDots = settings.showLegalDots,
                 autoQueen = settings.autoQueen,
                 arrows = listOfNotNull(arrow?.let { BoardArrow(Square.fromAlgebraic(it.substring(0, 2)), Square.fromAlgebraic(it.substring(2, 4)), MarkKind.HINT) }),
-                rings = listOfNotNull(run.hintFrom?.let { SquareRing(Square.fromAlgebraic(it), MarkKind.HINT) }),
+                rings = listOfNotNull(
+                    run.hintFrom?.let { SquareRing(Square.fromAlgebraic(it), MarkKind.HINT) },
+                    run.ringSquare?.let { SquareRing(Square.fromAlgebraic(it), if (run.ringRight) MarkKind.BEST else MarkKind.MISTAKE) },
+                ),
                 onFeedback = onFeedback,
                 soundsOtherMoves = true,
             )
         },
         controls = {
-            when (moment) {
-                is RunMoment.Reveal, is RunMoment.CardDone -> CtButton(text = "Next", onClick = onNext, modifier = Modifier.weight(1f))
-                is RunMoment.Intro -> CtButton(text = "Start", onClick = onNext, modifier = Modifier.weight(1f))
-                is RunMoment.Branch -> if (moment.picked == null) {
-                    moment.question.choices.forEachIndexed { i, reply ->
-                        CtButton(text = moment.sans[i].substringAfterLast('.'), onClick = { onPickBranch(reply.uci) }, style = CtButtonStyle.Secondary, modifier = Modifier.weight(1f))
-                    }
+            if (moment is RunMoment.Finished) {
+                if (run.kind == RunKind.LEARN && run.moreToLearn) {
+                    CtButton(text = "Done", onClick = onBack, style = CtButtonStyle.Ghost)
+                    CtButton(text = "Next line", onClick = onLearnMore, modifier = Modifier.weight(1f))
                 } else {
-                    CtButton(text = "Next", onClick = onNext, modifier = Modifier.weight(1f))
-                }
-                is RunMoment.Finished -> {
-                    if (run.kind == RunKind.LEARN && run.moreToLearn) {
-                        CtButton(text = "Learn more", onClick = onLearnMore, style = CtButtonStyle.Secondary, modifier = Modifier.weight(1f))
-                    }
                     CtButton(text = "Done", onClick = onBack, modifier = Modifier.weight(1f))
                 }
-                else -> {
-                    CtControl(Icons.Rounded.Lightbulb, "Hint", onClick = onHint)
-                    CtControl(Icons.Rounded.Visibility, "Show me", onClick = onShowAnswer)
-                }
+            } else {
+                CtControl(Icons.Rounded.Lightbulb, "Hint", onClick = onHint)
+                CtControl(Icons.AutoMirrored.Rounded.HelpOutline, "Why", enabled = run.canWhy, onClick = onWhy)
             }
         },
         overlay = { MasterySheet(run, onDismiss = onDismissMastered) },
     )
 }
 
+/** A dot per new move of a line, or a thin bar with "3 / 12" for a review. */
 @Composable
 private fun RunProgress(run: RunUi) {
-    if (run.kind == RunKind.LEARN) {
-        // One segment per new move, like a lesson's steps.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            repeat(run.steps) { i ->
-                CtProgressBar(progress = if (i < run.step) 1f else 0f, height = 3.dp, modifier = Modifier.weight(1f))
+    val dots = run.kind == RunKind.LEARN || run.steps <= MAX_DOTS
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        if (dots) {
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                repeat(run.steps) { i ->
+                    val color = when {
+                        i < run.step -> CtColors.Success
+                        i == run.step && run.moment !is RunMoment.Finished -> CtColors.Text2
+                        else -> CtColors.Track
+                    }
+                    Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
+                }
             }
-        }
-    } else {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        } else {
             CtProgressBar(progress = if (run.steps == 0) 0f else run.step.toFloat() / run.steps, height = 3.dp, modifier = Modifier.weight(1f))
+        }
+        if (run.kind != RunKind.LEARN) {
             Text("${(run.step + 1).coerceAtMost(run.steps)} / ${run.steps}", style = CtType.Caption.copy(color = CtColors.Text2))
         }
     }
 }
 
-private fun moodOf(moment: RunMoment): MascotMood = when (moment) {
-    is RunMoment.Reveal -> if (moment.guessed) MascotMood.PROUD else MascotMood.KIND
-    is RunMoment.Shown, is RunMoment.Also -> MascotMood.KIND
-    is RunMoment.CardDone -> if (moment.right) MascotMood.PROUD else MascotMood.KIND
-    is RunMoment.Branch -> if (moment.picked == null) MascotMood.THINKING else MascotMood.READY
-    is RunMoment.Finished -> MascotMood.PROUD
-    is RunMoment.Intro -> MascotMood.READY
-    else -> MascotMood.THINKING
-}
+private const val MAX_DOTS = 12
 
+/**
+ * The words above the board: a title-sized line, and under it a quiet one. Most moves say
+ * nothing; a branch or trap note says its first sentence; "Why" shows the whole note.
+ */
 @Composable
 private fun RunWords(run: RunUi) {
-    when (val moment = run.moment) {
-        RunMoment.YourMove -> {
-            Text(run.against?.let { "What do you play against $it?" } ?: "Your move.", style = CtType.Chat)
-            if (run.tricky) Text("A tricky line, from the start.", style = CtType.Caption.copy(color = CtColors.Text2))
+    val (line, quiet) = wordsOf(run)
+    Column(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)) {
+        if (line != null) Text(line, style = CtType.Title)
+        when {
+            run.why != null -> Text(run.why, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 5, overflow = TextOverflow.Ellipsis)
+            quiet != null -> Text(quiet, style = CtType.Caption.copy(color = if (run.moment is RunMoment.Reveal && run.moment.pitfall != null) CtColors.Error else CtColors.Text2))
         }
-        RunMoment.FromTheTop -> Text("Now from the start, from memory.", style = CtType.Chat)
-        is RunMoment.Intro -> {
-            Text(moment.name, style = CtType.TitleSmall)
-            Text(moment.text ?: "Guess each move first. Then the line again, from memory.", style = CtType.Chat)
-        }
-        is RunMoment.Reveal -> {
-            Text(moment.san, style = CtType.TitleSmall)
-            moment.note?.let { Text(it.text, style = CtType.Chat) }
-            moment.share?.let { Text("Played in ${percent(it)} of games", style = CtType.Caption.copy(color = CtColors.Text2)) }
-            moment.pitfall?.let { Text(it, style = CtType.Caption.copy(color = CtColors.Error)) }
-        }
-        is RunMoment.Also -> Text(
-            moment.san?.let { "Also good, but your move here is $it. Play it to go on." } ?: "Also good, but not the move to remember here. Try again.",
-            style = CtType.Chat,
-        )
-        is RunMoment.Shown -> Text("Your move here is ${moment.san}. Play it to go on.", style = CtType.Chat)
-        is RunMoment.Branch -> {
-            val answer = moment.question.answer.uci
-            Text(
-                when (moment.picked) {
-                    null -> "What do most players at your level play here?"
-                    answer -> "Right, most play ${moment.sans.first()}."
-                    else -> "Most play ${moment.sans.first()}."
-                },
-                style = CtType.Chat,
-            )
-            if (moment.picked != null) {
-                Text(
-                    moment.question.choices.mapIndexed { i, r -> "${moment.sans[i]} ${percent(r.share)}" }.joinToString("   "),
-                    style = CtType.Caption.copy(color = CtColors.Text2),
-                )
-            }
-        }
-        is RunMoment.CardDone -> Text(
-            if (moment.right) "Right. " + comesBack(moment.dueAt.toEpochMilli() - System.currentTimeMillis()) else "It comes back today.",
-            style = CtType.Chat,
-        )
-        is RunMoment.Finished -> Text(
-            if (run.kind == RunKind.LEARN) "${moment.total} new move${if (moment.total == 1) "" else "s"} learnt. They come back tomorrow."
-            else "${moment.right} of ${moment.total} right first time.",
-            style = CtType.Chat,
-        )
     }
 }
+
+private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.moment) {
+    RunMoment.YourMove -> "Your move" to if (run.tricky) "A tricky line, from the start." else null
+    RunMoment.FromTheTop -> "From memory" to "The same line again."
+    is RunMoment.Reveal -> {
+        val speaks = m.note?.takeIf { it.kind == NoteKind.BRANCH || it.kind == NoteKind.TRAP }?.text?.let(::firstSentence)
+        // With Why open the note itself sits below, so the heading is just the move.
+        (if (run.why != null) m.san else speaks) to m.pitfall
+    }
+    is RunMoment.Also -> "Also good" to (m.san?.let { "Your move here is $it." } ?: "Not the move to remember here.")
+    is RunMoment.Shown -> "Play ${m.san}" to if (run.kind == RunKind.LEARN) null else "This position comes back sooner."
+    is RunMoment.CardDone -> (if (m.right) null else "Comes back today") to null
+    is RunMoment.Finished -> if (run.kind == RunKind.LEARN) {
+        "Line learnt" to "${m.right} of ${m.total} first try. Back tomorrow."
+    } else {
+        "${m.total} position${if (m.total == 1) "" else "s"}" to "${m.right} of ${m.total} first try."
+    }
+}
+
+private fun firstSentence(text: String): String = text.split(Regex("(?<=[.!?])\\s+")).first()
 
 /** A level is won: its cup, what opens next, and the three cups (D76). */
 @Composable

@@ -74,17 +74,24 @@ fun OpeningTrainerScreen(
     onOpenRepertoire: (id: String) -> Unit = {},
     /** Reviews every taught opening's due cards, mixed. */
     onReviewRepertoires: () -> Unit = {},
+    /** One side only, with the side as the title (Train, Phase 12); null shows both behind a switch. */
+    fixedSide: PieceColor? = null,
 ) {
     val taught = repertoires.map { it.book.id }.toSet()
     val legacy = state.openings.filter { it.opening.id !in taught && it.lines.isNotEmpty() }
     val firstDue = legacy.firstOrNull { it.due > 0 }
     val dueRepertoire = repertoires.firstOrNull { it.due > 0 }
     // Open on the side that has work due, so the list starts where the work is.
-    var side by rememberSaveable { mutableStateOf(dueRepertoire?.book?.side ?: firstDue?.opening?.side ?: PieceColor.WHITE) }
-    val repertoireDue = repertoires.sumOf { it.due }
-    val due = legacy.sumOf { it.due }
+    var chosen by rememberSaveable { mutableStateOf(dueRepertoire?.book?.side ?: firstDue?.opening?.side ?: PieceColor.WHITE) }
+    val side = fixedSide ?: chosen
+    val repertoireDue = repertoires.filter { it.book.side == side || fixedSide == null }.sumOf { it.due }
+    val due = legacy.filter { it.opening.side == side || fixedSide == null }.sumOf { it.due }
     CtActionPage(
-        title = "Opening trainer",
+        title = when (fixedSide) {
+            PieceColor.WHITE -> "As White"
+            PieceColor.BLACK -> "As Black"
+            null -> "Opening trainer"
+        },
         onBack = onBack,
         modifier = modifier,
         bottom = {
@@ -97,12 +104,14 @@ fun OpeningTrainerScreen(
     ) {
         // Read when the app starts, so this is at most a blink: nothing to announce.
         if (state.loading) return@CtActionPage
-        CtSegmented(
-            options = listOf(PieceColor.WHITE, PieceColor.BLACK),
-            selected = side,
-            label = { if (it == PieceColor.WHITE) "As White" else "As Black" },
-            onSelect = { side = it },
-        )
+        if (fixedSide == null) {
+            CtSegmented(
+                options = listOf(PieceColor.WHITE, PieceColor.BLACK),
+                selected = side,
+                label = { if (it == PieceColor.WHITE) "As White" else "As Black" },
+                onSelect = { chosen = it },
+            )
+        }
         val shown = legacy.filter { it.opening.side == side }
         Column(Modifier.padding(top = CtSpacing.sm)) {
             repertoires.filter { it.book.side == side }.forEach { item -> RepertoireRow(item, onOpen = { onOpenRepertoire(item.book.id) }) }

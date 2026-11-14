@@ -11,7 +11,7 @@ class NavigationModelTest {
 
     @Test
     fun fourTabsInPlanOrderWithUniqueRoutes() {
-        assertEquals(listOf("Home", "Learn", "Puzzles", "Account"), TopTab.entries.map { it.label })
+        assertEquals(listOf("Home", "Learn", "Train", "Puzzles", "Account"), TopTab.entries.map { it.label })
         val routes = TopTab.entries.flatMap { listOf(it.graphRoute, it.startRoute) }
         assertEquals(routes.size, routes.toSet().size)
     }

@@ -20,6 +20,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -49,15 +50,15 @@ class RepertoireViewModelTest {
     }
 
     /** Plays the run to its end with the repertoire's own moves, answering every question with [branchPick]. */
-    private fun TestScope.playThrough(vm: RepertoireViewModel, seen: MutableList<RunMoment> = mutableListOf(), branchPick: Int = 0) {
+    /** Plays the repertoire's own moves until the run is over; nothing waits for a tap any more. */
+    private fun TestScope.playThrough(vm: RepertoireViewModel, seen: MutableList<RunMoment> = mutableListOf()) {
         repeat(200) {
             advanceUntilIdle()
             val run = vm.run.value ?: return
             seen += run.moment
-            when (val moment = run.moment) {
+            when (run.moment) {
                 is RunMoment.Finished -> return
-                is RunMoment.Reveal, is RunMoment.CardDone, is RunMoment.Intro -> vm.next()
-                is RunMoment.Branch -> if (moment.picked == null) vm.pickBranch(moment.question.choices[branchPick].uci) else vm.next()
+                is RunMoment.CardDone -> Unit
                 else -> {
                     val position = run.board.state.value.position
                     val uci = book.at(position)?.move ?: error("no repertoire move here")
@@ -84,19 +85,19 @@ class RepertoireViewModelTest {
     }
 
     @Test
-    fun aLearnRunGuessesRevealsAsksTheBranchThenRecallsAndSaves() = runTest(dispatcher) {
+    fun aLearnRunFlowsThroughBothPassesWithoutATapAndSaves() = runTest(dispatcher) {
         val repo = InMemoryRepertoireProgressRepository()
         val vm = model(repo)
         vm.startLearn("italian")
         advanceUntilIdle()
-        assertEquals("the line's name first; no story without a note", RunMoment.Intro("Italian Game", null), vm.run.value!!.moment)
-        assertEquals("the defining moves are on the board", 5, vm.run.value!!.board.state.value.moves.size)
+        assertEquals("no intro: the reply is played and it is the learner's move", RunMoment.YourMove, vm.run.value!!.moment)
+        assertEquals("the defining moves and 3...Bc5 are on the board", 6, vm.run.value!!.board.state.value.moves.size)
         val seen = mutableListOf<RunMoment>()
         playThrough(vm, seen)
         val reveals = seen.filterIsInstance<RunMoment.Reveal>().distinctBy { it.san }
-        assertEquals(listOf("4.c3", "5.d3"), reveals.map { it.san })
+        // The last guess's words give way to "From memory" in the same pause, so only 4.c3 is seen here.
+        assertEquals("4.c3", reveals.first().san)
         assertTrue("the first move was guessed right", reveals.first().guessed)
-        assertTrue("the branch after 3.Bc4 was asked", seen.any { it is RunMoment.Branch })
         assertTrue("the recall pass started from the top", seen.any { it == RunMoment.FromTheTop })
         val finished = seen.last() as RunMoment.Finished
         assertEquals(2, finished.total)
@@ -114,12 +115,6 @@ class RepertoireViewModelTest {
     fun aWrongGuessIsNotPlayedTheRightMoveIsShownAndTheLearnerPlaysIt() = runTest(dispatcher) {
         val vm = model(InMemoryRepertoireProgressRepository())
         vm.startLearn("italian")
-        advanceUntilIdle()
-        vm.next()
-        advanceUntilIdle()
-        val branch = vm.run.value!!.moment as RunMoment.Branch
-        vm.pickBranch(branch.question.choices.first().uci)
-        vm.next()
         advanceUntilIdle()
         val board = vm.run.value!!.board
         val start = board.state.value.position
@@ -139,7 +134,7 @@ class RepertoireViewModelTest {
         advanceUntilIdle()
         val reveal = vm.run.value!!.moment as RunMoment.Reveal
         assertFalse(reveal.guessed)
-        assertEquals("c2c3", board.state.value.moves.last().uci)
+        assertEquals("the learner's move, then the reply by itself", listOf("c2c3", "g8f6"), board.state.value.moves.drop(6).map { it.uci })
     }
 
     @Test
@@ -160,14 +155,31 @@ class RepertoireViewModelTest {
         assertEquals("d2d3", shown.uci)
         assertEquals("4.d3", shown.san)
         run.board.onMove(LegalMoveGenerator.generateLegalMoves(position).first { it.uci == "d2d3" })
-        advanceUntilIdle()
         val done = vm.run.value!!.moment as RunMoment.CardDone
         assertFalse(done.right)
-        vm.next()
+        assertEquals("a green ring on the right move", "d3", vm.run.value!!.ringSquare)
+        // No Next: the run moves on by itself after a moment.
         advanceUntilIdle()
         val finished = vm.run.value!!.moment as RunMoment.Finished
         assertEquals(0, finished.right)
         assertTrue(repo.observeCards().first().getValue(card.id).learning)
+    }
+
+    @Test
+    fun aSecondHintShowsTheMoveAndASlipGetsARedRing() = runTest(dispatcher) {
+        val vm = model(InMemoryRepertoireProgressRepository())
+        vm.startLearn("italian")
+        advanceUntilIdle()
+        vm.hint()
+        assertEquals("first the piece to move", "c2", vm.run.value!!.hintFrom)
+        vm.hint()
+        assertEquals(RunMoment.Shown("4.c3", "c2c3"), vm.run.value!!.moment)
+        assertNull(vm.run.value!!.hintFrom)
+        val board = vm.run.value!!.board
+        board.onMove(LegalMoveGenerator.generateLegalMoves(board.state.value.position).first { it.uci == "a2a3" })
+        assertEquals("a3", vm.run.value!!.ringSquare)
+        assertFalse(vm.run.value!!.ringRight)
+        assertFalse("no note in the test tree, so nothing to explain", vm.run.value!!.canWhy)
     }
 
     @Test

@@ -17,7 +17,6 @@ import com.chesstutor.app.design.Appearance
 import com.chesstutor.app.design.AppTheme
 import com.chesstutor.app.design.CtBoardScreenTags
 import com.chesstutor.app.design.CtTheme
-import com.chesstutor.app.domain.repertoire.BranchQuestion
 import com.chesstutor.app.domain.repertoire.LevelProgress
 import com.chesstutor.app.domain.repertoire.Mastery
 import com.chesstutor.app.domain.repertoire.NoteKind
@@ -34,7 +33,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.time.Instant
 import java.time.ZoneOffset
 
 /** The opening trainer's page, runs and mastery sheet (Phase 10, mock-up round 2), at phone size. */
@@ -102,50 +100,61 @@ class RepertoireScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_dark.png")
     }
 
-    private fun runUi(moment: RunMoment, line: List<String>, mastered: RepertoireLevel? = null): RunUi {
+    private fun runUi(moment: RunMoment, line: List<String>, mastered: RepertoireLevel? = null, ring: String? = null, why: String? = null): RunUi {
         val board = RepertoireBoard(line = { line to (moment == RunMoment.YourMove) }, submit = { MoveEffects.ILLEGAL })
         return RunUi(
-            kind = RunKind.LEARN, title = "Italian Game", side = book.side, board = board, moment = moment,
+            kind = RunKind.LEARN, title = "Two Knights Defense", side = book.side, board = board, moment = moment,
             against = if (moment == RunMoment.YourMove) "3...Nf6" else null, step = 2, steps = 5, tricky = false,
-            mastered = mastered, masteredBook = "Italian Game", nextLevelCards = 55,
+            mastered = mastered, masteredBook = "Italian Game", nextLevelCards = 55, moreToLearn = true,
+            ringSquare = ring, why = why, canWhy = why != null || moment is RunMoment.Reveal,
         )
     }
 
     @Test
-    fun theBoardStaysPutFromQuestionToRevealToBranchToTheCup() {
+    fun theDrillFlowsAndTheBoardStaysPutFromQuestionToSlipToTheCup() {
         val toNf6 = "$P g8f6".split(' ')
-        val node = book.at(index.positionOf(TestRepertoire.key(P)))!!
-        val branch = BranchQuestion.at(node, band = null)!!
         var shown by mutableStateOf(runUi(RunMoment.YourMove, toNf6))
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 RepertoireRunScreen(
-                    run = shown, settings = AppSettings(), onFeedback = {}, onNext = {}, onHint = {}, onShowAnswer = {},
-                    onPickBranch = {}, onLearnMore = {}, onDismissMastered = {}, onBack = {},
+                    run = shown, settings = AppSettings(), onFeedback = {}, onHint = {}, onWhy = {},
+                    onLearnMore = {}, onDismissMastered = {}, onBack = {},
                 )
             }
         }
-        compose.onNodeWithText("What do you play against 3...Nf6?").assertExists()
+        compose.onNodeWithText("Your move").assertExists()
+        compose.onNodeWithText("Why").assertExists()
         val board = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_learn.png")
 
-        val note = RepertoireNote(NoteKind.PLAN, "Calm and solid. The pawn guards e4, so the knight on f6 has nothing to hit. Castle next, then c3 and d4 when you are ready.")
-        shown = runUi(RunMoment.Reveal("4.d3", guessed = false, note = note, share = 0.41, pitfall = "Many players here play 4.Ng5, a mistake."), toNf6 + "d2d3")
+        // A branch note says its first sentence by itself; the ring marks the move.
+        val note = RepertoireNote(NoteKind.BRANCH, "4.d3 protects e4, so the knight on f6 has nothing to take. This is the quiet way.")
+        shown = runUi(RunMoment.Reveal("4.d3", guessed = true, note = note, share = 0.41, pitfall = null), toNf6 + "d2d3", ring = "d3")
         compose.waitForIdle()
-        compose.onNodeWithText("Played in 41% of games").assertExists()
+        compose.onNodeWithText("4.d3 protects e4, so the knight on f6 has nothing to take.").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_reveal.png")
 
-        shown = runUi(RunMoment.Branch(branch, listOf("3...Bc5", "3...Nf6", "3...Nd4"), picked = null), P.split(' '))
+        // Why opens the whole note under it.
+        shown = runUi(RunMoment.Reveal("4.d3", guessed = true, note = note, share = 0.41, pitfall = null), toNf6 + "d2d3", ring = "d3", why = note.text)
         compose.waitForIdle()
-        compose.onNodeWithText("What do most players at your level play here?").assertExists()
-        compose.onNodeWithText("Nd4").assertExists()
+        compose.onNodeWithText(note.text).assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_branch.png")
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_why.png")
 
-        shown = runUi(RunMoment.CardDone(right = true, dueAt = Instant.now().plusSeconds(3 * 86_400), played = "d2d3", shown = null), toNf6 + "d2d3")
+        // A slip: the right move is drawn and named, nothing to tap.
+        shown = runUi(RunMoment.Shown("4.d3", "d2d3"), toNf6, ring = "a3")
         compose.waitForIdle()
+        compose.onNodeWithText("Play 4.d3").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_slip.png")
+
+        shown = runUi(RunMoment.Finished(right = 5, total = 5), toNf6 + "d2d3")
+        compose.waitForIdle()
+        compose.onNodeWithText("Line learnt").assertExists()
+        compose.onNodeWithText("Next line").assertExists()
+        assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_done.png")
 
         shown = runUi(RunMoment.Finished(right = 5, total = 5), toNf6 + "d2d3", mastered = RepertoireLevel.CORE)
         compose.waitForIdle()
