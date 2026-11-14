@@ -64,115 +64,115 @@ object LearnPlanner {
     }
 }
 
-/** What happened on the learner's move in a learn run. */
+/** What happened on the learner's move in the play-back pass of a learn run. */
 enum class LearnMoveResult {
-    /** First time at a new card: the first guess was the repertoire move. */
-    GUESSED,
-
-    /**
-     * First time at a new card: another move. It is not played: the repertoire move is shown
-     * and the learner plays it (no penalty in the guess pass), then its note follows.
-     */
-    REVEALED,
-
     /** The repertoire move. */
     RIGHT,
 
     /** Just as good, not the repertoire's move: the repertoire move is shown, try again, no penalty. */
     ALSO,
 
-    /** The answer is shown; on a new card in the recall pass this sets it back to Learning. */
+    /** The answer is shown; on a new card this sets it back to Learning. */
     WRONG,
 }
 
 /**
- * One learn run over a [LearnSegment] (D71): first the guess pass (at each new card the
- * learner tries a move, then sees the repertoire move and its note: guessing first helps it
- * stick, and a wrong guess costs nothing), then the recall pass from the start, the first
- * real recall, which sets each new card's schedule. Cards met on the way that were already
- * known are practice and change nothing. Pure, so it is unit tested; the screen plays the
- * opponent's replies with [playOpponent] after a pause.
+ * One learn run over a [LearnSegment] (D71, round 4 of the Learn and Train design): first the
+ * watch pass, where the whole line plays itself for the learner, then the play-back pass from
+ * where the opening's defining moves end, the first real recall, which sets each new card's
+ * schedule. Cards met on the way that were already known are practice and change nothing.
+ * Pure, so it is unit tested; the screen paces the watch with [watchNext] and plays the
+ * opponent's replies with [playOpponent].
  */
 class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private val now: () -> Instant = Instant::now) {
-    enum class Pass { GUESS, RECALL, DONE }
+    enum class Pass { WATCH, RECALL, DONE }
 
     /** The opening's defining moves are on the board from the start of each pass. */
     val startPly = index.book.startPlies(segment.moves)
     private val startPosition = segment.moves.take(startPly).fold(Position.initial()) { p, uci -> RepertoireIndex.play(p, uci)!! }
 
-    var pass: Pass = Pass.GUESS
+    var pass: Pass = Pass.WATCH
         private set
     var ply: Int = startPly
         private set
     var position: Position = startPosition
         private set
 
-    /** The repertoire move after a reveal or a wrong move, until it is played. */
+    /** The repertoire move after a wrong move or "Show me", until it is played. */
     var shown: String? = null
         private set
     private var hinted = false
-
-    /** The ply where the guess pass showed the answer after a wrong guess. */
-    private var revealedAt: Int? = null
     private val missed = HashSet<String>()
     private val results = LinkedHashMap<String, Pair<CardState, CardReview>>()
 
     val book: RepertoireBook get() = index.book
     val node: RepertoireNode? get() = book.at(position)
-    val isOwnTurn: Boolean get() = pass != Pass.DONE && ply < segment.moves.size && position.sideToMove == book.side
+    val isOwnTurn: Boolean get() = pass == Pass.RECALL && ply < segment.moves.size && position.sideToMove == book.side
     val isNewCard: Boolean get() = isOwnTurn && node?.key in segment.newCards
 
-    /** The cards to save and the reviews to log, once the recall pass is over. */
+    /** In the watch pass: the next move to show, and whether it is the learner's own. */
+    val nextWatched: String? get() = if (pass == Pass.WATCH) segment.moves.getOrNull(ply) else null
+    val nextIsOwn: Boolean get() = position.sideToMove == book.side
+
+    /** The cards to save and the reviews to log, once the play-back pass is over. */
     val outcome: List<Pair<CardState, CardReview>> get() = if (pass == Pass.DONE) results.values.toList() else emptyList()
+
+    /** Plays the next move of the watch pass; at the end of the line the play-back pass starts. Null outside the watch. */
+    fun watchNext(): String? {
+        val uci = nextWatched ?: return null
+        advance(uci)
+        return uci
+    }
+
+    /** Leaves the watch at once: the play-back pass starts from the top. */
+    fun skipWatch() {
+        if (pass != Pass.WATCH) return
+        startRecall()
+    }
+
+    /** Watches the line again from the top. */
+    fun watchAgain() {
+        if (pass != Pass.WATCH) return
+        ply = startPly
+        position = startPosition
+    }
 
     fun submit(uci: String): LearnMoveResult? {
         if (!isOwnTurn || LegalMoveGenerator.generateLegalMoves(position).none { it.uci == uci }) return null
         val card = node ?: return null
         val expected = segment.moves[ply]
-        val answer = RepertoireCards.judge(card, uci)
-        if (pass == Pass.GUESS && isNewCard) {
-            if (answer == CardAnswer.RIGHT) {
-                val firstTry = revealedAt != ply
-                advance(expected)
-                return if (firstTry) LearnMoveResult.GUESSED else LearnMoveResult.RIGHT
-            }
-            // Not played: the right move is shown, and the learner plays it.
-            revealedAt = ply
-            shown = expected
-            return if (answer == CardAnswer.ALSO) LearnMoveResult.ALSO else LearnMoveResult.REVEALED
-        }
-        return when (answer) {
+        return when (RepertoireCards.judge(card, uci)) {
             CardAnswer.RIGHT -> {
-                if (pass == Pass.RECALL && isNewCard) record(card, right = card.key !in missed)
+                if (isNewCard) record(card, right = card.key !in missed)
                 advance(expected)
                 LearnMoveResult.RIGHT
             }
             CardAnswer.ALSO -> LearnMoveResult.ALSO
             CardAnswer.WRONG -> {
-                if (pass == Pass.RECALL && isNewCard) missed += card.key
+                if (isNewCard) missed += card.key
                 shown = expected
                 LearnMoveResult.WRONG
             }
         }
     }
 
-    /** "Show me" in the recall pass: the move appears and a new card counts as missed. */
+    /** "Show me": the move appears and a new card counts as missed. */
     fun showAnswer(): String? {
         if (!isOwnTurn) return null
-        if (pass == Pass.RECALL && isNewCard) missed += node!!.key
+        if (isNewCard) missed += node!!.key
         return segment.moves[ply].also { shown = it }
     }
 
     /** A hint (the piece to move): a right first try then keeps the card at a day. */
     fun hint(): String? {
         if (!isOwnTurn) return null
-        if (pass == Pass.RECALL && isNewCard) hinted = true
+        if (isNewCard) hinted = true
         return segment.moves[ply].substring(0, 2)
     }
 
-    /** Plays the opponent's move. False when it is not their turn. */
+    /** Plays the opponent's move in the play-back pass. False when it is not their turn. */
     fun playOpponent(): Boolean {
-        if (pass == Pass.DONE || ply >= segment.moves.size || position.sideToMove == book.side) return false
+        if (pass != Pass.RECALL || ply >= segment.moves.size || position.sideToMove == book.side) return false
         advance(segment.moves[ply])
         return true
     }
@@ -183,19 +183,19 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
         hinted = false
     }
 
+    private fun startRecall() {
+        pass = Pass.RECALL
+        ply = startPly
+        position = startPosition
+        shown = null
+    }
+
     private fun advance(uci: String) {
         position = RepertoireIndex.play(position, uci)!!
         ply++
         shown = null
-        revealedAt = null
         if (ply >= segment.moves.size) {
-            if (pass == Pass.GUESS) {
-                pass = Pass.RECALL
-                ply = startPly
-                position = startPosition
-            } else {
-                pass = Pass.DONE
-            }
+            if (pass == Pass.WATCH) startRecall() else pass = Pass.DONE
         }
     }
 }
