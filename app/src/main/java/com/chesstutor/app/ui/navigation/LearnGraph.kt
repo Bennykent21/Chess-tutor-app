@@ -110,6 +110,10 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     onLearnVariation = { path -> openRun { repertoire.startLearn(id, path) }() },
                     onIdeas = ideas?.let { course -> { navController.navigate(AppRoutes.course(course.id)) { launchSingleTop = true } } },
                     onTricky = openRun { repertoire.startTricky(id) },
+                    onCourse = lessons.library.courses.firstOrNull { it.opening == id }?.let {
+                        { navController.navigate(AppRoutes.learnOpening(id)) { launchSingleTop = true } }
+                    },
+                    onTest = openRun { repertoire.startTest(id) },
                     onPlayOut = {
                         homeModel.presetBattle(ui.battleLine, ui.book.side)
                         navController.navigateToTab(TopTab.HOME)
