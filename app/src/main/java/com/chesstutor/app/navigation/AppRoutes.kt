@@ -105,6 +105,11 @@ object AppRoutes {
     const val TRAIN_SIDE_ARG = "side"
     const val TRAIN_SIDE_PATTERN = "train/side/{$TRAIN_SIDE_ARG}"
     fun trainSide(white: Boolean): String = "train/side/${if (white) "white" else "black"}"
+    /** Train's endgames or middlegames (Phase 12, step 3), and one position played out against Stockfish. */
+    const val TRAIN_KIND_ARG = "kind"
+    const val TRAIN_POSITIONS_PATTERN = "train/positions/{$TRAIN_KIND_ARG}"
+    fun trainPositions(endgames: Boolean): String = "train/positions/${if (endgames) "endgames" else "middlegames"}"
+    const val TRAIN_POSITION_RUN = "train/position-run"
     /** Play a friend (Phase 11): the setup page, its opening and position pickers, and the game. */
     const val FRIEND = "home/friend"
     const val FRIEND_OPENING = "home/friend/opening"
@@ -147,7 +152,7 @@ object AppRoutes {
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN)
     private val homePages = setOf(BOTS)
     private val puzzlePages = setOf(PUZZLE_LEVELS)
-    private val trainPages = setOf(TRAIN_SIDE_PATTERN)
+    private val trainPages = setOf(TRAIN_SIDE_PATTERN, TRAIN_POSITIONS_PATTERN)
 
     /** The bottom bar shows on the four main tabs only: every other page and board gets the room. */
     fun showsBottomBar(route: String?): Boolean = route == null || TopTab.entries.any { it.startRoute == route }

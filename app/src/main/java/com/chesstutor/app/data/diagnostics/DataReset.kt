@@ -28,6 +28,7 @@ object DataReset {
         SharedPrefsPuzzleProgressStore(context).clearLegacy()
         SharedPrefsRushRecords(context).clear()
         com.chesstutor.app.data.learn.SharedPrefsOpeningTests(context).clear()
+        com.chesstutor.app.di.AppContainer.providePositionRecords(context).clear()
         CrashLog.of(context).clear()
     }
 
