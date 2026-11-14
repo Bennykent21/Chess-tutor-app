@@ -144,7 +144,7 @@ private fun OpeningRow(group: OpeningGroup, done: Int, total: Int, theme: BoardT
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Thumbnail(group.picture, theme, flipped = group.side == PieceColor.BLACK)
+        BoardThumbnail(group.picture, theme, flipped = group.side == PieceColor.BLACK)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(group.title, style = CtType.TitleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(if (courses == 1) "$total lesson${if (total == 1) "" else "s"}" else "$courses courses", style = CtType.Caption, maxLines = 1)
@@ -154,7 +154,7 @@ private fun OpeningRow(group: OpeningGroup, done: Int, total: Int, theme: BoardT
 }
 
 @Composable
-private fun Thumbnail(fen: String?, theme: BoardTheme, flipped: Boolean) {
+internal fun BoardThumbnail(fen: String?, theme: BoardTheme, flipped: Boolean) {
     val position = remember(fen) { fen?.let { Position.tryFromFen(it).getOrNull() } ?: Position.initial() }
     Box(Modifier.size(52.dp).clip(CtShapes.Chip)) {
         BoardView(position, theme, whiteAtBottom = !flipped, showCoordinates = false, showLegalDots = false)
@@ -163,7 +163,7 @@ private fun Thumbnail(fen: String?, theme: BoardTheme, flipped: Boolean) {
 
 /** A ring with a tick when everything is done, else "done/total". */
 @Composable
-private fun ProgressRing(done: Int, total: Int) {
+internal fun ProgressRing(done: Int, total: Int) {
     val share = if (total == 0) 0f else done.toFloat() / total
     CtRing(listOf(CtRingPart(share, CtColors.Text)), diameter = 44.dp, stroke = 3.dp, modifier = Modifier.semantics { contentDescription = "$done of $total lessons" }) {
         if (total > 0 && done == total) Icon(Icons.Rounded.Check, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(20.dp).align(Alignment.Center))

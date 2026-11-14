@@ -185,6 +185,24 @@ object AppContainer {
     }
 
     @Volatile
+    private var positionLoaderInstance: com.chesstutor.app.data.train.PositionAssetLoader? = null
+
+    /** Train's endgames and middlegames (Phase 12, step 3, `assets/positions`), read on first use and kept for the process. */
+    fun providePositionLoader(context: Context): com.chesstutor.app.data.train.PositionAssetLoader =
+        positionLoaderInstance ?: synchronized(this) {
+            positionLoaderInstance ?: com.chesstutor.app.data.train.PositionAssetLoader(context.applicationContext.assets).also { positionLoaderInstance = it }
+        }
+
+    @Volatile
+    private var positionRecordsInstance: com.chesstutor.app.data.train.SharedPrefsPositionRecords? = null
+
+    /** Which of Train's positions were won, and when slipped ones come back. */
+    fun providePositionRecords(context: Context): com.chesstutor.app.data.train.SharedPrefsPositionRecords =
+        positionRecordsInstance ?: synchronized(this) {
+            positionRecordsInstance ?: com.chesstutor.app.data.train.SharedPrefsPositionRecords(context.applicationContext).also { positionRecordsInstance = it }
+        }
+
+    @Volatile
     private var repertoireProgressInstance: RoomRepertoireProgressRepository? = null
 
     /** The opening trainer's cards, review log and levels (Room `opening_card`, `opening_review`, `opening_level`). */

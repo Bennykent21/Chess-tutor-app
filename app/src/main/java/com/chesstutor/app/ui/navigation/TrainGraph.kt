@@ -1,6 +1,15 @@
 package com.chesstutor.app.ui.navigation
 
 import androidx.compose.runtime.getValue
+import com.chesstutor.app.feature.train.PositionTrainerViewModel
+import com.chesstutor.app.feature.train.PositionSetsScreen
+import com.chesstutor.app.feature.train.PositionRunScreen
+import com.chesstutor.app.domain.train.PositionKind
+import com.chesstutor.app.di.AppContainer
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -38,6 +47,8 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                         navController.navigateToTab(TopTab.HOME)
                         navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true }
                     },
+                    onEndgames = { navController.navigate(AppRoutes.trainPositions(endgames = true)) { launchSingleTop = true } },
+                    onMiddlegames = { navController.navigate(AppRoutes.trainPositions(endgames = false)) { launchSingleTop = true } },
                 ),
             )
         }
@@ -70,5 +81,56 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                 },
             )
         }
+        composable(
+            route = AppRoutes.TRAIN_POSITIONS_PATTERN,
+            arguments = listOf(navArgument(AppRoutes.TRAIN_KIND_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            val kind = if (entry.arguments?.getString(AppRoutes.TRAIN_KIND_ARG) == "middlegames") PositionKind.MIDDLEGAME else PositionKind.ENDGAME
+            val model = positionViewModel()
+            val positions by model.state.collectAsStateWithLifecycle()
+            PositionSetsScreen(
+                kind = kind,
+                sets = positions.of(kind),
+                theme = state.appSettings.boardTheme,
+                onOpen = { id ->
+                    model.start(id)
+                    navController.navigate(AppRoutes.TRAIN_POSITION_RUN) { launchSingleTop = true }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(AppRoutes.TRAIN_POSITION_RUN) {
+            val model = positionViewModel()
+            val run by model.run.collectAsStateWithLifecycle()
+            val leave = {
+                model.close()
+                navController.popBackStack()
+            }
+            BackHandler { leave() }
+            PositionRunScreen(
+                run = run,
+                settings = state.appSettings,
+                onFeedback = viewModel::playBoardFeedback,
+                onHint = model::hint,
+                onRestart = model::again,
+                onGiveUp = model::giveUp,
+                onNext = model::next,
+                onBack = { leave() },
+            )
+        }
     }
+}
+
+/** Train's endgames and middlegames (step 3), shared by the set list and the run (it lives as long as the app). */
+@Composable
+internal fun Shell.positionViewModel(): PositionTrainerViewModel {
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = appOwner,
+        factory = PositionTrainerViewModel.Factory(
+            records = AppContainer.providePositionRecords(context),
+            loadSets = { AppContainer.providePositionLoader(context).load() },
+            engine = { fen -> AppContainer.provideEngineService(context).evaluate(fen, PositionTrainerViewModel.THINK_MS) },
+        ),
+    )
 }

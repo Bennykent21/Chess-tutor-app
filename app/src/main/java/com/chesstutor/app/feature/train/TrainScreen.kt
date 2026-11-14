@@ -49,6 +49,9 @@ data class TrainActions(
     val onSide: (PieceColor) -> Unit,
     /** An opening played out against Stockfish (Opening Battle). */
     val onVsStockfish: () -> Unit,
+    /** Endgames to win and middlegames to convert against Stockfish (step 3). */
+    val onEndgames: () -> Unit = {},
+    val onMiddlegames: () -> Unit = {},
 )
 
 /**
@@ -86,8 +89,8 @@ fun TrainScreen(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                    CtArtTile(title = "Endgames", scene = CtScene.ENDGAMES, modifier = Modifier.weight(1f).height(112.dp), subtitle = "Win this · soon")
-                    CtArtTile(title = "Middlegames", scene = CtScene.MIDDLEGAME, modifier = Modifier.weight(1f).height(112.dp), subtitle = "Convert this · soon")
+                    CtArtTile(title = "Endgames", scene = CtScene.ENDGAMES, modifier = Modifier.weight(1f).height(112.dp), subtitle = "Win this", onClick = actions.onEndgames)
+                    CtArtTile(title = "Middlegames", scene = CtScene.MIDDLEGAME, modifier = Modifier.weight(1f).height(112.dp), subtitle = "Convert this", onClick = actions.onMiddlegames)
                 }
                 CtListRow(
                     title = "Openings vs Stockfish",
