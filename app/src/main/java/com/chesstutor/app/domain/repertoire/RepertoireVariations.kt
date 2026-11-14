@@ -4,6 +4,8 @@ import com.chesstutor.app.core.LegalMoveGenerator
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.SanFormatter
+import com.chesstutor.app.domain.learn.CourseGate
+import com.chesstutor.app.domain.learn.OpenLines
 
 /**
  * One way the opponent can answer the opening (D77): its first move, numbered ("3...Nf6"), the
@@ -20,6 +22,8 @@ data class Variation(
     /** Cards met at least once, and cards recalled right on two different days (stage 1 or more). */
     val introduced: Int,
     val solid: Int,
+    /** Its course is not done yet (Phase 12): its drills stay closed. */
+    val locked: Boolean = false,
 ) {
     val label: String get() = name ?: move
 }
@@ -38,7 +42,7 @@ object RepertoireVariations {
      * after it, its share passed on, so the Caro-Kann lists the Advance, the Exchange and the main
      * line instead of one big "2.d4", while the Italian keeps the Two Knights and the Giuoco Piano.
      */
-    fun of(index: RepertoireIndex, band: Int?, open: RepertoireLevel, states: Map<String, CardState>): List<Variation> {
+    fun of(index: RepertoireIndex, band: Int?, open: RepertoireLevel, states: Map<String, CardState>, allowed: OpenLines? = null): List<Variation> {
         val book = index.book
         val first = branchFrom(book, book.startPosition, book.start) ?: return emptyList()
         val rows = ArrayList<Variation>()
@@ -48,7 +52,7 @@ object RepertoireVariations {
             val parts = deeper?.let { (position, path) -> choicesAt(book, position, path, band, choice.share) }.orEmpty()
             if (parts.size >= 2) rows += parts.map { row(index, it, open, states) } else rows += row(index, choice, open, states)
         }
-        return rows.sortedByDescending { it.share }
+        return rows.map { it.copy(locked = !CourseGate.isOpen(it.path, allowed)) }.sortedByDescending { it.share }
     }
 
     /**

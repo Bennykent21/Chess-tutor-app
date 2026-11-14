@@ -32,7 +32,15 @@ import com.chesstutor.app.feature.learn.RepertoireActions
 import com.chesstutor.app.feature.learn.RepertoirePage
 import com.chesstutor.app.feature.learn.RepertoireRunScreen
 import com.chesstutor.app.feature.learn.RepertoireViewModel
+import com.chesstutor.app.feature.learn.OpeningsScreen
+import com.chesstutor.app.feature.learn.OpeningGroup
+import com.chesstutor.app.feature.learn.LearnOpeningScreen
+import com.chesstutor.app.feature.learn.CourseDrills
 import com.chesstutor.app.navigation.AppRoutes
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.combine
+import com.chesstutor.app.domain.learn.LessonLibrary
+import com.chesstutor.app.domain.learn.CourseGate
 import com.chesstutor.app.navigation.TopTab
 
 /** The Learn tab: the hub, categories, courses, the lesson player and the opening trainer. */
@@ -164,10 +172,50 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
             }
+            if (category == LessonCategory.OPENINGS) {
+                val repertoires by repertoireViewModel().state.collectAsStateWithLifecycle()
+                OpeningsScreen(
+                    groups = OpeningGroup.of(lessons.library.coursesIn(category), repertoires.books),
+                    progress = lessons.progress,
+                    theme = state.appSettings.boardTheme,
+                    onOpen = { group ->
+                        val route = if (group.courses.size == 1) AppRoutes.course(group.courses.single().id) else AppRoutes.learnOpening(group.id)
+                        navController.navigate(route) { launchSingleTop = true }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+                return@composable
+            }
             LearnCategoryScreen(
                 category = category,
                 learn = lessons,
                 onOpenCourse = { id -> navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = AppRoutes.LEARN_OPENING_PATTERN,
+            arguments = listOf(navArgument(AppRoutes.OPENING_ID_ARG) { type = NavType.StringType })
+        ) { entry ->
+            val lessons by learnViewModel().learn.collectAsStateWithLifecycle()
+            val repertoire = repertoireViewModel()
+            val repertoires by repertoire.state.collectAsStateWithLifecycle()
+            val id = entry.arguments?.getString(AppRoutes.OPENING_ID_ARG).orEmpty()
+            val group = OpeningGroup.of(lessons.library.coursesIn(LessonCategory.OPENINGS), repertoires.books).firstOrNull { it.id == id }
+            if (group == null) {
+                if (!lessons.loading && !repertoires.loading) LaunchedEffect(Unit) { navController.popBackStack() }
+                return@composable
+            }
+            LearnOpeningScreen(
+                group = group,
+                progress = lessons.progress,
+                onOpenCourse = { course -> navController.navigate(AppRoutes.course(course.id)) { launchSingleTop = true } },
+                onTest = group.book?.let { book ->
+                    {
+                        repertoire.startTest(book.book.id)
+                        navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
+                    }
+                },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -181,8 +229,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val courseId = entry.arguments?.getString(AppRoutes.COURSE_ID_ARG).orEmpty()
             val course = lessons.library.course(courseId)
             val repertoires by repertoireViewModel().state.collectAsStateWithLifecycle()
-            // The trainer's opening for this course, when it teaches it (D77).
-            val book = course?.let { c -> repertoires.books.firstOrNull { OpeningCourses.courseFor(it.book.title, listOf(c)) != null } }
+            // The trainer's opening this course belongs to (Phase 12).
+            val book = course?.opening?.let { repertoires.book(it) }
             CourseScreen(
                 course = course,
                 progress = lessons.progress,
@@ -200,7 +248,10 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     }
                 },
                 practice = course?.let { lessons.practice[it.id] },
-                onTrainLines = book?.let { b -> { navController.navigate(AppRoutes.repertoire(b.book.id)) { launchSingleTop = true } } },
+                drills = book?.let { b ->
+                    val open = !b.locked && course.variations.all { CourseGate.isOpen(it, b.open) }
+                    CourseDrills(open = open, onOpen = { navController.navigate(AppRoutes.repertoire(b.book.id)) { launchSingleTop = true } })
+                },
             )
         }
         // Home's Continue card: opens one lesson, then shows the player.
@@ -221,7 +272,10 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val learn = learnViewModel()
             val homeModel = homeViewModel()
             val player by learn.player.collectAsStateWithLifecycle()
+            val lessons by learn.learn.collectAsStateWithLifecycle()
             val course = player?.course
+            // A finished variation course opens its drills: the last page offers them.
+            val trainable = course?.takeIf { it.opening != null && CourseGate.isDone(it, lessons.progress) }
             LessonPlayerScreen(
                 player = player,
                 settings = state.appSettings,
@@ -234,7 +288,14 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     navController.popBackStack()
                 },
                 onPractise = course?.let { navController.practiseInBattle(it, homeModel) },
-                onRelatedPuzzles = course?.let { navController.relatedPuzzles(it) }
+                onRelatedPuzzles = course?.let { navController.relatedPuzzles(it) },
+                onTrain = trainable?.opening?.let { id ->
+                    {
+                        learn.closePlayer()
+                        navController.popBackStack()
+                        navController.navigate(AppRoutes.repertoire(id)) { launchSingleTop = true }
+                    }
+                },
             )
         }
     }
@@ -290,6 +351,12 @@ internal fun Shell.repertoireViewModel(): RepertoireViewModel {
             repository = AppContainer.provideRepertoireProgress(context),
             loadBooks = { AppContainer.provideRepertoireLoader(context).load() },
             rating = { app.state.value.effectiveUserRating },
+            gate = combine(
+                flow { emit(runCatching { AppContainer.provideLessonLoader(context).load() }.getOrDefault(LessonLibrary.EMPTY)) },
+                AppContainer.provideLessonProgress(context).observe(),
+                AppContainer.provideOpeningTests(context).passed(),
+            ) { library, progress, passed -> CourseGate.opened(library, progress, passed) },
+            tests = AppContainer.provideOpeningTests(context),
         ),
     )
 }

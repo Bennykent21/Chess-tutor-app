@@ -6,6 +6,7 @@
   "level": "beginner",
   "order": 20,
   "side": "white",
+  "opening": "italian",
   "battleLine": "Italian Game",
   "puzzleThemes": ["fork"],
   "lessons": [

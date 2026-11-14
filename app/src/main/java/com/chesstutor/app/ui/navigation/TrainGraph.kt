@@ -64,6 +64,10 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                     navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
                 },
                 fixedSide = side,
+                onOpenCourse = { id ->
+                    navController.navigateToTab(TopTab.LEARN)
+                    navController.navigate(AppRoutes.learnOpening(id)) { launchSingleTop = true }
+                },
             )
         }
     }

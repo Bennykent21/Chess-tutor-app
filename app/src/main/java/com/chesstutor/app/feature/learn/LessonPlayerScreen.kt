@@ -98,6 +98,8 @@ fun LessonPlayerScreen(
     onPractise: (() -> Unit)? = null,
     /** Opens puzzles with the course's themes; null hides the button. */
     onRelatedPuzzles: (() -> Unit)? = null,
+    /** Opens the drills a just-finished course opened (Phase 12); null hides the button. */
+    onTrain: (() -> Unit)? = null,
 ) {
     BackHandler(onBack = onBack)
     if (player == null) {
@@ -110,7 +112,7 @@ fun LessonPlayerScreen(
         return
     }
     if (state.phase == LessonPhase.DONE) {
-        DonePage(state, settings, onNextLesson, onPreviousLesson, onReplay, onBack, onPractise, onRelatedPuzzles, modifier)
+        DonePage(state, settings, onNextLesson, onPreviousLesson, onReplay, onBack, onPractise, onRelatedPuzzles, onTrain, modifier)
     } else {
         WatchPage(state, state.step as LessonStep.Watch, onStart = player::next, onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier)
     }
@@ -331,6 +333,7 @@ private fun DonePage(
     onBack: () -> Unit,
     onPractise: (() -> Unit)?,
     onRelatedPuzzles: (() -> Unit)?,
+    onTrain: (() -> Unit)?,
     modifier: Modifier,
 ) {
     val result = state.result
@@ -342,8 +345,12 @@ private fun DonePage(
         modifier = modifier,
         bottom = {
             PreviousLessonIcon(state, onPreviousLesson)
-            if (next != null) CtButton(text = "Next: ${next.title}", onClick = { onNextLesson(next.id) }, modifier = Modifier.weight(1f))
-            else CtButton(text = "Play it again", onClick = onReplay, modifier = Modifier.weight(1f))
+            when {
+                // The course is done and its drills just opened: train them.
+                onTrain != null -> CtButton(text = "Train it", onClick = onTrain, modifier = Modifier.weight(1f))
+                next != null -> CtButton(text = "Next: ${next.title}", onClick = { onNextLesson(next.id) }, modifier = Modifier.weight(1f))
+                else -> CtButton(text = "Play it again", onClick = onReplay, modifier = Modifier.weight(1f))
+            }
         },
     ) {
         Column(Modifier.fillMaxWidth().padding(top = CtSpacing.xl), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -375,6 +382,7 @@ private fun DonePage(
         Column(Modifier.padding(top = CtSpacing.xl)) {
             onRelatedPuzzles?.let { CtListRow(title = "Related puzzles", icon = Icons.Rounded.Extension, onClick = it) }
             onPractise?.let { CtListRow(title = "Practise in Opening Battle", icon = Icons.Rounded.Flag, onClick = it) }
+            if (onTrain != null && next != null) CtListRow(title = "Next: ${next.title}", icon = null, onClick = { onNextLesson(next.id) })
             if (next != null) CtListRow(title = "Play it again", icon = Icons.Rounded.Refresh, onClick = onReplay)
         }
     }

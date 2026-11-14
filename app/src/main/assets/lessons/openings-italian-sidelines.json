@@ -1,0 +1,304 @@
+{
+  "id": "openings-italian-sidelines",
+  "category": "openings",
+  "title": "Italian sidelines",
+  "intro": "3...h6, 3...d6, 3...Nd4, 3...f5 and 3...Be7: rarer replies, and a trap to avoid.",
+  "level": "beginner",
+  "order": 23,
+  "side": "white",
+  "opening": "italian",
+  "variation": "e2e4 e7e5 g1f3 b8c6 f1c4 h7h6, e2e4 e7e5 g1f3 b8c6 f1c4 d7d6, e2e4 e7e5 g1f3 b8c6 f1c4 c6d4, e2e4 e7e5 g1f3 b8c6 f1c4 f7f5, e2e4 e7e5 g1f3 b8c6 f1c4 f8e7",
+  "battleLine": "Italian Game: Anti-Fried Liver Defense",
+  "lessons": [
+    {
+      "id": "openings-italian-sidelines-h6",
+      "title": "3...h6: hit the centre",
+      "summary": "A slow move lets you open the centre with d4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "3...h6 stops Ng5, but it brings out no piece.",
+          "move": "h7h6"
+        },
+        {
+          "type": "play",
+          "text": "Black is a move behind. Hit the centre now.",
+          "expect": ["d2d4"],
+          "hint": "Your d-pawn, two squares.",
+          "ifWrong": "4.d4 strikes at once while Black is slow.",
+          "ifRight": "Black usually takes on d4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black takes with 4...exd4.",
+          "move": "e5d4"
+        },
+        {
+          "type": "play",
+          "text": "Take back with the piece that sits best in the centre.",
+          "expect": ["f3d4"],
+          "hint": "Not the queen yet.",
+          "ifWrong": "5.Nxd4: the knight is strong in the centre.",
+          "ifRight": "If Black trades knights, your queen takes back and rules the board.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "5...Nxd4 trades knights.",
+          "move": "c6d4"
+        },
+        {
+          "type": "play",
+          "text": "Take back.",
+          "expect": ["d1d4"],
+          "hint": "Your queen can recapture.",
+          "ifWrong": "6.Qxd4: the queen is strong on d4 and hard to chase away.",
+          "ifRight": "You are ahead in development and stand clearly better.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk1nr/ppppbppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "text": "Black tries another quiet move, 3...Be7. Find the same answer.",
+          "expect": ["d2d4"],
+          "hint": "Strike in the centre.",
+          "ifWrong": "4.d4: 3...Be7 is passive, so hit the centre.",
+          "ifRight": "After ...exd4, take back and enjoy the better centre.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-italian-sidelines-d6",
+      "title": "3...d6: calm, then Ng5",
+      "summary": "Develop with d3; if ...Nf6 comes, f7 is weak.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "3...d6 is solid, but it shuts in Black's bishop on f8.",
+          "move": "d7d6"
+        },
+        {
+          "type": "play",
+          "text": "Develop calmly. Keep e4 protected.",
+          "expect": ["d2d3"],
+          "hint": "A one-square pawn move.",
+          "ifWrong": "4.d3, then c3 and castling.",
+          "ifRight": "If Black plays ...Nf6, look at the f7 square.",
+          "feedback": {
+            "d2d4": "4.d4 is good too. This repertoire stays calm with 4.d3."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "4...Nf6 develops, but f7 now has only the king to guard it.",
+          "move": "g8f6",
+          "highlights": ["f7:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Attack f7 twice.",
+          "expect": ["f3g5"],
+          "hint": "Your knight can jump towards f7.",
+          "ifWrong": "5.Ng5 hits f7 with the knight and the bishop.",
+          "ifRight": "Two attackers on f7, and Black must find a defence.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "5...d5 blocks the bishop's line to f7.",
+          "move": "d6d5"
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkb1r/ppp2ppp/2np1n2/4p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 5",
+          "text": "From the Two Knights: 3...Nf6 4.d3 d6. Find the attacking move.",
+          "expect": ["f3g5"],
+          "hint": "Two attackers on f7.",
+          "ifWrong": "5.Ng5 attacks f7 with the knight and the bishop.",
+          "ifRight": "Same position as after 3...d6 4.d3 Nf6.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-italian-sidelines-nd4",
+      "title": "3...Nd4: do not take the pawn",
+      "summary": "The e5 pawn is bait. Take the knight instead.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "3...Nd4 leaves the e5 pawn hanging. It is a trap.",
+          "move": "c6d4",
+          "arrows": ["f3e5:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "Many players grab it with 4.Nxe5. Watch what happens.",
+          "move": "f3e5"
+        },
+        {
+          "type": "explain",
+          "text": "4...Qg5 attacks the knight on e5 and the pawn on g2 at once.",
+          "move": "d8g5",
+          "arrows": ["g5e5:bad", "g5g2:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "5.Nxf7 attacks the rook on h8, but it ignores the real threat.",
+          "move": "e5f7"
+        },
+        {
+          "type": "explain",
+          "text": "5...Qxg2 attacks your rook on h1.",
+          "move": "g5g2",
+          "arrows": ["g2h1:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "6.Rf1 saves the rook.",
+          "move": "h1f1"
+        },
+        {
+          "type": "explain",
+          "text": "6...Qxe4+ checks, and the knight on d4 joins in.",
+          "move": "g2e4"
+        },
+        {
+          "type": "explain",
+          "text": "7.Be2 blocks the check.",
+          "move": "c4e2"
+        },
+        {
+          "type": "explain",
+          "text": "7...Nf3 is checkmate.",
+          "move": "d4f3"
+        },
+        {
+          "type": "play",
+          "fen": "r1bqkbnr/pppp1ppp/8/4p3/2BnP3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "text": "Back to 3...Nd4. Do not take on e5. Find the safe capture.",
+          "expect": ["f3d4"],
+          "hint": "Take the knight that came forward.",
+          "ifWrong": "4.Nxd4 removes the knight.",
+          "ifRight": "Black must take back with a pawn.",
+          "feedback": {
+            "f3e5": "4.Nxe5 walks into 4...Qg5, which attacks the knight and g2 at once. Black comes out on top."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "4...exd4. Black has lost time, and the pawn on d4 can become a target.",
+          "move": "e5d4"
+        },
+        {
+          "type": "play",
+          "text": "Develop simply.",
+          "expect": ["d2d3"],
+          "hint": "Free your bishop on c1.",
+          "ifWrong": "5.d3, then castle and play c3 against the d4 pawn.",
+          "ifRight": "Castling and c3 come next, opening lines against d4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/pppp1ppp/8/4p3/2BnP3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "text": "Black plays 3...Nd4. The e5 pawn looks free. Find the best move.",
+          "expect": ["f3d4"],
+          "hint": "Take a piece, not the pawn.",
+          "ifWrong": "4.Nxd4: the pawn on e5 is bait.",
+          "ifRight": "You avoid the trap and keep the better game.",
+          "feedback": {
+            "f3e5": "4.Nxe5 walks into 4...Qg5, which attacks the knight and g2 at once. Black comes out on top."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-italian-sidelines-f5",
+      "title": "3...f5 and 3...Be7",
+      "summary": "Keep e4 covered against the gamble; hit the centre against the quiet move.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "3...f5 is a gamble. It attacks e4 but opens Black's king.",
+          "move": "f7f5"
+        },
+        {
+          "type": "explain",
+          "text": "Taking with 4.exf5 looks natural, but it gives up control of e4.",
+          "move": "e4f5"
+        },
+        {
+          "type": "explain",
+          "text": "4...e4 attacks your knight on f3.",
+          "move": "e5e4",
+          "arrows": ["e4f3:bad"]
+        },
+        {
+          "type": "play",
+          "fen": "r1bqkbnr/pppp2pp/2n5/4pp2/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+          "text": "Back to 3...f5. Keep e4 covered with a pawn.",
+          "expect": ["d2d3"],
+          "hint": "A one-square pawn move.",
+          "ifWrong": "4.d3 keeps e4 covered. If Black takes with ...fxe4, a pawn takes back.",
+          "ifRight": "Black's king is now weak on the diagonal from c4 to g8.",
+          "feedback": {
+            "e4f5": "4.exf5 lets ...e4 hit your knight. 4.d3 keeps e4 covered."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Your bishop looks along the open diagonal from c4 to g8, where Black's king wants to castle.",
+          "arrows": ["c4g8:idea"]
+        },
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "3...Be7 is another quiet move. The bishop does not fight for the centre.",
+          "move": "f8e7"
+        },
+        {
+          "type": "play",
+          "text": "Strike in the centre.",
+          "expect": ["d2d4"],
+          "hint": "Your d-pawn, two squares.",
+          "ifWrong": "4.d4: against a passive move, take the centre.",
+          "ifRight": "After ...exd4, take back and enjoy the better centre.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black takes with 4...exd4. You take back and keep the better centre.",
+          "move": "e5d4"
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/pppp2pp/2n5/4pp2/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+          "text": "Black gambles with 3...f5. Find the move that keeps your knight safe.",
+          "expect": ["d2d3"],
+          "hint": "Control e4 with a pawn.",
+          "ifWrong": "4.d3 keeps e4 covered. Taking on f5 would let ...e4 kick your knight.",
+          "ifRight": "e4 is covered, and Black's king is the weak one.",
+          "feedback": {
+            "e4f5": "4.exf5 lets ...e4 hit your knight. 4.d3 keeps e4 covered."
+          },
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

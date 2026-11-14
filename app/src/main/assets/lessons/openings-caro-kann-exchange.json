@@ -1,0 +1,174 @@
+{
+  "id": "openings-caro-kann-exchange",
+  "category": "openings",
+  "title": "Exchange Variation",
+  "intro": "3.exd5: take back with the c-pawn, develop the knights and pin with ...Bg4.",
+  "level": "beginner",
+  "order": 82,
+  "side": "black",
+  "opening": "caro-kann",
+  "variation": "e2e4 c7c6 d2d4 d7d5 e4d5",
+  "battleLine": "Caro-Kann Defense: Exchange Variation",
+  "lessons": [
+    {
+      "id": "openings-caro-kann-exchange-cxd5",
+      "title": "Take with the c-pawn",
+      "summary": "Keep a pawn in the centre, then hit d4.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3",
+          "text": "3.exd5 is the Exchange Variation. White releases the tension.",
+          "move": "e4d5"
+        },
+        {
+          "type": "play",
+          "text": "Take back so you keep a pawn in the centre.",
+          "expect": ["c6d5"],
+          "hint": "Recapture with the c-pawn.",
+          "ifWrong": "3...cxd5 keeps a pawn in the centre and opens the c-file.",
+          "ifRight": "The c-file is open for your rook, and the position is calm and equal.",
+          "feedback": {
+            "d8d5": "3...Qxd5 brings the queen out early. Taking with the c-pawn keeps a pawn in the centre."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "4.Nf3 develops and guards d4.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Develop and put pressure on d4.",
+          "expect": ["b8c6"],
+          "hint": "Your queen's knight.",
+          "ifWrong": "4...Nc6 develops and hits d4.",
+          "ifRight": "Next ...Bg4 pins the knight that defends d4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Your knight hits d4, and the open c-file waits for a rook.",
+          "arrows": ["c6d4:idea"]
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp2pppp/8/3p4/3P4/3B4/PPP2PPP/RNBQK1NR b KQkq - 1 4",
+          "text": "White plays 4.Bd3 instead. Develop with the same idea.",
+          "expect": ["b8c6"],
+          "hint": "Bring a knight out towards d4.",
+          "ifWrong": "4...Nc6 develops and hits d4.",
+          "ifRight": "...Nf6 and ...Bg4 come next.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-exchange-bg4",
+      "title": "Pin the defender: ...Bg4",
+      "summary": "The knight on f3 guards d4. Pin it.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pp2pppp/2n5/3p4/3P4/5N2/PPP2PPP/RNBQKB1R w KQkq - 2 5",
+          "text": "5.Bb5 pins your knight to the king.",
+          "move": "f1b5"
+        },
+        {
+          "type": "play",
+          "text": "Pin back. The knight on f3 is the main guard of d4.",
+          "expect": ["c8g4"],
+          "hint": "Your light-squared bishop.",
+          "ifWrong": "5...Bg4 pins the knight on f3.",
+          "ifRight": "d4 has one defender less, and you develop easily.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "The bishop sits outside the pawn chain, where it belongs in the Caro-Kann.",
+          "arrows": ["g4f3:idea"]
+        },
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pp2pppp/2n5/3p4/3P4/5N2/PPP2PPP/RNBQKB1R w KQkq - 2 5",
+          "text": "5.Nc3 develops instead and adds pressure on d5.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Use the same idea.",
+          "expect": ["c8g4"],
+          "hint": "Pin the knight on f3.",
+          "ifWrong": "5...Bg4 pins the knight and adds pressure on d4.",
+          "ifRight": "Same idea, whatever White's fifth move.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/pp2pppp/2n5/3p4/3P4/2N2N2/PPP2PPP/R1BQKB1R b KQkq - 2 5",
+          "text": "This came from 2.Nf3 d5 3.exd5 cxd5 4.d4 Nc6 5.Nc3. Find the pin.",
+          "expect": ["c8g4"],
+          "hint": "The knight on f3 guards d4.",
+          "ifWrong": "5...Bg4 pins the knight on f3.",
+          "ifRight": "Different order, same position, same plan.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-exchange-nc3",
+      "title": "4.Nc3: guard d5 first",
+      "summary": "Develop the king's knight to guard d5, then pin.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/8/3p4/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4",
+          "text": "4.Nc3 develops and attacks d5.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Develop and guard d5.",
+          "expect": ["g8f6"],
+          "hint": "Your king's knight.",
+          "ifWrong": "4...Nf6 develops and guards d5.",
+          "ifRight": "...Bg4 or ...Nc6 follow.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "5.Nf3 develops the other knight.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Pin the knight and keep an eye on d4.",
+          "expect": ["c8g4"],
+          "hint": "Your light-squared bishop.",
+          "ifWrong": "5...Bg4 pins the knight on f3.",
+          "ifRight": "The bishop is outside the pawn chain, where it belongs.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Next come ...e6 and ...Nc6. Your pieces develop easily.",
+          "arrows": ["e7e6:idea", "b8c6:idea"]
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp2pppp/8/3p4/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 0 4",
+          "text": "Another route: 2.Nc3 d5 3.exd5 cxd5 4.d4. Find the developing move that guards d5.",
+          "expect": ["g8f6"],
+          "hint": "Your king's knight.",
+          "ifWrong": "4...Nf6 develops and guards d5.",
+          "ifRight": "This is the same position as 3.exd5 cxd5 4.Nc3 Nf6.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,7 @@
   "level": "beginner",
   "order": 80,
   "side": "black",
+  "opening": "caro-kann",
   "battleLine": "Caro-Kann Defense",
   "lessons": [
     {

@@ -162,6 +162,13 @@ data class Course(
     val battleLine: String? = null,
     /** For openings: the side the course teaches; null when it suits both. */
     val side: PieceColor? = null,
+    /** For openings (Phase 12): the trainer's opening this course belongs to ("caro-kann"). */
+    val opening: String? = null,
+    /**
+     * The variations it teaches, each as UCI moves from the start ("e2e4 c7c6 d2d4 d7d5 e4e5"):
+     * finishing the course opens their drills in Train. Empty for an opening's ideas course.
+     */
+    val variations: List<List<String>> = emptyList(),
 )
 
 /** Every course in the app, in hub order. */

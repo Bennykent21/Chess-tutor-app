@@ -171,8 +171,8 @@ private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -
     Text("Variations", style = CtType.TitleSmall)
     Spacer(Modifier.height(CtSpacing.xs))
     variations.forEach { v ->
-        val open = v.cards > 0
-        val fresh = v.cards > v.introduced
+        val open = v.cards > 0 && !v.locked
+        val fresh = open && v.cards > v.introduced
         val spoken = buildString {
             append("${v.label}, ${percent(v.share)} of games")
             if (open) append(", ${v.solid} of ${v.cards} solid") else append(", locked")
@@ -375,6 +375,8 @@ fun RepertoireRunScreen(
                 } else {
                     CtButton(text = "Done", onClick = onBack, modifier = Modifier.weight(1f))
                 }
+            } else if (run.kind == RunKind.TEST) {
+                CtButton(text = "Stop the test", onClick = onBack, style = CtButtonStyle.Ghost, modifier = Modifier.weight(1f))
             } else {
                 CtControl(Icons.Rounded.Lightbulb, "Hint", onClick = onHint)
                 CtControl(Icons.AutoMirrored.Rounded.HelpOutline, "Why", enabled = run.canWhy, onClick = onWhy)
@@ -433,13 +435,20 @@ private fun RunWords(run: RunUi) {
 }
 
 private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.moment) {
-    RunMoment.YourMove -> "Your move" to if (run.tricky) "A tricky line, from the start." else null
+    RunMoment.YourMove -> "Your move" to when {
+        run.kind == RunKind.TEST -> "No hints. ${RepertoireViewModel.TEST_PASS} right opens the drills."
+        run.tricky -> "A tricky line, from the start."
+        else -> null
+    }
     RunMoment.FromTheTop -> "Your turn" to "Play the line back."
     is RunMoment.Watch -> (m.words ?: "Watch the line") to null
     is RunMoment.Also -> "Also good" to (m.san?.let { "Your move here is $it." } ?: "Not the move to remember here.")
     is RunMoment.Shown -> "Play ${m.san}" to if (run.kind == RunKind.LEARN) null else "This position comes back sooner."
     is RunMoment.CardDone -> (if (m.right) null else "Comes back today") to null
-    is RunMoment.Finished -> if (run.kind == RunKind.LEARN) {
+    is RunMoment.Finished -> if (run.kind == RunKind.TEST) {
+        if (m.right >= RepertoireViewModel.testPassMark(m.total)) "Passed" to "${m.right} of ${m.total} right. The drills are open."
+        else "Not yet" to "${m.right} of ${m.total} right. Take the course, or try again tomorrow."
+    } else if (run.kind == RunKind.LEARN) {
         "Line learnt" to "${m.right} of ${m.total} first try. Back tomorrow."
     } else {
         "${m.total} position${if (m.total == 1) "" else "s"}" to "${m.right} of ${m.total} first try."

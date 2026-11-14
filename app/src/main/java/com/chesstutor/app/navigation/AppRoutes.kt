@@ -84,6 +84,10 @@ object AppRoutes {
     /** A course page: intro, numbered lessons and practice links. */
     const val COURSE_ID_ARG = "courseId"
     const val COURSE_PATTERN = "learn/course/{$COURSE_ID_ARG}"
+    /** An opening in Learn (Phase 12): its ideas course and one course per variation. */
+    const val OPENING_ID_ARG = "openingId"
+    const val LEARN_OPENING_PATTERN = "learn/opening/{$OPENING_ID_ARG}"
+    fun learnOpening(id: String): String = "learn/opening/$id"
     fun course(id: String): String = "learn/course/$id"
     /** A bot's page (pick colour, clock and rules), then the game itself, full screen in Home. */
     const val BOT_ID_ARG = "botId"
@@ -140,7 +144,7 @@ object AppRoutes {
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 
     private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN, GAMES_PATTERN, STATS_PATTERN, TRAINING)
-    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN)
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN)
     private val homePages = setOf(BOTS)
     private val puzzlePages = setOf(PUZZLE_LEVELS)
     private val trainPages = setOf(TRAIN_SIDE_PATTERN)

@@ -27,6 +27,7 @@ object DataReset {
         // Otherwise the puzzle history would copy the pre-Room progress back in on the next start.
         SharedPrefsPuzzleProgressStore(context).clearLegacy()
         SharedPrefsRushRecords(context).clear()
+        com.chesstutor.app.data.learn.SharedPrefsOpeningTests(context).clear()
         CrashLog.of(context).clear()
     }
 

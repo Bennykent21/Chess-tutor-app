@@ -1,0 +1,200 @@
+{
+  "id": "openings-caro-kann-advance",
+  "category": "openings",
+  "title": "Advance Variation",
+  "intro": "3.e5: get the bishop out to f5, then ...e6 and ...c5 against White's pawn chain.",
+  "level": "beginner",
+  "order": 81,
+  "side": "black",
+  "opening": "caro-kann",
+  "variation": "e2e4 c7c6 d2d4 d7d5 e4e5",
+  "battleLine": "Caro-Kann Defense: Advance Variation",
+  "lessons": [
+    {
+      "id": "openings-caro-kann-advance-bf5",
+      "title": "3...Bf5: the bishop goes first",
+      "summary": "Develop the light-squared bishop before ...e6.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "White opens with 1.e4.",
+          "move": "e2e4"
+        },
+        {
+          "type": "play",
+          "text": "Play the Caro-Kann.",
+          "expect": ["c7c6"],
+          "hint": "The c-pawn, one square.",
+          "ifWrong": "The Caro-Kann starts 1...c6, preparing ...d5.",
+          "ifRight": "1...c6 prepares ...d5 to challenge White's centre.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White takes the centre with 2.d4.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Challenge the centre.",
+          "expect": ["d7d5"],
+          "hint": "The d-pawn, two squares.",
+          "ifWrong": "2...d5 attacks e4.",
+          "ifRight": "e4 is attacked. White must push, exchange or defend.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "3.e5 is the Advance Variation. White gains space and closes the centre.",
+          "move": "e4e5"
+        },
+        {
+          "type": "play",
+          "text": "Get your light-squared bishop out before ...e6 shuts it in.",
+          "expect": ["c8f5"],
+          "hint": "The bishop on c8 can reach f5.",
+          "ifWrong": "3...Bf5: the bishop leaves before ...e6 closes its diagonal.",
+          "ifRight": "Then ...e6, ...c5 and ...Nc6 attack White's pawn chain.",
+          "feedback": {
+            "e7e6": "3...e6 shuts in your bishop on c8. Get it out first with 3...Bf5.",
+            "c6c5": "3...c5 is played too, but this repertoire develops the bishop first."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Your bishop is outside the pawn chain. Now ...e6 will not shut it in.",
+          "arrows": ["f5b1:idea"]
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3pP3/8/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 3",
+          "text": "Another order: 2.Nf3 d5 3.e5. Bring the bishop out before ...e6, with a pin.",
+          "expect": ["c8g4"],
+          "hint": "Pin the knight on f3.",
+          "ifWrong": "3...Bg4 pins the knight and gets the bishop out before ...e6.",
+          "ifRight": "Then ...e6, ...c5 and ...Nc6.",
+          "feedback": {
+            "c8f5": "3...Bf5 is playable, but with the knight on f3, the pin with 3...Bg4 is stronger."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-advance-e6",
+      "title": "4.Nf3: ...e6 and the plan",
+      "summary": "Support d5, then attack the base of the chain.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rn1qkbnr/pp2pppp/2p5/3pPb2/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 1 4",
+          "text": "4.Nf3 develops and protects d4.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Support d5 and free your dark-squared bishop.",
+          "expect": ["e7e6"],
+          "hint": "Now the e-pawn can move.",
+          "ifWrong": "4...e6 is safe now: your bishop is already out.",
+          "ifRight": "Next come ...c5 to hit d4, and the knights to d7 and e7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White's chain runs from d4 to e5. Your plan is ...c5, attacking its base on d4.",
+          "arrows": ["c6c5:idea"],
+          "highlights": ["d4:bad"]
+        },
+        {
+          "type": "explain",
+          "text": "5.Be2 is a calm set-up. White gets ready to castle.",
+          "move": "f1e2"
+        },
+        {
+          "type": "explain",
+          "text": "The plan stays the same: ...c5, then ...Nc6 and more pressure on d4.",
+          "arrows": ["c6c5:idea", "b8c6:idea"]
+        },
+        {
+          "type": "quiz",
+          "fen": "rn1qkbnr/pp2pppp/2p5/3pP3/3P2b1/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 4",
+          "text": "Another order: 2.Nf3 d5 3.e5 Bg4 4.d4. Your bishop is out. Find the next move.",
+          "expect": ["e7e6"],
+          "hint": "Support d5 with a pawn.",
+          "ifWrong": "4...e6 is safe, because the bishop is already outside the chain.",
+          "ifRight": "Next is ...c5 to attack d4.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-advance-bd3",
+      "title": "4.Bd3: trade, then ...c5",
+      "summary": "Take the bishop trade, then hit d4.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rn1qkbnr/pp2pppp/2p5/3pPb2/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 1 4",
+          "text": "4.Bd3 offers to trade light-squared bishops.",
+          "move": "f1d3"
+        },
+        {
+          "type": "play",
+          "text": "Take the trade.",
+          "expect": ["f5d3"],
+          "hint": "Capture on d3.",
+          "ifWrong": "4...Bxd3: without this bishop, White has one attacker less.",
+          "ifRight": "White takes back with the queen.",
+          "feedback": {
+            "f5g6": "4...Bg6 lets White take on g6 and damage your pawns. Take on d3 yourself."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "5.Qxd3 takes back.",
+          "move": "d1d3"
+        },
+        {
+          "type": "play",
+          "text": "Now ...e6 costs nothing. Play it.",
+          "expect": ["e7e6"],
+          "hint": "Your bishop is gone, so the e-pawn can move freely.",
+          "ifWrong": "5...e6: the bishop is already out and traded.",
+          "ifRight": "Next ...c5 and ...Nc6 attack d4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "6.Nf3 develops and guards d4.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Hit the base of White's pawn chain.",
+          "expect": ["c6c5"],
+          "hint": "The c-pawn can attack d4.",
+          "ifWrong": "6...c5 strikes at d4.",
+          "ifRight": "Your queen and knights will add pressure on d4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rn1qkbnr/pp3ppp/2p1p3/3pP3/3P4/3Q4/PPP1NPPP/RNB1K2R b KQkq - 1 6",
+          "text": "Here White played 6.Ne2 instead of 6.Nf3. Find the same pawn strike.",
+          "expect": ["c6c5"],
+          "hint": "Attack d4 with a pawn.",
+          "ifWrong": "6...c5 hits the base of the chain.",
+          "ifRight": "The plan does not depend on where White's knight goes.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}
