@@ -94,6 +94,13 @@ object AppContainer {
 
     @Volatile
     private var rushRecordsInstance: SharedPrefsRushRecords? = null
+    private var openingTestsInstance: com.chesstutor.app.data.learn.SharedPrefsOpeningTests? = null
+
+    /** The openings whose test was passed (Phase 12). */
+    fun provideOpeningTests(context: Context): com.chesstutor.app.data.learn.SharedPrefsOpeningTests =
+        openingTestsInstance ?: synchronized(this) {
+            openingTestsInstance ?: com.chesstutor.app.data.learn.SharedPrefsOpeningTests(context.applicationContext).also { openingTestsInstance = it }
+        }
 
     /** Each rush's best score (D66). */
     fun provideRushRecords(context: Context): SharedPrefsRushRecords =

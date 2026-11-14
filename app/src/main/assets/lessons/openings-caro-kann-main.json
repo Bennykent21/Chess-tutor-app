@@ -1,0 +1,202 @@
+{
+  "id": "openings-caro-kann-main",
+  "category": "openings",
+  "title": "Classical Variation",
+  "intro": "3.Nc3 or 3.Nd2: take on e4, develop with ...Bf5 and keep the bishop on its diagonal.",
+  "level": "intermediate",
+  "order": 83,
+  "side": "black",
+  "opening": "caro-kann",
+  "variation": "e2e4 c7c6 d2d4 d7d5 b1c3, e2e4 c7c6 d2d4 d7d5 b1d2",
+  "battleLine": "Caro-Kann Defense: Classical Variation",
+  "lessons": [
+    {
+      "id": "openings-caro-kann-main-bf5",
+      "title": "3...dxe4 and 4...Bf5",
+      "summary": "Take on e4, then develop with a threat.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3",
+          "text": "3.Nc3 defends e4 with a piece.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Take on e4.",
+          "expect": ["d5e4"],
+          "hint": "Your d-pawn captures.",
+          "ifWrong": "3...dxe4: the knight takes back, and you gain time by attacking it.",
+          "ifRight": "White takes back with the knight.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "4.Nxe4 recaptures. The knight stands in the centre.",
+          "move": "c3e4"
+        },
+        {
+          "type": "play",
+          "text": "Develop with a threat.",
+          "expect": ["c8f5"],
+          "hint": "Your light-squared bishop can hit e4.",
+          "ifWrong": "4...Bf5 attacks the knight on e4.",
+          "ifRight": "This is the Classical. ...e6, ...Nd7 and ...Ngf6 follow.",
+          "feedback": {
+            "b8d7": "4...Nd7 is a good line too. This repertoire plays the Classical 4...Bf5.",
+            "g8f6": "4...Nf6 is playable, but this repertoire develops with a threat: 4...Bf5."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3",
+          "text": "White can also defend e4 with 3.Nd2.",
+          "move": "b1d2"
+        },
+        {
+          "type": "explain",
+          "text": "Take on e4 here too: 3...dxe4.",
+          "move": "d5e4"
+        },
+        {
+          "type": "explain",
+          "text": "4.Nxe4 gives the same position as after 3.Nc3.",
+          "move": "d2e4"
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp2pppp/2p5/8/3PN3/8/PPP2PPP/R1BQKBNR b KQkq - 0 4",
+          "text": "This came from 3.Nd2. Find the developing move with a threat.",
+          "expect": ["c8f5"],
+          "hint": "Attack the knight on e4.",
+          "ifWrong": "4...Bf5 hits the knight.",
+          "ifRight": "Same position, same move.",
+          "feedback": {
+            "b8d7": "4...Nd7 is a good line too. This repertoire plays the Classical 4...Bf5.",
+            "g8f6": "4...Nf6 is playable, but this repertoire develops with a threat: 4...Bf5."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-main-bg6",
+      "title": "5.Ng3 Bg6 and 6...Nd7",
+      "summary": "Keep the bishop, then stop Ne5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rn1qkbnr/pp2pppp/2p5/5b2/3PN3/8/PPP2PPP/R1BQKBNR w KQkq - 1 5",
+          "text": "5.Ng3 attacks your bishop.",
+          "move": "e4g3",
+          "arrows": ["g3f5:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Keep the bishop on the same diagonal.",
+          "expect": ["f5g6"],
+          "hint": "Step back one square.",
+          "ifWrong": "5...Bg6 keeps the bishop on its long diagonal.",
+          "ifRight": "It still watches the diagonal towards b1.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "6.Nf3 develops. It also eyes e5, where it would hit your bishop.",
+          "move": "g1f3",
+          "arrows": ["f3e5:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Stop Ne5 before it comes.",
+          "expect": ["b8d7"],
+          "hint": "A knight move that covers e5.",
+          "ifWrong": "6...Nd7 covers e5.",
+          "ifRight": "...Ngf6 and ...e6 finish your development.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Your bishop is outside the pawn chain, and ...e6 next will not shut it in.",
+          "arrows": ["g6b1:idea"]
+        },
+        {
+          "type": "quiz",
+          "fen": "rn1qkbnr/pp2pppp/2p3b1/8/3P4/5NN1/PPP2PPP/R1BQKB1R b KQkq - 4 6",
+          "text": "Here White started with 3.Nd2. Find the move that stops Ne5.",
+          "expect": ["b8d7"],
+          "hint": "A knight move that covers e5.",
+          "ifWrong": "6...Nd7 covers e5.",
+          "ifRight": "Move orders change; the plan does not.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-main-h6",
+      "title": "The h4 push: make room with ...h6",
+      "summary": "Give the bishop h7 before h5 can chase it.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rn1qkbnr/pp2pppp/2p3b1/8/3P4/6N1/PPP2PPP/R1BQKBNR w KQkq - 3 6",
+          "text": "6.h4 wants to push on to h5 and chase your bishop.",
+          "move": "h2h4",
+          "arrows": ["h4h5:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Give your bishop a square to retreat to.",
+          "expect": ["h7h6"],
+          "hint": "Move a pawn so h7 becomes free.",
+          "ifWrong": "6...h6 frees h7 for the bishop.",
+          "ifRight": "If White plays h5, the bishop drops back to h7 and keeps its diagonal.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "7.Nf3 develops.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Stop Ne5 again.",
+          "expect": ["b8d7"],
+          "hint": "A knight move that covers e5.",
+          "ifWrong": "7...Nd7 covers e5.",
+          "ifRight": "The same set-up as before, with the h-pawns pushed.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rn1qkbnr/pp2ppp1/2p3bp/8/3P3P/6N1/PPP2PP1/R1BQKBNR w KQkq - 0 7",
+          "text": "White can also push at once with 7.h5.",
+          "move": "h4h5"
+        },
+        {
+          "type": "play",
+          "text": "Keep the bishop on its diagonal.",
+          "expect": ["g6h7"],
+          "hint": "Use the square you made.",
+          "ifWrong": "7...Bh7 keeps the bishop on its diagonal.",
+          "ifRight": "The bishop is safe on h7 and still eyes the diagonal.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r2qkbnr/pp1npppp/2p3b1/8/3P3P/5NN1/PPP2PP1/R1BQKB1R b KQkq - 0 7",
+          "text": "Here White played 6.Nf3 Nd7 7.h4. Find the answer.",
+          "expect": ["h7h6"],
+          "hint": "Make room for the bishop on h7.",
+          "ifWrong": "7...h6 gives the bishop a retreat.",
+          "ifRight": "Same threat, same answer.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

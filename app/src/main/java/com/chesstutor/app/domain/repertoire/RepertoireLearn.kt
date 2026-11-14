@@ -2,6 +2,8 @@ package com.chesstutor.app.domain.repertoire
 
 import com.chesstutor.app.core.LegalMoveGenerator
 import com.chesstutor.app.core.Position
+import com.chesstutor.app.domain.learn.CourseGate
+import com.chesstutor.app.domain.learn.OpenLines
 import java.time.Instant
 
 /**
@@ -29,10 +31,12 @@ object LearnPlanner {
         introduced: Set<String>,
         maxNew: Int = MAX_NEW,
         within: List<String>? = null,
+        /** The variations open for drilling (Phase 12); null when every one is. */
+        allowed: OpenLines? = null,
     ): LearnSegment? {
         val book = index.book
         val target = book.cards(open)
-            .filter { it.key !in introduced && index.pathTo(it.key)?.let { path -> within == null || path.take(within.size) == within } == true }
+            .filter { it.key !in introduced && index.pathTo(it.key)?.let { path -> (within == null || path.take(within.size) == within) && CourseGate.isOpen(path, allowed) } == true }
             .minWithOrNull(compareByDescending<RepertoireNode> { it.reach }.thenBy { it.ply }.thenBy { it.key })
             ?: return null
         val moves = index.pathTo(target.key)!!.toMutableList()

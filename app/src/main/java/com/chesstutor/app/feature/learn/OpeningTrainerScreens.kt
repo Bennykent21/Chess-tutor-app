@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material3.Icon
@@ -76,6 +77,8 @@ fun OpeningTrainerScreen(
     onReviewRepertoires: () -> Unit = {},
     /** One side only, with the side as the title (Train, Phase 12); null shows both behind a switch. */
     fixedSide: PieceColor? = null,
+    /** A locked opening opens its courses in Learn (Phase 12). */
+    onOpenCourse: (openingId: String) -> Unit = onOpenRepertoire,
 ) {
     val taught = repertoires.map { it.book.id }.toSet()
     val legacy = state.openings.filter { it.opening.id !in taught && it.lines.isNotEmpty() }
@@ -114,7 +117,9 @@ fun OpeningTrainerScreen(
         }
         val shown = legacy.filter { it.opening.side == side }
         Column(Modifier.padding(top = CtSpacing.sm)) {
-            repertoires.filter { it.book.side == side }.forEach { item -> RepertoireRow(item, onOpen = { onOpenRepertoire(item.book.id) }) }
+            repertoires.filter { it.book.side == side }.forEach { item ->
+                RepertoireRow(item, onOpen = { if (item.locked) onOpenCourse(item.book.id) else onOpenRepertoire(item.book.id) })
+            }
             shown.forEach { item -> TrainerRow(item, onOpen = { onOpen(item.opening.id) }) }
         }
     }
@@ -132,21 +137,20 @@ private fun RepertoireRow(item: RepertoireBookUi, onOpen: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(item.book.title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Text("${item.introduced} of ${item.total}", style = CtType.Caption)
-            }
-            CtProgressBar(progress = if (item.total == 0) 0f else item.introduced.toFloat() / item.total, height = 3.dp, modifier = Modifier.fillMaxWidth())
-        }
-        if (item.due > 0) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(item.book.title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                "${item.due} due",
-                style = CtType.Label.copy(color = CtColors.OnError),
-                modifier = Modifier.clip(CtShapes.Pill).background(CtColors.Error).padding(horizontal = 10.dp, vertical = CtSpacing.xxs),
+                when {
+                    // Phase 12: drills open after the course, or after the test.
+                    item.locked -> "Take the course first"
+                    item.due > 0 -> "${(item.readiness * 100).toInt()}% ready · ${item.due} due"
+                    else -> "${(item.readiness * 100).toInt()}% ready"
+                },
+                style = CtType.Caption,
             )
         }
-        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(20.dp))
+        if (item.locked) Icon(Icons.Rounded.Lock, contentDescription = "Locked", tint = CtColors.Text2, modifier = Modifier.size(18.dp))
+        else Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(20.dp))
     }
 }
 

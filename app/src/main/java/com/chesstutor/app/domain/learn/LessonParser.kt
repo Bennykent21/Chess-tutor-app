@@ -19,6 +19,7 @@ class LessonFormatException(message: String) : IllegalArgumentException(message)
  * ```
  * { "id", "category", "title", "intro", "level", "order",
  *   "puzzleThemes": [..], "battleLine": "Italian Game", "side": "white",
+ *   "opening": "italian", "variation": "e2e4 e7e5 g1f3 b8c6 f1c4 f8c5" (several: comma between),
  *   "lessons": [ { "id", "title", "summary", "xp", "orientation": "black",
  *     "steps": [
  *       { "type": "watch", "title", "text", "video" },
@@ -72,6 +73,8 @@ object LessonParser {
                 puzzleThemes = obj.optList("puzzleThemes", at).mapIndexed { i, v -> v as? String ?: fail(at, "puzzleThemes[$i] must be text") },
                 battleLine = obj.optString("battleLine", at),
                 side = obj.optString("side", at)?.let { color(it, "$at side") },
+                opening = obj.optString("opening", at),
+                variations = obj.optString("variation", at)?.split(',')?.map { variation(it, "$at variation") }.orEmpty(),
             )
         }
 
@@ -225,6 +228,14 @@ object LessonParser {
         fun square(text: String, at: String): String {
             runCatching { Square.fromAlgebraic(text) }.getOrElse { fail(at, "\"$text\" is not a square") }
             return text
+        }
+
+        /** UCI moves from the start, each legal in turn. */
+        fun variation(text: String, at: String): List<String> {
+            val moves = text.trim().split(' ').filter { it.isNotEmpty() }
+            if (moves.isEmpty()) fail(at, "a variation needs at least one move")
+            moves.fold(Position.initial()) { position, uci -> LessonChess.play(position, uci) ?: fail(at, "move \"$uci\" is not legal here") }
+            return moves
         }
 
         fun color(text: String, at: String): PieceColor = when (text) {

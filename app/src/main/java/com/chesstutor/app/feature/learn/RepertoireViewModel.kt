@@ -23,6 +23,7 @@ import com.chesstutor.app.domain.repertoire.LevelUnlocks
 import com.chesstutor.app.domain.repertoire.Mastery
 import com.chesstutor.app.domain.repertoire.MasteryProgress
 import com.chesstutor.app.domain.repertoire.RepertoireBook
+import com.chesstutor.app.domain.repertoire.RepertoireCards
 import com.chesstutor.app.domain.repertoire.RepertoireIndex
 import com.chesstutor.app.domain.repertoire.Variation
 import com.chesstutor.app.domain.repertoire.RepertoireVariations
@@ -33,6 +34,11 @@ import com.chesstutor.app.domain.repertoire.ReviewQueue
 import com.chesstutor.app.domain.repertoire.ReviewSession
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import com.chesstutor.app.domain.learn.CourseGate
+import com.chesstutor.app.domain.learn.OpenLines
+import com.chesstutor.app.domain.learn.OpeningTests
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +48,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
+import kotlin.random.Random
 import java.time.ZoneId
 
 /** One taught opening on its page (Phase 10): its levels, what is due and the replies it meets first. */
@@ -64,7 +71,12 @@ data class RepertoireBookUi(
     val readiness: Double = 0.0,
     /** The variation "New line" teaches next, when it has a name. */
     val nextLine: String? = null,
+    /** The variations open for drilling (Phase 12); null when every one is. */
+    val open: OpenLines? = null,
 ) {
+    /** No variation is open yet: take the course, or the test. */
+    val locked: Boolean get() = open != null && open.open.isEmpty() && !open.rest
+
     /** The opening database's name where the start line ends, for Opening Battle ("Caro-Kann Defense"). */
     val battleLine: String
         get() = book.start.fold(com.chesstutor.app.core.Position.initial()) { p, uci -> RepertoireIndex.play(p, uci) ?: p }
@@ -87,7 +99,8 @@ data class ReplyChart(val after: String, val replies: List<ChartReply>)
 
 data class ChartReply(val san: String, val share: Double, val error: Boolean)
 
-enum class RunKind { LEARN, REVIEW, TRICKY }
+/** TEST is an opening's test-out (Phase 12): no hints, nothing saved, four of five right opens its drills. */
+enum class RunKind { LEARN, REVIEW, TRICKY, TEST }
 
 /** What the trainer is saying at this moment of a run. */
 sealed interface RunMoment {
@@ -162,17 +175,23 @@ class RepertoireViewModel(
     private val replyDelayMs: Long = REPLY_DELAY_MS,
     private val watchArrowMs: Long = WATCH_ARROW_MS,
     private val watchMoveMs: Long = WATCH_MOVE_MS,
+    /** Per opening, the variations its finished courses opened; an opening missing here is fully open. */
+    private val gate: Flow<Map<String, OpenLines>> = flowOf(emptyMap()),
+    /** Where a passed test is kept. */
+    private val tests: OpeningTests? = null,
 ) : ViewModel() {
     private val indexes = MutableStateFlow<List<RepertoireIndex>?>(null)
     private val reviewLog = MutableStateFlow<Map<String, List<CardReview>>>(emptyMap())
     private val cards = repository.observeCards().stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
     private val levels = repository.observeLevels().stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    val state: StateFlow<RepertoireState> = combine(indexes, cards, levels, reviewLog) { idx, cardMap, levelMap, log ->
+    private val gates = gate.stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    val state: StateFlow<RepertoireState> = combine(indexes, cards, levels, reviewLog, gates) { idx, cardMap, levelMap, log, open ->
         if (idx == null) return@combine RepertoireState(loading = true)
         RepertoireState(
             loading = false,
-            books = idx.map { bookUi(it, cardMap, levelMap[it.book.id], log[it.book.id].orEmpty()) },
+            books = idx.map { bookUi(it, cardMap, levelMap[it.book.id], log[it.book.id].orEmpty(), open[it.book.id]) },
             dueSamples = ReviewQueue.build(idx, cardMap.values, clock()).take(3).map { it.position.toFen() to it.book.side },
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, RepertoireState())
@@ -202,7 +221,7 @@ class RepertoireViewModel(
 
     private fun band(book: RepertoireBook): Int? = book.bandFor(rating())
 
-    private fun bookUi(index: RepertoireIndex, cardMap: Map<String, CardState>, level: LevelProgress?, log: List<CardReview>): RepertoireBookUi {
+    private fun bookUi(index: RepertoireIndex, cardMap: Map<String, CardState>, level: LevelProgress?, log: List<CardReview>, open: OpenLines?): RepertoireBookUi {
         val book = index.book
         val progress = level ?: LevelProgress(book.id)
         val mine = cardMap.values.filter { it.bookId == book.id }
@@ -215,13 +234,14 @@ class RepertoireViewModel(
             mastery = RepertoireLevel.entries.associateWith { Mastery.of(book, it, cardMap, log, zone) },
             due = mine.count { it.isDue(now) && book.nodes[it.key]?.own == true },
             tricky = mine.count { it.tricky },
-            fresh = book.cards(progress.unlocked).count { it.key !in introduced },
+            fresh = book.cards(progress.unlocked).count { it.key !in introduced && CourseGate.isOpen(index.pathTo(it.key).orEmpty(), open) },
             chart = chartOf(index, band(book)),
             introduced = book.cards().count { it.key in introduced },
             total = book.cards().size,
-            variations = RepertoireVariations.of(index, band(book), progress.unlocked, mine.associateBy { it.key }),
+            variations = RepertoireVariations.of(index, band(book), progress.unlocked, mine.associateBy { it.key }, open),
             readiness = RepertoireVariations.readiness(book, progress.unlocked, mine.associateBy { it.key }),
-            nextLine = LearnPlanner.next(index, progress.unlocked, introduced)?.variation,
+            nextLine = LearnPlanner.next(index, progress.unlocked, introduced, allowed = open)?.variation,
+            open = open,
         )
     }
 
@@ -235,7 +255,9 @@ class RepertoireViewModel(
         val index = indexes.value?.firstOrNull { it.book.id == bookId } ?: return
         val open = levels.value[bookId]?.unlocked ?: RepertoireLevel.CORE
         val introduced = cards.value.values.filter { it.bookId == bookId }.map { it.key }.toSet()
-        val segment = within?.let { LearnPlanner.next(index, open, introduced, within = it) } ?: LearnPlanner.next(index, open, introduced) ?: return
+        val allowed = gates.value[bookId]
+        val segment = within?.let { LearnPlanner.next(index, open, introduced, within = it, allowed = allowed) }
+            ?: LearnPlanner.next(index, open, introduced, allowed = allowed) ?: return
         startSegment(index, segment)
         learnWithin = within
     }
@@ -381,7 +403,7 @@ class RepertoireViewModel(
         mastered = updateLevels(setOf(book.id))
         val introduced = repository.observeCards().first().values.filter { it.bookId == book.id }.map { it.key }.toSet()
         val open = levels.value[book.id]?.unlocked ?: RepertoireLevel.CORE
-        moreToLearn = LearnPlanner.next(run.index, open, introduced) != null
+        moreToLearn = LearnPlanner.next(run.index, open, introduced, allowed = gates.value[book.id]) != null
         moment = RunMoment.Finished(outcome.count { it.second.firstTryRight }, outcome.size)
         publish()
     }
@@ -395,6 +417,21 @@ class RepertoireViewModel(
         val queue = ReviewQueue.build(chosen, cards.value.values, clock())
         if (queue.isEmpty()) return
         startQueue(RunKind.REVIEW, chosen.singleOrNull()?.book?.title ?: queue.first().book.title, queue)
+    }
+
+    /**
+     * The opening's test (Phase 12): [TEST_SIZE] of its Core positions at random, with no hints.
+     * Nothing is saved to the schedule; [TEST_PASS] right first time opens every drill of it.
+     */
+    fun startTest(bookId: String, random: Random = Random.Default) {
+        val index = indexes.value?.firstOrNull { it.book.id == bookId } ?: return
+        val now = clock()
+        val queue = index.book.cards(RepertoireLevel.CORE)
+            .mapNotNull { node -> index.pathTo(node.key)?.let { path -> DueCard(index, node, RepertoireCards.introduce(bookId, node, now), path) } }
+            .shuffled(random)
+            .take(TEST_SIZE)
+        if (queue.isEmpty()) return
+        startQueue(RunKind.TEST, "Test", queue)
     }
 
     /** The tricky lines of [bookId], each from the start of its line (D76). */
@@ -465,9 +502,12 @@ class RepertoireViewModel(
         moment = RunMoment.CardDone(log.firstTryRight, card.dueAt, played, shown)
         publish()
         mutableRun.value?.board?.refresh(animate = played != null)
-        viewModelScope.launch {
-            repository.save(listOf(card), listOf(log))
-            reviewLog.value = reviewLog.value + (card.bookId to repository.reviews(card.bookId))
+        // A test only looks: the schedule stays as it is.
+        if (mutableRun.value?.kind != RunKind.TEST) {
+            viewModelScope.launch {
+                repository.save(listOf(card), listOf(log))
+                reviewLog.value = reviewLog.value + (card.bookId to repository.reviews(card.bookId))
+            }
         }
         // The next card comes by itself: a right answer at once, a miss after a look at the answer.
         val index = session.index
@@ -486,6 +526,12 @@ class RepertoireViewModel(
                 val session = review ?: return
                 session.next()
                 if (session.finished) {
+                    if (mutableRun.value?.kind == RunKind.TEST) {
+                        if (session.rightFirstTime >= testPassMark(session.cards.size)) tests?.pass(session.cards.first().book.id)
+                        moment = RunMoment.Finished(session.rightFirstTime, session.cards.size)
+                        publish()
+                        return
+                    }
                     viewModelScope.launch {
                         mastered = updateLevels(session.cards.map { it.book.id }.toSet())
                         moment = RunMoment.Finished(session.rightFirstTime, session.cards.size)
@@ -518,6 +564,7 @@ class RepertoireViewModel(
 
     /** First the piece to move; asked again, the move itself (it then counts as shown). */
     fun hint() {
+        if (mutableRun.value?.kind == RunKind.TEST) return
         if (hintFrom != null) {
             hintFrom = null
             showAnswer()
@@ -562,7 +609,7 @@ class RepertoireViewModel(
         val introduced = cards.value.values.filter { it.bookId == run.book.id }.map { it.key }.toSet()
         val open = levels.value[run.book.id]?.unlocked ?: RepertoireLevel.CORE
         // Stay in the chosen variation while it has new moves, then go on with the rest.
-        startLearn(run.book.id, within?.takeIf { LearnPlanner.next(run.index, open, introduced, within = it) != null })
+        startLearn(run.book.id, within?.takeIf { LearnPlanner.next(run.index, open, introduced, within = it, allowed = gates.value[run.book.id]) != null })
     }
 
     fun close() {
@@ -696,6 +743,13 @@ class RepertoireViewModel(
         /** How long a finished pass stays on the board before it starts again from memory. */
         const val PASS_PAUSE_MS = 1_600L
 
+        /** An opening's test: how many positions, and how many right first time open its drills. */
+        const val TEST_SIZE = 5
+        const val TEST_PASS = 4
+
+        /** Four of five, or the same share of a shorter test. */
+        fun testPassMark(size: Int): Int = (size * TEST_PASS + TEST_SIZE - 1) / TEST_SIZE
+
         /** How long a review card stays after a right answer, and after a miss. */
         const val CARD_RIGHT_MS = 700L
         const val CARD_MISSED_MS = 1_400L
@@ -715,9 +769,11 @@ class RepertoireViewModel(
         private val repository: RepertoireProgressRepository,
         private val loadBooks: suspend () -> List<RepertoireBook>,
         private val rating: () -> Int?,
+        private val gate: Flow<Map<String, OpenLines>> = flowOf(emptyMap()),
+        private val tests: OpeningTests? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = RepertoireViewModel(repository, loadBooks, rating) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = RepertoireViewModel(repository, loadBooks, rating, gate = gate, tests = tests) as T
     }
 }
 

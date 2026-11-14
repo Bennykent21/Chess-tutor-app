@@ -9,6 +9,9 @@ import com.chesstutor.app.domain.repertoire.TestRepertoire
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import com.chesstutor.app.domain.learn.InMemoryOpeningTests
+import com.chesstutor.app.domain.learn.OpenLines
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -182,6 +185,52 @@ class RepertoireViewModelTest {
         assertEquals("a3", vm.run.value!!.ringSquare)
         assertFalse(vm.run.value!!.ringRight)
         assertFalse("no note in the test tree, so nothing to explain", vm.run.value!!.canWhy)
+    }
+
+    /** The test book's two variation courses: 3...Bc5 and 3...Nf6. */
+    private val taught = listOf("${TestRepertoire.P} f8c5".split(' '), "${TestRepertoire.P} g8f6".split(' '))
+
+    private fun TestScope.gated(repo: InMemoryRepertoireProgressRepository, open: List<List<String>>, tests: InMemoryOpeningTests = InMemoryOpeningTests()): RepertoireViewModel {
+        val vm = RepertoireViewModel(repo, { listOf(book) }, rating = { 1200 }, clock = { now }, zone = ZoneOffset.UTC, gate = flowOf(mapOf("italian" to OpenLines(open, taught = taught, rest = false))), tests = tests)
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+        return vm
+    }
+
+    @Test
+    fun onlyVariationsWhoseCourseIsDoneCanBeLearnt() = runTest(dispatcher) {
+        val bc5 = "${TestRepertoire.P} f8c5".split(' ')
+        val vm = gated(InMemoryRepertoireProgressRepository(), listOf(bc5))
+        val ui = vm.state.value.book("italian")!!
+        assertFalse(ui.locked)
+        assertEquals("only 4.c3 and 5.d3 are open", 2, ui.fresh)
+        assertEquals(listOf(false, true, true), ui.variations.map { it.locked })
+        vm.startLearn("italian", within = "${TestRepertoire.P} g8f6".split(' '))
+        advanceUntilIdle()
+        assertEquals("a locked variation falls back to an open one", bc5, vm.run.value!!.board.state.value.moves.take(6).map { it.uci })
+
+        val closed = gated(InMemoryRepertoireProgressRepository(), emptyList())
+        assertTrue(closed.state.value.book("italian")!!.locked)
+        closed.startLearn("italian")
+        assertNull("nothing to learn before the course", closed.run.value)
+    }
+
+    @Test
+    fun passingTheTestOpensTheOpeningAndSavesNothing() = runTest(dispatcher) {
+        val repo = InMemoryRepertoireProgressRepository()
+        val tests = InMemoryOpeningTests()
+        val vm = gated(repo, emptyList(), tests)
+        vm.startTest("italian")
+        advanceUntilIdle()
+        assertEquals(RunKind.TEST, vm.run.value!!.kind)
+        assertEquals("the test tree has three Core positions", 3, vm.run.value!!.steps)
+        vm.hint()
+        assertNull("no hints in a test", vm.run.value!!.hintFrom)
+        playThrough(vm)
+        val finished = vm.run.value!!.moment as RunMoment.Finished
+        assertEquals(3, finished.right)
+        assertEquals(setOf("italian"), tests.passed().value)
+        assertTrue("a test does not touch the schedule", repo.observeCards().first().isEmpty())
     }
 
     @Test
