@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,6 +53,8 @@ data class TrainActions(
     /** Endgames to win and middlegames to convert against Stockfish (step 3). */
     val onEndgames: () -> Unit = {},
     val onMiddlegames: () -> Unit = {},
+    /** The learner's repeated mistakes from their own games (step 4). */
+    val onFromGames: () -> Unit = {},
 )
 
 /**
@@ -66,6 +69,8 @@ fun TrainScreen(
     theme: BoardTheme,
     actions: TrainActions,
     modifier: Modifier = Modifier,
+    /** How many findings "From your games" has; null while they are worked out. */
+    findings: Int? = null,
 ) {
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = CtSpacing.xl)) {
@@ -97,6 +102,13 @@ fun TrainScreen(
                     icon = null,
                     onClick = actions.onVsStockfish,
                     leading = { CtMetalIcon(Icons.Rounded.SportsEsports, size = 36.dp) },
+                )
+                CtListRow(
+                    title = "From your games",
+                    icon = null,
+                    onClick = actions.onFromGames,
+                    leading = { CtMetalIcon(Icons.Rounded.Insights, size = 36.dp) },
+                    trailing = findings?.takeIf { it > 0 }?.let { n -> { Text("$n", style = CtType.Label) } },
                 )
             }
         }
