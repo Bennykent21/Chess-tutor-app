@@ -32,7 +32,11 @@ object BoardInput {
     }
 
     fun targetsFrom(from: Square, legalMoves: List<Move>): Set<Square> =
-        legalMoves.filter { it.from == from }.map { it.to }.toSet()
+        legalMoves.filter { it.from == from }.flatMap { listOfNotNull(it.to, kingLanding(it)) }.toSet()
+
+    /** In Chess960 a castle is written as the king taking its rook; it may also be played by moving the king to g or c. */
+    private fun kingLanding(move: Move): Square? =
+        if (move.isCastling && move.to.file != 6 && move.to.file != 2) Square.of(if (move.to.file > move.from.file) 6 else 2, move.from.rank) else null
 
     fun tap(
         selected: Square?,
@@ -47,6 +51,8 @@ object BoardInput {
             return if (canPick(position, square, movable)) BoardIntent.Select(square) else BoardIntent.Deselect
         }
         if (square == selected) return BoardIntent.Deselect
+        // Chess960: the king tapped onto its own rook castles.
+        legalMoves.firstOrNull { it.isCastling && it.from == selected && it.to == square }?.let { return BoardIntent.Play(it) }
         // Tapping another of your own pieces switches the selection.
         if (canPick(position, square, movable)) return BoardIntent.Select(square)
         return moveIntent(selected, square, legalMoves, autoQueen, illegal = BoardIntent.Deselect)
@@ -59,6 +65,7 @@ object BoardInput {
 
     private fun moveIntent(from: Square, to: Square, legalMoves: List<Move>, autoQueen: Boolean, illegal: BoardIntent): BoardIntent {
         val candidates = legalMoves.filter { it.from == from && it.to == to }
+            .ifEmpty { legalMoves.filter { it.from == from && kingLanding(it) == to } }
         return when {
             candidates.isEmpty() -> illegal
             candidates.any { it.promotion != null } ->

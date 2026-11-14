@@ -183,11 +183,40 @@ object LegalMoveGenerator {
   /**
    * Applies a legal move to a position, returning the new resulting Position.
    */
+  /** Where the king and rook start and land in a castling move. */
+  data class CastleSquares(val kingFrom: Square, val kingTo: Square, val rookFrom: Square, val rookTo: Square) {
+    val kingside: Boolean get() = kingTo.file == 6
+  }
+
+  /**
+   * The squares of [move] when it castles, else null: the king two files sideways in standard
+   * chess, or the king onto its own rook (always so in Chess960).
+   */
+  fun castleSquares(position: Position, move: Move): CastleSquares? {
+    val king = position.pieceAt(move.from) ?: return null
+    if (king.type != PieceType.KING) return null
+    val rank = move.from.rank
+    val target = position.pieceAt(move.to)
+    val kingside: Boolean
+    val rookFrom: Square
+    if (target != null && target.color == king.color && target.type == PieceType.ROOK) {
+      kingside = move.to.file > move.from.file
+      rookFrom = move.to
+    } else if (!position.castlingRights.chess960 && abs(move.to.file - move.from.file) == 2) {
+      kingside = move.to.file == 6
+      rookFrom = Square.of(if (kingside) 7 else 0, rank)
+    } else {
+      return null
+    }
+    return CastleSquares(move.from, Square.of(if (kingside) 6 else 2, rank), rookFrom, Square.of(if (kingside) 5 else 3, rank))
+  }
+
   fun makeMove(position: Position, move: Move): Position {
     val movingPiece = position.pieceAt(move.from)
       ?: error("No piece at source square ${move.from.algebraic}")
     val isPawn = movingPiece.type == PieceType.PAWN
-    val isCapture = position.pieceAt(move.to) != null || move.isEnPassant
+    val target = position.pieceAt(move.to)
+    val isCapture = (target != null && target.color != movingPiece.color) || move.isEnPassant
 
     val newSquares = position.squares.clone()
     newSquares[move.from.index] = null
@@ -216,26 +245,15 @@ object LegalMoveGenerator {
         newSquares[move.to.index] = movingPiece
       }
     } else if (movingPiece.type == PieceType.KING) {
-      newSquares[move.to.index] = movingPiece
-
-      // Handle Castling Rook movements
-      if (abs(move.to.file - move.from.file) == 2) {
-        val rank = move.from.rank
-        if (move.to.file == 6) {
-          // Kingside: Rook from h1/h8 (file 7) moves to f1/f8 (file 5)
-          val rookSrc = Square.of(7, rank)
-          val rookDst = Square.of(5, rank)
-          val rook = newSquares[rookSrc.index]
-          newSquares[rookSrc.index] = null
-          newSquares[rookDst.index] = rook
-        } else if (move.to.file == 2) {
-          // Queenside: Rook from a1/a8 (file 0) moves to d1/d8 (file 3)
-          val rookSrc = Square.of(0, rank)
-          val rookDst = Square.of(3, rank)
-          val rook = newSquares[rookSrc.index]
-          newSquares[rookSrc.index] = null
-          newSquares[rookDst.index] = rook
-        }
+      val castle = castleSquares(position, move)
+      if (castle == null) {
+        newSquares[move.to.index] = movingPiece
+      } else {
+        // Both leave their squares first: in Chess960 the king may land where the rook stood.
+        val rook = newSquares[castle.rookFrom.index]
+        newSquares[castle.rookFrom.index] = null
+        newSquares[castle.kingTo.index] = movingPiece
+        newSquares[castle.rookTo.index] = rook
       }
     } else {
       newSquares[move.to.index] = movingPiece
@@ -252,10 +270,12 @@ object LegalMoveGenerator {
     }
 
     // If rooks move or get captured
-    if (move.from.index == 0 || move.to.index == 0) castling = castling.copy(whiteQueenside = false)
-    if (move.from.index == 7 || move.to.index == 7) castling = castling.copy(whiteKingside = false)
-    if (move.from.index == 56 || move.to.index == 56) castling = castling.copy(blackQueenside = false)
-    if (move.from.index == 63 || move.to.index == 63) castling = castling.copy(blackKingside = false)
+    val queenside = castling.queensideFile
+    val kingside = castling.kingsideFile
+    if (move.from.index == queenside || move.to.index == queenside) castling = castling.copy(whiteQueenside = false)
+    if (move.from.index == kingside || move.to.index == kingside) castling = castling.copy(whiteKingside = false)
+    if (move.from.index == 56 + queenside || move.to.index == 56 + queenside) castling = castling.copy(blackQueenside = false)
+    if (move.from.index == 56 + kingside || move.to.index == 56 + kingside) castling = castling.copy(blackKingside = false)
 
     val nextHalfmove = if (isPawn || isCapture) 0 else position.halfmoveClock + 1
     val nextFullmove = if (position.sideToMove == PieceColor.BLACK) position.fullmoveNumber + 1 else position.fullmoveNumber
@@ -416,42 +436,33 @@ object LegalMoveGenerator {
       }
     }
 
-    // Castling moves (if King is not in check and paths are clear)
+    // Castling: the king ends on g or c and the rook on f or d, in standard chess and Chess960.
     val rank = if (color == PieceColor.WHITE) 0 else 7
-    if (from.file == 4 && from.rank == rank) {
-      val canKingside = if (color == PieceColor.WHITE) position.castlingRights.whiteKingside else position.castlingRights.blackKingside
-      val canQueenside = if (color == PieceColor.WHITE) position.castlingRights.whiteQueenside else position.castlingRights.blackQueenside
-      val enemyColor = color.opposite()
-
-      if (canKingside &&
-        position.pieceAt(7, rank) == Piece(PieceType.ROOK, color)
-      ) {
-        // Squares 5 and 6 must be empty
-        if (position.pieceAt(5, rank) == null && position.pieceAt(6, rank) == null) {
-          // King cannot castle out of, through, or into check
-          if (!isSquareAttacked(position, from, enemyColor) &&
-            !isSquareAttacked(position, Square.of(5, rank), enemyColor) &&
-            !isSquareAttacked(position, Square.of(6, rank), enemyColor)
-          ) {
-            outMoves.add(Move(from, Square.of(6, rank), isCastling = true))
-          }
-        }
+    val rights = position.castlingRights
+    if (from.rank != rank || (!rights.chess960 && from.file != 4)) return
+    val enemyColor = color.opposite()
+    for (kingside in booleanArrayOf(true, false)) {
+      val allowed = when {
+        color == PieceColor.WHITE && kingside -> rights.whiteKingside
+        color == PieceColor.WHITE -> rights.whiteQueenside
+        kingside -> rights.blackKingside
+        else -> rights.blackQueenside
       }
-
-      if (canQueenside &&
-        position.pieceAt(0, rank) == Piece(PieceType.ROOK, color)
-      ) {
-        // Squares 1, 2, and 3 must be empty
-        if (position.pieceAt(1, rank) == null && position.pieceAt(2, rank) == null && position.pieceAt(3, rank) == null) {
-          // King cannot castle out of, through, or into check
-          if (!isSquareAttacked(position, from, enemyColor) &&
-            !isSquareAttacked(position, Square.of(3, rank), enemyColor) &&
-            !isSquareAttacked(position, Square.of(2, rank), enemyColor)
-          ) {
-            outMoves.add(Move(from, Square.of(2, rank), isCastling = true))
-          }
-        }
-      }
+      if (!allowed) continue
+      val rookFile = if (kingside) rights.kingsideFile else rights.queensideFile
+      if ((rookFile > from.file) != kingside) continue
+      if (position.pieceAt(rookFile, rank) != Piece(PieceType.ROOK, color)) continue
+      val kingTo = if (kingside) 6 else 2
+      val rookTo = if (kingside) 5 else 3
+      // Every square either piece crosses or lands on is empty, apart from the two of them.
+      val low = minOf(from.file, kingTo, rookFile, rookTo)
+      val high = maxOf(from.file, kingTo, rookFile, rookTo)
+      if ((low..high).any { f -> f != from.file && f != rookFile && position.pieceAt(f, rank) != null }) continue
+      // The king may not castle out of, through, or into check.
+      val path = if (kingTo >= from.file) from.file..kingTo else kingTo..from.file
+      if (path.any { f -> isSquareAttacked(position, Square.of(f, rank), enemyColor) }) continue
+      val to = if (rights.chess960) Square.of(rookFile, rank) else Square.of(kingTo, rank)
+      outMoves.add(Move(from, to, isCastling = true))
     }
   }
 }

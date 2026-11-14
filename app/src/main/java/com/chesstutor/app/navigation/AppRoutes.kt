@@ -112,11 +112,21 @@ object AppRoutes {
     const val TRAIN_POSITION_RUN = "train/position-run"
     /** The learner's repeated mistakes, from their own games (Phase 12, step 4). */
     const val TRAIN_FROM_GAMES = "train/from-games"
+    /** Your openings: the player's own lines, one of them, and a new one. */
+    const val TRAIN_LINES = "train/lines"
+    const val TRAIN_LINE_ARG = "lineId"
+    const val TRAIN_LINE_PATTERN = "train/line/{$TRAIN_LINE_ARG}"
+    fun trainLine(id: String): String = "train/line/$id"
+    const val TRAIN_LINE_NEW = "train/line-new"
     /** Play a friend (Phase 11): the setup page, its opening and position pickers, and the game. */
     const val FRIEND = "home/friend"
     const val FRIEND_OPENING = "home/friend/opening"
     const val FRIEND_POSITION = "home/friend/position"
     const val FRIEND_PLAY = "home/friend/play"
+    /** Nearby (Phase 11C): the host's code, or the joiner typing it. */
+    const val FRIEND_NEARBY_ARG = "role"
+    const val FRIEND_NEARBY_PATTERN = "home/friend/nearby/{$FRIEND_NEARBY_ARG}"
+    fun friendNearby(join: Boolean): String = "home/friend/nearby/${if (join) "join" else "host"}"
     /** The bot builder: a new bot, or one of "My bots" to edit. */
     const val BUILDER_PATTERN = "home/builder?$BOT_ID_ARG={$BOT_ID_ARG}"
     /** The full opening list for the bot being built; the side is "white" or "black". */
@@ -154,7 +164,7 @@ object AppRoutes {
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN)
     private val homePages = setOf(BOTS)
     private val puzzlePages = setOf(PUZZLE_LEVELS)
-    private val trainPages = setOf(TRAIN_SIDE_PATTERN, TRAIN_POSITIONS_PATTERN, TRAIN_FROM_GAMES)
+    private val trainPages = setOf(TRAIN_SIDE_PATTERN, TRAIN_POSITIONS_PATTERN, TRAIN_FROM_GAMES, TRAIN_LINES, TRAIN_LINE_PATTERN)
 
     /** The bottom bar shows on the four main tabs only: every other page and board gets the room. */
     fun showsBottomBar(route: String?): Boolean = route == null || TopTab.entries.any { it.startRoute == route }

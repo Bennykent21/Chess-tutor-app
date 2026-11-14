@@ -75,6 +75,9 @@ data class BattleDraft(
     companion object {
         /** Opponents offered for a battle, easiest first. */
         val OPPONENTS = listOf("juno", "ziggy", "tessa", "ingrid", "bolt")
+
+        /** Bolt is Stockfish at full strength. */
+        const val STOCKFISH = "bolt"
     }
 }
 
@@ -370,6 +373,17 @@ class HomeViewModel(
             val line = OpeningBattles.presetLine(tree, lineName) ?: return@launch
             mutableBattle.value = mutableBattle.value.copy(line = line)
         }
+    }
+
+    /** Opening Battle with one of the player's own lines, against Stockfish (Bolt) unless they choose otherwise. */
+    fun presetBattleLine(line: Opening, side: PieceColor) {
+        mutableBattle.value = mutableBattle.value.copy(
+            side = if (side == PieceColor.WHITE) SideChoice.WHITE else SideChoice.BLACK,
+            line = line,
+            mode = BattleMode.PLAY,
+            exactReplies = true,
+            opponentId = BattleDraft.STOCKFISH,
+        )
     }
 
     /** Starts the battle; false while no opening is picked. */

@@ -127,32 +127,62 @@ data class Move(
 }
 
 /**
- * Castling rights bitmask / boolean flags
+ * Castling rights. In Chess960 the castling rooks start on [kingsideFile] and [queensideFile]
+ * (the same files for both sides), castling is written as the king taking its own rook, and the
+ * FEN names the rooks' files ("HFhf", Shredder-FEN). Standard chess keeps h and a and "KQkq".
  */
 data class CastlingRights(
   val whiteKingside: Boolean = true,
   val whiteQueenside: Boolean = true,
   val blackKingside: Boolean = true,
-  val blackQueenside: Boolean = true
+  val blackQueenside: Boolean = true,
+  val kingsideFile: Int = 7,
+  val queensideFile: Int = 0,
+  val chess960: Boolean = false
 ) {
   val fenString: String
     get() {
       val sb = StringBuilder()
-      if (whiteKingside) sb.append('K')
-      if (whiteQueenside) sb.append('Q')
-      if (blackKingside) sb.append('k')
-      if (blackQueenside) sb.append('q')
+      if (chess960) {
+        if (whiteKingside) sb.append('A' + kingsideFile)
+        if (whiteQueenside) sb.append('A' + queensideFile)
+        if (blackKingside) sb.append('a' + kingsideFile)
+        if (blackQueenside) sb.append('a' + queensideFile)
+      } else {
+        if (whiteKingside) sb.append('K')
+        if (whiteQueenside) sb.append('Q')
+        if (blackKingside) sb.append('k')
+        if (blackQueenside) sb.append('q')
+      }
       return if (sb.isEmpty()) "-" else sb.toString()
     }
 
   companion object {
-    fun fromFen(fenPart: String): CastlingRights {
-      return CastlingRights(
-        whiteKingside = fenPart.contains('K'),
-        whiteQueenside = fenPart.contains('Q'),
-        blackKingside = fenPart.contains('k'),
-        blackQueenside = fenPart.contains('q')
-      )
+    /**
+     * Reads "KQkq" or Shredder-FEN file letters. With letters, [kingFile] (the white king's file,
+     * else the black king's) tells which side of the king each rook is on.
+     */
+    fun fromFen(fenPart: String, kingFile: Int = 4): CastlingRights {
+      val files = fenPart.filter { it.lowercaseChar() in 'a'..'h' }
+      if (files.isEmpty()) {
+        return CastlingRights(
+          whiteKingside = fenPart.contains('K'),
+          whiteQueenside = fenPart.contains('Q'),
+          blackKingside = fenPart.contains('k'),
+          blackQueenside = fenPart.contains('q')
+        )
+      }
+      var rights = CastlingRights(false, false, false, false, chess960 = true)
+      for (c in files) {
+        val file = c.lowercaseChar() - 'a'
+        val white = c.isUpperCase()
+        rights = if (file > kingFile) {
+          if (white) rights.copy(whiteKingside = true, kingsideFile = file) else rights.copy(blackKingside = true, kingsideFile = file)
+        } else {
+          if (white) rights.copy(whiteQueenside = true, queensideFile = file) else rights.copy(blackQueenside = true, queensideFile = file)
+        }
+      }
+      return rights
     }
 
     val NONE = CastlingRights(false, false, false, false)

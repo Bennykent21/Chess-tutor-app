@@ -52,6 +52,9 @@ fun CtConfirmDialog(
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    dismissLabel: String = "Cancel",
+    /** False for a plain choice (accept a draw), whose confirm is not written in the error colour. */
+    destructive: Boolean = true,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -60,10 +63,10 @@ fun CtConfirmDialog(
         title = { Text(text = title, style = CtType.Headline) },
         text = { Text(text = text, style = CtType.Body) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(text = confirmLabel, style = CtType.Button.copy(color = CtColors.Error)) }
+            TextButton(onClick = onConfirm) { Text(text = confirmLabel, style = CtType.Button.copy(color = if (destructive) CtColors.Error else CtColors.Text)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(text = "Cancel", style = CtType.Button.copy(color = CtColors.Text)) }
+            TextButton(onClick = onDismiss) { Text(text = dismissLabel, style = CtType.Button.copy(color = CtColors.Text)) }
         },
     )
 }
