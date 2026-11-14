@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.chesstutor.app.domain.opening.DrillProgress
 import com.chesstutor.app.domain.opening.OpeningDrillRepository
 import com.chesstutor.app.domain.opening.OpeningTrainer
+import com.chesstutor.app.domain.opening.MyLine
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.domain.opening.TrainerLine
 import com.chesstutor.app.domain.opening.TrainerOpening
@@ -121,9 +122,16 @@ class OpeningTrainerViewModel(
         play(current.opening, current.line, current.lines)
     }
 
-    /** The next line of the same opening. */
+    /** The next line of the same opening; one of the player's own lines simply goes again. */
     fun next() {
-        mutableDrill.value?.let { start(it.opening.id) }
+        val current = mutableDrill.value ?: return
+        if (current.opening.id == MyLine.TRAINER_ID) again() else start(current.opening.id)
+    }
+
+    /** Drills one of the player's own lines, on the same schedule as the book's lines. */
+    fun startMine(line: MyLine) {
+        val trainerLine = line.toTrainerLine()
+        play(MyLine.trainerOpening(line.side), trainerLine, listOf(trainerLine))
     }
 
     fun showAnswer() {

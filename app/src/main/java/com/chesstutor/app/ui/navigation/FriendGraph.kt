@@ -1,5 +1,6 @@
 package com.chesstutor.app.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -7,13 +8,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.chesstutor.app.data.nearby.LanConnector
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.friend.FriendPlayActions
 import com.chesstutor.app.feature.friend.FriendPlayScreen
 import com.chesstutor.app.feature.friend.FriendSetupScreen
 import com.chesstutor.app.feature.friend.FriendStart
 import com.chesstutor.app.feature.friend.FriendViewModel
+import com.chesstutor.app.feature.friend.NearbyLobbyScreen
 import com.chesstutor.app.feature.home.OpeningPickerScreen
 import com.chesstutor.app.feature.home.SetupBoardScreen
 import com.chesstutor.app.navigation.AppRoutes
@@ -35,6 +40,43 @@ internal fun NavGraphBuilder.friendPages(shell: Shell) = with(shell) {
                 if (friendModel.start(state.appSettings.playerName)) navController.navigate(AppRoutes.FRIEND_PLAY) { launchSingleTop = true }
             },
             onBack = { navController.popBackStack() },
+            onHost = {
+                friendModel.host(state.appSettings.playerName)
+                navController.navigate(AppRoutes.friendNearby(join = false)) { launchSingleTop = true }
+            },
+            onJoin = {
+                friendModel.cancelNearby()
+                navController.navigate(AppRoutes.friendNearby(join = true)) { launchSingleTop = true }
+            },
+        )
+    }
+    composable(
+        route = AppRoutes.FRIEND_NEARBY_PATTERN,
+        arguments = listOf(navArgument(AppRoutes.FRIEND_NEARBY_ARG) { type = NavType.StringType }),
+    ) { entry ->
+        val friendModel = friendViewModel()
+        val status by friendModel.nearby.collectAsStateWithLifecycle()
+        val game by friendModel.game.collectAsStateWithLifecycle()
+        val joining = entry.arguments?.getString(AppRoutes.FRIEND_NEARBY_ARG) == "join"
+        val leave = {
+            friendModel.cancelNearby()
+            navController.popBackStack()
+        }
+        BackHandler { leave() }
+        // The phones found each other: the game takes this page's place.
+        LaunchedEffect(game) {
+            if (game != null) {
+                navController.navigate(AppRoutes.FRIEND_PLAY) {
+                    popUpTo(AppRoutes.FRIEND_NEARBY_PATTERN) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+        NearbyLobbyScreen(
+            status = status,
+            joining = joining,
+            onJoin = { target -> friendModel.join(target, state.appSettings.playerName) },
+            onCancel = { leave() },
         )
     }
     composable(AppRoutes.FRIEND_OPENING) {
@@ -107,6 +149,7 @@ internal fun Shell.friendViewModel(): FriendViewModel {
         factory = FriendViewModel.Factory(
             openings = { AppContainer.provideOpeningLoader(context).load() },
             games = AppContainer.provideGameRepository(context),
+            connector = LanConnector(context),
         ),
     )
 }

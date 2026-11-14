@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
@@ -313,6 +314,8 @@ fun BoardHost(
                 pieceSet = theme.pieceSet,
                 cell = BoardGeometry.cellOf(to, shownWhiteAtBottom),
                 cellSizeDp = cellDp.value,
+                // Face to face, the far player reads their choices the right way up.
+                upsideDown = turned == color,
                 onChoose = { type ->
                     val move = BoardInput.promotionMove(from, to, type, state.legalMoves)
                     pendingPromotion = null
@@ -382,6 +385,7 @@ private fun PromotionPicker(
     cellSizeDp: Float,
     onChoose: (PieceType) -> Unit,
     onCancel: () -> Unit,
+    upsideDown: Boolean = false,
 ) {
     val types = listOf(PieceType.QUEEN, PieceType.KNIGHT, PieceType.ROOK, PieceType.BISHOP)
     val downwards = cell.row < 4
@@ -408,7 +412,8 @@ private fun PromotionPicker(
                     modifier = Modifier
                         .size(cellSizeDp.dp)
                         .ctPressable(onClickLabel = "Promote to ${type.name.lowercase()}") { onChoose(type) }
-                        .padding(2.dp),
+                        .padding(2.dp)
+                        .rotate(if (upsideDown) 180f else 0f),
                 )
             }
         }

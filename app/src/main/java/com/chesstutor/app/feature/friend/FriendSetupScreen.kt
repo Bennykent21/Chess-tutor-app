@@ -37,12 +37,14 @@ import androidx.compose.ui.unit.dp
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.BoardView
 import com.chesstutor.app.board.rememberPiecePainters
+import com.chesstutor.app.core.Chess960
 import com.chesstutor.app.core.Piece
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.PieceType
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.design.CtActionPage
 import com.chesstutor.app.design.CtButton
+import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtGroupLabel
@@ -63,8 +65,9 @@ import kotlin.math.roundToInt
 private enum class ClockOwner { BOTH, FRIEND }
 
 /**
- * Play a friend (Phase 11): who plays which colour, a clock (the same for both, or one each),
- * where the game starts, and how the two sit, with Start fixed at the bottom.
+ * Play a friend (Phase 11): on this phone or with a friend's phone nearby, who plays which
+ * colour, a clock (the same for both, or one each), where the game starts, and on one phone how
+ * the two sit, with Start (or Join and Host, nearby) fixed at the bottom.
  */
 @Composable
 fun FriendSetupScreen(
@@ -76,29 +79,46 @@ fun FriendSetupScreen(
     onSetPosition: () -> Unit,
     onStart: () -> Unit,
     onBack: () -> Unit,
+    onHost: () -> Unit = {},
+    onJoin: () -> Unit = {},
 ) {
     var customFor by rememberSaveable { mutableStateOf<ClockOwner?>(null) }
-    val friend = draft.friendName.trim().ifEmpty { "your friend" }
+    val nearby = draft.mode == FriendMode.NEARBY
+    val friend = if (nearby) "your friend" else draft.friendName.trim().ifEmpty { "your friend" }
 
     CtActionPage(
         title = "",
         onBack = onBack,
-        bottom = { CtButton(text = "Start", enabled = draft.problem == null, onClick = onStart, modifier = Modifier.weight(1f)) },
+        bottom = {
+            if (nearby) {
+                CtButton(text = "Join", style = CtButtonStyle.Secondary, onClick = onJoin, modifier = Modifier.weight(1f))
+                CtButton(text = "Host", enabled = draft.problem == null, onClick = onHost, modifier = Modifier.weight(1f))
+            } else {
+                CtButton(text = "Start", enabled = draft.problem == null, onClick = onStart, modifier = Modifier.weight(1f))
+            }
+        },
     ) {
         Text("Play a friend", style = CtType.Display)
+        CtSegmented(
+            options = FriendMode.entries,
+            selected = draft.mode,
+            label = { if (it == FriendMode.THIS_PHONE) "This phone" else "Nearby" },
+            onSelect = { mode -> onChange { it.copy(mode = mode) } },
+            modifier = Modifier.padding(top = CtSpacing.md),
+        )
 
         Row(
             modifier = Modifier.padding(top = CtSpacing.lg),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
         ) {
-            Seat(PieceColor.WHITE, draft, ownerName, theme) { name -> onChange { it.copy(friendName = name) } }
+            Seat(PieceColor.WHITE, draft, ownerName, theme, nearby) { name -> onChange { it.copy(friendName = name) } }
             CtIconButton(
                 icon = Icons.Rounded.SwapHoriz,
                 contentDescription = "Swap colours",
                 onClick = { onChange { it.copy(ownerColor = it.ownerColor.opposite()) } },
             )
-            Seat(PieceColor.BLACK, draft, ownerName, theme) { name -> onChange { it.copy(friendName = name) } }
+            Seat(PieceColor.BLACK, draft, ownerName, theme, nearby) { name -> onChange { it.copy(friendName = name) } }
         }
 
         CtGroupLabel("Clock")
@@ -133,12 +153,23 @@ fun FriendSetupScreen(
                     FriendStart.NORMAL -> "Normal"
                     FriendStart.OPENING -> "Opening"
                     FriendStart.POSITION -> "Position"
+                    FriendStart.CHESS960 -> "960"
                 }
             },
             onSelect = { start -> onChange { it.copy(start = start) } },
         )
         when (draft.start) {
             FriendStart.NORMAL -> Unit
+            FriendStart.CHESS960 -> CtListRow(
+                title = "Chess960 · ${draft.chess960}",
+                subtitle = "Tap for another. Castling still ends on g or c.",
+                icon = null,
+                onClick = { onChange { it.copy(chess960 = Chess960.random()) } },
+                leading = {
+                    val position = remember(draft.chess960) { Position.fromFen(Chess960.startFen(draft.chess960)) }
+                    Box(Modifier.size(44.dp).clip(CtShapes.Chip)) { BoardView(position, theme, showCoordinates = false, showLegalDots = false) }
+                },
+            )
             FriendStart.OPENING -> CtListRow(title = draft.opening?.name ?: "Choose an opening", icon = null, onClick = onPickOpening)
             FriendStart.POSITION -> CtListRow(
                 title = "Set up the position",
@@ -154,13 +185,16 @@ fun FriendSetupScreen(
             )
         }
 
-        Column(Modifier.padding(top = CtSpacing.sm)) {
-            CtToggleRow(title = "Undo", checked = draft.takebacks, onCheckedChange = { on -> onChange { it.copy(takebacks = on) } })
-            CtToggleRow(
-                title = "Face to face",
-                checked = draft.seating == Seating.FACE_TO_FACE,
-                onCheckedChange = { on -> onChange { it.copy(seating = if (on) Seating.FACE_TO_FACE else Seating.SIDE_BY_SIDE) } },
-            )
+        // Undo and seating only mean something at one phone.
+        if (!nearby) {
+            Column(Modifier.padding(top = CtSpacing.sm)) {
+                CtToggleRow(title = "Undo", checked = draft.takebacks, onCheckedChange = { on -> onChange { it.copy(takebacks = on) } })
+                CtToggleRow(
+                    title = "Face to face",
+                    checked = draft.seating == Seating.FACE_TO_FACE,
+                    onCheckedChange = { on -> onChange { it.copy(seating = if (on) Seating.FACE_TO_FACE else Seating.SIDE_BY_SIDE) } },
+                )
+            }
         }
     }
 
@@ -178,7 +212,7 @@ fun FriendSetupScreen(
 
 /** One colour's seat: its king, and the owner's name or a field for the friend's. */
 @Composable
-private fun RowScope.Seat(color: PieceColor, draft: FriendDraft, ownerName: String, theme: BoardTheme, onFriendName: (String) -> Unit) {
+private fun RowScope.Seat(color: PieceColor, draft: FriendDraft, ownerName: String, theme: BoardTheme, nearby: Boolean, onFriendName: (String) -> Unit) {
     val king = rememberPiecePainters(theme.pieceSet)[Piece(PieceType.KING, color)]
     Row(
         modifier = Modifier
@@ -193,6 +227,9 @@ private fun RowScope.Seat(color: PieceColor, draft: FriendDraft, ownerName: Stri
         if (king != null) Image(king, contentDescription = if (color == PieceColor.WHITE) "White" else "Black", modifier = Modifier.size(30.dp))
         if (color == draft.ownerColor) {
             Text(ownerName.trim().ifEmpty { "You" }, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        } else if (nearby) {
+            // The friend's own phone sends their name.
+            Text("Friend", style = CtType.TitleSmall.copy(color = CtColors.Text2), maxLines = 1)
         } else {
             BasicTextField(
                 value = draft.friendName,

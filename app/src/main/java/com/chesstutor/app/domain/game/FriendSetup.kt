@@ -118,6 +118,13 @@ class GameClock(white: PlayerClock?, black: PlayerClock?, private val now: () ->
     /** The side whose time has run out, if any. */
     fun flagged(): PieceColor? = running?.takeIf { remaining(it) == 0L }
 
+    /** Sets [side]'s time to [ms], as the other phone of a nearby game counted it. */
+    fun set(side: PieceColor, ms: Long) {
+        if (left[side] == null) return
+        left[side] = ms.coerceAtLeast(0)
+        if (running == side) turnStartedAt = now()
+    }
+
     private fun charge(side: PieceColor, increment: Long) {
         val stored = left[side] ?: return
         val spent = if (running == side) now() - turnStartedAt else 0

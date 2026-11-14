@@ -194,6 +194,15 @@ object AppContainer {
         }
 
     @Volatile
+    private var myLinesInstance: com.chesstutor.app.data.opening.SharedPrefsMyLines? = null
+
+    /** The player's own opening lines (Phase 12, "Your openings"). */
+    fun provideMyLines(context: Context): com.chesstutor.app.data.opening.SharedPrefsMyLines =
+        myLinesInstance ?: synchronized(this) {
+            myLinesInstance ?: com.chesstutor.app.data.opening.SharedPrefsMyLines(context.applicationContext).also { myLinesInstance = it }
+        }
+
+    @Volatile
     private var positionRecordsInstance: com.chesstutor.app.data.train.SharedPrefsPositionRecords? = null
 
     /** Which of Train's positions were won, and when slipped ones come back. */

@@ -42,7 +42,21 @@ data class FriendGameState(
     val sound: GameSoundEvent? = null,
     /** The saved game's id in the games list, once saved (for "Review this game"). */
     val savedGameId: String? = null,
+    /** Nearby: the side that offered a draw and waits for an answer. */
+    val drawOffer: PieceColor? = null,
+    /** Nearby: the other phone went away before the game ended. */
+    val peerGone: Boolean = false,
 )
+
+/** The other phone of a nearby game (Phase 11C): what this phone tells it. */
+interface FriendPeer {
+    fun moved(uci: String, remainingMs: Long?)
+    fun resigned()
+    fun offeredDraw()
+    fun answeredDraw(accept: Boolean)
+    /** This phone's player ran out of time. */
+    fun flagged()
+}
 
 /**
  * One game between two people (Phase 11): turns, a clock each, takebacks, resigning, a draw by
@@ -58,8 +72,13 @@ class FriendGame(
     private val clock: () -> Long = System::currentTimeMillis,
     private val timing: GameTiming = GameTiming(),
     private val localSides: Set<PieceColor> = PieceColor.entries.toSet(),
+    /** Nearby: the other phone, told of this phone's moves; null on one phone. */
+    private val peer: FriendPeer? = null,
 ) {
-    val session = PlaySession(Position.fromFen(setup.startFen), localSides) { afterMove() }
+    val session = PlaySession(Position.fromFen(setup.startFen), localSides) { move -> localMove(move) }
+
+    /** True for a nearby game, where this phone holds one side. */
+    val nearby: Boolean get() = peer != null
 
     private val mutableState = MutableStateFlow(FriendGameState(setup, toMove = session.game.position.sideToMove))
     val state: StateFlow<FriendGameState> = mutableState.asStateFlow()
@@ -94,18 +113,27 @@ class FriendGame(
 
     // ------------------------------------------------------------------ moves
 
-    /** The friend's move from the other phone. False if it is not their turn or not legal, and then nothing changes. */
-    fun playRemote(uci: String): Boolean {
+    /**
+     * The friend's move from the other phone, with the time they have left by their own clock.
+     * False if it is not their turn or not legal, and then nothing changes.
+     */
+    fun playRemote(uci: String, remainingMs: Long? = null): Boolean {
         val mover = session.game.position.sideToMove
         if (state.value.phase != FriendPhase.PLAYING || mover in localSides) return false
         val move = legal(uci) ?: return false
         sound(session.play(move))
-        afterMove()
+        clocks.moved(mover)
+        remainingMs?.let { clocks.set(mover, it) }
+        mutableState.update { it.copy(drawOffer = null) }
+        if (!checkGameOver()) publishTurn()
         return true
     }
 
-    private fun afterMove() {
-        clocks.moved(session.game.position.sideToMove.opposite())
+    private fun localMove(move: Move) {
+        val mover = session.game.position.sideToMove.opposite()
+        clocks.moved(mover)
+        peer?.moved(move.uci, clocks.remaining(mover))
+        mutableState.update { it.copy(drawOffer = null) }
         if (!checkGameOver()) publishTurn()
     }
 
@@ -135,15 +163,69 @@ class FriendGame(
         publishTurn()
     }
 
-    /** [side] gives up; on one phone that is the player whose turn it is. */
-    fun resign(side: PieceColor = session.game.position.sideToMove) {
+    /** [side] gives up; on one phone that is the player whose turn it is, nearby it is this phone's player. */
+    fun resign(side: PieceColor = localSide ?: session.game.position.sideToMove) {
+        if (state.value.phase != FriendPhase.PLAYING) return
+        if (side in localSides) peer?.resigned()
         finish(GameResult(side.opposite(), GameEnd.RESIGNATION))
     }
 
-    /** Both players agreed a draw. */
+    /** Both players agreed a draw (on one phone). */
     fun agreeDraw() {
         finish(GameResult(null, GameEnd.AGREEMENT))
     }
+
+    /** This phone's player offers a draw; on one phone both are here, so it is agreed. */
+    fun offerDraw() {
+        val side = localSide ?: return agreeDraw()
+        if (state.value.phase != FriendPhase.PLAYING || state.value.drawOffer != null) return
+        mutableState.update { it.copy(drawOffer = side) }
+        peer?.offeredDraw()
+    }
+
+    /** This phone's answer to the friend's offer. */
+    fun answerDraw(accept: Boolean) {
+        val offer = state.value.drawOffer ?: return
+        if (offer in localSides) return
+        peer?.answeredDraw(accept)
+        if (accept) agreeDraw() else mutableState.update { it.copy(drawOffer = null) }
+    }
+
+    /** The other phone: their player resigned. */
+    fun remoteResigned() {
+        val side = remoteSide ?: return
+        finish(GameResult(side.opposite(), GameEnd.RESIGNATION))
+    }
+
+    /** The other phone: their player offers a draw. */
+    fun remoteOfferedDraw() {
+        val side = remoteSide ?: return
+        if (state.value.phase == FriendPhase.PLAYING) mutableState.update { it.copy(drawOffer = side) }
+    }
+
+    /** The other phone: their answer to this phone's offer. */
+    fun remoteAnsweredDraw(accept: Boolean) {
+        if (state.value.drawOffer !in localSides) return
+        if (accept) agreeDraw() else mutableState.update { it.copy(drawOffer = null) }
+    }
+
+    /** The other phone: their player ran out of time. */
+    fun remoteFlagged() {
+        remoteSide?.let(::timeout)
+    }
+
+    /** The other phone went away: the clocks stop and the game cannot go on (it is not saved). */
+    fun peerLeft() {
+        if (state.value.phase != FriendPhase.PLAYING) return
+        ticker?.cancel()
+        clocks.stop()
+        session.open = false
+        mutableState.update { it.copy(peerGone = true) }
+    }
+
+    /** Nearby: the one side this phone plays. */
+    private val localSide: PieceColor? get() = localSides.singleOrNull()
+    private val remoteSide: PieceColor? get() = localSide?.opposite()
 
     /** Stops the clock's redraws, for leaving the screen; the clocks themselves keep their time. */
     fun pause() {
@@ -169,7 +251,8 @@ class FriendGame(
     }
 
     private fun finish(result: GameResult) {
-        if (state.value.phase != FriendPhase.PLAYING) return
+        // A game the friend left has stopped for good: nothing ends or saves it.
+        if (state.value.phase != FriendPhase.PLAYING || state.value.peerGone) return
         ticker?.cancel()
         clocks.stop()
         session.open = false
@@ -217,15 +300,21 @@ class FriendGame(
             while (isActive) {
                 delay(timing.tickMs)
                 val side = clocks.flagged()
-                if (side != null) {
-                    // A lone king cannot win on time.
-                    val opponentCanMate = session.game.position.squares.any { it != null && it.color != side && it.type != PieceType.KING }
-                    finish(GameResult(if (opponentCanMate) side.opposite() else null, GameEnd.TIMEOUT))
+                // Nearby, each phone judges only its own player's clock; the friend's flag comes as a message.
+                if (side != null && (peer == null || side in localSides)) {
+                    peer?.flagged()
+                    timeout(side)
                     return@launch
                 }
                 clockTick.value = clock()
             }
         }
+    }
+
+    private fun timeout(side: PieceColor) {
+        // A lone king cannot win on time.
+        val opponentCanMate = session.game.position.squares.any { it != null && it.color != side && it.type != PieceType.KING }
+        finish(GameResult(if (opponentCanMate) side.opposite() else null, GameEnd.TIMEOUT))
     }
 
     private fun sound(feedback: BoardFeedback) {

@@ -1,37 +1,41 @@
 package com.chesstutor.app.ui.navigation
 
-import androidx.compose.runtime.getValue
-import kotlinx.coroutines.flow.first
-import com.chesstutor.app.feature.train.GameFindingsViewModel
-import com.chesstutor.app.feature.train.FromYourGamesScreen
-import com.chesstutor.app.feature.train.FindingsReport
-import com.chesstutor.app.domain.train.GameFindings
-import com.chesstutor.app.domain.opening.OpeningTree
-import com.chesstutor.app.domain.account.GameReviewer
-import com.chesstutor.app.domain.account.GameLibrary
-import com.chesstutor.app.core.Position
-import androidx.compose.runtime.LaunchedEffect
-import com.chesstutor.app.feature.train.PositionTrainerViewModel
-import com.chesstutor.app.feature.train.PositionSetsScreen
-import com.chesstutor.app.feature.train.PositionRunScreen
-import com.chesstutor.app.domain.train.PositionKind
-import com.chesstutor.app.di.AppContainer
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.Composable
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 import com.chesstutor.app.core.PieceColor
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.di.AppContainer
+import com.chesstutor.app.domain.account.GameLibrary
+import com.chesstutor.app.domain.account.GameReviewer
+import com.chesstutor.app.domain.opening.OpeningTree
+import com.chesstutor.app.domain.train.GameFindings
+import com.chesstutor.app.domain.train.PositionKind
 import com.chesstutor.app.feature.learn.OpeningTrainerScreen
+import com.chesstutor.app.feature.train.FindingsReport
+import com.chesstutor.app.feature.train.FromYourGamesScreen
+import com.chesstutor.app.feature.train.GameFindingsViewModel
+import com.chesstutor.app.feature.train.LineBuilderScreen
+import com.chesstutor.app.feature.train.MyLineScreen
+import com.chesstutor.app.feature.train.MyLinesScreen
+import com.chesstutor.app.feature.train.MyLinesViewModel
+import com.chesstutor.app.feature.train.PositionRunScreen
+import com.chesstutor.app.feature.train.PositionSetsScreen
+import com.chesstutor.app.feature.train.PositionTrainerViewModel
 import com.chesstutor.app.feature.train.TrainActions
 import com.chesstutor.app.feature.train.TrainScreen
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.TopTab
+import kotlinx.coroutines.flow.first
 
 /**
  * The Train tab (Phase 12): Train home and the openings of one side. The opening page, the runs
@@ -54,10 +58,7 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                         navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
                     },
                     onSide = { side -> navController.navigate(AppRoutes.trainSide(side == PieceColor.WHITE)) { launchSingleTop = true } },
-                    onVsStockfish = {
-                        navController.navigateToTab(TopTab.HOME)
-                        navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true }
-                    },
+                    onVsStockfish = { navController.navigate(AppRoutes.TRAIN_LINES) { launchSingleTop = true } },
                     onEndgames = { navController.navigate(AppRoutes.trainPositions(endgames = true)) { launchSingleTop = true } },
                     onMiddlegames = { navController.navigate(AppRoutes.trainPositions(endgames = false)) { launchSingleTop = true } },
                     onFromGames = { navController.navigate(AppRoutes.TRAIN_FROM_GAMES) { launchSingleTop = true } },
@@ -110,6 +111,80 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                     navController.navigate(AppRoutes.TRAIN_POSITION_RUN) { launchSingleTop = true }
                 },
                 onBack = { navController.popBackStack() },
+            )
+        }
+        composable(AppRoutes.TRAIN_LINES) {
+            val model = myLinesViewModel()
+            val lines by model.lines.collectAsStateWithLifecycle()
+            MyLinesScreen(
+                lines = lines,
+                theme = state.appSettings.boardTheme,
+                onNew = {
+                    model.newLine()
+                    navController.navigate(AppRoutes.TRAIN_LINE_NEW) { launchSingleTop = true }
+                },
+                onOpen = { line -> navController.navigate(AppRoutes.trainLine(line.id)) { launchSingleTop = true } },
+                onAnyOpening = {
+                    navController.navigateToTab(TopTab.HOME)
+                    navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = AppRoutes.TRAIN_LINE_PATTERN,
+            arguments = listOf(navArgument(AppRoutes.TRAIN_LINE_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            val model = myLinesViewModel()
+            val lines by model.lines.collectAsStateWithLifecycle()
+            val line = lines.firstOrNull { it.id == entry.arguments?.getString(AppRoutes.TRAIN_LINE_ARG) }
+            if (line == null) {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+                return@composable
+            }
+            val trainer = trainerViewModel()
+            val homeModel = homeViewModel()
+            MyLineScreen(
+                line = line,
+                theme = state.appSettings.boardTheme,
+                onDrill = {
+                    trainer.startMine(line)
+                    navController.navigate(AppRoutes.TRAINER_DRILL) { launchSingleTop = true }
+                },
+                onPlay = {
+                    homeModel.presetBattleLine(line.toOpening(), line.side)
+                    navController.navigateToTab(TopTab.HOME)
+                    navController.navigate(AppRoutes.BATTLE) { launchSingleTop = true }
+                },
+                onDelete = {
+                    model.delete(line.id)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(AppRoutes.TRAIN_LINE_NEW) {
+            val model = myLinesViewModel()
+            val draft by model.draft.collectAsStateWithLifecycle()
+            val leave = {
+                model.discard()
+                navController.popBackStack()
+            }
+            BackHandler { leave() }
+            LineBuilderScreen(
+                draft = draft,
+                settings = state.appSettings,
+                onSide = model::setSide,
+                onUndo = model::undo,
+                onSave = { name ->
+                    model.save(name)?.let { saved ->
+                        navController.navigate(AppRoutes.trainLine(saved.id)) {
+                            popUpTo(AppRoutes.TRAIN_LINE_NEW) { inclusive = true }
+                        }
+                    }
+                },
+                onFeedback = viewModel::playBoardFeedback,
+                onBack = { leave() },
             )
         }
         composable(AppRoutes.TRAIN_FROM_GAMES) {
@@ -191,5 +266,15 @@ internal fun Shell.findingsViewModel(): GameFindingsViewModel {
             val books = AppContainer.provideRepertoireLoader(context).load()
             FindingsReport(games.size, reviews.size, GameFindings.of(games, books, reviews))
         },
+    )
+}
+
+/** Your openings (it lives as long as the app, so a line being built survives a look elsewhere). */
+@Composable
+internal fun Shell.myLinesViewModel(): MyLinesViewModel {
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = appOwner,
+        factory = MyLinesViewModel.Factory(AppContainer.provideMyLines(context)) { AppContainer.provideOpeningLoader(context).load() },
     )
 }

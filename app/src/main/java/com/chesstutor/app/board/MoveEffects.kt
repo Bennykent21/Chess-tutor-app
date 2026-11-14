@@ -6,7 +6,6 @@ import com.chesstutor.app.core.Piece
 import com.chesstutor.app.core.PieceType
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.Square
-import kotlin.math.abs
 
 /** One piece gliding from [from] to [to]. */
 data class PieceSlide(val piece: Piece, val from: Square, val to: Square)
@@ -38,10 +37,7 @@ data class BoardFeedback(val sound: BoardSound?, val haptic: HapticPattern)
 /** Pure rules for animating and sounding a move, so they are unit tested. */
 object MoveEffects {
 
-    fun isCastling(previous: Position, move: Move): Boolean {
-        val piece = previous.pieceAt(move.from) ?: return false
-        return piece.type == PieceType.KING && abs(move.to.file - move.from.file) == 2
-    }
+    fun isCastling(previous: Position, move: Move): Boolean = LegalMoveGenerator.castleSquares(previous, move) != null
 
     fun isEnPassant(previous: Position, move: Move): Boolean {
         val piece = previous.pieceAt(move.from) ?: return false
@@ -51,13 +47,12 @@ object MoveEffects {
     fun animationPlan(previous: Position, move: Move): MoveAnimationPlan {
         val mover = previous.pieceAt(move.from) ?: return MoveAnimationPlan(emptyList(), null)
         // A promoting pawn slides as itself; the new piece appears when it lands.
-        val slides = mutableListOf(PieceSlide(mover, move.from, move.to))
-        if (isCastling(previous, move)) {
-            val kingside = move.to.file > move.from.file
-            val rank = move.from.rank
-            val rookFrom = Square.of(if (kingside) 7 else 0, rank)
-            val rookTo = Square.of(if (kingside) 5 else 3, rank)
-            previous.pieceAt(rookFrom)?.let { slides += PieceSlide(it, rookFrom, rookTo) }
+        val castle = LegalMoveGenerator.castleSquares(previous, move)
+        val slides = mutableListOf(PieceSlide(mover, move.from, castle?.kingTo ?: move.to))
+        if (castle != null) {
+            previous.pieceAt(castle.rookFrom)?.let { slides += PieceSlide(it, castle.rookFrom, castle.rookTo) }
+            // In Chess960 the king lands on its own rook's square: nothing is taken.
+            return MoveAnimationPlan(slides, null)
         }
         val captured = when {
             isEnPassant(previous, move) -> {

@@ -29,6 +29,7 @@ object DataReset {
         SharedPrefsRushRecords(context).clear()
         com.chesstutor.app.data.learn.SharedPrefsOpeningTests(context).clear()
         com.chesstutor.app.di.AppContainer.providePositionRecords(context).clear()
+        com.chesstutor.app.di.AppContainer.provideMyLines(context).clear()
         CrashLog.of(context).clear()
     }
 

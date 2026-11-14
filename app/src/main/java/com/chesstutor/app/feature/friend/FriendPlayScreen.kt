@@ -72,10 +72,11 @@ data class FriendPlayActions(
 private enum class Ask { RESIGN, DRAW, LEAVE }
 
 /**
- * A game between two people on one phone (Phase 11), on the same layout as a game against a bot:
- * the far player's strip stands on the board with the moves above it, the owner's strip is under
- * the board, and Resign, Draw, Undo and Seats are at the bottom. Face to face, the far player's
- * strip and pieces are turned round for them. The board never moves (D39).
+ * A game between two people (Phase 11), on the same layout as a game against a bot: the far
+ * player's strip stands on the board with the moves above it, the owner's strip is under the
+ * board, and Resign, Draw, Undo and Seats are at the bottom. Face to face, the far player's strip
+ * and pieces are turned round for them. Nearby, each phone holds one side: a draw is offered and
+ * answered, and there is no undo or seating. The board never moves (D39).
  */
 @Composable
 fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPlayActions) {
@@ -87,7 +88,8 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
     val near = if (whiteBottom) PieceColor.WHITE else PieceColor.BLACK
     val far = near.opposite()
     var seating by rememberSaveable(game) { mutableStateOf(setup.seating) }
-    val faceToFace = seating == Seating.FACE_TO_FACE
+    val faceToFace = seating == Seating.FACE_TO_FACE && !game.nearby
+    val friendName = setup.nameOf(setup.ownerColor.opposite())
 
     // Each sound plays once, even when the screen recomposes.
     var lastSound by remember(game) { mutableIntStateOf(state.sound?.id ?: 0) }
@@ -134,7 +136,11 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
                 currentPly = look.ply,
                 onSelect = look::show,
             )
-            state.opening?.let { Text(it, style = CtType.Caption, maxLines = 1) }
+            val offered = state.drawOffer
+            when {
+                offered != null && offered == setup.ownerColor && game.nearby -> Text("Draw offered", style = CtType.Caption, maxLines = 1)
+                else -> state.opening?.let { Text(it, style = CtType.Caption, maxLines = 1) }
+            }
             strip(far, if (faceToFace) Modifier.rotate(180f) else Modifier)
         },
         under = { strip(near) },
@@ -159,14 +165,16 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
                 CtButton(text = "See the result", onClick = { resultClosed = false }, modifier = Modifier.weight(1f))
             } else {
                 CtControl(Icons.Rounded.Flag, "Resign", enabled = playing, onClick = { ask = Ask.RESIGN })
-                CtControl(Icons.Rounded.Handshake, "Draw", enabled = playing, onClick = { ask = Ask.DRAW })
+                CtControl(Icons.Rounded.Handshake, "Draw", enabled = playing && state.drawOffer == null, onClick = { ask = Ask.DRAW })
                 if (setup.takebacks) CtControl(Icons.AutoMirrored.Rounded.Undo, "Undo", enabled = state.canTakeBack, onClick = game::takeBack)
-                CtControl(
-                    icon = Icons.Rounded.SwapVert,
-                    label = "Seats",
-                    description = if (faceToFace) "Sit side by side" else "Sit face to face",
-                    onClick = { seating = if (faceToFace) Seating.SIDE_BY_SIDE else Seating.FACE_TO_FACE },
-                )
+                if (!game.nearby) {
+                    CtControl(
+                        icon = Icons.Rounded.SwapVert,
+                        label = "Seats",
+                        description = if (faceToFace) "Sit side by side" else "Sit face to face",
+                        onClick = { seating = if (faceToFace) Seating.SIDE_BY_SIDE else Seating.FACE_TO_FACE },
+                    )
+                }
             }
         },
         overlay = {
@@ -183,11 +191,12 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
 
     when (ask) {
         Ask.RESIGN -> {
-            // On one phone it is the player to move who gives up.
-            val name = setup.nameOf(state.toMove)
+            // On one phone it is the player to move who gives up; nearby, this phone's player.
+            val side = if (game.nearby) setup.ownerColor else state.toMove
+            val name = setup.nameOf(side)
             CtConfirmDialog(
-                title = "$name resigns?",
-                text = "${setup.nameOf(state.toMove.opposite())} wins, and the game is saved for review.",
+                title = if (game.nearby) "Resign?" else "$name resigns?",
+                text = "${setup.nameOf(side.opposite())} wins, and the game is saved for review.",
                 confirmLabel = "Resign",
                 onConfirm = {
                     ask = null
@@ -197,12 +206,13 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
             )
         }
         Ask.DRAW -> CtConfirmDialog(
-            title = "Agree a draw?",
-            text = "Both players must agree. The game is saved for review.",
-            confirmLabel = "Draw",
+            title = if (game.nearby) "Offer a draw?" else "Agree a draw?",
+            text = if (game.nearby) "$friendName can accept or play on." else "Both players must agree. The game is saved for review.",
+            confirmLabel = if (game.nearby) "Offer" else "Draw",
+            destructive = false,
             onConfirm = {
                 ask = null
-                game.agreeDraw()
+                game.offerDraw()
             },
             onDismiss = { ask = null },
         )
@@ -217,6 +227,31 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
             onDismiss = { ask = null },
         )
         null -> Unit
+    }
+
+    // Nearby: the friend's draw offer, and the friend leaving, ask here in the middle of the screen.
+    val offer = state.drawOffer
+    if (game.nearby && playing && offer != null && offer != setup.ownerColor) {
+        CtConfirmDialog(
+            title = "$friendName offers a draw",
+            text = "Accept, and the game ends drawn.",
+            confirmLabel = "Accept",
+            dismissLabel = "Play on",
+            destructive = false,
+            onConfirm = { game.answerDraw(true) },
+            onDismiss = { game.answerDraw(false) },
+        )
+    }
+    if (state.peerGone) {
+        CtConfirmDialog(
+            title = "$friendName left",
+            text = "The other phone went away, so the game stopped. It is not saved.",
+            confirmLabel = "Leave",
+            dismissLabel = "Look at the board",
+            destructive = false,
+            onConfirm = actions.onBack,
+            onDismiss = {},
+        )
     }
 }
 

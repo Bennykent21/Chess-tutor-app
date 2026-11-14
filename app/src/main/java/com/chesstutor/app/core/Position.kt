@@ -174,10 +174,13 @@ data class Position(
       val castlingField = parts[2]
       require(
         castlingField == "-" ||
-          castlingField.all { it in "KQkq" } &&
+          (castlingField.all { it in "KQkq" } || castlingField.all { it in 'A'..'H' || it in 'a'..'h' }) &&
           castlingField.toSet().size == castlingField.length
       ) { "Invalid castling rights in FEN: $castlingField" }
-      val castling = CastlingRights.fromFen(castlingField)
+      // Chess960 (Shredder-FEN) names the rooks' files; which side each is on depends on the king.
+      val whiteKing = (0..7).firstOrNull { boardArray[it] == Piece(PieceType.KING, PieceColor.WHITE) }
+      val blackKing = (56..63).firstOrNull { boardArray[it] == Piece(PieceType.KING, PieceColor.BLACK) }?.minus(56)
+      val castling = CastlingRights.fromFen(castlingField, kingFile = whiteKing ?: blackKing ?: 4)
 
       val epField = parts[3]
       val epSquare = if (epField == "-") {
