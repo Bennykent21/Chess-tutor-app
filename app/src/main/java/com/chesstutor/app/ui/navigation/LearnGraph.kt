@@ -41,18 +41,14 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
         composable(TopTab.LEARN.startRoute) { entry ->
             val learn = learnViewModel()
             val lessons by learn.learn.collectAsStateWithLifecycle()
-            val trainer by trainerViewModel().trainer.collectAsStateWithLifecycle()
-            val repertoires by repertoireViewModel().state.collectAsStateWithLifecycle()
             LearnScreen(
                 learn = lessons,
-                trainerDue = trainer.dueTotal + repertoires.dueTotal,
                 actions = LearnHubActions(
                     onOpenCategory = { category -> navController.navigate(AppRoutes.learnCategory(category.key)) { launchSingleTop = true } },
                     onOpenLesson = { id ->
                         learn.openLesson(id)
                         navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
                     },
-                    onOpenTrainer = { navController.navigate(AppRoutes.TRAINER) { launchSingleTop = true } },
                 )
             )
         }
@@ -126,10 +122,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 run = run,
                 settings = state.appSettings,
                 onFeedback = viewModel::playBoardFeedback,
-                onNext = repertoire::next,
                 onHint = repertoire::hint,
-                onShowAnswer = repertoire::showAnswer,
-                onPickBranch = repertoire::pickBranch,
+                onWhy = repertoire::why,
                 onLearnMore = repertoire::learnMore,
                 onDismissMastered = repertoire::dismissMastered,
                 onBack = { leave() },

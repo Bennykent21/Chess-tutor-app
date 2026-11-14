@@ -10,7 +10,6 @@ import com.chesstutor.app.core.Move
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.core.SanFormatter
-import com.chesstutor.app.domain.repertoire.BranchQuestion
 import com.chesstutor.app.domain.repertoire.CardAnswer
 import com.chesstutor.app.domain.repertoire.CardReview
 import com.chesstutor.app.domain.repertoire.CardState
@@ -70,7 +69,12 @@ data class RepertoireBookUi(
             .let { book.at(it)?.name } ?: book.title
 }
 
-data class RepertoireState(val loading: Boolean = true, val books: List<RepertoireBookUi> = emptyList()) {
+data class RepertoireState(
+    val loading: Boolean = true,
+    val books: List<RepertoireBookUi> = emptyList(),
+    /** Up to three due positions, in the order the review will ask them, and the side each is seen from. */
+    val dueSamples: List<Pair<String, PieceColor>> = emptyList(),
+) {
     val dueTotal: Int get() = books.sumOf { it.due }
 
     fun book(id: String): RepertoireBookUi? = books.firstOrNull { it.book.id == id }
@@ -88,13 +92,14 @@ sealed interface RunMoment {
     /** The learner's turn: the zone asks "what do you play against ...?". */
     data object YourMove : RunMoment
 
-    /** Before a learn run: the variation's name and, the first time, what the opening is about. */
-    data class Intro(val name: String, val text: String?) : RunMoment
 
     /** The recall pass of a learn run starts again from the first move. */
     data object FromTheTop : RunMoment
 
-    /** A new move, shown after the learner's guess, with its note and how often it is played. */
+    /**
+     * A new move was just played right. It does not stop the run: the reply follows by itself and
+     * the words stay until the learner's next move. Only a branch or trap note speaks unasked.
+     */
     data class Reveal(val san: String, val guessed: Boolean, val note: RepertoireNote?, val share: Double?, val pitfall: String?) : RunMoment
 
     /**
@@ -106,10 +111,7 @@ sealed interface RunMoment {
     /** The move to play is drawn on the board (after a wrong move or "Show me"). */
     data class Shown(val san: String, val uci: String) : RunMoment
 
-    /** "What do most players play here?" at a Core branch; [picked] once answered. */
-    data class Branch(val question: BranchQuestion, val sans: List<String>, val picked: String?) : RunMoment
-
-    /** A review card is over: [played] is the right move now on the board, [shown] the answer drawn after "Show me". */
+    /** A review card is over: [played] is the right move now on the board, [shown] the answer drawn after "Show me". The next card follows by itself. */
     data class CardDone(val right: Boolean, val dueAt: Instant, val played: String?, val shown: String?) : RunMoment
 
     data class Finished(val right: Int, val total: Int) : RunMoment
@@ -135,6 +137,13 @@ data class RunUi(
     val masteredBook: String? = null,
     val nextLevelCards: Int = 0,
     val moreToLearn: Boolean = false,
+    /** A ring on the square just played: green when right, red when the move slid back. */
+    val ringSquare: String? = null,
+    val ringRight: Boolean = true,
+    /** The note on the learner's last move, when they asked "Why". */
+    val why: String? = null,
+    /** True when the learner's last move has a note to show. */
+    val canWhy: Boolean = false,
 )
 
 /**
@@ -157,7 +166,11 @@ class RepertoireViewModel(
 
     val state: StateFlow<RepertoireState> = combine(indexes, cards, levels, reviewLog) { idx, cardMap, levelMap, log ->
         if (idx == null) return@combine RepertoireState(loading = true)
-        RepertoireState(loading = false, books = idx.map { bookUi(it, cardMap, levelMap[it.book.id], log[it.book.id].orEmpty()) })
+        RepertoireState(
+            loading = false,
+            books = idx.map { bookUi(it, cardMap, levelMap[it.book.id], log[it.book.id].orEmpty()) },
+            dueSamples = ReviewQueue.build(idx, cardMap.values, clock()).take(3).map { it.position.toFen() to it.book.side },
+        )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, RepertoireState())
 
     private val mutableRun = MutableStateFlow<RunUi?>(null)
@@ -171,7 +184,11 @@ class RepertoireViewModel(
     private var hintFrom: String? = null
     private var mastered: RepertoireLevel? = null
     private var moreToLearn = false
-    private val asked = HashSet<String>()
+    private var ring: Pair<String, Boolean>? = null
+    private var lastNote: RepertoireNote? = null
+    private var whyOpen = false
+    /** True during the short pause after a pass, when nobody moves. */
+    private var pausing = false
 
     init {
         viewModelScope.launch {
@@ -216,26 +233,24 @@ class RepertoireViewModel(
         val open = levels.value[bookId]?.unlocked ?: RepertoireLevel.CORE
         val introduced = cards.value.values.filter { it.bookId == bookId }.map { it.key }.toSet()
         val segment = within?.let { LearnPlanner.next(index, open, introduced, within = it) } ?: LearnPlanner.next(index, open, introduced) ?: return
-        startSegment(index, segment, firstTime = introduced.isEmpty())
+        startSegment(index, segment)
         learnWithin = within
     }
 
     /** The variation the learner chose on the opening page, so "Learn more" stays in it. */
     private var learnWithin: List<String>? = null
 
-    private fun startSegment(index: RepertoireIndex, segment: LearnSegment, firstTime: Boolean) {
+    private fun startSegment(index: RepertoireIndex, segment: LearnSegment) {
         clear()
         val run = LearnRun(index, segment, clock)
         learn = run
         val board = RepertoireBoard(
-            line = { (frozen ?: segment.moves.take(run.ply)) to (run.isOwnTurn && moment.lets()) },
+            line = { (frozen ?: segment.moves.take(run.ply)) to (!pausing && run.isOwnTurn && moment.lets()) },
             submit = ::submitLearn,
         )
         val name = segment.variation ?: index.book.title
-        // The opening's own story comes once, before its first line.
-        moment = RunMoment.Intro(name, index.book.intro?.text?.takeIf { firstTime })
         mutableRun.value = RunUi(RunKind.LEARN, name, index.book.side, board, moment, null, 0, segment.newCards.size, tricky = false)
-        publish()
+        follow()
     }
 
     private fun submitLearn(move: Move): BoardFeedback {
@@ -244,31 +259,48 @@ class RepertoireViewModel(
         val line = run.segment.moves.take(run.ply)
         val expected = run.segment.moves.getOrNull(run.ply) ?: return MoveEffects.ILLEGAL
         val card = run.node
-        // A new move in the guess pass is followed by its note once it is on the board.
+        // A new move in the guess pass brings its words; the run never waits for them.
         val firstMeeting = run.pass == LearnRun.Pass.GUESS && run.isNewCard
+        val passBefore = run.pass
         val result = run.submit(move.uci) ?: return MoveEffects.ILLEGAL
         hintFrom = null
+        whyOpen = false
         val san = numbered(before, legal(before, expected), line.size)
         return when (result) {
             LearnMoveResult.GUESSED, LearnMoveResult.RIGHT -> {
                 val after = LegalMoveGenerator.makeMove(before, move)
-                if (firstMeeting) {
-                    // The board stays on this move while the note shows, even when the pass starts again.
-                    frozen = line + expected
-                    moment = RunMoment.Reveal(
+                ring = move.to.algebraic to true
+                lastNote = run.book.at(after)?.note
+                moment = if (firstMeeting) {
+                    RunMoment.Reveal(
                         san = san,
                         guessed = result == LearnMoveResult.GUESSED,
-                        note = run.book.at(after)?.note,
+                        note = lastNote,
                         share = card?.moveShare,
-                        pitfall = card?.pitfall?.let { p -> "Many players here play ${numbered(before, legal(before, p.uci), line.size)}, a ${p.verdict.name.lowercase()}." },
+                        pitfall = card?.pitfall?.let { p -> "Most players here play ${numbered(before, legal(before, p.uci), line.size)}, a ${p.verdict.name.lowercase()}." },
                     )
-                    publish()
-                    if (result == LearnMoveResult.GUESSED) MoveEffects.CORRECT else MoveEffects.feedbackFor(before, move, after)
                 } else {
-                    moment = RunMoment.YourMove
-                    follow()
-                    if (run.pass == LearnRun.Pass.DONE) MoveEffects.CORRECT else MoveEffects.feedbackFor(before, move, after)
+                    RunMoment.YourMove
                 }
+                if (passBefore == LearnRun.Pass.GUESS && run.pass == LearnRun.Pass.RECALL) {
+                    // The line is done once: it stays on the board a moment, then starts again from memory.
+                    frozen = line + expected
+                    pausing = true
+                    publish()
+                    job?.cancel()
+                    job = viewModelScope.launch {
+                        delay(PASS_PAUSE_MS)
+                        pausing = false
+                        frozen = null
+                        ring = null
+                        moment = RunMoment.FromTheTop
+                        mutableRun.value?.board?.refresh(animate = false)
+                        follow()
+                    }
+                } else {
+                    follow()
+                }
+                if (result == LearnMoveResult.GUESSED || run.pass == LearnRun.Pass.DONE) MoveEffects.CORRECT else MoveEffects.feedbackFor(before, move, after)
             }
             LearnMoveResult.ALSO -> {
                 // Met for the first time, the arrow shows the repertoire move; in a recall it stays hidden.
@@ -278,6 +310,7 @@ class RepertoireViewModel(
             }
             LearnMoveResult.REVEALED, LearnMoveResult.WRONG -> {
                 // The wrong move slides back and the right one is drawn; the learner plays it.
+                ring = move.to.algebraic to false
                 moment = RunMoment.Shown(san, expected)
                 publish()
                 MoveEffects.WRONG
@@ -293,17 +326,9 @@ class RepertoireViewModel(
             val session = review
             if (run != null) {
                 while (run.pass != LearnRun.Pass.DONE && !run.isOwnTurn) {
-                    val node = run.node
-                    if (run.pass == LearnRun.Pass.GUESS && node != null && node.key !in asked) {
-                        BranchQuestion.at(node, band(run.book))?.let { question ->
-                            asked += node.key
-                            moment = RunMoment.Branch(question, question.choices.map { numbered(run.position, legal(run.position, it.uci), run.ply) }, null)
-                            publish()
-                            return@launch
-                        }
-                    }
                     publish()
                     delay(replyDelayMs)
+                    ring = null
                     run.playOpponent()
                     mutableRun.value?.board?.refresh(animate = true)
                 }
@@ -312,6 +337,7 @@ class RepertoireViewModel(
                 while (!session.done && !session.finished && !session.isOwnTurn && !session.atCard) {
                     publish()
                     delay(replyDelayMs)
+                    ring = null
                     session.playOpponent()
                     mutableRun.value?.board?.refresh(animate = true)
                 }
@@ -378,8 +404,11 @@ class RepertoireViewModel(
         val expected = if (wasAtCard) card.node.move!! else card.path[session.ply]
         val answer = session.submit(move.uci) ?: return MoveEffects.ILLEGAL
         hintFrom = null
+        whyOpen = false
         return when (answer) {
             CardAnswer.RIGHT -> {
+                ring = move.to.algebraic to true
+                lastNote = card.book.at(LegalMoveGenerator.makeMove(before, move))?.note
                 if (session.done) {
                     saveLast(session, played = move.uci)
                     MoveEffects.CORRECT
@@ -395,6 +424,7 @@ class RepertoireViewModel(
                 MoveEffects.ILLEGAL
             }
             CardAnswer.WRONG -> {
+                ring = move.to.algebraic to false
                 moment = RunMoment.Shown(numbered(before, legal(before, expected), session.ply), expected)
                 publish()
                 MoveEffects.WRONG
@@ -411,27 +441,19 @@ class RepertoireViewModel(
             repository.save(listOf(card), listOf(log))
             reviewLog.value = reviewLog.value + (card.bookId to repository.reviews(card.bookId))
         }
+        // The next card comes by itself: a right answer at once, a miss after a look at the answer.
+        val index = session.index
+        job?.cancel()
+        job = viewModelScope.launch {
+            delay(if (log.firstTryRight) CARD_RIGHT_MS else CARD_MISSED_MS)
+            if (review === session && session.index == index) next()
+        }
     }
 
     // ------------------------------------------------------------------ controls
 
     fun next() {
-        when (val now = moment) {
-            is RunMoment.Reveal -> {
-                frozen = null
-                val run = learn ?: return
-                moment = if (run.pass == LearnRun.Pass.RECALL && run.ply == run.startPly) RunMoment.FromTheTop else RunMoment.YourMove
-                mutableRun.value?.board?.refresh(animate = false)
-                follow()
-            }
-            is RunMoment.Branch -> if (now.picked != null) {
-                moment = RunMoment.YourMove
-                follow()
-            }
-            is RunMoment.Intro -> {
-                moment = RunMoment.YourMove
-                follow()
-            }
+        when (moment) {
             is RunMoment.CardDone -> {
                 val session = review ?: return
                 session.next()
@@ -443,6 +465,9 @@ class RepertoireViewModel(
                     }
                 } else {
                     moment = RunMoment.YourMove
+                    ring = null
+                    lastNote = null
+                    whyOpen = false
                     mutableRun.value = mutableRun.value?.copy(tricky = session.current?.fromStart == true, side = session.current!!.book.side, title = titleOf(session))
                     mutableRun.value?.board?.refresh(animate = false)
                     follow()
@@ -456,15 +481,20 @@ class RepertoireViewModel(
         if (mutableRun.value?.kind == RunKind.REVIEW && session.cards.map { it.book.id }.distinct().size > 1) session.current!!.book.title
         else mutableRun.value?.title.orEmpty()
 
-    /** Answers the branch question with the reply [uci]. */
-    fun pickBranch(uci: String) {
-        val now = moment as? RunMoment.Branch ?: return
-        if (now.picked != null) return
-        moment = now.copy(picked = uci)
+    /** Shows or hides the note on the learner's last move. */
+    fun why() {
+        if (lastNote == null) return
+        whyOpen = !whyOpen
         publish()
     }
 
+    /** First the piece to move; asked again, the move itself (it then counts as shown). */
     fun hint() {
+        if (hintFrom != null) {
+            hintFrom = null
+            showAnswer()
+            return
+        }
         val square = learn?.hint() ?: review?.hint() ?: return
         hintFrom = square
         publish()
@@ -523,7 +553,10 @@ class RepertoireViewModel(
         masteredBook = null
         moreToLearn = false
         learnWithin = null
-        asked.clear()
+        ring = null
+        lastNote = null
+        whyOpen = false
+        pausing = false
     }
 
     // ------------------------------------------------------------------ helpers
@@ -570,6 +603,10 @@ class RepertoireViewModel(
                 RepertoireLevel.entries.getOrNull(level.ordinal + 1)?.let { next -> masteredBook?.let { book -> book.nodes.values.count { book.isCard(it) && it.level == next } } }
             } ?: 0,
             moreToLearn = moreToLearn,
+            ringSquare = ring?.first,
+            ringRight = ring?.second ?: true,
+            why = lastNote?.text?.takeIf { whyOpen },
+            canWhy = lastNote != null,
         )
     }
 
@@ -625,6 +662,13 @@ class RepertoireViewModel(
         /** The opponent's move comes after this pause, so the learner sees it. */
         const val REPLY_DELAY_MS = 500L
 
+        /** How long a finished pass stays on the board before it starts again from memory. */
+        const val PASS_PAUSE_MS = 1_600L
+
+        /** How long a review card stays after a right answer, and after a miss. */
+        const val CARD_RIGHT_MS = 700L
+        const val CARD_MISSED_MS = 1_400L
+
         private fun legal(position: Position, uci: String): Move =
             LegalMoveGenerator.generateLegalMoves(position).first { it.uci == uci }
 
@@ -647,4 +691,5 @@ class RepertoireViewModel(
 }
 
 /** Moments when the learner may move on the board. */
-private fun RunMoment.lets(): Boolean = this is RunMoment.YourMove || this is RunMoment.FromTheTop || this is RunMoment.Also || this is RunMoment.Shown
+private fun RunMoment.lets(): Boolean =
+    this is RunMoment.YourMove || this is RunMoment.FromTheTop || this is RunMoment.Also || this is RunMoment.Shown || this is RunMoment.Reveal

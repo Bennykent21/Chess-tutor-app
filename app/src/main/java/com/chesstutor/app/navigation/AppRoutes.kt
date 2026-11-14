@@ -8,6 +8,7 @@ import com.chesstutor.app.domain.account.TimeClass
 enum class TopTab(val graphRoute: String, val startRoute: String, val label: String) {
     HOME("home_graph", "home", "Home"),
     LEARN("learn_graph", "learn", "Learn"),
+    TRAIN("train_graph", "train", "Train"),
     PUZZLES("puzzles_graph", "puzzles", "Puzzles"),
     ACCOUNT("account_graph", "account", "Account"),
 }
@@ -96,6 +97,10 @@ object AppRoutes {
     /** "Watch two bots": pick both, then a bot-vs-bot game. */
     const val WATCH = "home/watch"
     const val BATTLE_PICK = "home/battle/pick"
+    /** Train (Phase 12): the openings of one side, "white" or "black". */
+    const val TRAIN_SIDE_ARG = "side"
+    const val TRAIN_SIDE_PATTERN = "train/side/{$TRAIN_SIDE_ARG}"
+    fun trainSide(white: Boolean): String = "train/side/${if (white) "white" else "black"}"
     /** Play a friend (Phase 11): the setup page, its opening and position pickers, and the game. */
     const val FRIEND = "home/friend"
     const val FRIEND_OPENING = "home/friend/opening"
@@ -138,6 +143,7 @@ object AppRoutes {
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN)
     private val homePages = setOf(BOTS)
     private val puzzlePages = setOf(PUZZLE_LEVELS)
+    private val trainPages = setOf(TRAIN_SIDE_PATTERN)
 
     /** The bottom bar shows on the four main tabs only: every other page and board gets the room. */
     fun showsBottomBar(route: String?): Boolean = route == null || TopTab.entries.any { it.startRoute == route }
@@ -149,6 +155,7 @@ object AppRoutes {
         route in learnPages -> TopTab.LEARN
         route in homePages -> TopTab.HOME
         route in puzzlePages -> TopTab.PUZZLES
+        route in trainPages -> TopTab.TRAIN
         else -> TopTab.entries.firstOrNull { it.startRoute == route }
     }
 }

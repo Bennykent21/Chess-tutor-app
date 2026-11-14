@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -154,11 +155,12 @@ fun CtBackBar(onBack: () -> Unit, modifier: Modifier = Modifier) {
 private fun TopTab.icon(): ImageVector = when (this) {
     TopTab.HOME -> Icons.Rounded.Home
     TopTab.LEARN -> Icons.AutoMirrored.Rounded.MenuBook
+    TopTab.TRAIN -> Icons.Rounded.TrackChanges
     TopTab.PUZZLES -> Icons.Rounded.Extension
     TopTab.ACCOUNT -> Icons.Rounded.Person
 }
 
-/** The four-tab bottom bar (plan section 3): the active tab sits in a tonal pill. */
+/** The five-tab bottom bar (plan section 3; Train in the centre, Phase 12): the active tab sits in a tonal pill. */
 @Composable
 fun CtBottomBar(
     selected: TopTab?,

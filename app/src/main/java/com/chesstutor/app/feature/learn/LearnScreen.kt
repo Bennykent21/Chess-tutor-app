@@ -41,8 +41,6 @@ import com.chesstutor.app.domain.learn.LessonCategory
 data class LearnHubActions(
     val onOpenCategory: (LessonCategory) -> Unit,
     val onOpenLesson: (lessonId: String) -> Unit,
-    /** The opening trainer (plan 6C). */
-    val onOpenTrainer: () -> Unit = {},
 )
 
 /**
@@ -54,8 +52,6 @@ fun LearnScreen(
     learn: LearnState,
     actions: LearnHubActions,
     modifier: Modifier = Modifier,
-    /** Opening trainer lines due again, for its row. */
-    trainerDue: Int = 0,
 ) {
     val tiles = remember(learn) { LearnHubModel.tiles(learn.library, learn.progress) }
     val next = remember(learn) { LearnHubModel.continueLesson(learn.library, learn.progress) }
@@ -106,7 +102,6 @@ fun LearnScreen(
                             if (pair.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
-                    TrainerTile(due = trainerDue, onClick = actions.onOpenTrainer)
                 }
             }
         }
@@ -146,18 +141,5 @@ private fun TopicTile(tile: LearnHubTile, modifier: Modifier, onClick: () -> Uni
         progress = tile.progress.takeIf { tile.isAvailable },
         onClick = onClick.takeIf { tile.isAvailable },
         onClickLabel = "Open ${tile.title}",
-    )
-}
-
-/** The opening trainer, with how many lines are due again. */
-@Composable
-private fun TrainerTile(due: Int, onClick: () -> Unit) {
-    CtArtTile(
-        title = "Opening trainer",
-        scene = CtScene.POSITION,
-        modifier = Modifier.fillMaxWidth().height(104.dp),
-        subtitle = if (due > 0) "$due due" else null,
-        onClick = onClick,
-        onClickLabel = "Open the opening trainer",
     )
 }
