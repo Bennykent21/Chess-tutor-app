@@ -269,9 +269,15 @@ internal fun Shell.learnViewModel(): LearnViewModel {
             progress = AppContainer.provideLessonProgress(context),
             loadLibrary = { AppContainer.provideLessonLoader(context).load() },
             practice = AppContainer.provideTraining(context),
+            evaluate = { fen ->
+                AppContainer.provideEngineService(context).evaluate(fen, LESSON_EVAL_MS)?.let { it.centipawns to it.mateInMoves }
+            },
         ),
     )
 }
+
+/** Thinking time for a lesson position's evaluation: enough for a steady bar, short enough to keep pace. */
+private const val LESSON_EVAL_MS = 300
 
 /** The taught openings (Phase 10), shared by the hub, the trainer list, the opening page and its runs (it lives as long as the app). */
 @Composable
