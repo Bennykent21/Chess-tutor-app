@@ -1,6 +1,16 @@
 package com.chesstutor.app.ui.navigation
 
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.flow.first
+import com.chesstutor.app.feature.train.GameFindingsViewModel
+import com.chesstutor.app.feature.train.FromYourGamesScreen
+import com.chesstutor.app.feature.train.FindingsReport
+import com.chesstutor.app.domain.train.GameFindings
+import com.chesstutor.app.domain.opening.OpeningTree
+import com.chesstutor.app.domain.account.GameReviewer
+import com.chesstutor.app.domain.account.GameLibrary
+import com.chesstutor.app.core.Position
+import androidx.compose.runtime.LaunchedEffect
 import com.chesstutor.app.feature.train.PositionTrainerViewModel
 import com.chesstutor.app.feature.train.PositionSetsScreen
 import com.chesstutor.app.feature.train.PositionRunScreen
@@ -33,6 +43,7 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
             val repertoire = repertoireViewModel()
             val repertoires by repertoire.state.collectAsStateWithLifecycle()
             val trainer by trainerViewModel().trainer.collectAsStateWithLifecycle()
+            val findings by findingsViewModel().state.collectAsStateWithLifecycle()
             TrainScreen(
                 repertoires = repertoires,
                 trainer = trainer,
@@ -49,7 +60,9 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                     },
                     onEndgames = { navController.navigate(AppRoutes.trainPositions(endgames = true)) { launchSingleTop = true } },
                     onMiddlegames = { navController.navigate(AppRoutes.trainPositions(endgames = false)) { launchSingleTop = true } },
+                    onFromGames = { navController.navigate(AppRoutes.TRAIN_FROM_GAMES) { launchSingleTop = true } },
                 ),
+                findings = findings.report.findings.size.takeIf { !findings.loading },
             )
         }
         composable(
@@ -99,6 +112,33 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                 onBack = { navController.popBackStack() },
             )
         }
+        composable(AppRoutes.TRAIN_FROM_GAMES) {
+            val model = findingsViewModel()
+            val findings by model.state.collectAsStateWithLifecycle()
+            val repertoire = repertoireViewModel()
+            val repertoires by repertoire.state.collectAsStateWithLifecycle()
+            val positions = positionViewModel()
+            LaunchedEffect(Unit) { model.refresh() }
+            FromYourGamesScreen(
+                state = findings,
+                theme = state.appSettings.boardTheme,
+                onTrainLine = { bookId, path ->
+                    // Straight into the line when it can be learnt; else the opening's page says why not.
+                    val book = repertoires.book(bookId)
+                    if (book != null && !book.locked && book.fresh > 0) {
+                        repertoire.startLearn(bookId, path)
+                        navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
+                    } else {
+                        navController.navigate(AppRoutes.repertoire(bookId)) { launchSingleTop = true }
+                    }
+                },
+                onTrainEnding = { setId ->
+                    positions.start(setId)
+                    navController.navigate(AppRoutes.TRAIN_POSITION_RUN) { launchSingleTop = true }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
         composable(AppRoutes.TRAIN_POSITION_RUN) {
             val model = positionViewModel()
             val run by model.run.collectAsStateWithLifecycle()
@@ -132,5 +172,24 @@ internal fun Shell.positionViewModel(): PositionTrainerViewModel {
             loadSets = { AppContainer.providePositionLoader(context).load() },
             engine = { fen -> AppContainer.provideEngineService(context).evaluate(fen, PositionTrainerViewModel.THINK_MS) },
         ),
+    )
+}
+
+/** "From your games" (step 4): findings from the saved games, their reviews and the taught openings (it lives as long as the app). */
+@Composable
+internal fun Shell.findingsViewModel(): GameFindingsViewModel {
+    val context = LocalContext.current.applicationContext
+    return viewModel(
+        viewModelStoreOwner = appOwner,
+        factory = GameFindingsViewModel.Factory {
+            val games = GameLibrary.summarise(AppContainer.provideGameRepository(context).observeGames().first(), OpeningTree.EMPTY)
+            val analysis = AppContainer.provideGameAnalysis(context)
+            val analysed = analysis.observeSummaries().first()
+            val reviews = games.filter { it.id in analysed }.associate { game ->
+                game.id to GameReviewer.review(game.startFen ?: Position.STARTING_FEN, game.moves, analysis.evals(game.id), game.bookPlies)
+            }
+            val books = AppContainer.provideRepertoireLoader(context).load()
+            FindingsReport(games.size, reviews.size, GameFindings.of(games, books, reviews))
+        },
     )
 }

@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.BoardView
@@ -154,9 +155,9 @@ private fun OpeningRow(group: OpeningGroup, done: Int, total: Int, theme: BoardT
 }
 
 @Composable
-internal fun BoardThumbnail(fen: String?, theme: BoardTheme, flipped: Boolean) {
+internal fun BoardThumbnail(fen: String?, theme: BoardTheme, flipped: Boolean, size: Dp = 52.dp) {
     val position = remember(fen) { fen?.let { Position.tryFromFen(it).getOrNull() } ?: Position.initial() }
-    Box(Modifier.size(52.dp).clip(CtShapes.Chip)) {
+    Box(Modifier.size(size).clip(CtShapes.Chip)) {
         BoardView(position, theme, whiteAtBottom = !flipped, showCoordinates = false, showLegalDots = false)
     }
 }
