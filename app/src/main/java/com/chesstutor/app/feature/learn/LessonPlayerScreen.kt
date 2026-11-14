@@ -1,7 +1,6 @@
 package com.chesstutor.app.feature.learn
 
 import androidx.compose.foundation.layout.ColumnScope
-import com.chesstutor.app.design.CtTutor
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.rounded.PlayArrow
 import com.chesstutor.app.design.CtListRow
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Flag
@@ -51,7 +50,6 @@ import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Square
 import com.chesstutor.app.data.settings.AppSettings
 import com.chesstutor.app.design.CtButton
-import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtShapes
@@ -60,6 +58,19 @@ import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.MascotMood
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.text.style.TextOverflow
+import com.chesstutor.app.board.EvalMath
+import com.chesstutor.app.design.CtControl
+import com.chesstutor.app.design.LocalReduceMotion
 import com.chesstutor.app.domain.learn.LessonPhase
 import com.chesstutor.app.domain.learn.LessonStep
 import com.chesstutor.app.domain.learn.MarkTone
@@ -127,21 +138,39 @@ private fun StepProgress(state: LessonPlayerState) {
     }
 }
 
-/** The coach below the board: its mood, a tailed bubble, and a tick or a cross after a move. */
+/** The words above the board: a quiet label ("Your turn", "Correct!") and the step's own sentence. */
 @Composable
-private fun ColumnScope.LessonCoach(state: LessonPlayerState, settings: AppSettings, label: String?, mood: MascotMood) {
-    CtTutor(settings.mascot, mood = mood) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            when (state.feedbackTone) {
-                FeedbackTone.GOOD -> ToneBadge(Icons.Rounded.Check, CtColors.Success, CtColors.OnSuccess, "Correct")
-                FeedbackTone.BAD -> ToneBadge(Icons.Rounded.Close, CtColors.Error, CtColors.OnError, "Not quite")
-                null -> Unit
-            }
-            Column {
-                if (label != null) Text(label, style = CtType.Caption.copy(color = CtColors.Accent))
-                Text(state.coachText, style = CtType.Chat)
+private fun LessonWords(state: LessonPlayerState, label: String?) {
+    Column(Modifier.fillMaxWidth().heightIn(min = 72.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)) {
+        if (label != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                when (state.feedbackTone) {
+                    FeedbackTone.GOOD -> ToneBadge(Icons.Rounded.Check, CtColors.Success, CtColors.OnSuccess, "Correct")
+                    FeedbackTone.BAD -> ToneBadge(Icons.Rounded.Close, CtColors.Error, CtColors.OnError, "Not quite")
+                    null -> Unit
+                }
+                Text(label, style = CtType.Caption.copy(color = CtColors.Accent))
             }
         }
+        Text(state.coachText, style = CtType.Title, maxLines = 5, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** A thin horizontal evaluation bar: White's share on the light side, the number beside it (lessons only). */
+@Composable
+private fun LessonEvalBar(centipawns: Int?, mate: Int?) {
+    val reduceMotion = LocalReduceMotion.current
+    val share by animateFloatAsState(EvalMath.whiteShare(centipawns, mate), tween(if (reduceMotion) 0 else 400), label = "lessonEval")
+    val label = EvalMath.label(centipawns, mate)
+    Row(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "Evaluation $label" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+    ) {
+        Box(Modifier.weight(1f).height(6.dp).clip(CtShapes.Pill).background(CtColors.Text)) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(share).background(CtColors.Track))
+        }
+        Text(label, style = CtType.Label, modifier = Modifier.widthIn(min = 36.dp))
     }
 }
 
@@ -178,11 +207,6 @@ private fun BoardStep(
         state.step is LessonStep.Play -> if (state.orientation == PieceColor.WHITE) "Your turn" else "Your turn, you play $side"
         else -> null
     }
-    val mood = when (state.feedbackTone) {
-        FeedbackTone.GOOD -> MascotMood.PROUD
-        FeedbackTone.BAD -> MascotMood.KIND
-        else -> MascotMood.READY
-    }
     val arrows = state.arrows.map { BoardArrow(Square.fromAlgebraic(it.from), Square.fromAlgebraic(it.to), it.tone.kind()) } +
         listOfNotNull(state.hint?.to?.let { to -> BoardArrow(Square.fromAlgebraic(state.hint.from), Square.fromAlgebraic(to), MarkKind.HINT) })
     val rings = state.highlights.map { SquareRing(Square.fromAlgebraic(it.square), it.tone.kind()) } +
@@ -195,8 +219,13 @@ private fun BoardStep(
         title = state.lessonTitle,
         onBack = onBack,
         modifier = modifier,
-        zone = { LessonCoach(state, settings, label, mood) },
-        under = { StepProgress(state) },
+        zone = {
+            Column(Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                StepProgress(state)
+                LessonWords(state, label)
+            }
+        },
+        under = { if (state.evalCp != null || state.evalMate != null) LessonEvalBar(state.evalCp, state.evalMate) },
         board = {
             BoardHost(
                 session = player.board,
@@ -213,42 +242,51 @@ private fun BoardStep(
         },
         controls = {
             if (state.stepIndex > 0) {
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Previous step", onClick = player::back)
+                CtControl(Icons.AutoMirrored.Rounded.ArrowBack, "Back", description = "Previous step", onClick = player::back)
             } else {
                 PreviousLessonButton(state, onPreviousLesson)
             }
             if (yourMove) {
-                CtButton(
-                    text = "Hint",
-                    icon = Icons.Rounded.Lightbulb,
-                    style = CtButtonStyle.Secondary,
-                    enabled = state.expectsMove,
-                    onClick = player::hint,
-                    modifier = Modifier.weight(1f),
-                )
+                CtControl(Icons.Rounded.Lightbulb, "Hint", enabled = state.expectsMove, onClick = player::hint)
             } else {
-                CtIconButton(icon = Icons.Rounded.Refresh, contentDescription = "Again", onClick = player::replayStep, enabled = !state.busy)
-                CtButton(
-                    text = if (state.isLastStep) "Finish" else "Next",
-                    icon = if (state.isLastStep) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.ArrowForward,
-                    enabled = state.canAdvance,
-                    onClick = player::next,
-                    modifier = Modifier.weight(1f),
+                CtControl(
+                    icon = if (state.paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
+                    label = if (state.paused) "Play" else "Pause",
+                    onClick = player::togglePause,
                 )
             }
+            CtControl(
+                icon = if (state.isLastStep) Icons.Rounded.Check else Icons.Rounded.SkipNext,
+                label = if (state.isLastStep) "Finish" else "Skip",
+                enabled = state.canAdvance,
+                onClick = player::next,
+            )
         },
     )
 }
 
-/** Back to the lesson before this one in the course; dimmed on the course's first lesson. */
+/** The same, as a square button beside a full-width one (the Watch and Done pages). */
 @Composable
-private fun PreviousLessonButton(state: LessonPlayerState, onPreviousLesson: (String) -> Unit) {
+private fun PreviousLessonIcon(state: LessonPlayerState, onPreviousLesson: (String) -> Unit) {
     val previous = state.previousLesson
     CtIconButton(
         icon = Icons.AutoMirrored.Rounded.ArrowBack,
         contentDescription = "Previous lesson",
         onClick = { previous?.let { onPreviousLesson(it.id) } },
         enabled = previous != null,
+    )
+}
+
+/** Back to the lesson before this one in the course; dimmed on the course's first lesson. */
+@Composable
+private fun RowScope.PreviousLessonButton(state: LessonPlayerState, onPreviousLesson: (String) -> Unit) {
+    val previous = state.previousLesson
+    CtControl(
+        icon = Icons.AutoMirrored.Rounded.ArrowBack,
+        label = "Back",
+        description = "Previous lesson",
+        enabled = previous != null,
+        onClick = { previous?.let { onPreviousLesson(it.id) } },
     )
 }
 
@@ -260,7 +298,7 @@ private fun WatchPage(state: LessonPlayerState, step: LessonStep.Watch, onStart:
         onBack = onBack,
         modifier = modifier,
         bottom = {
-            PreviousLessonButton(state, onPreviousLesson)
+            PreviousLessonIcon(state, onPreviousLesson)
             CtButton(text = "Start", onClick = onStart, modifier = Modifier.weight(1f))
         },
     ) {
@@ -303,7 +341,7 @@ private fun DonePage(
         onBack = onBack,
         modifier = modifier,
         bottom = {
-            PreviousLessonButton(state, onPreviousLesson)
+            PreviousLessonIcon(state, onPreviousLesson)
             if (next != null) CtButton(text = "Next: ${next.title}", onClick = { onNextLesson(next.id) }, modifier = Modifier.weight(1f))
             else CtButton(text = "Play it again", onClick = onReplay, modifier = Modifier.weight(1f))
         },

@@ -36,6 +36,8 @@ class LearnViewModel(
     private val progress: LessonProgressRepository,
     private val loadLibrary: suspend () -> LessonLibrary,
     practice: PracticeRepository? = null,
+    /** The engine's view of a position for the lesson's evaluation bar (centipawns, mate), White's side. */
+    private val evaluate: (suspend (String) -> Pair<Int?, Int?>?)? = null,
 ) : ViewModel() {
     private val library = MutableStateFlow<LessonLibrary?>(null)
 
@@ -71,6 +73,7 @@ class LearnViewModel(
                 startStep = resumeAt.coerceIn(0, lesson.steps.lastIndex),
                 nextLesson = lib.nextAfter(lessonId),
                 previousLesson = lib.previousIn(lessonId),
+                evaluate = evaluate,
             ).also { it.start() }
         }
     }
@@ -83,8 +86,9 @@ class LearnViewModel(
         private val progress: LessonProgressRepository,
         private val loadLibrary: suspend () -> LessonLibrary,
         private val practice: PracticeRepository? = null,
+        private val evaluate: (suspend (String) -> Pair<Int?, Int?>?)? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = LearnViewModel(progress, loadLibrary, practice) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = LearnViewModel(progress, loadLibrary, practice, evaluate) as T
     }
 }
