@@ -20,6 +20,7 @@ import com.chesstutor.app.feature.friend.FriendStart
 import com.chesstutor.app.feature.friend.FriendViewModel
 import com.chesstutor.app.feature.friend.NearbyLobbyScreen
 import com.chesstutor.app.feature.home.OpeningPickerScreen
+import com.chesstutor.app.feature.play.SharedPrefsFriendGameStore
 import com.chesstutor.app.feature.home.SetupBoardScreen
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.TopTab
@@ -29,7 +30,10 @@ internal fun NavGraphBuilder.friendPages(shell: Shell) = with(shell) {
     composable(AppRoutes.FRIEND) {
         val friendModel = friendViewModel()
         val draft by friendModel.draft.collectAsStateWithLifecycle()
+        val resumable by friendModel.resumable.collectAsStateWithLifecycle()
         FriendSetupScreen(
+            resumable = resumable,
+            onResume = { if (friendModel.resume()) navController.navigate(AppRoutes.FRIEND_PLAY) { launchSingleTop = true } },
             draft = draft,
             ownerName = state.appSettings.playerName,
             theme = state.appSettings.boardTheme,
@@ -150,6 +154,7 @@ internal fun Shell.friendViewModel(): FriendViewModel {
             openings = { AppContainer.provideOpeningLoader(context).load() },
             games = AppContainer.provideGameRepository(context),
             connector = LanConnector(context),
+            store = SharedPrefsFriendGameStore(context),
         ),
     )
 }

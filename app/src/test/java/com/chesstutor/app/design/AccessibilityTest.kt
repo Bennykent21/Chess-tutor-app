@@ -136,7 +136,7 @@ class AccessibilityTest {
 
     @Test fun exploreSetup() = check("Explore setup") { ExploreSetupScreen(draft = ExploreDraft(), theme = AppSettings().boardTheme, onChange = {}, onStart = {}, onBack = {}) }
 
-    @Test fun botSetup() = check("Bot page") { BotSetupScreen(bot = BotRoster.bots.first(), onPlay = { _, _ -> }, onBack = {}) }
+    @Test fun botSetup() = check("Bot page") { BotSetupScreen(bot = BotRoster.bots.first(), onPlay = { _, _, _ -> }, onBack = {}) }
 
     @Test fun botBuilder() = check("Bot builder") { BotBuilderScreen(draft = BotDraft(), onChange = {}, onSave = {}, onBack = {}) }
 }

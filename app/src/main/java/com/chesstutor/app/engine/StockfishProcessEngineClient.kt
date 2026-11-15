@@ -1,5 +1,6 @@
 package com.chesstutor.app.engine
 
+import com.chesstutor.app.core.Chess960
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -73,6 +74,7 @@ class StockfishProcessEngineClient(
     // or lifecycleMutex, and reset whenever a new process starts.
     private var appliedStrengthElo: Int? = null
     private var appliedMultiPv = 1
+    private var appliedChess960 = false
 
     @Volatile
     private var nativeFailures = 0
@@ -121,6 +123,7 @@ class StockfishProcessEngineClient(
             session = newSession
             appliedStrengthElo = null
             appliedMultiPv = 1
+            appliedChess960 = false
             updateTelemetry {
                 it.copy(
                     processStarts = it.processStarts + 1,
@@ -308,6 +311,13 @@ class StockfishProcessEngineClient(
         if (wantedPv != appliedMultiPv) {
             send(current, "setoption name MultiPV value $wantedPv")
             appliedMultiPv = wantedPv
+        }
+        // A Chess960 position (its FEN names the rooks' files): Stockfish then castles as the king
+        // taking its own rook, which is how the app writes those moves too.
+        val wanted960 = Chess960.isChess960(request.fen)
+        if (wanted960 != appliedChess960) {
+            send(current, "setoption name UCI_Chess960 value $wanted960")
+            appliedChess960 = wanted960
         }
     }
 

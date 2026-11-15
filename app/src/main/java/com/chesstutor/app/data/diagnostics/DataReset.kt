@@ -24,6 +24,7 @@ object DataReset {
         settings.update { AppSettings() }
         PlayerPhoto.delete(context)
         SharedPrefsActiveGameStore(context).clear()
+        com.chesstutor.app.feature.play.SharedPrefsFriendGameStore(context).clear()
         // Otherwise the puzzle history would copy the pre-Room progress back in on the next start.
         SharedPrefsPuzzleProgressStore(context).clearLegacy()
         SharedPrefsRushRecords(context).clear()

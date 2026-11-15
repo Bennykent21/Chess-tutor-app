@@ -57,8 +57,10 @@ import com.chesstutor.app.design.CtSliderRow
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtToggleRow
 import com.chesstutor.app.design.CtType
+import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.domain.game.PlayerClock
 import com.chesstutor.app.domain.game.Seating
+import com.chesstutor.app.feature.play.FriendSnapshot
 import kotlin.math.roundToInt
 
 /** Whose clock the custom-clock sheet is setting. */
@@ -81,6 +83,9 @@ fun FriendSetupScreen(
     onBack: () -> Unit,
     onHost: () -> Unit = {},
     onJoin: () -> Unit = {},
+    /** A game on this phone left unfinished, and carrying it on. */
+    resumable: FriendSnapshot? = null,
+    onResume: () -> Unit = {},
 ) {
     var customFor by rememberSaveable { mutableStateOf<ClockOwner?>(null) }
     val nearby = draft.mode == FriendMode.NEARBY
@@ -99,6 +104,21 @@ fun FriendSetupScreen(
         },
     ) {
         Text("Play a friend", style = CtType.Display)
+        resumable?.let { saved ->
+            CtListRow(
+                title = "Continue your game",
+                subtitle = "${saved.setup.whiteName} vs ${saved.setup.blackName} · move ${(saved.moves.size + 2) / 2}",
+                icon = null,
+                onClick = onResume,
+                modifier = Modifier.padding(top = CtSpacing.sm),
+                leading = {
+                    val position = remember(saved) { GameReviewer.positions(saved.setup.startFen, saved.moves).lastOrNull() ?: Position.initial() }
+                    Box(Modifier.size(44.dp).clip(CtShapes.Chip)) {
+                        BoardView(position, theme, whiteAtBottom = saved.setup.ownerColor == PieceColor.WHITE, showCoordinates = false, showLegalDots = false)
+                    }
+                },
+            )
+        }
         CtSegmented(
             options = FriendMode.entries,
             selected = draft.mode,

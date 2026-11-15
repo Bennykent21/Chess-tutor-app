@@ -52,6 +52,26 @@ class NearbyScreensTest {
     }
 
     @Test
+    fun anUnfinishedGameIsOfferedFirst() {
+        var resumed = false
+        val saved = com.chesstutor.app.feature.play.FriendSnapshot(
+            com.chesstutor.app.domain.game.FriendSetup("Sam", "Ada"), listOf("e2e4", "e7e5", "g1f3"), null, null, 0,
+        )
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                FriendSetupScreen(
+                    draft = FriendDraft(), ownerName = "Sam", theme = BoardTheme(), onChange = {},
+                    onPickOpening = {}, onSetPosition = {}, onStart = {}, onBack = {}, resumable = saved, onResume = { resumed = true },
+                )
+            }
+        }
+        compose.onNodeWithText("Sam vs Ada · move 2").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/friend_setup_resume.png")
+        compose.onNodeWithText("Continue your game").performClick()
+        assertTrue(resumed)
+    }
+
+    @Test
     fun theHostSeesTheCodeToShare() {
         compose.setContent {
             CtTheme(reduceMotion = true) {

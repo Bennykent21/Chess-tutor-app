@@ -14,6 +14,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import com.chesstutor.app.core.Position
+import com.chesstutor.app.core.Chess960
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.domain.bot.BotOpeningChoices
@@ -132,8 +134,9 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                             navController.popBackStack()
                         }
                     } else null,
-                    onPlay = { side, rules ->
-                        homeModel.start(bot, side, rules)
+                    theme = state.appSettings.boardTheme,
+                    onPlay = { side, rules, chess960 ->
+                        homeModel.start(bot, side, rules, startFen = chess960?.let(Chess960::startFen) ?: Position.STARTING_FEN)
                         navController.navigate(AppRoutes.PLAY) {
                             popUpTo(AppRoutes.BOT_PATTERN) { inclusive = true }
                             launchSingleTop = true

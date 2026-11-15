@@ -58,6 +58,23 @@ class StockfishProcessClientTest {
     }
 
     @Test
+    fun chess960PositionsSwitchStockfishToChess960AndBackOnlyWhenNeeded() = runBlocking {
+        val launcher = FakeLauncher()
+        val engine = client(launcher)
+        val shuffled = com.chesstutor.app.core.Chess960.startFen(3)
+        engine.analyze(AnalysisRequest(requestId = 10, fen = shuffled, movetimeMs = 50))
+        engine.analyze(AnalysisRequest(requestId = 11, fen = shuffled, movetimeMs = 50))
+        engine.analyze(AnalysisRequest(requestId = 12, fen = startFen, movetimeMs = 50))
+        val commands = launcher.started.flatMap { it.commands }
+        val switches = commands.filter { it.startsWith("setoption name UCI_Chess960") }
+        assertEquals(listOf("setoption name UCI_Chess960 value true", "setoption name UCI_Chess960 value false"), switches)
+        assertTrue(
+            "the switch comes before the Chess960 position",
+            commands.indexOf("setoption name UCI_Chess960 value true") < commands.indexOf("position fen $shuffled"),
+        )
+    }
+
+    @Test
     fun positionsStockfishWouldRejectNeverReachIt() = runBlocking {
         // White to move while Black's king is already in check: Stockfish 19 would terminate.
         val sideNotToMoveInCheck = "4k3/4R3/8/8/8/8/8/4K3 w - - 0 1"
