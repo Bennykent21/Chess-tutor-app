@@ -24,9 +24,9 @@ enum class BoardOrientation {
 
 /** How deeply Stockfish looks at each position of a game review (Settings > Engine). */
 enum class ReviewDepth(val label: String, val detail: String, val depth: Int) {
-    FAST("Fast", "Quicker reviews, may miss deep tactics", 12),
-    NORMAL("Normal", "A good balance on most phones", 14),
-    DEEP("Deep", "Slower, catches more", 18),
+    FAST("Fast", "Quicker reviews, more moves graded wrongly", 14),
+    NORMAL("Normal", "Grades most moves as a deep search would", 18),
+    DEEP("Deep", "Twice as slow, a little more exact accuracy", 20),
 }
 
 /**

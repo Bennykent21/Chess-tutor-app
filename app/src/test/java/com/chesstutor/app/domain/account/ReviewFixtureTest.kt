@@ -83,5 +83,13 @@ class ReviewFixtureTest {
         val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(com.chesstutor.app.domain.opening.OpeningTree::fromStream)
         val match = tree.match(fixture.moves)
         println("book: left at ply ${match.leftBookAt} (${match.opening?.name})")
+        val masters = File("src/main/assets/book.bin").takeIf { it.exists() }?.inputStream()?.use(com.chesstutor.app.domain.opening.OpeningBook::fromStream)
+        if (masters != null) println("with the masters' book: left at ply ${tree.withBook(masters).match(fixture.moves).leftBookAt}")
+        // How the app's depth compares with a much deeper search, grade by grade.
+        val deep = review(fixture, deep = true)
+        val differ = review.moves.zip(deep.moves).filter { (a, b) -> a.quality != b.quality }
+        differ.forEach { (a, b) -> println("differs: ${a.numberLabel}${a.san} app ${a.quality.label}, deep ${b.quality.label}") }
+        println("grades that differ from depth 22: ${differ.size} of ${review.moves.size}")
+        println("accuracy at depth 22: White ${deep.report(PieceColor.WHITE).accuracy}  Black ${deep.report(PieceColor.BLACK).accuracy}")
     }
 }

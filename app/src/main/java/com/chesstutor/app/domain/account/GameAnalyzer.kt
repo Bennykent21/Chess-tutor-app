@@ -107,8 +107,11 @@ class GameAnalyzer(
     }
 
     companion object {
-        /** Deep enough to catch most tactics, quick enough on a phone (a few seconds per game). */
-        const val DEFAULT_DEPTH = 14
+        /**
+         * Depth 18 graded about 1 move in 21 differently from a depth-24 search where depth 14 got 1 in 8
+         * wrong (ReviewDepthTest, Phase 13B); depth 20 took twice as long and was no better.
+         */
+        const val DEFAULT_DEPTH = 18
         const val FALLBACK_MOVETIME_MS = 800
         /** Moves of the engine's line kept per position, enough to show the idea. */
         const val MAX_LINE = 8

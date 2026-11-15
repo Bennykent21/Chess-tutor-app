@@ -9,7 +9,7 @@ Crawls breadth-first from the start, one request at a time (the token and the po
 build_repertoire.py), caching every answer in tools/.cache/book/masters.jsonl so a stopped run
 resumes and a rebuild asks nothing.
 
-Run: tools/.cache/venv/Scripts/python.exe tools/build_book.py [--min-games 50] [--max-ply 30]
+Run: tools/.cache/venv/Scripts/python.exe tools/build_book.py [--min-games 50] [--max-ply 30] [--offline]
 """
 import argparse
 import json
@@ -56,6 +56,7 @@ def main():
     parser.add_argument("--min-games", type=int, default=50)
     parser.add_argument("--max-ply", type=int, default=30)
     parser.add_argument("--pause", type=float, default=0.3)
+    parser.add_argument("--offline", action="store_true", help="build from the cache alone; positions not yet asked are kept but not followed")
     args = parser.parse_args()
 
     os.makedirs(os.path.dirname(CACHE), exist_ok=True)
@@ -63,7 +64,10 @@ def main():
     if os.path.exists(CACHE):
         with open(CACHE, encoding="utf-8") as f:
             for line in f:
-                entry = json.loads(line)
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue  # a line still being written by a running crawl
                 cache[entry["k"]] = entry["moves"]
     client = Masters(load_token(), pause=args.pause)
     asked = 0
@@ -82,6 +86,8 @@ def main():
             if ply >= args.max_ply:
                 continue
             moves = cache.get(key)
+            if moves is None and args.offline:
+                continue
             if moves is None:
                 answer = client(board.fen(), [], [], None, None, 30)
                 moves = [[m["uci"], int(m.get("white", 0)) + int(m.get("draws", 0)) + int(m.get("black", 0))] for m in answer.get("moves", [])]
