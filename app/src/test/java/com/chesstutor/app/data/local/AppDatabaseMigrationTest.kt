@@ -6,6 +6,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
+import com.chesstutor.app.data.repertoire.RoomRepertoireProgressRepository
+import com.chesstutor.app.domain.repertoire.CardState
+import com.chesstutor.app.domain.repertoire.LevelProgress
+import com.chesstutor.app.domain.repertoire.RepertoireCards
+import com.chesstutor.app.domain.repertoire.RepertoireLevel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -18,7 +26,7 @@ import org.robolectric.RobolectricTestRunner
 class AppDatabaseMigrationTest {
 
     private companion object {
-        const val LATEST = 13
+        const val LATEST = 15
     }
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
@@ -415,6 +423,107 @@ class AppDatabaseMigrationTest {
         db.query("SELECT botName FROM game_records").use { assertTrue(it.moveToFirst()); assertEquals("Pip", it.getString(0)) }
         db.query("SELECT COUNT(*) FROM course_practice").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
         db.query("SELECT COUNT(*) FROM opening_drill").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    /** A real version-13 database: MIGRATION_13_14 gives each mistake an ease and interval, and they are then saved. */
+    @Test
+    fun migration13To14KeepsMistakesAndSavesTheirEase() {
+        val name = "migration-13-14-test.db"
+        context.deleteDatabase(name)
+        val config = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(object : SupportSQLiteOpenHelper.Callback(13) {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS review_items (" +
+                            "id TEXT NOT NULL, fen TEXT NOT NULL, dueAt INTEGER NOT NULL, " +
+                            "stage INTEGER NOT NULL DEFAULT -1, attempts INTEGER NOT NULL DEFAULT 0, " +
+                            "mistakeUci TEXT NOT NULL DEFAULT '', bestMoveUci TEXT NOT NULL DEFAULT '', " +
+                            "explanation TEXT NOT NULL DEFAULT '', PRIMARY KEY(id))"
+                    )
+                    AppDatabase.ALL_MIGRATIONS.filter { it.endVersion <= 13 }.forEach { it.migrate(db) }
+                    db.execSQL(
+                        "INSERT INTO review_items (id, fen, dueAt, stage, attempts, mistakeUci, bestMoveUci, explanation) " +
+                            "VALUES ('game_1_12', '8/8/8/8/8/8/8/K6k w - - 0 1', 7, 2, 3, 'a1a2', 'a1b1', '')"
+                    )
+                }
+
+                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(config).also { it.writableDatabase.close() }
+
+        val room = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        assertEquals(LATEST, room.openHelper.writableDatabase.version)
+        runBlocking {
+            val dao = room.reviewItemDao()
+            val old = dao.getById("game_1_12")!!
+            assertEquals(2, old.stage)
+            assertEquals("a1b1", old.bestMoveUci)
+            assertEquals(2.5f, old.easeFactor)
+            assertEquals(0, old.intervalDays)
+            dao.upsert(old.copy(easeFactor = 2.1f, intervalDays = 9))
+            val saved = dao.getById("game_1_12")!!.toDomain()
+            assertEquals(2.1f, saved.easeFactor)
+            assertEquals(9, saved.intervalDays)
+        }
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    /** A real version-14 database: MIGRATION_14_15 adds the opening trainer's tables, which Room then accepts and fills. */
+    @Test
+    fun migration14To15AddsTheOpeningTrainerAndKeepsData() {
+        val name = "migration-14-15-test.db"
+        context.deleteDatabase(name)
+        val config = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(object : SupportSQLiteOpenHelper.Callback(14) {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS review_items (" +
+                            "id TEXT NOT NULL, fen TEXT NOT NULL, dueAt INTEGER NOT NULL, " +
+                            "stage INTEGER NOT NULL DEFAULT -1, attempts INTEGER NOT NULL DEFAULT 0, " +
+                            "mistakeUci TEXT NOT NULL DEFAULT '', bestMoveUci TEXT NOT NULL DEFAULT '', " +
+                            "explanation TEXT NOT NULL DEFAULT '', PRIMARY KEY(id))"
+                    )
+                    AppDatabase.ALL_MIGRATIONS.filter { it.endVersion <= 14 }.forEach { it.migrate(db) }
+                    db.execSQL(
+                        "INSERT INTO opening_drill (lineId, stage, dueAt, attempts, cleanRuns, lastPlayedAt) " +
+                            "VALUES ('w:Italian Game: Giuoco Piano', 2, 9, 3, 2, 8)"
+                    )
+                }
+
+                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(config).also { it.writableDatabase.close() }
+
+        val room = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        assertEquals(LATEST, room.openHelper.writableDatabase.version)
+        runBlocking {
+            assertEquals(2, room.trainingDao().observeDrills().first().single().stage)
+            val repository = RoomRepertoireProgressRepository(room)
+            val at = Instant.parse("2026-11-04T09:00:00Z")
+            val card = CardState("italian", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", RepertoireLevel.CORE, dueAt = at, introducedAt = at)
+            val (first, review) = RepertoireCards.afterRecall(card, right = true, hinted = false, now = at)
+            val recalled = first.copy(lapses = 2, streak = 1)
+            repository.save(listOf(recalled), listOf(review, review.copy(at = at.plusSeconds(60), firstTryRight = false)))
+            assertEquals(recalled, repository.observeCards().first().getValue(card.id))
+            assertEquals(listOf(true, false), repository.reviews("italian").map { it.firstTryRight })
+            assertTrue(repository.reviews("caro-kann").isEmpty())
+            val level = LevelProgress("italian", RepertoireLevel.STANDARD, mapOf(RepertoireLevel.CORE to at))
+            repository.saveLevel(level)
+            assertEquals(level, repository.observeLevels().first().getValue("italian"))
+        }
         room.close()
         context.deleteDatabase(name)
     }

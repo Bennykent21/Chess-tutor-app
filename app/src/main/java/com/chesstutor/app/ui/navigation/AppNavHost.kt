@@ -103,6 +103,7 @@ private fun AppShell(
     shell.homeViewModel()
     shell.learnViewModel()
     shell.trainerViewModel()
+    shell.repertoireViewModel()
     shell.puzzlesViewModel()
     shell.accountViewModel()
 
@@ -132,6 +133,7 @@ private fun AppShell(
         ) {
             homeGraph(shell)
             learnGraph(shell)
+            trainGraph(shell)
             puzzlesGraph(shell)
             accountGraph(shell)
             composable(

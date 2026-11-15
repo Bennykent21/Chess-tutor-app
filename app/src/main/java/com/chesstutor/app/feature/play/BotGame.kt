@@ -116,7 +116,7 @@ class BotGame(
     /** How chatty the bots are; read at every line, so the setting applies at once. */
     private val chatLevel: () -> ChatLevel = { ChatLevel.SOME },
 ) {
-    val session = PlaySession(Position.fromFen(setup.startFen), setup.playerColor, ::onPlayerMoved)
+    val session = PlaySession(Position.fromFen(setup.startFen), setOf(setup.playerColor), ::onPlayerMoved)
 
     private val mutableState = MutableStateFlow(
         BotGameState(setup).let { s -> resumeClocks?.let { (white, black) -> s.copy(whiteMs = white, blackMs = black) } ?: s }

@@ -44,6 +44,7 @@ import java.time.LocalDate
 /** The Home tab: Home, the bots and their pages, the game setups and the game itself. */
 internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
     navigation(startDestination = TopTab.HOME.startRoute, route = TopTab.HOME.graphRoute) {
+        friendPages(shell)
         composable(TopTab.HOME.startRoute) { entry ->
             val homeModel = homeViewModel()
             val home by homeModel.home.collectAsStateWithLifecycle()
@@ -204,6 +205,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                     navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
                 },
                 onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
+                onPlayFriend = { navController.navigate(AppRoutes.FRIEND) { launchSingleTop = true } },
                 onBack = { navController.popBackStack() },
             )
         }

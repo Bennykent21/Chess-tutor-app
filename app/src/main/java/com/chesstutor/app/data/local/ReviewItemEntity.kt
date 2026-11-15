@@ -14,7 +14,10 @@ data class ReviewItemEntity(
     val attempts: Int = 0,
     val mistakeUci: String = "",
     val bestMoveUci: String = "",
-    val explanation: String = ""
+    val explanation: String = "",
+    // Saved since version 14 so ReviewScheduler's ease carries from one review to the next.
+    val easeFactor: Float = 2.5f,
+    val intervalDays: Int = 0
 ) {
     fun toDomain(): ReviewItem = ReviewItem(
         id = id,
@@ -24,7 +27,9 @@ data class ReviewItemEntity(
         attempts = attempts,
         mistakeUci = mistakeUci,
         bestMoveUci = bestMoveUci,
-        explanation = explanation
+        explanation = explanation,
+        easeFactor = easeFactor,
+        intervalDays = intervalDays
     )
 }
 
@@ -36,5 +41,7 @@ fun ReviewItem.toEntity(): ReviewItemEntity = ReviewItemEntity(
     attempts = attempts,
     mistakeUci = mistakeUci,
     bestMoveUci = bestMoveUci,
-    explanation = explanation
+    explanation = explanation,
+    easeFactor = easeFactor,
+    intervalDays = intervalDays
 )

@@ -1,0 +1,315 @@
+{
+  "id": "openings-italian-giuoco",
+  "category": "openings",
+  "title": "Giuoco Piano",
+  "intro": "3...Bc5: build the centre with 4.c3, then choose d3 or d4 by Black's reply.",
+  "level": "beginner",
+  "order": 21,
+  "side": "white",
+  "opening": "italian",
+  "variation": "e2e4 e7e5 g1f3 b8c6 f1c4 f8c5",
+  "battleLine": "Italian Game: Giuoco Piano",
+  "lessons": [
+    {
+      "id": "openings-italian-giuoco-c3",
+      "title": "4.c3 and the quiet plan",
+      "summary": "c3, d3, castle and h3: a calm, solid set-up.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "Black answers with 3...Bc5, the Giuoco Piano. The bishop aims at f2, as yours aims at f7.",
+          "move": "f8c5",
+          "arrows": ["c5f2:bad", "c4f7:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Prepare d4. Find the pawn move that lets a pawn take back on d4.",
+          "expect": ["c2c3"],
+          "hint": "A pawn move on the queenside, next to your d-pawn.",
+          "ifWrong": "The plan is 4.c3, getting ready for d4.",
+          "ifRight": "4.c3 prepares d4 and takes the d4 square from Black's knight.",
+          "feedback": {
+            "d2d3": "4.d3 is fine too, but this repertoire plays 4.c3 first.",
+            "e1g1": "Castling is fine, but this repertoire plays 4.c3 first to prepare d4."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops with 4...Nf6 and attacks your e4 pawn.",
+          "move": "g8f6",
+          "arrows": ["f6e4:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Protect e4 with a pawn. This repertoire keeps the centre closed for now.",
+          "expect": ["d2d3"],
+          "hint": "Your d-pawn can guard e4.",
+          "ifWrong": "5.d3 guards e4, so the knight cannot take it.",
+          "ifRight": "e4 is safe. Castle next, then think about a4, b4 or a slow d4.",
+          "feedback": {
+            "d2d4": "5.d4 is the sharp old main line. This repertoire prefers the quiet 5.d3."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "5...d6 supports e5 and opens a diagonal for the bishop on c8.",
+          "move": "d7d6",
+          "arrows": ["c8g4:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Make your king safe.",
+          "expect": ["e1g1"],
+          "hint": "Your king can castle now.",
+          "ifWrong": "Castle with 6.O-O. The rook can come to e1 later.",
+          "ifRight": "Next come h3, Re1 and Nbd2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black castles too with 6...O-O. Both kings are safe and the centre is closed.",
+          "move": "e8g8"
+        },
+        {
+          "type": "play",
+          "text": "Black's bishop wants g4, to pin your knight to the queen. Stop it.",
+          "expect": ["h2h3"],
+          "hint": "A rook's pawn can take g4 away.",
+          "ifWrong": "7.h3 takes the g4 square from Black's bishop.",
+          "ifRight": "No pin. Re1 and Nbd2 can follow.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk2r/ppp2pp1/2np1n1p/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQ1RK1 w kq - 0 7",
+          "text": "Black played 6...h6 instead of castling. Your plan does not change. Find the move.",
+          "expect": ["h2h3"],
+          "hint": "The same square still needs covering.",
+          "ifWrong": "7.h3 again: no pin with ...Bg4.",
+          "ifRight": "Re1 and Nbd2 come next, with no pin to worry about.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-italian-giuoco-b4",
+      "title": "Against ...h6: b4 and a4",
+      "summary": "When Black wastes a move, take space on the queenside.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQK2R b KQkq - 0 5",
+          "text": "After 4.c3 Nf6 5.d3, Black can castle at once with 5...O-O.",
+          "move": "e8g8"
+        },
+        {
+          "type": "play",
+          "text": "Castle as well.",
+          "expect": ["e1g1"],
+          "hint": "Get your king to g1.",
+          "ifWrong": "6.O-O: king safety first.",
+          "ifRight": "Both kings are safe. Now see what Black does.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "6...h6 only stops Ng5 and Bg5. It does nothing in the centre, so you take space on the queenside.",
+          "move": "h7h6"
+        },
+        {
+          "type": "play",
+          "text": "Gain space and chase the bishop on c5.",
+          "expect": ["b2b4"],
+          "hint": "The b-pawn can attack c5.",
+          "ifWrong": "7.b4 hits the bishop on c5.",
+          "ifRight": "The bishop has to move.",
+          "feedback": {
+            "h2h3": "7.h3 is playable, but 7.b4 gains space and attacks the bishop."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "7...Bb6 keeps the bishop on its diagonal towards f2.",
+          "move": "c5b6",
+          "arrows": ["b6f2:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Threaten to trap the bishop on b6.",
+          "expect": ["a2a4"],
+          "hint": "Next, a5 would attack b6.",
+          "ifWrong": "8.a4 threatens a5, and the bishop would have no good square.",
+          "ifRight": "Black usually makes room with ...a6 or ...a5.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/pppp1pp1/2n2n1p/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQ1RK1 w - - 0 7",
+          "text": "This came from the Two Knights: 3...Nf6 4.d3 Bc5 5.O-O O-O 6.c3 h6. Find your plan.",
+          "expect": ["b2b4"],
+          "hint": "The same queenside pawn push as before.",
+          "ifWrong": "7.b4 gains space and chases the bishop.",
+          "ifRight": "Same position, same plan: b4, then a4.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-italian-giuoco-d4",
+      "title": "Against 4...d6: take the centre",
+      "summary": "A passive reply lets you build a big centre with d4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQK2R b KQkq - 0 4",
+          "text": "4...d6 is passive. It does not attack e4, so you can take the centre at once.",
+          "move": "d7d6"
+        },
+        {
+          "type": "play",
+          "text": "Strike in the centre now.",
+          "expect": ["d2d4"],
+          "hint": "Your c3 pawn supports it.",
+          "ifWrong": "5.d4: this is what 4.c3 prepared.",
+          "ifRight": "Black usually takes on d4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black takes with 5...exd4.",
+          "move": "e5d4"
+        },
+        {
+          "type": "play",
+          "text": "Take back and keep two pawns in the centre.",
+          "expect": ["c3d4"],
+          "hint": "Recapture with the pawn from c3.",
+          "ifWrong": "6.cxd4 builds the big centre.",
+          "ifRight": "Pawns on e4 and d4, and the bishop on c5 must move.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "6...Bb4+ looks active. The bishop escapes with check.",
+          "move": "c5b4",
+          "arrows": ["b4e1:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Block the check with a piece that develops.",
+          "expect": ["b1c3"],
+          "hint": "Your queen's knight.",
+          "ifWrong": "7.Nc3 blocks, develops, and guards e4 and d5.",
+          "ifRight": "Castle next. Later, d5 can gain more space.",
+          "feedback": {
+            "c1d2": "7.Bd2 also blocks, but 7.Nc3 is stronger: it develops a new piece and guards e4 and d5."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "r1bqk1nr/ppp2ppp/2np4/2b5/2BPP3/5N2/PP3PPP/RNBQK2R b KQkq - 0 6",
+          "text": "Black's other choice is 6...Bb6, keeping the bishop aimed at f2.",
+          "move": "c5b6",
+          "arrows": ["b6f2:bad"]
+        },
+        {
+          "type": "play",
+          "text": "Your centre is safe. Bring your king to safety.",
+          "expect": ["e1g1"],
+          "hint": "Castle.",
+          "ifWrong": "7.O-O: castle and keep the big centre.",
+          "ifRight": "Then h3 and Nc3. Later, d5 at the right moment pushes Black's pieces back.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk1nr/ppp2ppp/2np4/8/1bBPP3/5N2/PP3PPP/RNBQK2R w KQkq - 1 7",
+          "text": "Back to 6...Bb4+. Block the check and develop a piece.",
+          "expect": ["b1c3"],
+          "hint": "Use a knight, not the bishop.",
+          "ifWrong": "7.Nc3 develops and guards e4 and d5.",
+          "ifRight": "The knight blocks the check and guards your centre.",
+          "feedback": {
+            "c1d2": "7.Bd2 also blocks, but 7.Nc3 is stronger: it develops a new piece and guards e4 and d5."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-italian-giuoco-re1",
+      "title": "Against 5...h6: h3 and Re1",
+      "summary": "The same slow plan, with the rook behind e4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQK2R b KQkq - 0 5",
+          "text": "Black can also play 5...h6 first. It stops Ng5 and Bg5.",
+          "move": "h7h6"
+        },
+        {
+          "type": "play",
+          "text": "The plan stays the same. Castle.",
+          "expect": ["e1g1"],
+          "hint": "Your king goes to g1.",
+          "ifWrong": "6.O-O first. ...h6 changes nothing in the centre.",
+          "ifRight": "Your king is safe.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "6...d6 supports e5 and frees the bishop on c8.",
+          "move": "d7d6",
+          "arrows": ["c8g4:idea"]
+        },
+        {
+          "type": "play",
+          "text": "Stop the pin on your knight before it happens.",
+          "expect": ["h2h3"],
+          "hint": "Take g4 away.",
+          "ifWrong": "7.h3: no pin with ...Bg4.",
+          "ifRight": "The knight on f3 can stay where it is.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black castles with 7...O-O.",
+          "move": "e8g8"
+        },
+        {
+          "type": "play",
+          "text": "Back up e4 with a rook.",
+          "expect": ["f1e1"],
+          "hint": "The rook on f1 has a better square.",
+          "ifWrong": "8.Re1 supports e4 and gets ready for d4 one day.",
+          "ifRight": "The rook backs up e4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Next the knight on b1 travels to d2, f1 and g3. d4 waits until you are ready.",
+          "arrows": ["b1d2:idea", "d2f1:idea", "f1g3:idea"]
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/pppp1pp1/2n2n1p/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQ1RK1 w - - 2 7",
+          "text": "This time Black castles: 5...h6 6.O-O O-O. Which queenside plan fits?",
+          "expect": ["b2b4"],
+          "hint": "Chase the bishop on c5.",
+          "ifWrong": "7.b4 gains space and attacks the bishop.",
+          "ifRight": "b4 and then a4, as against ...h6 before.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

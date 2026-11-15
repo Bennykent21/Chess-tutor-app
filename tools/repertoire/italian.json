@@ -1,0 +1,12 @@
+{
+  "id": "italian",
+  "title": "Italian Game",
+  "side": "white",
+  "start": "e4 e5 Nf3 Nc6 Bc4",
+  "about": "A calm Italian: c3 and d3 against 3...Bc5, d3 against the Two Knights. Every other own move is the sound move players at this level choose most, else Stockfish's.",
+  "choices": {
+    "e4 e5 Nf3 Nc6 Bc4 Bc5": "c3",
+    "e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6": "d3",
+    "e4 e5 Nf3 Nc6 Bc4 Nf6": "d3"
+  }
+}

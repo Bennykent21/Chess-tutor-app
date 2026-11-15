@@ -8,6 +8,7 @@ import com.chesstutor.app.domain.account.TimeClass
 enum class TopTab(val graphRoute: String, val startRoute: String, val label: String) {
     HOME("home_graph", "home", "Home"),
     LEARN("learn_graph", "learn", "Learn"),
+    TRAIN("train_graph", "train", "Train"),
     PUZZLES("puzzles_graph", "puzzles", "Puzzles"),
     ACCOUNT("account_graph", "account", "Account"),
 }
@@ -67,6 +68,11 @@ object AppRoutes {
     /** The opening trainer's list (plan 6C), and one line on the board (full screen). */
     const val TRAINER = "learn/trainer"
     const val TRAINER_DRILL = "learn/trainer/drill"
+    /** A taught opening's page (Phase 10), and a learn, review or tricky-lines run on the board (full screen). */
+    const val REPERTOIRE_ID_ARG = "repertoireId"
+    const val REPERTOIRE_PATTERN = "learn/repertoire/{$REPERTOIRE_ID_ARG}"
+    fun repertoire(id: String): String = "learn/repertoire/${encode(id)}"
+    const val REPERTOIRE_RUN = "learn/repertoire-run"
     /** Opens one lesson from another tab (Home's Continue card), then shows the player. */
     const val LESSON_ID_ARG = "lessonId"
     const val LESSON_OPEN_PATTERN = "learn/open/{$LESSON_ID_ARG}"
@@ -78,6 +84,10 @@ object AppRoutes {
     /** A course page: intro, numbered lessons and practice links. */
     const val COURSE_ID_ARG = "courseId"
     const val COURSE_PATTERN = "learn/course/{$COURSE_ID_ARG}"
+    /** An opening in Learn (Phase 12): its ideas course and one course per variation. */
+    const val OPENING_ID_ARG = "openingId"
+    const val LEARN_OPENING_PATTERN = "learn/opening/{$OPENING_ID_ARG}"
+    fun learnOpening(id: String): String = "learn/opening/$id"
     fun course(id: String): String = "learn/course/$id"
     /** A bot's page (pick colour, clock and rules), then the game itself, full screen in Home. */
     const val BOT_ID_ARG = "botId"
@@ -91,6 +101,32 @@ object AppRoutes {
     /** "Watch two bots": pick both, then a bot-vs-bot game. */
     const val WATCH = "home/watch"
     const val BATTLE_PICK = "home/battle/pick"
+    /** Train (Phase 12): the openings of one side, "white" or "black". */
+    const val TRAIN_SIDE_ARG = "side"
+    const val TRAIN_SIDE_PATTERN = "train/side/{$TRAIN_SIDE_ARG}"
+    fun trainSide(white: Boolean): String = "train/side/${if (white) "white" else "black"}"
+    /** Train's endgames or middlegames (Phase 12, step 3), and one position played out against Stockfish. */
+    const val TRAIN_KIND_ARG = "kind"
+    const val TRAIN_POSITIONS_PATTERN = "train/positions/{$TRAIN_KIND_ARG}"
+    fun trainPositions(endgames: Boolean): String = "train/positions/${if (endgames) "endgames" else "middlegames"}"
+    const val TRAIN_POSITION_RUN = "train/position-run"
+    /** The learner's repeated mistakes, from their own games (Phase 12, step 4). */
+    const val TRAIN_FROM_GAMES = "train/from-games"
+    /** Your openings: the player's own lines, one of them, and a new one. */
+    const val TRAIN_LINES = "train/lines"
+    const val TRAIN_LINE_ARG = "lineId"
+    const val TRAIN_LINE_PATTERN = "train/line/{$TRAIN_LINE_ARG}"
+    fun trainLine(id: String): String = "train/line/$id"
+    const val TRAIN_LINE_NEW = "train/line-new"
+    /** Play a friend (Phase 11): the setup page, its opening and position pickers, and the game. */
+    const val FRIEND = "home/friend"
+    const val FRIEND_OPENING = "home/friend/opening"
+    const val FRIEND_POSITION = "home/friend/position"
+    const val FRIEND_PLAY = "home/friend/play"
+    /** Nearby (Phase 11C): the host's code, or the joiner typing it. */
+    const val FRIEND_NEARBY_ARG = "role"
+    const val FRIEND_NEARBY_PATTERN = "home/friend/nearby/{$FRIEND_NEARBY_ARG}"
+    fun friendNearby(join: Boolean): String = "home/friend/nearby/${if (join) "join" else "host"}"
     /** The bot builder: a new bot, or one of "My bots" to edit. */
     const val BUILDER_PATTERN = "home/builder?$BOT_ID_ARG={$BOT_ID_ARG}"
     /** The full opening list for the bot being built; the side is "white" or "black". */
@@ -125,9 +161,10 @@ object AppRoutes {
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 
     private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN, GAMES_PATTERN, STATS_PATTERN, TRAINING)
-    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER)
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN)
     private val homePages = setOf(BOTS)
     private val puzzlePages = setOf(PUZZLE_LEVELS)
+    private val trainPages = setOf(TRAIN_SIDE_PATTERN, TRAIN_POSITIONS_PATTERN, TRAIN_FROM_GAMES, TRAIN_LINES, TRAIN_LINE_PATTERN)
 
     /** The bottom bar shows on the four main tabs only: every other page and board gets the room. */
     fun showsBottomBar(route: String?): Boolean = route == null || TopTab.entries.any { it.startRoute == route }
@@ -139,6 +176,7 @@ object AppRoutes {
         route in learnPages -> TopTab.LEARN
         route in homePages -> TopTab.HOME
         route in puzzlePages -> TopTab.PUZZLES
+        route in trainPages -> TopTab.TRAIN
         else -> TopTab.entries.firstOrNull { it.startRoute == route }
     }
 }

@@ -55,6 +55,7 @@ val CREDITS: List<Credit> = listOf(
     Credit("Leela Chess Zero move tables (for Maia)", "The LCZero developers", Licence.GPL3),
     Credit("Puzzles", "The Lichess puzzle database (lichess.org)", Licence.CC0),
     Credit("Opening names and lines", "lichess-org/chess-openings", Licence.CC0),
+    Credit("How often opening moves are played", "The Lichess opening explorer (lichess.org)", Licence.CC0),
     Credit("Pieces \"Classic\" (cburnett)", "Colin M.L. Burnett", Licence.GPL2_PLUS),
     Credit("Pieces \"Merida\"", "Armando Hernandez Marroquin", Licence.GPL2_PLUS),
     Credit("Pieces \"Chessnut\"", "Alexis Luengas", Licence.APACHE2),

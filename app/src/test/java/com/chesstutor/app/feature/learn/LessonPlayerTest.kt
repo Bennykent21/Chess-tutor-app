@@ -33,7 +33,7 @@ class LessonPlayerTest {
         """.trimIndent(),
     )
     private val lesson: Lesson = course.lessons.single()
-    private val timing = LessonTiming(demonstrationMs = 100, replyMs = 100, mistakeFlashMs = 300)
+    private val timing = LessonTiming(demonstrationMs = 100, replyMs = 100, mistakeFlashMs = 300, autoAdvance = false)
 
     private fun TestScope.player(repo: InMemoryLessonProgressRepository, startStep: Int = 0) =
         LessonPlayer(course, lesson, repo, backgroundScope, startStep = startStep, timing = timing)

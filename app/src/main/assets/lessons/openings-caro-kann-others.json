@@ -1,0 +1,261 @@
+{
+  "id": "openings-caro-kann-others",
+  "category": "openings",
+  "title": "White's other second moves",
+  "intro": "2.Nf3, 2.Nc3, 2.Bc4 and 2.f4: the answer is ...d5 every time.",
+  "level": "beginner",
+  "order": 84,
+  "side": "black",
+  "opening": "caro-kann",
+  "variation": "e2e4 c7c6 g1f3, e2e4 c7c6 b1c3, e2e4 c7c6 f1c4, e2e4 c7c6 f2f4",
+  "battleLine": "Caro-Kann Defense: Two Knights Attack",
+  "lessons": [
+    {
+      "id": "openings-caro-kann-others-nf3",
+      "title": "2.Nf3: ...d5 anyway",
+      "summary": "Strike at e4, and pin the knight if White pushes.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "2.Nf3 develops and waits to see your plan.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Challenge e4 anyway.",
+          "expect": ["d7d5"],
+          "hint": "The d-pawn, two squares.",
+          "ifWrong": "2...d5: e4 is attacked, and White must decide what to do.",
+          "ifRight": "e4 is attacked. White must push, exchange or defend.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "3.e5 gains space. Your bishop must get out before ...e6.",
+          "move": "e4e5"
+        },
+        {
+          "type": "play",
+          "text": "Develop the bishop with a pin.",
+          "expect": ["c8g4"],
+          "hint": "Pin the knight on f3.",
+          "ifWrong": "3...Bg4 pins the knight and gets the bishop out before ...e6.",
+          "ifRight": "Then ...e6, ...c5 and ...Nc6.",
+          "feedback": {
+            "c8f5": "3...Bf5 is playable, but with the knight on f3, the pin with 3...Bg4 is stronger."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "4.d4 builds the pawn chain.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Now ...e6 is safe.",
+          "expect": ["e7e6"],
+          "hint": "Support d5 with a pawn.",
+          "ifWrong": "4...e6: the bishop is already outside the chain.",
+          "ifRight": "Next is ...c5 to attack d4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3P4/8/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 3",
+          "text": "White exchanges with 3.exd5 instead. Take back the Caro-Kann way.",
+          "expect": ["c6d5"],
+          "hint": "Keep a pawn in the centre.",
+          "ifWrong": "3...cxd5 keeps a pawn in the centre.",
+          "ifRight": "After 4.d4, develop with ...Nc6, as in the Exchange Variation.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-others-two-knights",
+      "title": "The Two Knights Attack",
+      "summary": "2.Nc3 and 3.Nf3: take on e4 and hit the knight.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "2.Nc3 develops and defends e4 in advance.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "The same plan: attack e4.",
+          "expect": ["d7d5"],
+          "hint": "The d-pawn, two squares.",
+          "ifWrong": "2...d5 attacks e4.",
+          "ifRight": "After 3.d4 dxe4 it is the Classical again.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "3.Nf3 brings out the second knight. This is the Two Knights Attack.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Take on e4.",
+          "expect": ["d5e4"],
+          "hint": "Your d-pawn captures.",
+          "ifWrong": "3...dxe4: the knight takes back, and you hit it next.",
+          "ifRight": "White takes back with the knight.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "4.Nxe4 recaptures.",
+          "move": "c3e4"
+        },
+        {
+          "type": "play",
+          "text": "Challenge the knight on e4.",
+          "expect": ["g8f6"],
+          "hint": "Your king's knight.",
+          "ifWrong": "4...Nf6 attacks the knight on e4.",
+          "ifRight": "If White trades, your pieces come out easily.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3p4/4P3/2N2N2/PPPP1PPP/R1BQKB1R b KQkq - 1 3",
+          "text": "The same position can come from 2.Nf3 d5 3.Nc3. Find the move.",
+          "expect": ["d5e4"],
+          "hint": "Capture in the centre.",
+          "ifWrong": "3...dxe4, then ...Nf6 against the knight.",
+          "ifRight": "Two move orders, one plan.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-others-nc3",
+      "title": "2.Nc3 d5: other third moves",
+      "summary": "3.exd5 and 3.d4 lead back to lines you know.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 0 3",
+          "text": "3.exd5 trades in the centre.",
+          "move": "e4d5"
+        },
+        {
+          "type": "play",
+          "text": "Keep a pawn in the centre.",
+          "expect": ["c6d5"],
+          "hint": "Recapture with the c-pawn.",
+          "ifWrong": "3...cxd5 keeps a pawn in the centre.",
+          "ifRight": "...Nf6 and ...Nc6 follow.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "4.d4 reaches an Exchange Variation.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Develop and guard d5.",
+          "expect": ["g8f6"],
+          "hint": "Your king's knight.",
+          "ifWrong": "4...Nf6 develops and guards d5.",
+          "ifRight": "If 5.Nf3, pin it.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "5.Nf3 develops.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Pin the knight.",
+          "expect": ["c8g4"],
+          "hint": "Your light-squared bishop.",
+          "ifWrong": "5...Bg4 pins the knight and watches d4.",
+          "ifRight": "The bishop is outside the pawn chain, where it belongs.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR b KQkq - 0 3",
+          "text": "After 2.Nc3 d5 3.d4, find the move that reaches the Classical.",
+          "expect": ["d5e4"],
+          "hint": "Capture in the centre.",
+          "ifWrong": "3...dxe4, and after 4.Nxe4 you play ...Bf5.",
+          "ifRight": "This is the Classical Caro-Kann.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-caro-kann-others-bc4",
+      "title": "2.Bc4 and 2.f4",
+      "summary": "Rare second moves: ...d5 is the answer.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "2.Bc4 develops, but the bishop runs into ...d5.",
+          "move": "f1c4"
+        },
+        {
+          "type": "play",
+          "text": "Hit the bishop and e4 at once.",
+          "expect": ["d7d5"],
+          "hint": "The d-pawn, two squares.",
+          "ifWrong": "2...d5 attacks the bishop and the e4 pawn.",
+          "ifRight": "White has nothing better than taking on d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "3.exd5 takes the pawn.",
+          "move": "e4d5"
+        },
+        {
+          "type": "play",
+          "text": "Recapture.",
+          "expect": ["c6d5"],
+          "hint": "Use the c-pawn.",
+          "ifWrong": "3...cxd5, and the bishop on c4 is attacked again.",
+          "ifRight": "You have the centre and an easy game.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "4.Bb3 moves the bishop away.",
+          "move": "c4b3"
+        },
+        {
+          "type": "play",
+          "text": "Develop.",
+          "expect": ["g8f6"],
+          "hint": "Your king's knight.",
+          "ifWrong": "4...Nf6 develops.",
+          "ifRight": "The bishop on b3 only hits the solid pawn on d5. ...Nc6 follows.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp1ppppp/2p5/8/4PP2/8/PPPP2PP/RNBQKBNR b KQkq - 0 2",
+          "text": "White plays 2.f4. Find the usual answer.",
+          "expect": ["d7d5"],
+          "hint": "Strike at e4.",
+          "ifWrong": "2...d5: the f4 pawn does not defend e4.",
+          "ifRight": "The f4 pawn does not defend e4, and it loosens White's king.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

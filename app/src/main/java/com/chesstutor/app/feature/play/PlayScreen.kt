@@ -286,7 +286,7 @@ fun PlayScreen(
  * height (D41). Tap the line to close it.
  */
 @Composable
-private fun PlayerStrip(
+internal fun PlayerStrip(
     name: String,
     detail: String,
     clock: Long?,
@@ -295,9 +295,10 @@ private fun PlayerStrip(
     captured: @Composable () -> Unit,
     chat: ChatLine? = null,
     onDismissChat: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
     ) {

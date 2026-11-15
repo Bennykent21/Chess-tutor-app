@@ -3,6 +3,7 @@ package com.chesstutor.app.feature.learn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.chesstutor.app.domain.learn.LessonCategory
 import com.chesstutor.app.domain.learn.LessonLibrary
 import com.chesstutor.app.domain.learn.LessonProgress
 import com.chesstutor.app.domain.learn.LessonProgressRepository
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import com.chesstutor.app.domain.learn.PracticeRepository
 import com.chesstutor.app.domain.learn.PracticeResult
+import com.chesstutor.app.domain.learn.TeachFirst
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -36,6 +38,8 @@ class LearnViewModel(
     private val progress: LessonProgressRepository,
     private val loadLibrary: suspend () -> LessonLibrary,
     practice: PracticeRepository? = null,
+    /** The engine's view of a position for the lesson's evaluation bar (centipawns, mate), White's side. */
+    private val evaluate: (suspend (String) -> Pair<Int?, Int?>?)? = null,
 ) : ViewModel() {
     private val library = MutableStateFlow<LessonLibrary?>(null)
 
@@ -59,8 +63,9 @@ class LearnViewModel(
         mutablePlayer.value = null
         viewModelScope.launch {
             val lib = library.filterNotNull().first()
-            val lesson = lib.lesson(lessonId) ?: return@launch
             val course = lib.courseOf(lessonId) ?: return@launch
+            // Opening lessons show the line first, then ask for it back.
+            val lesson = lib.lesson(lessonId)?.let { if (course.category == LessonCategory.OPENINGS) TeachFirst.of(it) else it } ?: return@launch
             val saved = progress.get(lessonId)
             val resumeAt = if (fromStart || saved == null || saved.completed) 0 else saved.stepIndex
             mutablePlayer.value = LessonPlayer(
@@ -71,6 +76,7 @@ class LearnViewModel(
                 startStep = resumeAt.coerceIn(0, lesson.steps.lastIndex),
                 nextLesson = lib.nextAfter(lessonId),
                 previousLesson = lib.previousIn(lessonId),
+                evaluate = evaluate,
             ).also { it.start() }
         }
     }
@@ -83,8 +89,9 @@ class LearnViewModel(
         private val progress: LessonProgressRepository,
         private val loadLibrary: suspend () -> LessonLibrary,
         private val practice: PracticeRepository? = null,
+        private val evaluate: (suspend (String) -> Pair<Int?, Int?>?)? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = LearnViewModel(progress, loadLibrary, practice) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = LearnViewModel(progress, loadLibrary, practice, evaluate) as T
     }
 }

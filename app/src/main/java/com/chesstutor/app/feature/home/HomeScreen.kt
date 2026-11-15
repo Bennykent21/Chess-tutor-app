@@ -158,22 +158,9 @@ fun HomeScreen(
                     CtArtTile(title = "Opening battle", scene = CtScene.BATTLE, modifier = tile, compact = true, onClick = actions.onOpeningBattle)
                     CtArtTile(title = "From a position", scene = CtScene.POSITION, modifier = tile, compact = true, onClick = actions.onFromPosition)
                     CtArtTile(title = "Explore", scene = CtScene.EXPLORE, modifier = tile, compact = true, onClick = actions.onExplore)
-                    PlayAFriend(tile)
                 }
             }
         }
-    }
-}
-
-/** Friend play is on the way (the developer's plan), so it shows here but does nothing yet. */
-@Composable
-private fun PlayAFriend(modifier: Modifier) {
-    Column(
-        modifier = modifier.clip(CtShapes.CardSmall).background(CtColors.Surface).padding(horizontal = 10.dp, vertical = CtSpacing.sm),
-        verticalArrangement = Arrangement.Bottom,
-    ) {
-        Text("Play a friend", style = CtType.Label, maxLines = 1)
-        Text("Coming soon", style = CtType.Caption, maxLines = 1)
     }
 }
 

@@ -16,6 +16,8 @@ import com.chesstutor.app.data.puzzle.PuzzleAssetLoader
 import com.chesstutor.app.data.puzzle.RoomPuzzleRepository
 import com.chesstutor.app.data.puzzle.SharedPrefsPuzzleProgressStore
 import com.chesstutor.app.data.puzzle.SharedPrefsRushRecords
+import com.chesstutor.app.data.repertoire.RepertoireAssetLoader
+import com.chesstutor.app.data.repertoire.RoomRepertoireProgressRepository
 import com.chesstutor.app.data.repository.GameRepository
 import com.chesstutor.app.data.repository.RoomGameRepository
 import com.chesstutor.app.data.repository.RatingRepository
@@ -92,6 +94,13 @@ object AppContainer {
 
     @Volatile
     private var rushRecordsInstance: SharedPrefsRushRecords? = null
+    private var openingTestsInstance: com.chesstutor.app.data.learn.SharedPrefsOpeningTests? = null
+
+    /** The openings whose test was passed (Phase 12). */
+    fun provideOpeningTests(context: Context): com.chesstutor.app.data.learn.SharedPrefsOpeningTests =
+        openingTestsInstance ?: synchronized(this) {
+            openingTestsInstance ?: com.chesstutor.app.data.learn.SharedPrefsOpeningTests(context.applicationContext).also { openingTestsInstance = it }
+        }
 
     /** Each rush's best score (D66). */
     fun provideRushRecords(context: Context): SharedPrefsRushRecords =
@@ -162,6 +171,53 @@ object AppContainer {
     fun provideTraining(context: Context): RoomTrainingRepository {
         return trainingInstance ?: synchronized(this) {
             trainingInstance ?: RoomTrainingRepository(AppDatabase.getInstance(context)).also { trainingInstance = it }
+        }
+    }
+
+    @Volatile
+    private var repertoireLoaderInstance: RepertoireAssetLoader? = null
+
+    /** The taught openings (Phase 10, `assets/repertoire`), read on first use and kept for the process. */
+    fun provideRepertoireLoader(context: Context): RepertoireAssetLoader {
+        return repertoireLoaderInstance ?: synchronized(this) {
+            repertoireLoaderInstance ?: RepertoireAssetLoader(context.applicationContext.assets).also { repertoireLoaderInstance = it }
+        }
+    }
+
+    @Volatile
+    private var positionLoaderInstance: com.chesstutor.app.data.train.PositionAssetLoader? = null
+
+    /** Train's endgames and middlegames (Phase 12, step 3, `assets/positions`), read on first use and kept for the process. */
+    fun providePositionLoader(context: Context): com.chesstutor.app.data.train.PositionAssetLoader =
+        positionLoaderInstance ?: synchronized(this) {
+            positionLoaderInstance ?: com.chesstutor.app.data.train.PositionAssetLoader(context.applicationContext.assets).also { positionLoaderInstance = it }
+        }
+
+    @Volatile
+    private var myLinesInstance: com.chesstutor.app.data.opening.SharedPrefsMyLines? = null
+
+    /** The player's own opening lines (Phase 12, "Your openings"). */
+    fun provideMyLines(context: Context): com.chesstutor.app.data.opening.SharedPrefsMyLines =
+        myLinesInstance ?: synchronized(this) {
+            myLinesInstance ?: com.chesstutor.app.data.opening.SharedPrefsMyLines(context.applicationContext).also { myLinesInstance = it }
+        }
+
+    @Volatile
+    private var positionRecordsInstance: com.chesstutor.app.data.train.SharedPrefsPositionRecords? = null
+
+    /** Which of Train's positions were won, and when slipped ones come back. */
+    fun providePositionRecords(context: Context): com.chesstutor.app.data.train.SharedPrefsPositionRecords =
+        positionRecordsInstance ?: synchronized(this) {
+            positionRecordsInstance ?: com.chesstutor.app.data.train.SharedPrefsPositionRecords(context.applicationContext).also { positionRecordsInstance = it }
+        }
+
+    @Volatile
+    private var repertoireProgressInstance: RoomRepertoireProgressRepository? = null
+
+    /** The opening trainer's cards, review log and levels (Room `opening_card`, `opening_review`, `opening_level`). */
+    fun provideRepertoireProgress(context: Context): RoomRepertoireProgressRepository {
+        return repertoireProgressInstance ?: synchronized(this) {
+            repertoireProgressInstance ?: RoomRepertoireProgressRepository(AppDatabase.getInstance(context)).also { repertoireProgressInstance = it }
         }
     }
 

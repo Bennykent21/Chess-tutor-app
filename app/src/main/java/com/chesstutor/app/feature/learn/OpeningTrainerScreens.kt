@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material3.Icon
@@ -64,33 +65,92 @@ import java.util.concurrent.TimeUnit
  * with lines learned and how many are due; a button reviews the due lines first.
  */
 @Composable
-fun OpeningTrainerScreen(state: TrainerState, onOpen: (openingId: String) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val firstDue = state.openings.firstOrNull { it.due > 0 && it.lines.isNotEmpty() }
-    // Open on the side that has lines due, so the list starts where the work is.
-    var side by rememberSaveable { mutableStateOf(firstDue?.opening?.side ?: PieceColor.WHITE) }
-    val due = state.openings.sumOf { it.due }
+fun OpeningTrainerScreen(
+    state: TrainerState,
+    onOpen: (openingId: String) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** The taught openings (Phase 10): each replaces the old single lines of the same opening. */
+    repertoires: List<RepertoireBookUi> = emptyList(),
+    onOpenRepertoire: (id: String) -> Unit = {},
+    /** Reviews every taught opening's due cards, mixed. */
+    onReviewRepertoires: () -> Unit = {},
+    /** One side only, with the side as the title (Train, Phase 12); null shows both behind a switch. */
+    fixedSide: PieceColor? = null,
+    /** A locked opening opens its courses in Learn (Phase 12). */
+    onOpenCourse: (openingId: String) -> Unit = onOpenRepertoire,
+) {
+    val taught = repertoires.map { it.book.id }.toSet()
+    val legacy = state.openings.filter { it.opening.id !in taught && it.lines.isNotEmpty() }
+    val firstDue = legacy.firstOrNull { it.due > 0 }
+    val dueRepertoire = repertoires.firstOrNull { it.due > 0 }
+    // Open on the side that has work due, so the list starts where the work is.
+    var chosen by rememberSaveable { mutableStateOf(dueRepertoire?.book?.side ?: firstDue?.opening?.side ?: PieceColor.WHITE) }
+    val side = fixedSide ?: chosen
+    val repertoireDue = repertoires.filter { it.book.side == side || fixedSide == null }.sumOf { it.due }
+    val due = legacy.filter { it.opening.side == side || fixedSide == null }.sumOf { it.due }
     CtActionPage(
-        title = "Opening trainer",
+        title = when (fixedSide) {
+            PieceColor.WHITE -> "As White"
+            PieceColor.BLACK -> "As Black"
+            null -> "Opening trainer"
+        },
         onBack = onBack,
         modifier = modifier,
         bottom = {
-            if (firstDue != null) {
+            if (repertoireDue > 0) {
+                CtButton(text = "Review $repertoireDue", onClick = onReviewRepertoires, modifier = Modifier.weight(1f))
+            } else if (firstDue != null) {
                 CtButton(text = "Review $due due line${if (due == 1) "" else "s"}", onClick = { onOpen(firstDue.opening.id) }, modifier = Modifier.weight(1f))
             }
         },
     ) {
         // Read when the app starts, so this is at most a blink: nothing to announce.
         if (state.loading) return@CtActionPage
-        CtSegmented(
-            options = listOf(PieceColor.WHITE, PieceColor.BLACK),
-            selected = side,
-            label = { if (it == PieceColor.WHITE) "As White" else "As Black" },
-            onSelect = { side = it },
-        )
-        val shown = state.openings.filter { it.opening.side == side && it.lines.isNotEmpty() }
-        Column(Modifier.padding(top = CtSpacing.sm)) {
-            shown.forEachIndexed { i, item -> TrainerRow(item, onOpen = { onOpen(item.opening.id) }) }
+        if (fixedSide == null) {
+            CtSegmented(
+                options = listOf(PieceColor.WHITE, PieceColor.BLACK),
+                selected = side,
+                label = { if (it == PieceColor.WHITE) "As White" else "As Black" },
+                onSelect = { chosen = it },
+            )
         }
+        val shown = legacy.filter { it.opening.side == side }
+        Column(Modifier.padding(top = CtSpacing.sm)) {
+            repertoires.filter { it.book.side == side }.forEach { item ->
+                RepertoireRow(item, onOpen = { if (item.locked) onOpenCourse(item.book.id) else onOpenRepertoire(item.book.id) })
+            }
+            shown.forEach { item -> TrainerRow(item, onOpen = { onOpen(item.opening.id) }) }
+        }
+    }
+}
+
+@Composable
+private fun RepertoireRow(item: RepertoireBookUi, onOpen: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 64.dp)
+            .ctPressable(onClickLabel = "Open ${item.book.title}", onClick = onOpen)
+            .semantics(mergeDescendants = true) {}
+            .padding(vertical = CtSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(item.book.title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                when {
+                    // Phase 12: drills open after the course, or after the test.
+                    item.locked -> "Take the course first"
+                    item.due > 0 -> "${(item.readiness * 100).toInt()}% ready · ${item.due} due"
+                    else -> "${(item.readiness * 100).toInt()}% ready"
+                },
+                style = CtType.Caption,
+            )
+        }
+        if (item.locked) Icon(Icons.Rounded.Lock, contentDescription = "Locked", tint = CtColors.Text2, modifier = Modifier.size(18.dp))
+        else Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(20.dp))
     }
 }
 

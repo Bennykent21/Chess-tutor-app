@@ -25,3 +25,10 @@ stockfish-build/
 # Large inputs for tools/build_puzzle_pack.py (Lichess puzzle database, Stockfish for Windows).
 /tools/.cache/
 __pycache__/
+
+# Art render inputs and outputs (downloaded or generated, see tools/art/README.md)
+/tools/art/edge-profile/
+/tools/art/gltf4k/
+/tools/art/hdr/
+/tools/art/oidn/
+/tools/art/out/

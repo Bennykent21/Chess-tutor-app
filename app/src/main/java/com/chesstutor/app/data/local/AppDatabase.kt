@@ -25,8 +25,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         GameAnalysisEntity::class,
         CoursePracticeEntity::class,
         OpeningDrillEntity::class,
+        OpeningCardEntity::class,
+        OpeningReviewEntity::class,
+        OpeningLevelEntity::class,
     ],
-    version = 13,
+    version = 15,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -39,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lessonProgressDao(): LessonProgressDao
     abstract fun analysisDao(): AnalysisDao
     abstract fun trainingDao(): TrainingDao
+    abstract fun repertoireDao(): RepertoireDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -217,6 +221,39 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Phase 10: the mistakes review keeps the scheduler's ease and interval (they were lost on every load). */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE review_items ADD COLUMN easeFactor REAL NOT NULL DEFAULT 2.5")
+                db.execSQL("ALTER TABLE review_items ADD COLUMN intervalDays INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /** Phase 10: the opening trainer's cards, review log and levels (D71, D72). */
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS opening_card (" +
+                        "cardId TEXT NOT NULL, bookId TEXT NOT NULL, positionKey TEXT NOT NULL, level INTEGER NOT NULL, " +
+                        "stage INTEGER NOT NULL, easeFactor REAL NOT NULL, intervalDays INTEGER NOT NULL, dueAt INTEGER NOT NULL, " +
+                        "attempts INTEGER NOT NULL, introducedAt INTEGER NOT NULL, lastReviewedAt INTEGER, " +
+                        "lapses INTEGER NOT NULL, streak INTEGER NOT NULL, PRIMARY KEY(cardId))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_opening_card_bookId ON opening_card (bookId)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS opening_review (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, cardId TEXT NOT NULL, bookId TEXT NOT NULL, " +
+                        "level INTEGER NOT NULL, at INTEGER NOT NULL, firstTryRight INTEGER NOT NULL, hinted INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_opening_review_bookId ON opening_review (bookId)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS opening_level (" +
+                        "bookId TEXT NOT NULL, unlocked INTEGER NOT NULL, coreMasteredAt INTEGER, standardMasteredAt INTEGER, " +
+                        "deepMasteredAt INTEGER, PRIMARY KEY(bookId))"
+                )
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -230,6 +267,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
+            MIGRATION_13_14,
+            MIGRATION_14_15,
         )
 
         @Volatile
