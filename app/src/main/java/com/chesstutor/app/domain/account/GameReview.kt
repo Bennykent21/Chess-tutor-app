@@ -134,6 +134,70 @@ enum class MoveQuality(val label: String, val symbol: String) {
                 winAfter >= chanceBeforeGift - MISS_MARGIN
 
         const val MISS_MARGIN = 5.0
+
+        /**
+         * The grade with the score's own story added (Phase 13B): once a game is decided the winning
+         * chances hardly move, so a move that allows a forced mate, throws away one's own mate,
+         * hurries one's own mate or gives away a lot of material would otherwise pass as excellent.
+         * Mates follow Lichess's rules; these rules only ever make the grade worse, and never touch
+         * the engine's own best move.
+         */
+        fun judge(loss: Double, playedBest: Boolean, before: SideScore, after: SideScore): MoveQuality {
+            val base = of(loss, playedBest)
+            if (playedBest) return base
+            val wasMate = before.mate
+            val isMate = after.mate
+            val rule = when {
+                // Allowed a forced mate: a blunder, unless the game was hopeless already.
+                isMate != null && isMate < 0 && (wasMate == null || wasMate > 0) ->
+                    if (wasMate != null || (before.cp ?: 0) > HOPELESS_CP) BLUNDER else MISTAKE
+                // Let one's own forced mate go: the more is left over, the milder.
+                wasMate != null && wasMate > 0 && isMate == null -> when {
+                    (after.cp ?: 0) >= 1000 -> INACCURACY
+                    (after.cp ?: 0) >= 700 -> MISTAKE
+                    else -> BLUNDER
+                }
+                // Being mated, and making it come sooner than the best defence would.
+                wasMate != null && wasMate < 0 && isMate != null && isMate < 0 -> when ((-wasMate) - (-isMate)) {
+                    in HURRIED_MISTAKE..Int.MAX_VALUE -> MISTAKE
+                    in HURRIED_INACCURACY until HURRIED_MISTAKE -> INACCURACY
+                    else -> null
+                }
+                // Material given away while the mover is not still clearly winning.
+                wasMate == null && isMate == null && (after.cp ?: 0) <= STILL_WINNING_CP -> when ((before.cp ?: 0) - (after.cp ?: 0)) {
+                    in MATERIAL_BLUNDER_CP..Int.MAX_VALUE -> BLUNDER
+                    in MATERIAL_MISTAKE_CP until MATERIAL_BLUNDER_CP -> MISTAKE
+                    else -> null
+                }
+                else -> null
+            }
+            return if (rule != null && rule.ordinal > base.ordinal) rule else base
+        }
+
+        /** Below this a position is hopeless, so allowing mate there is "only" a mistake. */
+        const val HOPELESS_CP = -1000
+        const val HURRIED_INACCURACY = 2
+        const val HURRIED_MISTAKE = 4
+        /** About a rook and a queen's worth; the mover's score after must not be above [STILL_WINNING_CP]. */
+        const val MATERIAL_MISTAKE_CP = 400
+        const val MATERIAL_BLUNDER_CP = 700
+        const val STILL_WINNING_CP = 300
+    }
+}
+
+/** A score from one side's view: [mate] in moves (negative while being mated; a mate on the board counts as 1 or -1), else [cp]. */
+data class SideScore(val cp: Int?, val mate: Int?) {
+    companion object {
+        fun of(eval: PlyEval, side: PieceColor): SideScore {
+            val sign = if (side == PieceColor.WHITE) 1 else -1
+            val cp = eval.centipawns?.times(sign)
+            val mate = when (eval.mate) {
+                null -> null
+                0 -> if ((cp ?: 0) >= 0) 1 else -1
+                else -> eval.mate * sign
+            }
+            return SideScore(cp, mate)
+        }
     }
 }
 
@@ -248,7 +312,7 @@ object GameReviewer {
             val winAfter = after.winFor(mover)
             val loss = (winBefore - winAfter).coerceAtLeast(0.0)
             val book = i < bookPlies
-            val base = MoveQuality.of(loss, playedBest = best?.uci == played.uci)
+            val base = MoveQuality.judge(loss, playedBest = best?.uci == played.uci, SideScore.of(before, mover), SideScore.of(after, mover))
             // The opponent's last move, and the mover's chances before it.
             val opponentLast = reviewed.lastOrNull()?.takeIf { it.mover != mover }
             val quality = when {

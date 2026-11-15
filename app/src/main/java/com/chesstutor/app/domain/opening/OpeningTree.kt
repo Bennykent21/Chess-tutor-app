@@ -51,8 +51,13 @@ class OpeningTree private constructor(
     private val edges: Map<String, Map<String, Int>>,
     private val named: Map<String, Opening>,
     val skippedLines: Int,
+    /** Master-game positions that also count as book where a game leaves the named lines (reviews only; bots keep to the named lines). */
+    private val masters: OpeningBook = OpeningBook.EMPTY,
 ) {
     val isEmpty: Boolean get() = openings.isEmpty()
+
+    /** The same tree with [book]'s positions counted when naming where a game left the book. */
+    fun withBook(book: OpeningBook): OpeningTree = OpeningTree(openings, edges, named, skippedLines, book)
 
     /** Every position the book knows, including the start. */
     fun isInBook(key: String): Boolean = key in edges || key in named
@@ -71,7 +76,7 @@ class OpeningTree private constructor(
             position = play(position, uci) ?: return OpeningMatch(opening, ply, ply)
             // Judged by position, so a book position reached by an unusual move order still counts.
             val key = position.repetitionKey()
-            if (!isInBook(key)) return OpeningMatch(opening, ply, ply)
+            if (!isInBook(key) && !masters.contains(key)) return OpeningMatch(opening, ply, ply)
             named[key]?.let { opening = it }
         }
         return OpeningMatch(opening, moves.size, null)

@@ -63,6 +63,9 @@ object LichessAccuracy {
     }
 
     private const val CEILING = 1000
-    /** Keeps a 0% move from dividing by zero in the harmonic mean (it still pulls the result right down). */
-    private const val MIN_ACCURACY = 0.01
+    /**
+     * Lichess counts no move below 1% in the harmonic mean. At 0.01% one move at 0% weighed a
+     * hundred times more and could halve a whole game's accuracy (Phase 13B).
+     */
+    private const val MIN_ACCURACY = 1.0
 }
