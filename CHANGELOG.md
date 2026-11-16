@@ -2,6 +2,32 @@
 
 Each release's notes on GitHub come from its section here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [1.1.0] - 2026-11-16
+
+### Train
+
+- A new Train tab in the middle: opening drills that flow without Next, Win this endgame and Convert this middlegame against Stockfish, and openings against Stockfish.
+- From your games: the places you leave your opening the same way, endings you let slip and mistakes you repeat, as numbers from your own games.
+- Your own opening lines: build them on the board, drill them and play them out against Stockfish.
+
+### Learn
+
+- The Italian Game and the Caro-Kann from real games, a course per variation, and lessons that show each line before asking for it.
+
+### Play
+
+- Play a friend on one phone, or on two phones over the same Wi-Fi or hotspot. A game in progress is kept when the app closes.
+- Chess960 against a friend or a bot.
+
+### Game review
+
+- Grades and accuracy much closer to chess.com: one lost piece no longer sinks a whole game, mates and lost material count in decided games, and no more false Brilliants.
+- Deeper and faster: a first review within moments, then each move is checked again more deeply. The opening comes from master games and Lichess's cloud when you have internet.
+
+### Updates
+
+- The app tells you when a new version is out and installs it for you (Android asks you to confirm).
+
 ## [1.0.0] - 2026-11-03
 
 The first public release.

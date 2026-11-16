@@ -24,6 +24,9 @@ android {
     versionCode = releaseVersion?.split('.')?.map(String::toInt)?.let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
       ?: ciRunNumber ?: 1
     versionName = releaseVersion ?: if (ciRunNumber != null) "0.1.$ciRunNumber" else "0.1-local"
+    // In-app updates (D88) only in builds from a version tag: they carry the release key, so a
+    // newer release installs over them. Test builds never look.
+    buildConfigField("boolean", "UPDATES_FROM_GITHUB", (releaseVersion != null).toString())
     // App name shown under the launcher icon. Debug builds override it below.
     manifestPlaceholders["appLabel"] = "@string/app_name"
 

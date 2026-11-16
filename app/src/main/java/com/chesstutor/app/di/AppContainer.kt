@@ -75,6 +75,18 @@ object AppContainer {
     private var settingsStoreInstance: SettingsStore? = null
 
     /** Player settings (DataStore). One instance per process, as DataStore requires. */
+    @Volatile
+    private var updateCenterInstance: com.chesstutor.app.data.update.UpdateCenter? = null
+
+    /** In-app updates from GitHub releases (D88); does nothing in test builds. */
+    fun provideUpdateCenter(context: Context): com.chesstutor.app.data.update.UpdateCenter {
+        return updateCenterInstance ?: synchronized(this) {
+            updateCenterInstance ?: com.chesstutor.app.data.update.UpdateCenter(context.applicationContext, appScope).also {
+                updateCenterInstance = it
+            }
+        }
+    }
+
     fun provideSettingsStore(context: Context): SettingsStore {
         return settingsStoreInstance ?: synchronized(this) {
             settingsStoreInstance ?: DataStoreSettingsStore(context.applicationContext).also {

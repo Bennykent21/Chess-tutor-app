@@ -144,6 +144,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
                 state = state,
                 accountActions = linkActions,
                 actions = SettingsActions(
+                    updates = AppContainer.provideUpdateCenter(context),
                     onMascot = viewModel::setMascot,
                     onChatLevel = viewModel::setChatLevel,
                     onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },

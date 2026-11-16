@@ -38,6 +38,7 @@ import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtMotion
 import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.di.AppContainer
+import com.chesstutor.app.feature.update.UpdatePrompt
 import com.chesstutor.app.domain.ReviewScheduler
 import com.chesstutor.app.feature.account.AccountActions
 import com.chesstutor.app.feature.analysis.AnalysisScreen
@@ -77,6 +78,11 @@ private fun AppShell(
 ) {
     // Start-up time: from the process starting to the first frame with the profile read (plan Phase 6D).
     LaunchedEffect(Unit) { PerfLog.startup(SystemClock.elapsedRealtime() - android.os.Process.getStartElapsedRealtime()) }
+    // In-app updates (D88): release builds ask GitHub at most once a day and prompt once per version.
+    val appContext = LocalContext.current.applicationContext
+    val updates = remember(appContext) { AppContainer.provideUpdateCenter(appContext) }
+    LaunchedEffect(updates) { updates.checkIfDue() }
+    if (!needsWelcome(state.assessmentState)) UpdatePrompt(updates)
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
