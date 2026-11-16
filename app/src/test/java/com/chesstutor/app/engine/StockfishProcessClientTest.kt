@@ -58,6 +58,23 @@ class StockfishProcessClientTest {
     }
 
     @Test
+    fun chess960PositionsSwitchStockfishToChess960AndBackOnlyWhenNeeded() = runBlocking {
+        val launcher = FakeLauncher()
+        val engine = client(launcher)
+        val shuffled = com.chesstutor.app.core.Chess960.startFen(3)
+        engine.analyze(AnalysisRequest(requestId = 10, fen = shuffled, movetimeMs = 50))
+        engine.analyze(AnalysisRequest(requestId = 11, fen = shuffled, movetimeMs = 50))
+        engine.analyze(AnalysisRequest(requestId = 12, fen = startFen, movetimeMs = 50))
+        val commands = launcher.started.flatMap { it.commands }
+        val switches = commands.filter { it.startsWith("setoption name UCI_Chess960") }
+        assertEquals(listOf("setoption name UCI_Chess960 value true", "setoption name UCI_Chess960 value false"), switches)
+        assertTrue(
+            "the switch comes before the Chess960 position",
+            commands.indexOf("setoption name UCI_Chess960 value true") < commands.indexOf("position fen $shuffled"),
+        )
+    }
+
+    @Test
     fun positionsStockfishWouldRejectNeverReachIt() = runBlocking {
         // White to move while Black's king is already in check: Stockfish 19 would terminate.
         val sideNotToMoveInCheck = "4k3/4R3/8/8/8/8/8/4K3 w - - 0 1"
@@ -217,6 +234,29 @@ class StockfishProcessClientTest {
         val next = engine.analyze(AnalysisRequest(requestId = 41, fen = startFen, movetimeMs = 10))
         assertEquals("e2e4", next.bestMoveUci)
         assertEquals(EngineSource.NATIVE, next.source)
+    }
+
+    @Test
+    fun aSearchThatRunsLongIsStoppedAndAnswersWithItsBestSoFar() = runBlocking {
+        // A slow phone: the search never ends on its own, but answers when told to stop.
+        val launcher = FakeLauncher {
+            FakeStockfishProcess { command ->
+                when {
+                    command.startsWith("go") -> emit("info depth 15 score cp 44 nodes 900000 nps 300000 pv d2d4 d7d5")
+                    command == "stop" -> emit("bestmove d2d4")
+                    else -> defaultScript(command)
+                }
+            }
+        }
+        val engine = client(launcher)
+
+        val result = engine.analyze(AnalysisRequest(requestId = 45, fen = startFen, movetimeMs = 10, depth = 18))
+
+        assertEquals("Stockfish's own answer, not the Lite engine's", EngineSource.NATIVE, result.source)
+        assertEquals("d2d4", result.bestMoveUci)
+        assertEquals(44, result.centipawns)
+        assertFalse(engine.status.value.isDegraded)
+        assertTrue("depth and time both limit the search", launcher.started.single().commands.contains("go depth 18 movetime 10"))
     }
 
     @Test

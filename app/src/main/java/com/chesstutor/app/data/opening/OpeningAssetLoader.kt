@@ -2,6 +2,7 @@ package com.chesstutor.app.data.opening
 
 import com.chesstutor.app.data.diagnostics.PerfLog
 import android.content.res.AssetManager
+import com.chesstutor.app.domain.opening.OpeningBook
 import com.chesstutor.app.domain.opening.OpeningTree
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -28,7 +29,7 @@ class OpeningAssetLoader(private val assets: AssetManager, private val assetName
         for (candidate in candidates) {
             try {
                 val tree = assets.open(candidate).use(OpeningTree::fromStream)
-                if (!tree.isEmpty) return tree
+                if (!tree.isEmpty) return tree.withBook(readBook())
             } catch (_: IOException) {
                 // Try the next name.
             } catch (e: Exception) {
@@ -38,7 +39,15 @@ class OpeningAssetLoader(private val assets: AssetManager, private val assetName
         return OpeningTree.EMPTY
     }
 
+    /** The master-game book for reviews (tools/build_book.py); without it, only the named lines count. */
+    private fun readBook(): OpeningBook = try {
+        assets.open(BOOK_ASSET).use(OpeningBook::fromStream)
+    } catch (_: IOException) {
+        OpeningBook.EMPTY
+    }
+
     companion object {
         const val DEFAULT_ASSET = "openings.tsv.gz"
+        const val BOOK_ASSET = "book.bin"
     }
 }

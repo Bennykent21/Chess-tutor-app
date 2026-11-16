@@ -1,5 +1,6 @@
 package com.chesstutor.app.engine
 
+import com.chesstutor.app.core.Chess960
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -73,6 +74,7 @@ class StockfishProcessEngineClient(
     // or lifecycleMutex, and reset whenever a new process starts.
     private var appliedStrengthElo: Int? = null
     private var appliedMultiPv = 1
+    private var appliedChess960 = false
 
     @Volatile
     private var nativeFailures = 0
@@ -121,6 +123,7 @@ class StockfishProcessEngineClient(
             session = newSession
             appliedStrengthElo = null
             appliedMultiPv = 1
+            appliedChess960 = false
             updateTelemetry {
                 it.copy(
                     processStarts = it.processStarts + 1,
@@ -228,6 +231,7 @@ class StockfishProcessEngineClient(
         }
 
         val goCommand = when {
+            request.depth != null && request.movetimeMs != null -> "go depth ${request.depth} movetime ${request.movetimeMs}"
             request.depth != null -> "go depth ${request.depth}"
             else -> "go movetime ${request.movetimeMs ?: DEFAULT_MOVETIME_MS}"
         }
@@ -238,7 +242,7 @@ class StockfishProcessEngineClient(
         }
 
         val timeoutMs = when {
-            request.movetimeMs != null && request.depth == null -> request.movetimeMs.toLong() + 3_000L
+            request.movetimeMs != null -> request.movetimeMs.toLong() + 3_000L
             request.depth != null -> (request.depth * 1_500L).coerceIn(5_000L, 30_000L)
             else -> 5_000L
         }
@@ -253,9 +257,18 @@ class StockfishProcessEngineClient(
         }
         if (result != null) return result
 
-        // Timed out. If the answer raced in just now, use it.
-        if (!abandonSearch(deferred)) return deferred.await()
+        // Taking too long: stop, and Stockfish answers with the best it has found so far, which
+        // is far better than the Lite engine's (a slow phone used to switch reviews to Lite).
         send(current, "stop")
+        val stopped = try {
+            withTimeoutOrNull(STOP_GRACE_MS) { deferred.await() }
+        } catch (cancelled: CancellationException) {
+            abandonSearch(deferred)
+            throw cancelled
+        }
+        if (stopped != null) return stopped
+        // No answer even then. If it raced in just now, use it.
+        if (!abandonSearch(deferred)) return deferred.await()
         return answerFromFallback(request)
     }
 
@@ -308,6 +321,13 @@ class StockfishProcessEngineClient(
         if (wantedPv != appliedMultiPv) {
             send(current, "setoption name MultiPV value $wantedPv")
             appliedMultiPv = wantedPv
+        }
+        // A Chess960 position (its FEN names the rooks' files): Stockfish then castles as the king
+        // taking its own rook, which is how the app writes those moves too.
+        val wanted960 = Chess960.isChess960(request.fen)
+        if (wanted960 != appliedChess960) {
+            send(current, "setoption name UCI_Chess960 value $wanted960")
+            appliedChess960 = wanted960
         }
     }
 
@@ -597,6 +617,8 @@ class StockfishProcessEngineClient(
         const val MIN_UCI_ELO = 1320
         const val MAX_UCI_ELO = 3190
         private const val DEFAULT_MOVETIME_MS = 150
+        /** How long a stopped search has to send its best move before the Lite engine answers. */
+        private const val STOP_GRACE_MS = 2_000L
         private const val HEALTH_CHECK_REQUEST_ID = 9_999
         private const val NO_MOVE = "0000"
         private const val NNUE_PREFIX = "NNUE evaluation using"

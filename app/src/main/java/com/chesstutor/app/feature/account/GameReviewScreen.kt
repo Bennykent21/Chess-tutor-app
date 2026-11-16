@@ -93,6 +93,7 @@ import com.chesstutor.app.design.CtCard
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtMetalIcon
+import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtShapes
@@ -595,6 +596,11 @@ private fun AnalysisStatus(state: ReviewState, review: GameReview?, actions: Rev
             Text(job.error, style = CtType.BodySmall)
             Spacer(Modifier.height(CtSpacing.sm))
             CtButton(text = "Try again", icon = Icons.Rounded.Refresh, onClick = actions.onAnalyse, modifier = Modifier.fillMaxWidth())
+        }
+        // The quick pass is done and the grades sharpen as each move is searched again (D86).
+        job != null && job.deeper -> Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+            Text("Checking each move more deeply", style = CtType.Caption)
+            CtProgressBar(progress = job.progress)
         }
         // Running: no card, the graph filling in shows the progress (review of Phase 5).
         job != null -> Unit

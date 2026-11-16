@@ -145,6 +145,8 @@ fun AnalysisScreen(
     var thinking by remember { mutableStateOf(false) }
     val drawn = remember { mutableStateMapOf<Int, Drawn>() }
     val evals = remember { mutableStateMapOf<Int, PlyEval>() }
+    // Only finished searches grade a move, so a verdict does not change while the engine deepens (Phase 13B).
+    val settled = remember { mutableStateMapOf<Int, PlyEval>() }
     val judged = remember { mutableStateMapOf<Int, JudgedMove>() }
     val engineStatus by (engine?.status?.collectAsState() ?: remember { mutableStateOf(EngineStatus()) })
 
@@ -159,18 +161,27 @@ fun AnalysisScreen(
         val lite = { engine.status.value.isDegraded }
         // The position before the last move needs the engine's view too, to judge that move.
         if (parentId != null && previous != null && evals[parentId] == null) {
-            ExploreJudge.evalOf(previous, engine.analyse(previous.toFen(), lines = 3, movetimeMs = CATCH_UP_MS), lite())?.let { evals[parentId] = it }
+            ExploreJudge.evalOf(previous, engine.analyse(previous.toFen(), lines = 3, movetimeMs = CATCH_UP_MS), lite())?.let {
+                evals[parentId] = it
+                if (settled[parentId] == null) settled[parentId] = it
+            }
         }
         if (state.legalMoves.isEmpty()) {
-            ExploreJudge.evalOf(position, emptyList())?.let { evals[node] = it }
+            ExploreJudge.evalOf(position, emptyList())?.let {
+                evals[node] = it
+                settled[node] = it
+            }
             return@LaunchedEffect
         }
         val fen = position.toFen()
-        for (movetime in ANALYSIS_STEPS_MS) {
+        for ((step, movetime) in ANALYSIS_STEPS_MS.withIndex()) {
             val result = engine.analyse(fen, lines = 3, movetimeMs = movetime)
             if (result.isNotEmpty()) {
                 lines = result
-                ExploreJudge.evalOf(position, result, lite())?.let { evals[node] = it }
+                ExploreJudge.evalOf(position, result, lite())?.let {
+                    evals[node] = it
+                    if (step == ANALYSIS_STEPS_MS.lastIndex) settled[node] = it
+                }
             }
         }
         if (opponent == position.sideToMove && replyDue == node) {
@@ -185,9 +196,9 @@ fun AnalysisScreen(
     // The move on the board, judged once both positions have the engine's view.
     val current = session.currentId
     val parentId = session.parentId
-    val verdict = remember(state.version, evals[parentId], evals[current]) {
-        val before = parentId?.let { evals[it] }
-        val after = evals[current]
+    val verdict = remember(state.version, settled[parentId], settled[current]) {
+        val before = parentId?.let { settled[it] }
+        val after = settled[current]
         val previous = state.previous
         val move = state.lastMove
         if (before == null || after == null || previous == null || move == null) null

@@ -20,6 +20,9 @@ import com.chesstutor.app.domain.game.SetupBoard
 import com.chesstutor.app.domain.opening.Opening
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.feature.play.FriendGame
+import com.chesstutor.app.feature.play.InMemoryFriendGameStore
+import com.chesstutor.app.feature.play.FriendSnapshot
+import com.chesstutor.app.feature.play.FriendGameStore
 import com.chesstutor.app.feature.play.FriendPeer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -107,7 +110,19 @@ class FriendViewModel(
     private val games: GameRepository,
     private val clock: () -> Long = System::currentTimeMillis,
     private val connector: NearbyConnector? = null,
+    private val store: FriendGameStore = InMemoryFriendGameStore(),
 ) : ViewModel() {
+    private val mutableResumable = MutableStateFlow(store.load())
+    /** A game on this phone that was left unfinished, to carry on from the setup page. */
+    val resumable: StateFlow<FriendSnapshot?> = mutableResumable.asStateFlow()
+
+    /** Carries on the unfinished game; false if there is none. */
+    fun resume(): Boolean {
+        val saved = mutableResumable.value ?: return false
+        launch(saved.setup, saved)
+        return true
+    }
+
     private val mutableDraft = MutableStateFlow(FriendDraft())
     val draft: StateFlow<FriendDraft> = mutableDraft.asStateFlow()
 
@@ -170,9 +185,14 @@ class FriendViewModel(
         leaveNearby()
     }
 
-    private fun launch(setup: FriendSetup) {
+    private fun launch(setup: FriendSetup, resume: FriendSnapshot? = null) {
         mutableGame.value?.pause()
-        mutableGame.value = FriendGame(setup, ::tree, games, viewModelScope, clock).also { it.start() }
+        mutableGame.value = FriendGame(setup, ::tree, games, viewModelScope, clock, resume = resume, onSnapshot = ::kept).also { it.start() }
+    }
+
+    private fun kept(snapshot: FriendSnapshot?) {
+        if (snapshot == null) store.clear() else store.save(snapshot)
+        mutableResumable.value = snapshot
     }
 
     // ------------------------------------------------------------------ nearby (Phase 11C)
@@ -304,9 +324,10 @@ class FriendViewModel(
         private val openings: suspend () -> OpeningTree,
         private val games: GameRepository,
         private val connector: NearbyConnector? = null,
+        private val store: FriendGameStore = InMemoryFriendGameStore(),
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = FriendViewModel(openings, games, connector = connector) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = FriendViewModel(openings, games, connector = connector, store = store) as T
     }
 
     companion object {

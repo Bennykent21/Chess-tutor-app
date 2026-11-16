@@ -15,12 +15,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtButton
+import com.chesstutor.app.design.CtScene
+import com.chesstutor.app.design.CtArtTile
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
@@ -52,12 +53,12 @@ fun BotsScreen(
                     CtButton(text = "Build a bot", icon = Icons.Rounded.Add, onClick = onNewBot, modifier = Modifier.weight(1f))
                     CtButton(text = "Watch two", icon = Icons.Rounded.Visibility, style = CtButtonStyle.Secondary, onClick = onWatch, modifier = Modifier.weight(1f))
                 }
-                CtButton(
-                    text = "Play a friend",
-                    icon = Icons.Rounded.Group,
-                    style = CtButtonStyle.Secondary,
+                CtArtTile(
+                    title = "Play a friend",
+                    scene = CtScene.FRIEND,
+                    subtitle = "This phone or nearby",
                     onClick = onPlayFriend,
-                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    modifier = Modifier.fillMaxWidth().height(112.dp).padding(top = 10.dp),
                 )
                 if (myBots.isNotEmpty()) {
                     CtSectionHeader(title = "My bots")

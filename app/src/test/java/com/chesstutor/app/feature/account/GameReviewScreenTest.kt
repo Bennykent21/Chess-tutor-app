@@ -155,6 +155,23 @@ class GameReviewScreenTest {
     }
 
     @Test
+    fun theDeeperPassShowsTheFinishedReviewWithAThinProgressLine() {
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                GameReviewScreen(
+                    state = state(evals, job = AnalysisJob(done = 3, total = 8, waiting = false, deeper = true)),
+                    settings = AppSettings(),
+                    engine = null,
+                    actions = ReviewActions(),
+                )
+            }
+        }
+        compose.onNodeWithText("Checking each move more deeply").assertExists()
+        compose.onNodeWithText("I'm going through your game move by move. The graph fills in as I go.").assertDoesNotExist()
+        compose.onNodeWithText("Key moments").assertExists()
+    }
+
+    @Test
     fun playStopsAtTheNextKeyMoment() {
         compose.setContent {
             CtTheme(reduceMotion = true) {

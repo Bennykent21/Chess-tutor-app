@@ -74,6 +74,10 @@ class FriendGame(
     private val localSides: Set<PieceColor> = PieceColor.entries.toSet(),
     /** Nearby: the other phone, told of this phone's moves; null on one phone. */
     private val peer: FriendPeer? = null,
+    /** A game on one phone to carry on where it was left. */
+    private val resume: FriendSnapshot? = null,
+    /** Told the game as it stands after every move on one phone, and null once it is over. */
+    private val onSnapshot: ((FriendSnapshot?) -> Unit)? = null,
 ) {
     val session = PlaySession(Position.fromFen(setup.startFen), localSides) { move -> localMove(move) }
 
@@ -100,9 +104,11 @@ class FriendGame(
     fun start() {
         scope.launch {
             if (standardStart) tree = runCatching { openings() }.getOrDefault(OpeningTree.EMPTY)
-            for (uci in setup.openingMoves) {
+            for (uci in resume?.moves ?: setup.openingMoves) {
                 session.play(legal(uci) ?: break)
             }
+            resume?.whiteMs?.let { clocks.set(PieceColor.WHITE, it) }
+            resume?.blackMs?.let { clocks.set(PieceColor.BLACK, it) }
             mutableState.update { it.copy(phase = FriendPhase.PLAYING) }
             if (checkGameOver()) return@launch
             clocks.start(session.game.position.sideToMove)
@@ -134,7 +140,18 @@ class FriendGame(
         clocks.moved(mover)
         peer?.moved(move.uci, clocks.remaining(mover))
         mutableState.update { it.copy(drawOffer = null) }
-        if (!checkGameOver()) publishTurn()
+        if (!checkGameOver()) {
+            publishTurn()
+            keep()
+        }
+    }
+
+    /** Saves the game as it stands, on one phone, once it has a move of its own. */
+    private fun keep() {
+        if (peer != null || state.value.phase != FriendPhase.PLAYING || session.moves.size <= setup.openingMoves.size) return
+        onSnapshot?.invoke(
+            FriendSnapshot(setup, session.moves.map { it.uci }, clocks.remaining(PieceColor.WHITE), clocks.remaining(PieceColor.BLACK), clock()),
+        )
     }
 
     private fun publishTurn() {
@@ -161,6 +178,7 @@ class FriendGame(
         clocks.stop()
         clocks.start(session.game.position.sideToMove)
         publishTurn()
+        keep()
     }
 
     /** [side] gives up; on one phone that is the player whose turn it is, nearby it is this phone's player. */
@@ -227,9 +245,10 @@ class FriendGame(
     private val localSide: PieceColor? get() = localSides.singleOrNull()
     private val remoteSide: PieceColor? get() = localSide?.opposite()
 
-    /** Stops the clock's redraws, for leaving the screen; the clocks themselves keep their time. */
+    /** Stops the clock's redraws, for leaving the screen, and saves the game with the time left now. */
     fun pause() {
         ticker?.cancel()
+        keep()
     }
 
     // ------------------------------------------------------------------ the end
@@ -257,6 +276,7 @@ class FriendGame(
         clocks.stop()
         session.open = false
         mutableState.update { it.copy(phase = FriendPhase.OVER, result = result, canTakeBack = false, toMove = session.game.position.sideToMove) }
+        if (peer == null) onSnapshot?.invoke(null)
         // Someone at the table won unless it is a draw, so the ending is never the losing sound.
         sound(if (result.winner == null) BoardFeedback(BoardSound.MOVE, HapticPattern.TICK) else BoardFeedback(BoardSound.WIN, HapticPattern.LONG))
         scope.launch {

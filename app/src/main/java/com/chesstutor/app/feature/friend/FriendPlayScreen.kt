@@ -109,8 +109,8 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
     val look = rememberLookBack(board, key = game)
     val material = remember(board.version) { MaterialBalance.of(board.start, board.position) }
     val explore = { actions.onAnalyse(setup.startFen, board.moves.map { it.uci }) }
-    // A game in progress is not saved, so leaving it asks first.
-    val leave = { if (playing && board.moves.size > setup.openingMoves.size) ask = Ask.LEAVE else actions.onBack() }
+    // On one phone an unfinished game is kept for later; nearby, leaving ends it for both, so it asks first.
+    val leave = { if (game.nearby && playing && !state.peerGone) ask = Ask.LEAVE else actions.onBack() }
     BackHandler(onBack = leave)
 
     @Composable
@@ -218,7 +218,7 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
         )
         Ask.LEAVE -> CtConfirmDialog(
             title = "Leave this game?",
-            text = "A game that is not finished is not saved.",
+            text = "The game ends for $friendName too, and it is not saved.",
             confirmLabel = "Leave",
             onConfirm = {
                 ask = null

@@ -63,6 +63,7 @@ enum class CtScene(@param:DrawableRes val night: Int, @param:DrawableRes val day
     BATTLE(R.drawable.art_battle_night, R.drawable.art_battle_day),
     EXPLORE(R.drawable.art_explore_night, R.drawable.art_explore_day),
     POSITION(R.drawable.art_position_night, R.drawable.art_position_day),
+    FRIEND(R.drawable.art_friend_night, R.drawable.art_friend_day),
     RANK_PAWN(R.drawable.art_rank_pawn_night, R.drawable.art_rank_pawn_day),
     RANK_KNIGHT(R.drawable.art_rank_knight_night, R.drawable.art_rank_knight_day),
     RANK_BISHOP(R.drawable.art_rank_bishop_night, R.drawable.art_rank_bishop_day),

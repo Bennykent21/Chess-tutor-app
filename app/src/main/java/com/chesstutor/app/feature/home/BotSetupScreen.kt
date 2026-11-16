@@ -31,6 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.design.CtActionPage
+import com.chesstutor.app.board.BoardTheme
+import com.chesstutor.app.feature.learn.BoardThumbnail
+import com.chesstutor.app.design.CtListRow
+import com.chesstutor.app.core.Chess960
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtConfirmDialog
@@ -54,12 +58,14 @@ import com.chesstutor.app.domain.game.TimeControl
 @Composable
 fun BotSetupScreen(
     bot: RosterBot,
-    onPlay: (SideChoice, GameRules) -> Unit,
+    /** The side, the rules, and the Chess960 start (null for normal chess). */
+    onPlay: (SideChoice, GameRules, Int?) -> Unit,
     onBack: () -> Unit,
     initialRules: GameRules = GameRules(),
     /** Set for the player's own bots. */
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    theme: BoardTheme = BoardTheme(),
 ) {
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var side by rememberSaveable { mutableStateOf(SideChoice.RANDOM) }
@@ -67,6 +73,7 @@ fun BotSetupScreen(
     var takebacks by rememberSaveable { mutableStateOf(initialRules.takebacks) }
     var hints by rememberSaveable { mutableStateOf(initialRules.hints) }
     var evalBar by rememberSaveable { mutableStateOf(initialRules.evalBar) }
+    var chess960 by rememberSaveable { mutableStateOf<Int?>(null) }
     val menu = listOfNotNull(
         onEdit?.let { CtMenuItem("Edit bot", onClick = it) },
         onDelete?.let { CtMenuItem("Delete bot", destructive = true) { confirmDelete = true } },
@@ -77,7 +84,7 @@ fun BotSetupScreen(
         onBack = onBack,
         actions = if (menu.isEmpty()) null else { { CtOverflowMenu(menu) } },
         bottom = {
-            CtButton(text = "Play", onClick = { onPlay(side, GameRules(time, takebacks, hints, evalBar)) }, modifier = Modifier.weight(1f))
+            CtButton(text = "Play", onClick = { onPlay(side, GameRules(time, takebacks, hints, evalBar), chess960) }, modifier = Modifier.weight(1f))
         },
     ) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -94,6 +101,16 @@ fun BotSetupScreen(
             CtToggleRow(title = "Takebacks", checked = takebacks, onCheckedChange = { takebacks = it })
             CtToggleRow(title = "Hints", checked = hints, onCheckedChange = { hints = it })
             CtToggleRow(title = "Evaluation bar", checked = evalBar, onCheckedChange = { evalBar = it })
+            CtToggleRow(title = "Chess960", checked = chess960 != null, onCheckedChange = { on -> chess960 = if (on) Chess960.random() else null })
+        }
+        chess960?.let { number ->
+            CtListRow(
+                title = "Position $number",
+                subtitle = "Tap for another. Castling still ends on g or c.",
+                icon = null,
+                onClick = { chess960 = Chess960.random() },
+                leading = { BoardThumbnail(Chess960.startFen(number), theme, flipped = false, size = 44.dp) },
+            )
         }
         Repertoire(bot)
     }

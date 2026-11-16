@@ -196,7 +196,7 @@ class HomeScreensTest {
         var chosen: Pair<SideChoice, GameRules>? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                BotSetupScreen(BotRoster.byId("marlo")!!, onPlay = { side, rules -> chosen = side to rules }, onBack = {})
+                BotSetupScreen(BotRoster.byId("marlo")!!, onPlay = { side, rules, _ -> chosen = side to rules }, onBack = {})
             }
         }
         compose.onNodeWithText("Have a pawn, on me. It gets wild from here.").assertExists()

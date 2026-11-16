@@ -144,6 +144,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
                 state = state,
                 accountActions = linkActions,
                 actions = SettingsActions(
+                    updates = AppContainer.provideUpdateCenter(context),
                     onMascot = viewModel::setMascot,
                     onChatLevel = viewModel::setChatLevel,
                     onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
@@ -306,7 +307,8 @@ internal fun Shell.accountViewModel(): AccountViewModel {
             engine = AppContainer.provideEngineService(context),
             reviews = AppContainer.provideReviewRepository(context),
             trainingSources = trainingSources(context),
-            reviewDepth = { AppContainer.provideSettingsStore(context).settings.first().reviewDepth.depth },
+            reviewDepth = { AppContainer.provideSettingsStore(context).settings.first().reviewDepth },
+            cloud = com.chesstutor.app.data.network.LichessCloudEvals(),
         ),
     )
 }

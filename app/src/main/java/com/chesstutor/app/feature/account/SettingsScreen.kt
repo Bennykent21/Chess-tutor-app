@@ -50,6 +50,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Code
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.rounded.SystemUpdate
+import com.chesstutor.app.data.update.UpdateCenter
+import com.chesstutor.app.data.update.UpdateState
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Download
@@ -125,6 +129,8 @@ data class SettingsActions(
     val eraseEverything: suspend () -> Unit = {},
     /** "Support the developer" link; blank hides the row. */
     val supportUrl: String = BuildConfig.SUPPORT_URL,
+    /** In-app updates (D88); null, or not enabled, hides the row (test builds). */
+    val updates: UpdateCenter? = null,
     val onBack: () -> Unit = {},
 )
 
@@ -355,6 +361,7 @@ fun SettingsScreen(
                                     Text("Chess Tutor ${BuildConfig.VERSION_NAME}", style = CtType.TitleSmall)
                                     Text("Free software under the GNU GPL v3. Everything runs on your phone.", style = CtType.Caption)
                                 }
+                                actions.updates?.takeIf { it.enabled }?.let { center -> UpdateRow(center) }
                                 CtListRow(
                                     title = "Source code",
                                     subtitle = "github.com/Bennykent21/Chess-tutor-app",
@@ -451,6 +458,25 @@ private fun summaryOf(page: SettingsPage, state: AppUiState): String? = when (pa
     SettingsPage.ENGINE -> if (state.engineStatus.isDegraded) "Using a weaker engine" else null
     SettingsPage.DATA -> null
     SettingsPage.ABOUT -> "Version ${BuildConfig.VERSION_NAME}"
+}
+
+/** Settings > About: where updates stand; a tap shows the update or asks GitHub now (D88). */
+@Composable
+private fun UpdateRow(center: UpdateCenter) {
+    val update by center.state.collectAsStateWithLifecycle()
+    CtListRow(
+        title = "Updates",
+        subtitle = when (val now = update) {
+            UpdateState.Checking -> "Checking"
+            UpdateState.UpToDate -> "Up to date"
+            is UpdateState.Available -> "Version ${now.release.version} is ready"
+            is UpdateState.Downloading -> "Downloading version ${now.release.version}"
+            is UpdateState.Ready, is UpdateState.NeedsPermission -> "Ready to install"
+            else -> "Check for a new version"
+        },
+        icon = Icons.Rounded.SystemUpdate,
+        onClick = center::openFromSettings,
+    )
 }
 
 /** A text the player may share (crash log, puzzle reports): tap the row to share it; Clear empties it. */

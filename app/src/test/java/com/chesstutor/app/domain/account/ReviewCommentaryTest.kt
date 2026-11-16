@@ -33,7 +33,7 @@ class ReviewCommentaryTest {
         // 1.e4 d5?? (an invented blunder): exd5 wins the pawn.
         val line = listOf("e2e4", "d7d5")
         val pos = GameReviewer.positions(start, line)
-        val ev = listOf(PlyEval(0, 20, null, "e2e4"), PlyEval(1, 20, null, "e7e5"), PlyEval(2, 400, null, "e4d5"))
+        val ev = listOf(PlyEval(0, 20, null, "e2e4"), PlyEval(1, 20, null, "e7e5"), PlyEval(2, 600, null, "e4d5"))
         val move = GameReviewer.review(start, line, ev).move(2)!!
         assertEquals(MoveQuality.BLUNDER, move.quality)
         assertEquals("It lets pawn takes d5 win your pawn. Best was pawn to e5.", ReviewCommentary.comment(move, ev[2], pos[2]).detail)
