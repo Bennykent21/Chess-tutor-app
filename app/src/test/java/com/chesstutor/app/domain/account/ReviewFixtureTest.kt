@@ -4,6 +4,7 @@ import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
 import com.squareup.moshi.Moshi
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
@@ -65,6 +66,65 @@ class ReviewFixtureTest {
         // The engine's own best moves stay best.
         assertEquals(MoveQuality.BEST, quality("27...Qxa3"))
         assertEquals(MoveQuality.BEST, quality("16.Rxd5"))
+    }
+
+    @Test
+    fun theChessComGameIsGradedCloseToChessCom() {
+        val review = review(load("chesscom"))
+        fun quality(label: String) = review.moves.single { "${it.numberLabel}${it.san}" == label }.quality
+        // A winning game thrown back to level is a mistake, as chess.com says; a lost bishop is a blunder.
+        assertEquals(MoveQuality.MISTAKE, quality("18.Bxc4"))
+        assertEquals(MoveQuality.MISTAKE, quality("42.Qb4"))
+        assertEquals(MoveQuality.BLUNDER, quality("24.Ba4"))
+        // Taking a checking knight while a forked rook falls is no sacrifice; neither is moving an attacked rook.
+        assertEquals(MoveQuality.BEST, quality("33.gxf3"))
+        assertEquals(MoveQuality.BEST, quality("19.Rfe1"))
+        assertEquals("chess.com counted one blunder for each side", listOf(1, 1), PieceColor.entries.map { side -> review.moves.count { it.mover == side && it.quality == MoveQuality.BLUNDER } })
+        // Chess.com: White 71.6, Black 76.35. One lost piece no longer sinks Black below White.
+        assertTrue(review.report(PieceColor.BLACK).accuracy!! > review.report(PieceColor.WHITE).accuracy!!)
+    }
+
+    /**
+     * The developer's chess.com game (14 Nov, reviewed there and here on 16 Nov), with chess.com's own grades of the
+     * developer's moves read from their screen recording: the app at depth 16 and at depth 22 next
+     * to chess.com, and the accuracy computed several ways (chess.com said White 71.6, Black 76.35).
+     */
+    @Test
+    fun printTheChessComGameAgainstItsReview() {
+        if (!File("src/test/resources/reviews/chesscom.json").exists()) return
+        val chessCom = mapOf(
+            "5.Nd2" to "Book", "9.Qg3" to "Mistake", "14.Qh2" to "Great", "16.f3" to "Miss", "18.Bxc4" to "Mistake",
+            "23.d5" to "Mistake", "24.Ba4" to "Blunder", "26.c4" to "Mistake", "27.Re4" to "Mistake", "31.Qc4+" to "Miss",
+            "33.gxf3" to "Best", "34.Qb4" to "Mistake", "42.Qb4" to "Mistake", "46.c7" to "Mistake", "60.Kxh4" to "Excellent",
+        )
+        val fixture = load("chesscom")
+        val app = review(fixture)
+        val deep = review(fixture, deep = true)
+        app.moves.zip(deep.moves).forEach { (a, d) ->
+            val label = "${a.numberLabel}${a.san}"
+            val theirs = chessCom[label]
+            if (a.quality != d.quality || theirs != null || a.quality.isError || a.quality == MoveQuality.BRILLIANT) {
+                println(label.padEnd(10) + "app ${a.quality.label.padEnd(11)} deep ${d.quality.label.padEnd(11)} chess.com ${(theirs ?: "-").padEnd(10)}" +
+                    "win ${"%.1f".format(d.winBefore)} -> ${"%.1f".format(d.winAfter)}  best ${d.bestSan}")
+            }
+        }
+        for (r in listOf(app, deep)) {
+            for (side in PieceColor.entries) {
+                val moves = r.moves.filter { it.mover == side && it.quality != MoveQuality.BOOK }
+                val mean = moves.map { it.accuracy }.average()
+                val harmonic = moves.size / moves.sumOf { 1.0 / it.accuracy.coerceAtLeast(1.0) }
+                val counts = MoveQuality.entries.associateWith { q -> r.moves.count { it.mover == side && it.quality == q } }.filterValues { it > 0 }
+                val wins = listOf(50.0) + r.moves.map { if (it.mover == PieceColor.WHITE) it.winAfter else 100 - it.winAfter }
+                val n = wins.size - 1
+                val w = (n / 10).coerceIn(2, 8)
+                val windows = List((w - 2).coerceAtLeast(0)) { wins.take(w) } + wins.windowed(w)
+                val weights = windows.map { win -> val m = win.average(); kotlin.math.sqrt(win.sumOf { (it - m) * (it - m) } / win.size).coerceIn(0.5, 12.0) }
+                val mine = r.moves.withIndex().filter { it.value.mover == side }
+                val weightedOnly = mine.sumOf { it.value.accuracy * weights.getOrElse(it.index) { weights.last() } } / mine.sumOf { weights.getOrElse(it.index) { weights.last() } }
+                println("  weighted mean only ${"%.1f".format(weightedOnly)}")
+                println("${if (r === app) "app " else "deep"} $side accuracy ${r.report(side).accuracy?.let { "%.1f".format(it) }} (plain mean ${"%.1f".format(mean)}, harmonic ${"%.1f".format(harmonic)}) $counts")
+            }
+        }
     }
 
     @Test

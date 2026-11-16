@@ -34,7 +34,8 @@ class GameReviewTest {
         assertEquals(MoveQuality.GOOD, MoveQuality.of(4.0, playedBest = false))
         assertEquals(MoveQuality.INACCURACY, MoveQuality.of(8.0, playedBest = false))
         assertEquals(MoveQuality.MISTAKE, MoveQuality.of(15.0, playedBest = false))
-        assertEquals(MoveQuality.BLUNDER, MoveQuality.of(25.0, playedBest = false))
+        assertEquals(MoveQuality.MISTAKE, MoveQuality.of(25.0, playedBest = false))
+        assertEquals(MoveQuality.BLUNDER, MoveQuality.of(35.0, playedBest = false))
         assertTrue(MoveQuality.BLUNDER.isError)
         assertFalse(MoveQuality.GOOD.isError)
     }

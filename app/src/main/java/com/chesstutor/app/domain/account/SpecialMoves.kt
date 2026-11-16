@@ -56,7 +56,9 @@ object SpecialMoves {
 
     /**
      * Material the mover leaves for the opponent to win after [move] (the biggest loss the
-     * opponent can actually force by a legal capture), minus what [move] itself captured.
+     * opponent can actually force by a legal capture), minus what [move] itself captured. A piece
+     * that was already hanging before the move is not given up by it: taking a checking knight
+     * while a forked rook falls is no sacrifice (33.gxf3 in the developer's game, D87).
      */
     fun sacrificed(before: Position, move: Move, after: Position): Int {
         val mover = before.sideToMove
@@ -65,9 +67,11 @@ object SpecialMoves {
             else -> before.pieceAt(move.to)?.let { TacticalAnalysis.pieceValue(it.type) } ?: 0
         }
         val replies = LegalMoveGenerator.generateLegalMoves(after)
+        val alreadyHanging = TacticalAnalysis.findHangingPieces(before, mover).mapTo(HashSet()) { it.square }
         val atRisk = TacticalAnalysis.findHangingPieces(after, mover)
             // A piece only counts as given up if the opponent may legally take it.
             .filter { piece -> replies.any { it.to.algebraic == piece.square } }
+            .filter { piece -> piece.square == move.to.algebraic || piece.square !in alreadyHanging }
             .maxOfOrNull { it.netLossCp } ?: 0
         return atRisk - captured
     }

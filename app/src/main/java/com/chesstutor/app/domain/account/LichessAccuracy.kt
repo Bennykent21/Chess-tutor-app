@@ -5,9 +5,11 @@ import kotlin.math.exp
 import kotlin.math.sqrt
 
 /**
- * Game accuracy exactly as Lichess publishes it (lila `AccuracyPercent` and `WinPercent`), so
- * a game reviewed here and on Lichess gives close numbers. Chess.com's "CAPS" formula is not
- * public, so its numbers can differ by several points either way.
+ * Game accuracy from Lichess's published formulas (lila `AccuracyPercent` and `WinPercent`): its
+ * winning chances, its move accuracy and its weighting by how sharp the game was. Lichess also
+ * averages in a harmonic mean, which lets one lost piece sink a whole game (one 1% move pulled a
+ * side from 81 to 60); the app leaves it out (D87), which put the developer's game in the same
+ * order as chess.com. Chess.com's "CAPS" formula is not public, so its numbers still differ.
  */
 object LichessAccuracy {
 
@@ -30,8 +32,8 @@ object LichessAccuracy {
 
     /**
      * Each side's accuracy from White's winning chances at every position ([whiteWins][0] is
-     * the start). Moves in sharp stretches of the game weigh more (the spread of winning
-     * chances around them), then the weighted mean and the harmonic mean are averaged.
+     * the start): the mean of its moves' accuracies, where moves in sharp stretches of the game
+     * weigh more (the spread of winning chances around them).
      */
     fun gameAccuracy(whiteWins: List<Double>, firstMover: PieceColor = PieceColor.WHITE): Map<PieceColor, Double?> {
         val moves = whiteWins.size - 1
@@ -49,11 +51,7 @@ object LichessAccuracy {
         }
         return PieceColor.entries.associateWith { color ->
             val list = byColor[color].orEmpty()
-            if (list.isEmpty()) null else {
-                val weighted = list.sumOf { it.first * it.second } / list.sumOf { it.second }
-                val harmonic = list.size / list.sumOf { 1.0 / it.first.coerceAtLeast(MIN_ACCURACY) }
-                (weighted + harmonic) / 2
-            }
+            if (list.isEmpty()) null else list.sumOf { it.first * it.second } / list.sumOf { it.second }
         }
     }
 
@@ -63,9 +61,4 @@ object LichessAccuracy {
     }
 
     private const val CEILING = 1000
-    /**
-     * Lichess counts no move below 1% in the harmonic mean. At 0.01% one move at 0% weighed a
-     * hundred times more and could halve a whole game's accuracy (Phase 13B).
-     */
-    private const val MIN_ACCURACY = 1.0
 }

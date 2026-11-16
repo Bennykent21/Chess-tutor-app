@@ -118,7 +118,9 @@ enum class MoveQuality(val label: String, val symbol: String) {
             loss <= 2.5 -> EXCELLENT
             loss <= 5.0 -> GOOD
             loss <= 10.0 -> INACCURACY
-            loss <= 20.0 -> MISTAKE
+            // Chess.com called drops of 26 to 32 points (a won game thrown back to level) mistakes and
+            // 43 a blunder; at 20 the app called four of the developer's moves blunders where it said one (D87).
+            loss <= 30.0 -> MISTAKE
             else -> BLUNDER
         }
 
