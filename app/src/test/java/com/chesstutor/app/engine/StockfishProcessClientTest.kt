@@ -237,6 +237,29 @@ class StockfishProcessClientTest {
     }
 
     @Test
+    fun aSearchThatRunsLongIsStoppedAndAnswersWithItsBestSoFar() = runBlocking {
+        // A slow phone: the search never ends on its own, but answers when told to stop.
+        val launcher = FakeLauncher {
+            FakeStockfishProcess { command ->
+                when {
+                    command.startsWith("go") -> emit("info depth 15 score cp 44 nodes 900000 nps 300000 pv d2d4 d7d5")
+                    command == "stop" -> emit("bestmove d2d4")
+                    else -> defaultScript(command)
+                }
+            }
+        }
+        val engine = client(launcher)
+
+        val result = engine.analyze(AnalysisRequest(requestId = 45, fen = startFen, movetimeMs = 10, depth = 18))
+
+        assertEquals("Stockfish's own answer, not the Lite engine's", EngineSource.NATIVE, result.source)
+        assertEquals("d2d4", result.bestMoveUci)
+        assertEquals(44, result.centipawns)
+        assertFalse(engine.status.value.isDegraded)
+        assertTrue("depth and time both limit the search", launcher.started.single().commands.contains("go depth 18 movetime 10"))
+    }
+
+    @Test
     fun multiPvLinesAreSortedValidatedAndNormalized() = runBlocking {
         val launcher = FakeLauncher {
             FakeStockfishProcess { command ->

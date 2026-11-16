@@ -150,16 +150,19 @@ class ChessEngineManager(
         }
 
     /** Like [analyseLines], but the search stops at [depth] (full strength, shallow). */
-    suspend fun analyseLinesToDepth(fen: String, multiPv: Int, depth: Int): PositionAnalysis? =
+    suspend fun analyseLinesToDepth(fen: String, multiPv: Int, depth: Int): PositionAnalysis? = analyseLinesWithin(fen, multiPv, depth, null)
+
+    /** Like [analyseLinesToDepth], also stopped after [movetimeMs] when it is given. */
+    suspend fun analyseLinesWithin(fen: String, multiPv: Int, depth: Int, movetimeMs: Int?): PositionAnalysis? =
         withContext(calculationDispatcher) {
             val chessPos = runCatching { ChessPosition(fen) }.getOrNull() ?: return@withContext null
             if (chessPos.isOver) return@withContext null
             try {
-                analysisService.analyze(fen = fen, depth = depth, movetimeMs = null, multiPv = multiPv)
+                analysisService.analyze(fen = fen, depth = depth, movetimeMs = movetimeMs, multiPv = multiPv)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                runCatching { Log.w(TAG, "analyseLinesToDepth failed: ${e.message}") }
+                runCatching { Log.w(TAG, "analyseLinesWithin failed: ${e.message}") }
                 null
             }
         }

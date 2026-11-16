@@ -306,7 +306,8 @@ internal fun Shell.accountViewModel(): AccountViewModel {
             engine = AppContainer.provideEngineService(context),
             reviews = AppContainer.provideReviewRepository(context),
             trainingSources = trainingSources(context),
-            reviewDepth = { AppContainer.provideSettingsStore(context).settings.first().reviewDepth.depth },
+            reviewDepth = { AppContainer.provideSettingsStore(context).settings.first().reviewDepth },
+            cloud = com.chesstutor.app.data.network.LichessCloudEvals(),
         ),
     )
 }

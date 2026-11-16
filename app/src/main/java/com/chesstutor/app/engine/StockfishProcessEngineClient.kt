@@ -231,6 +231,7 @@ class StockfishProcessEngineClient(
         }
 
         val goCommand = when {
+            request.depth != null && request.movetimeMs != null -> "go depth ${request.depth} movetime ${request.movetimeMs}"
             request.depth != null -> "go depth ${request.depth}"
             else -> "go movetime ${request.movetimeMs ?: DEFAULT_MOVETIME_MS}"
         }
@@ -241,7 +242,7 @@ class StockfishProcessEngineClient(
         }
 
         val timeoutMs = when {
-            request.movetimeMs != null && request.depth == null -> request.movetimeMs.toLong() + 3_000L
+            request.movetimeMs != null -> request.movetimeMs.toLong() + 3_000L
             request.depth != null -> (request.depth * 1_500L).coerceIn(5_000L, 30_000L)
             else -> 5_000L
         }
@@ -256,9 +257,18 @@ class StockfishProcessEngineClient(
         }
         if (result != null) return result
 
-        // Timed out. If the answer raced in just now, use it.
-        if (!abandonSearch(deferred)) return deferred.await()
+        // Taking too long: stop, and Stockfish answers with the best it has found so far, which
+        // is far better than the Lite engine's (a slow phone used to switch reviews to Lite).
         send(current, "stop")
+        val stopped = try {
+            withTimeoutOrNull(STOP_GRACE_MS) { deferred.await() }
+        } catch (cancelled: CancellationException) {
+            abandonSearch(deferred)
+            throw cancelled
+        }
+        if (stopped != null) return stopped
+        // No answer even then. If it raced in just now, use it.
+        if (!abandonSearch(deferred)) return deferred.await()
         return answerFromFallback(request)
     }
 
@@ -607,6 +617,8 @@ class StockfishProcessEngineClient(
         const val MIN_UCI_ELO = 1320
         const val MAX_UCI_ELO = 3190
         private const val DEFAULT_MOVETIME_MS = 150
+        /** How long a stopped search has to send its best move before the Lite engine answers. */
+        private const val STOP_GRACE_MS = 2_000L
         private const val HEALTH_CHECK_REQUEST_ID = 9_999
         private const val NO_MOVE = "0000"
         private const val NNUE_PREFIX = "NNUE evaluation using"

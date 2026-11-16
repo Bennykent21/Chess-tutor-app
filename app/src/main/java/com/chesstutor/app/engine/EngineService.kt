@@ -32,6 +32,12 @@ interface EngineService {
      */
     suspend fun analyseToDepth(fen: String, lines: Int, depth: Int): List<EngineLine> = analyse(fen, lines, 300)
 
+    /**
+     * Up to [lines] candidate lines from a search that stops at [depth] or after [movetimeMs],
+     * whichever comes first, so a slow phone still answers in time (game reviews, D86).
+     */
+    suspend fun analyseWithin(fen: String, lines: Int, depth: Int, movetimeMs: Int): List<EngineLine> = analyseToDepth(fen, lines, depth)
+
     /** A move for a bot playing at [elo]. */
     suspend fun botMove(fen: String, elo: Int): MoveChoice?
 
@@ -56,6 +62,11 @@ class ManagerEngineService(private val manager: ChessEngineManager) : EngineServ
 
     override suspend fun analyseToDepth(fen: String, lines: Int, depth: Int): List<EngineLine> {
         val analysis = manager.analyseLinesToDepth(fen, lines.coerceAtLeast(1), depth.coerceAtLeast(1)) ?: return emptyList()
+        return linesOf(analysis)
+    }
+
+    override suspend fun analyseWithin(fen: String, lines: Int, depth: Int, movetimeMs: Int): List<EngineLine> {
+        val analysis = manager.analyseLinesWithin(fen, lines.coerceAtLeast(1), depth.coerceAtLeast(1), movetimeMs.coerceAtLeast(1)) ?: return emptyList()
         return linesOf(analysis)
     }
 

@@ -3,6 +3,7 @@ package com.chesstutor.app.feature.account
 import kotlinx.coroutines.flow.conflate
 import com.chesstutor.app.data.diagnostics.PerfLog
 import com.chesstutor.app.data.diagnostics.AnalysisTiming
+import com.chesstutor.app.data.settings.ReviewDepth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,7 @@ import com.chesstutor.app.data.repository.ReviewRepository
 import com.chesstutor.app.domain.ReviewItem
 import com.chesstutor.app.domain.account.AnalysisSummary
 import com.chesstutor.app.domain.account.GameAnalysisRepository
+import com.chesstutor.app.domain.account.CloudEvals
 import com.chesstutor.app.domain.account.GameAnalyzer
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.account.GameReview
@@ -99,7 +101,7 @@ data class GamesState(
 }
 
 /** One game's analysis while it runs: [done] of [total] positions, or why it stopped. */
-data class AnalysisJob(val done: Int = 0, val total: Int = 0, val waiting: Boolean = true, val error: String? = null) {
+data class AnalysisJob(val done: Int = 0, val total: Int = 0, val waiting: Boolean = true, val error: String? = null, val deeper: Boolean = false) {
     val running: Boolean get() = error == null
     val progress: Float get() = if (total == 0) 0f else done.toFloat() / total
 }
@@ -129,7 +131,9 @@ class AccountViewModel(
     private val mistakeReviews: ReviewRepository? = null,
     trainingSources: TrainingSources = TrainingSources(),
     /** Stockfish's depth for game reviews (Settings > Engine), read when each analysis starts. */
-    private val reviewDepth: suspend () -> Int = { GameAnalyzer.DEFAULT_DEPTH },
+    private val reviewDepth: suspend () -> ReviewDepth = { ReviewDepth.NORMAL },
+    /** Deep evaluations of opening positions looked up online (Lichess), or null offline-only. */
+    private val cloud: CloudEvals? = null,
     worker: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
@@ -241,10 +245,11 @@ class AccountViewModel(
                     val game = withTimeoutOrNull(GAME_WAIT_MS) { games.first { !it.loading && it.game(gameId) != null } }
                         ?.game(gameId) ?: return@withLock
                     if (again) analysis.delete(gameId)
-                    val depth = reviewDepth()
-                    val analyzer = GameAnalyzer(engine, analysis, depth = depth, clock = clock)
-                    analyzer.analyse(game) { done, total ->
-                        mutableJobs.update { it + (gameId to AnalysisJob(done, total, waiting = false)) }
+                    val budget = reviewDepth()
+                    val depth = budget.depth
+                    val analyzer = GameAnalyzer(engine, analysis, depth = depth, movetimeMs = budget.movetimeMs, clock = clock, cloud = cloud)
+                    analyzer.analyse(game) { done, total, deeper ->
+                        mutableJobs.update { it + (gameId to AnalysisJob(done, total, waiting = false, deeper = deeper)) }
                     }
                     // How fast Stockfish is on this phone (Settings > Engine health), for tuning the depth.
                     if (analyzer.lastSearched > 0) PerfLog.analysis(AnalysisTiming(analyzer.lastSearched, analyzer.lastSearchMillis, depth))
@@ -320,10 +325,11 @@ class AccountViewModel(
         private val engine: EngineService,
         private val reviews: ReviewRepository,
         private val trainingSources: TrainingSources,
-        private val reviewDepth: suspend () -> Int = { GameAnalyzer.DEFAULT_DEPTH },
+        private val reviewDepth: suspend () -> ReviewDepth = { ReviewDepth.NORMAL },
+        private val cloud: CloudEvals? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources, reviewDepth = reviewDepth) as T
+            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources, reviewDepth = reviewDepth, cloud = cloud) as T
     }
 }

@@ -94,7 +94,7 @@ class AccountViewModelTest {
         assertTrue("queued straight away", vm.jobs.value.getValue("g").waiting)
         advanceUntilIdle()
         assertTrue("finished jobs disappear", vm.jobs.value.isEmpty())
-        assertEquals(6, engine.calls)
+        assertEquals("six positions, a quick and a deeper pass", 12, engine.calls)
         val state = vm.review.value
         assertTrue(state.review!!.complete)
         assertEquals(6, state.evals.size)
@@ -103,10 +103,10 @@ class AccountViewModelTest {
 
         vm.analyse("g")
         advanceUntilIdle()
-        assertEquals("a finished analysis is not redone", 6, engine.calls)
+        assertEquals("a finished analysis is not redone", 12, engine.calls)
         vm.analyse("g", again = true)
         advanceUntilIdle()
-        assertEquals("analyse again starts over", 12, engine.calls)
+        assertEquals("analyse again starts over", 24, engine.calls)
 
         val move = state.review!!.moves[2]
         vm.practise(state.game!!, move)
@@ -127,7 +127,7 @@ class AccountViewModelTest {
         repo.saveGame(record("g", date = 1))
         val analysis = InMemoryGameAnalysisRepository()
         val engine = object : EngineService by GameAnalyzerTest.FakeEngine() {
-            override suspend fun analyseToDepth(fen: String, lines: Int, depth: Int): List<EngineLine> {
+            override suspend fun analyseWithin(fen: String, lines: Int, depth: Int, movetimeMs: Int): List<EngineLine> {
                 delay(1_000)
                 return listOf(EngineLine(rank = 1, moves = listOf("e2e4"), centipawns = 0))
             }
