@@ -2,14 +2,13 @@ package com.chesstutor.app.domain.account
 
 import com.chesstutor.app.core.PieceColor
 import kotlin.math.exp
-import kotlin.math.sqrt
 
 /**
- * Game accuracy from Lichess's published formulas (lila `AccuracyPercent` and `WinPercent`): its
- * winning chances, its move accuracy and its weighting by how sharp the game was. Lichess also
- * averages in a harmonic mean, which lets one lost piece sink a whole game (one 1% move pulled a
- * side from 81 to 60); the app leaves it out (D87), which put the developer's game in the same
- * order as chess.com. Chess.com's "CAPS" formula is not public, so its numbers still differ.
+ * Game accuracy on Lichess's winning chances (lila `WinPercent`) and the shape of its move
+ * accuracy (`AccuracyPercent`), tuned to chess.com (D89): over six games the developer reviewed on
+ * chess.com, the plain mean of each side's non-book moves on a steeper curve came within about four
+ * points of chess.com's accuracy, where Lichess's volatility weighting was off by about seven.
+ * Chess.com's "CAPS" formula is not public, so its numbers still differ a little.
  */
 object LichessAccuracy {
 
@@ -26,39 +25,26 @@ object LichessAccuracy {
     /** One move's accuracy from the mover's winning chances before and after (with Lichess's one-point bonus). */
     fun moveAccuracy(before: Double, after: Double): Double {
         if (after >= before) return 100.0
-        val raw = 103.1668100711649 * exp(-0.04354415386753951 * (before - after)) - 3.166924740191411
+        val raw = 103.1668100711649 * exp(-STEEPNESS * (before - after)) - 3.166924740191411
         return (raw + 1).coerceIn(0.0, 100.0)
     }
 
     /**
      * Each side's accuracy from White's winning chances at every position ([whiteWins][0] is
-     * the start): the mean of its moves' accuracies, where moves in sharp stretches of the game
-     * weigh more (the spread of winning chances around them).
+     * the start): the plain mean of its moves' accuracies after the first [bookPlies] plies.
      */
-    fun gameAccuracy(whiteWins: List<Double>, firstMover: PieceColor = PieceColor.WHITE): Map<PieceColor, Double?> {
-        val moves = whiteWins.size - 1
-        if (moves < 1) return mapOf(PieceColor.WHITE to null, PieceColor.BLACK to null)
-        val windowSize = (moves / 10).coerceIn(2, 8)
-        val first = whiteWins.take(windowSize)
-        val windows = List((windowSize - 2).coerceAtLeast(0)) { first } + whiteWins.windowed(windowSize, partialWindows = moves + 1 < windowSize)
-        val weights = windows.map { standardDeviation(it).coerceIn(0.5, 12.0) }
-
-        val byColor = HashMap<PieceColor, MutableList<Pair<Double, Double>>>()
-        for (i in 0 until moves) {
+    fun gameAccuracy(whiteWins: List<Double>, firstMover: PieceColor = PieceColor.WHITE, bookPlies: Int = 0): Map<PieceColor, Double?> {
+        val byColor = HashMap<PieceColor, MutableList<Double>>()
+        for (i in bookPlies until whiteWins.size - 1) {
             val color = if (i % 2 == 0) firstMover else firstMover.opposite()
             val (before, after) = if (color == PieceColor.WHITE) whiteWins[i] to whiteWins[i + 1] else (100 - whiteWins[i]) to (100 - whiteWins[i + 1])
-            byColor.getOrPut(color) { mutableListOf() } += moveAccuracy(before, after) to weights.getOrElse(i) { weights.last() }
+            byColor.getOrPut(color) { mutableListOf() } += moveAccuracy(before, after)
         }
-        return PieceColor.entries.associateWith { color ->
-            val list = byColor[color].orEmpty()
-            if (list.isEmpty()) null else list.sumOf { it.first * it.second } / list.sumOf { it.second }
-        }
+        return PieceColor.entries.associateWith { color -> byColor[color]?.average() }
     }
 
-    private fun standardDeviation(xs: List<Double>): Double {
-        val mean = xs.average()
-        return sqrt(xs.sumOf { (it - mean) * (it - mean) } / xs.size)
-    }
+    /** Lichess uses 0.0435; chess.com's accuracies fit 0.116 (0.110 to 0.124 with any one game left out). */
+    private const val STEEPNESS = 0.116
 
     private const val CEILING = 1000
 }

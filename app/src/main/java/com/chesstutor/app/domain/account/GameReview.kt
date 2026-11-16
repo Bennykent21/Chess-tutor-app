@@ -348,17 +348,9 @@ object GameReviewer {
         val lichessWins = positions.indices.asSequence().map { byPly[it] }.takeWhile { it != null }
             .map { LichessAccuracy.winPercent(it!!.centipawns, it.mate) }.toList()
         val firstMover = positions.firstOrNull()?.sideToMove ?: PieceColor.WHITE
-        return GameReview(reviewed, graph, totalPlies = positions.size - 1, accuracies = LichessAccuracy.gameAccuracy(lichessWins, firstMover))
+        return GameReview(reviewed, graph, totalPlies = positions.size - 1, accuracies = LichessAccuracy.gameAccuracy(lichessWins, firstMover, bookPlies))
     }
 
-    /**
-     * An accuracy over any set of moves (a game phase, many games): the average of the plain
-     * and harmonic means, so one blunder weighs more than in a plain average.
-     */
-    fun accuracyOf(moveAccuracies: List<Double>): Double? {
-        if (moveAccuracies.isEmpty()) return null
-        val mean = moveAccuracies.average()
-        val harmonic = moveAccuracies.size / moveAccuracies.sumOf { 1.0 / it.coerceAtLeast(1.0) }
-        return (mean + harmonic) / 2.0
-    }
+    /** An accuracy over any set of moves (a game phase, many games): the plain mean, as a game's is (D89). */
+    fun accuracyOf(moveAccuracies: List<Double>): Double? = moveAccuracies.takeIf { it.isNotEmpty() }?.average()
 }

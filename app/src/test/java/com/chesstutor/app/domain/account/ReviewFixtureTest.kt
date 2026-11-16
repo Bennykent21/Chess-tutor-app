@@ -42,13 +42,72 @@ class ReviewFixtureTest {
             return Fixture(moves, evalsOf("app"), evalsOf("deep"))
         }
 
-        fun review(fixture: Fixture, deep: Boolean = false): GameReview {
+        fun review(fixture: Fixture, deep: Boolean = false, bookPlies: Int = 0): GameReview {
             val evals = if (deep) fixture.deep else fixture.app
             // Terminal positions (mate on the board) are scored without the engine, as the analyser does.
             val positions = GameReviewer.positions(Position.STARTING_FEN, fixture.moves)
             val all = evals + positions.indices.filter { i -> evals.none { it.ply == i } }.mapNotNull { GameReviewer.terminalEval(it, positions[it]) }
-            return GameReviewer.review(Position.STARTING_FEN, fixture.moves, all.sortedBy { it.ply })
+            return GameReviewer.review(Position.STARTING_FEN, fixture.moves, all.sortedBy { it.ply }, bookPlies)
         }
+
+        /** The opening book the app reviews with: the named lines and the masters' positions. */
+        private val book by lazy {
+            val tree = File("src/main/assets/openings.tsv.gz").inputStream().use(com.chesstutor.app.domain.opening.OpeningTree::fromStream)
+            File("src/main/assets/book.bin").inputStream().use { tree.withBook(com.chesstutor.app.domain.opening.OpeningBook.fromStream(it)) }
+        }
+
+        /** How many of [moves] the app counts as book, as [GameLibrary] does. */
+        fun bookPliesOf(moves: List<String>): Int = book.match(moves).let { it.leftBookAt ?: if (it.opening != null) moves.size else 0 }
+
+        /**
+         * Six games the developer reviewed on chess.com (16 Nov 2026), with what its Game Review
+         * showed for each side: Brilliant, Great, Best, Excellent, Good, Book, Inaccuracy, Mistake,
+         * Miss, Blunder, then the accuracy. The first is `chesscom`; Black's book count there is assumed.
+         */
+        val chessComReviews = listOf(
+            "chesscom" to listOf(listOf(0, 1, 23, 14, 14, 5, 4, 8, 2, 1, 7160), listOf(0, 3, 24, 16, 4, 5, 12, 2, 5, 1, 7635)),
+            "chesscom1" to listOf(listOf(0, 1, 13, 3, 2, 2, 3, 2, 3, 0, 8060), listOf(0, 1, 9, 7, 2, 1, 2, 3, 1, 2, 7050)),
+            "chesscom2" to listOf(listOf(0, 1, 7, 1, 1, 4, 4, 3, 0, 1, 6773), listOf(0, 4, 8, 2, 3, 4, 0, 1, 0, 0, 8907)),
+            "chesscom3" to listOf(listOf(0, 1, 9, 2, 3, 4, 3, 3, 0, 2, 7663), listOf(0, 2, 14, 3, 1, 3, 2, 1, 1, 0, 9034)),
+            "chesscom4" to listOf(listOf(0, 4, 11, 4, 0, 4, 4, 3, 0, 0, 8381), listOf(1, 0, 11, 6, 4, 4, 0, 3, 1, 0, 7467)),
+            "chesscom5" to listOf(listOf(0, 1, 17, 8, 7, 4, 6, 5, 2, 1, 6987), listOf(0, 2, 19, 4, 8, 4, 5, 4, 4, 0, 6684)),
+        )
+
+        /** [grades] folded the way they compare: good moves of every kind, then each kind of error. */
+        fun folded(counts: List<Int>) = listOf(counts[0] + counts[1] + counts[2] + counts[3] + counts[4], counts[6], counts[7] + counts[8], counts[9])
+    }
+
+    /**
+     * The app against chess.com on six of the developer's games (D89): each side's accuracy within
+     * a few points, and the errors (inaccuracies, mistakes and misses, blunders) counted about the same.
+     */
+    @Test
+    fun sixChessComGamesComeOutCloseToChessCom() {
+        var accuracyError = 0.0
+        var countError = 0
+        var sides = 0
+        for ((name, theirs) in chessComReviews) {
+            val fixture = load(name)
+            val review = review(fixture, deep = true, bookPlies = bookPliesOf(fixture.moves))
+            for (side in PieceColor.entries) {
+                val truth = theirs[side.ordinal]
+                val report = review.report(side)
+                fun n(vararg q: MoveQuality) = q.sumOf { report.counts[it] ?: 0 }
+                val mine = listOf(
+                    n(MoveQuality.BRILLIANT), n(MoveQuality.GREAT), n(MoveQuality.BEST, MoveQuality.FORCED), n(MoveQuality.EXCELLENT), n(MoveQuality.GOOD),
+                    n(MoveQuality.BOOK), n(MoveQuality.INACCURACY), n(MoveQuality.MISTAKE), n(MoveQuality.MISS), n(MoveQuality.BLUNDER),
+                )
+                val off = report.accuracy!! - truth[10] / 100.0
+                accuracyError += off * off
+                countError += folded(mine).zip(folded(truth)).drop(1).sumOf { (a, b) -> (a - b) * (a - b) }
+                sides++
+                println("$name ${side.name.lowercase().padEnd(5)} chess.com ${truth.take(10)} ${truth[10] / 100.0}")
+                println("${"".padEnd(name.length)}       app       $mine ${"%.1f".format(report.accuracy)}")
+            }
+        }
+        val rms = kotlin.math.sqrt(accuracyError / sides)
+        println("accuracy off by ${"%.1f".format(rms)} on average; errors miscounted (squared) $countError")
+        assertTrue("accuracy off by $rms", rms < 6.0)
     }
 
     @Test
@@ -87,7 +146,7 @@ class ReviewFixtureTest {
     /**
      * The developer's chess.com game (14 Nov, reviewed there and here on 16 Nov), with chess.com's own grades of the
      * developer's moves read from their screen recording: the app at depth 16 and at depth 22 next
-     * to chess.com, and the accuracy computed several ways (chess.com said White 71.6, Black 76.35).
+     * to chess.com (it said White 71.6, Black 76.35).
      */
     @Test
     fun printTheChessComGameAgainstItsReview() {
@@ -110,19 +169,8 @@ class ReviewFixtureTest {
         }
         for (r in listOf(app, deep)) {
             for (side in PieceColor.entries) {
-                val moves = r.moves.filter { it.mover == side && it.quality != MoveQuality.BOOK }
-                val mean = moves.map { it.accuracy }.average()
-                val harmonic = moves.size / moves.sumOf { 1.0 / it.accuracy.coerceAtLeast(1.0) }
                 val counts = MoveQuality.entries.associateWith { q -> r.moves.count { it.mover == side && it.quality == q } }.filterValues { it > 0 }
-                val wins = listOf(50.0) + r.moves.map { if (it.mover == PieceColor.WHITE) it.winAfter else 100 - it.winAfter }
-                val n = wins.size - 1
-                val w = (n / 10).coerceIn(2, 8)
-                val windows = List((w - 2).coerceAtLeast(0)) { wins.take(w) } + wins.windowed(w)
-                val weights = windows.map { win -> val m = win.average(); kotlin.math.sqrt(win.sumOf { (it - m) * (it - m) } / win.size).coerceIn(0.5, 12.0) }
-                val mine = r.moves.withIndex().filter { it.value.mover == side }
-                val weightedOnly = mine.sumOf { it.value.accuracy * weights.getOrElse(it.index) { weights.last() } } / mine.sumOf { weights.getOrElse(it.index) { weights.last() } }
-                println("  weighted mean only ${"%.1f".format(weightedOnly)}")
-                println("${if (r === app) "app " else "deep"} $side accuracy ${r.report(side).accuracy?.let { "%.1f".format(it) }} (plain mean ${"%.1f".format(mean)}, harmonic ${"%.1f".format(harmonic)}) $counts")
+                println("${if (r === app) "app " else "deep"} $side accuracy ${r.report(side).accuracy?.let { "%.1f".format(it) }} $counts")
             }
         }
     }
