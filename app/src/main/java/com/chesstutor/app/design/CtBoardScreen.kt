@@ -63,7 +63,7 @@ object CtBoardScreenTags {
  * square above the lowest those two rows allow and the zone takes the rest, so it is at the same
  * height on every board screen of a phone and nothing above it can move it. The zone stacks up from the
  * board: long text fills it upward and scrolls inside (see [CtTutor]), and anything that spills
- * out of it covers the top bar but never the board, which is drawn after it. Sheets and passing
+ * out of it covers the top bar but never the board, which is drawn after it. Dialogs and passing
  * messages go in [overlay], which covers instead of pushing.
  */
 @Composable

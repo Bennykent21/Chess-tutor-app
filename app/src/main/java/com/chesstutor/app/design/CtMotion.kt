@@ -33,15 +33,15 @@ import androidx.compose.ui.semantics.Role
 object CtMotion {
     /** Strong ease-out: quick start, soft landing. Pieces, presses, switches, fades. */
     val EaseOut: Easing = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
-    /** Sheets rising from the bottom. */
-    val SheetEase: Easing = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
+    /** Dialogs and full pages coming in. */
+    val OverlayEase: Easing = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
 
     const val PRESS_MS = 140
     const val SWITCH_MS = 180
     const val FADE_MS = 180
     const val PIECE_SLIDE_MS = 220
     const val THEME_MS = 240
-    const val SHEET_MS = 280
+    const val OVERLAY_MS = 280
 
     const val PRESSED_SCALE = 0.95f
     const val ENTER_MS = 480

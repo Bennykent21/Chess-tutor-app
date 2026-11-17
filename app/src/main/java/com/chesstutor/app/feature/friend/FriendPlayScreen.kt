@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.friend
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,12 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -49,7 +49,7 @@ import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtConfirmDialog
 import com.chesstutor.app.design.CtControl
 import com.chesstutor.app.design.CtIconButton
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.game.Seating
@@ -160,7 +160,7 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
         },
         controls = {
             if (over) {
-                // Rematch and review live in the result sheet; this brings it back.
+                // Rematch and review live in the result card; this brings it back.
                 CtIconButton(icon = Icons.Rounded.Search, contentDescription = "Explore", onClick = explore)
                 CtButton(text = "See the result", onClick = { resultClosed = false }, modifier = Modifier.weight(1f))
             } else {
@@ -178,7 +178,7 @@ fun FriendPlayScreen(game: FriendGame, settings: AppSettings, actions: FriendPla
             }
         },
         overlay = {
-            CtSheet(visible = over && !resultClosed, onDismiss = { resultClosed = true }) {
+            CtDialog(visible = over && !resultClosed, onDismiss = { resultClosed = true }) {
                 FriendResult(
                     state = state,
                     onRematch = actions.onRematch,

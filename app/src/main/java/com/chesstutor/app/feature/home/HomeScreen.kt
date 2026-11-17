@@ -9,7 +9,9 @@ import com.chesstutor.app.design.ctGloss
 import com.chesstutor.app.board.BoardPicture
 import com.chesstutor.app.design.ctEnter
 import com.chesstutor.app.design.CtTickMark
+import com.chesstutor.app.data.update.UpdateState
 import com.chesstutor.app.design.CtStreak
+import com.chesstutor.app.feature.update.UpdateIcon
 import com.chesstutor.app.design.CtPictureTile
 import com.chesstutor.app.design.CtFade
 import androidx.compose.foundation.background
@@ -78,6 +80,8 @@ data class HomeActions(
     val onPractiseTheme: (String) -> Unit = {},
     /** The Bots page: every bot, your own, build one, watch two (D42). */
     val onOpenBots: () -> Unit = {},
+    /** What's new, from the update icon beside the streak (D90). */
+    val onWhatsNew: () -> Unit = {},
 )
 
 /**
@@ -91,6 +95,7 @@ fun HomeScreen(
     home: HomeUiState,
     actions: HomeActions,
     modifier: Modifier = Modifier,
+    update: UpdateState = UpdateState.Idle,
 ) {
     if (needsWelcome(state.assessmentState)) {
         FirstRunScreen(
@@ -113,6 +118,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(CtSpacing.lg),
         ) {
             CtScreenTitle(title = if (name != null) "Hi, $name" else "Ready to play?") {
+                UpdateIcon(update, actions.onWhatsNew)
                 CtStreak(home.dayStreak)
             }
             val gutter = Modifier.padding(horizontal = CtSpacing.gutter)

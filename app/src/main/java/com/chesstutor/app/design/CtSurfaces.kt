@@ -45,7 +45,7 @@ fun CtScreenBackground(
 }
 
 /**
- * The raised look of hero cards and sheets: a soft shadow tinted from the theme's ink on
+ * The raised look of hero cards and dialogs: a soft shadow tinted from the theme's ink on
  * every theme (design language section 2).
  */
 private fun Modifier.raisedSurface(shape: Shape, background: Brush, ink: Color): Modifier =

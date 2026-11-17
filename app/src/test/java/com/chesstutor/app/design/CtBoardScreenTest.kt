@@ -30,7 +30,7 @@ class CtBoardScreenTest {
     val compose = createComposeRule()
 
     private var long by mutableStateOf(false)
-    private var sheet by mutableStateOf(false)
+    private var dialog by mutableStateOf(false)
 
     private fun showScreen() {
         compose.setContent {
@@ -45,7 +45,7 @@ class CtBoardScreenTest {
                     board = { Box(Modifier.fillMaxSize()) },
                     under = { Text("The moves") },
                     controls = { Text("Undo") },
-                    overlay = { CtSheet(visible = sheet, onDismiss = { sheet = false }) { Text("Solved") } },
+                    overlay = { CtDialog(visible = dialog, onDismiss = { dialog = false }) { Text("Solved") } },
                 )
             }
         }
@@ -93,10 +93,10 @@ class CtBoardScreenTest {
     }
 
     @Test
-    fun aSheetCoversTheScreenInsteadOfPushingTheBoard() {
+    fun aDialogCoversTheScreenInsteadOfPushingTheBoard() {
         showScreen()
         val before = board()
-        sheet = true
+        dialog = true
         compose.waitForIdle()
         compose.onNodeWithText("Solved").assertIsDisplayed()
         assertEquals(before, board())

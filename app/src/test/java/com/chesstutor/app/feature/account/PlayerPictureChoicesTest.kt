@@ -27,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h780dp-xxhdpi")
-class PlayerPictureSheetTest {
+class PlayerPictureChoicesTest {
 
     @get:Rule
     val compose = createComposeRule()

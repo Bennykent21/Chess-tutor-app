@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,19 +10,15 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
@@ -29,13 +27,10 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,43 +40,24 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.chesstutor.app.core.PieceColor
-import com.chesstutor.app.data.model.GameSource
-import com.chesstutor.app.data.model.ImportDepth
-import com.chesstutor.app.data.model.RatingPlatform
-import com.chesstutor.app.data.model.RatingTimeControl
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtChip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtEmptyState
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtTopBar
-import com.chesstutor.app.design.CtScreenTitle
-import com.chesstutor.app.design.CtSectionHeader
-import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtShapes
-import com.chesstutor.app.design.CtStreak
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtFullPage
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
-import com.chesstutor.app.domain.account.Badge
 import com.chesstutor.app.domain.account.GameFilter
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.account.GameOutcome
-import com.chesstutor.app.domain.account.PerformanceCalculator
-import com.chesstutor.app.domain.account.RatingRank
-import com.chesstutor.app.domain.account.RatingTrend
-import com.chesstutor.app.domain.account.TimeClass
-import com.chesstutor.app.domain.account.TrainingCalculator
-import com.chesstutor.app.domain.account.TrainingReport
 import com.chesstutor.app.domain.account.label
-import com.chesstutor.app.domain.learn.Course
-import com.chesstutor.app.domain.learn.OpeningCourses
-import com.chesstutor.app.domain.puzzle.PuzzleStats
-import com.chesstutor.app.viewmodel.AppUiState
 
 /**
- * Every saved game (D60): a row of clocks on top, then the list, with one filter sheet for the
+ * Every saved game (D60): a row of clocks on top, then the list, with one filter page for the
  * rest. Opened from "See all" on Account, or from Stats with a filter already set.
  */
 @Composable
@@ -106,7 +82,7 @@ fun GamesScreen(
                     gamesList(games, filter, onOpenFilters = { filtersOpen = true }, onOpenGame = onOpenGame)
                 }
             }
-            GameFilterSheet(
+            GameFilterPage(
                 visible = filtersOpen,
                 games = games,
                 filter = filter,
@@ -169,7 +145,7 @@ internal fun LazyListScope.gamesList(
 
 private fun gamesCount(n: Int): String = "$n game${if (n == 1) "" else "s"}"
 
-/** How many filters in the sheet are set; the search counts as one. The clock has its own row. */
+/** How many filters on the filter page are set; the search counts as one. The clock has its own row. */
 internal fun activeFilters(filter: GameFilter): Int =
     listOf(filter.source, filter.outcome, filter.color, filter.openingFamily).count { it != null } +
         if (filter.query.isBlank()) 0 else 1
@@ -194,33 +170,36 @@ private fun FilterButton(active: Int, onClick: () -> Unit) {
     }
 }
 
-/** Every games filter in one sheet: search, then one row of choices per kind. */
+/** Every games filter on one page: search, then one row of choices per kind, and the count to show. */
 @Composable
-private fun GameFilterSheet(visible: Boolean, games: GamesState, filter: GameFilter, onFilter: (GameFilter) -> Unit, onDismiss: () -> Unit) {
+private fun GameFilterPage(visible: Boolean, games: GamesState, filter: GameFilter, onFilter: (GameFilter) -> Unit, onDismiss: () -> Unit) {
     val sources = remember(games.games) { GameLibrary.sources(games.games) }
     val openings = remember(games.games) { GameLibrary.topOpenings(games.games) }
     val shown = remember(games.games, filter) { GameLibrary.filter(games.games, filter).size }
-    CtSheet(visible = visible, onDismiss = onDismiss) {
-        CtSectionHeader(
-            title = "Filter games",
-            actionLabel = if (filter.isEmpty) null else "Clear",
-            onAction = { onFilter(GameFilter()) },
-        )
+    CtFullPage(
+        visible = visible,
+        title = "Filter games",
+        onBack = onDismiss,
+        actions = {
+            if (!filter.isEmpty) {
+                Text(
+                    "Clear",
+                    style = CtType.Button.copy(color = CtColors.Text),
+                    modifier = Modifier.clip(CtShapes.Pill).ctPressable(onClickLabel = "Clear the filters") { onFilter(GameFilter()) }.padding(CtSpacing.md),
+                )
+            }
+        },
+        bottom = { CtButton(text = "Show ${gamesCount(shown)}", onClick = onDismiss, modifier = Modifier.weight(1f)) },
+    ) {
         SearchField(value = filter.query, onValueChange = { onFilter(filter.copy(query = it)) })
-        Column(
-            modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(CtSpacing.lg),
-        ) {
-            if (sources.size > 1) {
-                FilterGroup("Source", listOf(null) + sources, filter.source, { it?.label ?: "Any" }) { onFilter(filter.copy(source = it)) }
-            }
-            FilterGroup("Result", listOf(null, GameOutcome.WIN, GameOutcome.DRAW, GameOutcome.LOSS), filter.outcome, ::outcomeLabel, icon = { it?.let { outcome -> outcomeIcon(outcome) } }) { onFilter(filter.copy(outcome = it)) }
-            FilterGroup("Colour", listOf(null, PieceColor.WHITE, PieceColor.BLACK), filter.color, ::colourLabel) { onFilter(filter.copy(color = it)) }
-            if (openings.isNotEmpty()) {
-                FilterGroup("Opening", listOf(null) + openings, filter.openingFamily, { it ?: "Any" }) { onFilter(filter.copy(openingFamily = it)) }
-            }
+        if (sources.size > 1) {
+            FilterGroup("Source", listOf(null) + sources, filter.source, { it?.label ?: "Any" }) { onFilter(filter.copy(source = it)) }
         }
-        CtButton(text = "Show ${gamesCount(shown)}", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+        FilterGroup("Result", listOf(null, GameOutcome.WIN, GameOutcome.DRAW, GameOutcome.LOSS), filter.outcome, ::outcomeLabel, icon = { it?.let { outcome -> outcomeIcon(outcome) } }) { onFilter(filter.copy(outcome = it)) }
+        FilterGroup("Colour", listOf(null, PieceColor.WHITE, PieceColor.BLACK), filter.color, ::colourLabel) { onFilter(filter.copy(color = it)) }
+        if (openings.isNotEmpty()) {
+            FilterGroup("Opening", listOf(null) + openings, filter.openingFamily, { it ?: "Any" }) { onFilter(filter.copy(openingFamily = it)) }
+        }
     }
 }
 

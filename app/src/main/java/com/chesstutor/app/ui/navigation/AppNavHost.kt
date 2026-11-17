@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -78,12 +79,17 @@ private fun AppShell(
 ) {
     // Start-up time: from the process starting to the first frame with the profile read (plan Phase 6D).
     LaunchedEffect(Unit) { PerfLog.startup(SystemClock.elapsedRealtime() - android.os.Process.getStartElapsedRealtime()) }
-    // In-app updates (D88): release builds ask GitHub at most once a day and prompt once per version.
+    val navController = rememberNavController()
+    // In-app updates (D88, D90): release builds ask GitHub each time the app comes to the front and prompt once per version.
     val appContext = LocalContext.current.applicationContext
     val updates = remember(appContext) { AppContainer.provideUpdateCenter(appContext) }
-    LaunchedEffect(updates) { updates.checkIfDue() }
-    if (!needsWelcome(state.assessmentState)) UpdatePrompt(updates)
-    val navController = rememberNavController()
+    LifecycleStartEffect(updates) {
+        updates.checkIfDue()
+        onStopOrDispose { }
+    }
+    if (!needsWelcome(state.assessmentState)) {
+        UpdatePrompt(updates, onWhatsNew = { navController.navigate(AppRoutes.WHATS_NEW) { launchSingleTop = true } })
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val reduceMotion = state.appSettings.reduceMotion

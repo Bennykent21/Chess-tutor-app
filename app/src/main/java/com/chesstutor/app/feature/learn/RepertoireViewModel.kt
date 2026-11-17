@@ -146,7 +146,7 @@ data class RunUi(
     val tricky: Boolean,
     /** The square of the piece to move, after a hint. */
     val hintFrom: String? = null,
-    /** A level just mastered by this run: the cup sheet shows. */
+    /** A level just mastered by this run: the cup dialog shows. */
     val mastered: RepertoireLevel? = null,
     /** The opening whose level was mastered, and how many cards the level it opens holds. */
     val masteredBook: String? = null,

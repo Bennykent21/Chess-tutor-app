@@ -124,8 +124,8 @@ fun AccountScreen(
                     item(key = "badges") { BadgesRow(overview.badges, onOpen = { badgeId = it.id }, modifier = Modifier.padding(top = CtSpacing.sm)) }
                 }
             }
-            BadgeSheet(badge = overview.badges.firstOrNull { it.id == badgeId }, onDismiss = { badgeId = null })
-            RankSheet(visible = ranksOpen, rank = rank, onDismiss = { ranksOpen = false })
+            BadgeDialog(badge = overview.badges.firstOrNull { it.id == badgeId }, onDismiss = { badgeId = null })
+            RankDialog(visible = ranksOpen, rank = rank, onDismiss = { ranksOpen = false })
         }
     }
 }

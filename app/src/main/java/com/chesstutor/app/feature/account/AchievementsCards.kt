@@ -12,10 +12,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -32,7 +28,7 @@ import com.chesstutor.app.R
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtSectionHeader
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
@@ -111,12 +107,9 @@ private fun BadgeMedal(badge: Badge, size: Dp) {
 
 /** One badge up close: what it is for and, until earned, how far along the player is. */
 @Composable
-fun BadgeSheet(badge: Badge?, onDismiss: () -> Unit) {
-    // Keep the last badge on screen while the sheet slides away.
-    var shown by remember { mutableStateOf(badge) }
-    if (badge != null) shown = badge
-    CtSheet(visible = badge != null, onDismiss = onDismiss) {
-        shown?.let { b ->
+fun BadgeDialog(badge: Badge?, onDismiss: () -> Unit) {
+    CtDialog(visible = badge != null, onDismiss = onDismiss) {
+        badge?.let { b ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg)) {
                 BadgeMedal(b, size = 64.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {

@@ -50,7 +50,7 @@ data class CtPalette(
     val bg: Long,
     /** Tiles, chips, list rows and secondary buttons. */
     val surface: Long,
-    /** Hero cards, sheets and bubbles. */
+    /** Hero cards, dialogs and bubbles. */
     val raised: Long,
     val line: Long,
     /** Progress tracks and switches that are off. Text and text2 may sit on it. */

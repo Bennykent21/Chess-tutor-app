@@ -28,26 +28,30 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-/** Where an update stands, for the prompt and the Settings row. */
+/** Where an update stands, for the prompt, the Home icon, What's new and the Settings row. */
 sealed interface UpdateState {
+    /** The version waiting to be installed, if any. */
+    val release: AppRelease? get() = null
+
     data object Idle : UpdateState
     data object Checking : UpdateState
     data object UpToDate : UpdateState
-    data class Available(val release: AppRelease) : UpdateState
-    data class Downloading(val release: AppRelease, val done: Long, val total: Long) : UpdateState {
+    data class Available(override val release: AppRelease) : UpdateState
+    data class Downloading(override val release: AppRelease, val done: Long, val total: Long) : UpdateState {
         val progress: Float get() = if (total <= 0) 0f else done.toFloat() / total
     }
-    data class Ready(val release: AppRelease, val file: File) : UpdateState
+    data class Ready(override val release: AppRelease, val file: File) : UpdateState
     /** Android has to be told once that Chess Tutor may install its own updates. */
-    data class NeedsPermission(val release: AppRelease, val file: File) : UpdateState
-    data class Failed(val release: AppRelease?, val message: String) : UpdateState
+    data class NeedsPermission(override val release: AppRelease, val file: File) : UpdateState
+    data class Failed(override val release: AppRelease?, val message: String) : UpdateState
 }
 
 /**
- * In-app updates (D88). Only builds made from a version tag check (they are signed with the
- * release key, so the new APK installs over them); test builds never do. Checks at most once a
- * day, downloads into the app's cache, checks the SHA-256 the release publishes, then opens
- * Android's installer, where the player confirms.
+ * In-app updates (D88, D90). Only builds made from a version tag check (they are signed with the
+ * release key, so the new APK installs over them); test builds never do. Checks each time the app
+ * comes to the front (not within [AppUpdates.CHECK_EVERY_MS]), prompts once per version, downloads
+ * into the app's cache, checks the SHA-256 the release publishes, then opens Android's installer,
+ * where the player confirms.
  */
 class UpdateCenter(
     context: Context,
@@ -74,54 +78,60 @@ class UpdateCenter(
 
     private var download: Job? = null
 
-    /** On app start: asks GitHub if a day has passed, and prompts once per new version. */
+    /**
+     * Each time the app comes to the front: asks GitHub unless it did in the last few minutes
+     * (a fresh start always asks), and prompts once per new version.
+     */
     fun checkIfDue() {
         if (!enabled) return
-        if (clock() - prefs.getLong(LAST_CHECK, 0L) < AppUpdates.CHECK_EVERY_MS) {
-            // Within the day, GitHub is asked again only while a found update is still waiting.
-            val known = prefs.getString(KNOWN_VERSION, null)
-            if (known != null && AppUpdates.isNewer(known, currentVersion)) check(prompt = known != prefs.getString(DISMISSED, null))
-            else clearOldDownloads()
-            return
-        }
-        check(prompt = true)
+        val now = state.value
+        if (now is UpdateState.Checking || now is UpdateState.Downloading) return
+        if (now != UpdateState.Idle && clock() - prefs.getLong(LAST_CHECK, 0L) < AppUpdates.CHECK_EVERY_MS) return
+        check()
     }
 
-    /** The Settings row: shows what is there, or asks GitHub now. */
-    fun openFromSettings() {
-        if (!enabled) return
-        when (state.value) {
-            is UpdateState.Available, is UpdateState.Downloading, is UpdateState.Ready, is UpdateState.NeedsPermission -> mutablePrompt.value = true
-            UpdateState.Checking -> Unit
-            else -> check(prompt = true, always = true)
-        }
+    /** The Settings row without a known update: asks GitHub now, and says what it found. */
+    fun checkNow() {
+        if (!enabled || state.value == UpdateState.Checking) return
+        check(always = true)
     }
 
-    private fun check(prompt: Boolean, always: Boolean = false) {
-        mutableState.value = UpdateState.Checking
+    /** What's new was opened: the prompt has done its job for this version. */
+    fun seen() {
+        state.value.release?.let { prefs.edit().putString(DISMISSED, it.version).apply() }
+        mutablePrompt.value = false
+    }
+
+    /** Asks GitHub; a version already found stays shown (no flicker) unless a newer one replaces it. */
+    private fun check(always: Boolean = false) {
+        val known = state.value.release
+        if (known == null) mutableState.value = UpdateState.Checking
         scope.launch {
             val release = latest()
             prefs.edit().putLong(LAST_CHECK, clock()).apply()
             when {
-                release == null -> mutableState.value = if (always) UpdateState.Failed(null, "Couldn't reach GitHub. Check your internet and try again.") else UpdateState.Idle
+                release == null -> if (known == null) {
+                    mutableState.value = if (always) UpdateState.Failed(null, "Couldn't reach GitHub. Check your internet and try again.") else UpdateState.Idle
+                }
                 !AppUpdates.isNewer(release.version, currentVersion) -> {
                     mutableState.value = UpdateState.UpToDate
                     clearOldDownloads()
                 }
+                release.version == known?.version -> Unit
                 else -> {
-                    prefs.edit().putString(KNOWN_VERSION, release.version).apply()
                     val file = apkFile(release)
                     mutableState.value = if (file.exists()) UpdateState.Ready(release, file) else UpdateState.Available(release)
-                    if (prompt || always) mutablePrompt.value = true
+                    // The centred prompt comes once per version; the Home icon stays until it is installed.
+                    if (always || release.version != prefs.getString(DISMISSED, null)) mutablePrompt.value = true
                 }
             }
             if (always && mutableState.value is UpdateState.Failed) mutablePrompt.value = true
         }
     }
 
-    /** "Later": the prompt stays away for this version; Settings still offers it. */
+    /** "Later": the prompt stays away for this version; the Home icon and Settings still offer it. */
     fun later() {
-        val release = releaseOf(state.value)
+        val release = state.value.release
         if (release != null) prefs.edit().putString(DISMISSED, release.version).apply()
         mutablePrompt.value = false
         if (state.value is UpdateState.Failed) mutableState.value = release?.let { UpdateState.Available(it) } ?: UpdateState.Idle
@@ -138,7 +148,7 @@ class UpdateCenter(
             is UpdateState.Ready -> install(context, now.release, now.file)
             is UpdateState.NeedsPermission -> install(context, now.release, now.file)
             is UpdateState.Available -> startDownload(context, now.release)
-            is UpdateState.Failed -> now.release?.let { startDownload(context, it) } ?: check(prompt = true, always = true)
+            is UpdateState.Failed -> now.release?.let { startDownload(context, it) } ?: check(always = true)
             else -> Unit
         }
     }
@@ -185,12 +195,12 @@ class UpdateCenter(
 
     private suspend fun latest(): AppRelease? = withContext(Dispatchers.IO) {
         try {
-            val request = Request.Builder().url(AppUpdates.LATEST_URL)
+            val request = Request.Builder().url(AppUpdates.RELEASES_URL)
                 .header("Accept", "application/vnd.github+json")
                 .header("User-Agent", USER_AGENT)
                 .build()
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) null else response.body?.string()?.let(AppUpdates::parseLatest)
+                if (!response.isSuccessful) null else response.body?.string()?.let { AppUpdates.parseReleases(it, currentVersion) }
             }
         } catch (e: CancellationException) {
             throw e
@@ -249,18 +259,8 @@ class UpdateCenter(
         scope.launch(Dispatchers.IO) { folder.listFiles()?.forEach { it.delete() } }
     }
 
-    private fun releaseOf(state: UpdateState): AppRelease? = when (state) {
-        is UpdateState.Available -> state.release
-        is UpdateState.Downloading -> state.release
-        is UpdateState.Ready -> state.release
-        is UpdateState.NeedsPermission -> state.release
-        is UpdateState.Failed -> state.release
-        else -> null
-    }
-
     private companion object {
         const val LAST_CHECK = "last_check"
-        const val KNOWN_VERSION = "known_version"
         const val DISMISSED = "dismissed_version"
         val USER_AGENT = "ChessTutorAndroid/${BuildConfig.VERSION_NAME} (+https://github.com/Bennykent21/Chess-tutor-app)"
     }

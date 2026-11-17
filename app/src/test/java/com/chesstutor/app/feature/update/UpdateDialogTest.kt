@@ -35,11 +35,12 @@ class UpdateDialogTest {
         val taps = mutableListOf<String>()
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                UpdateDialog(state, onUpdate = { taps += "update" }, onAllow = { taps += "allow" }, onLater = { taps += "later" }, onHide = { taps += "hide" })
+                UpdateDialog(state, onUpdate = { taps += "update" }, onAllow = { taps += "allow" }, onLater = { taps += "later" }, onHide = { taps += "hide" }, onWhatsNew = { taps += "notes" })
             }
         }
         compose.onNodeWithText("Chess Tutor 1.2.0").assertExists()
         compose.onNodeWithText("A new version is ready. 95 MB.").assertExists()
+        compose.onNodeWithText("What's new").performClick()
         compose.onNodeWithText("Update").performClick()
 
         state = UpdateState.Downloading(release, 40_000_000, 94_947_862L)
@@ -54,6 +55,6 @@ class UpdateDialogTest {
         state = UpdateState.Failed(release, "The download didn't finish. Check your internet and try again.")
         compose.onNodeWithText("Later").performClick()
 
-        assertEquals(listOf("update", "hide", "allow", "update", "later"), taps)
+        assertEquals(listOf("notes", "update", "hide", "allow", "update", "later"), taps)
     }
 }

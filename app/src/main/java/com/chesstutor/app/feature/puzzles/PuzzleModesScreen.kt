@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -22,12 +23,9 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
@@ -50,7 +48,7 @@ import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtShapes
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtFullPage
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.design.CtType
@@ -72,7 +70,7 @@ class PuzzleModeActions(
 /**
  * The puzzle modes (plan section 6.3.2, D67): three rush tiles, each with its metal icon and best
  * score; the four goals (plan section 6.3.6) as tiles showing a real position of their idea, each
- * opening a sheet for pattern and difficulty; Custom run (its own screen) and the puzzles the
+ * opening a page for pattern and difficulty; Custom run (its own screen) and the puzzles the
  * player missed. The daily puzzle has its tile on Puzzles home.
  */
 @Composable
@@ -123,7 +121,7 @@ fun PuzzleModesScreen(
                 }
             }
             val goal = goalName?.let(PuzzleGoal::valueOf)
-            GoalSheet(goal, patternsFor, onDismiss = { goalName = null }) { g, pattern, difficulty ->
+            GoalPage(goal, patternsFor, onDismiss = { goalName = null }) { g, pattern, difficulty ->
                 goalName = null
                 actions.onThemed(g, pattern, difficulty)
             }
@@ -198,23 +196,27 @@ internal fun goalPiece(goal: PuzzleGoal): PieceType = when (goal) {
     PuzzleGoal.ENDGAME -> PieceType.PAWN
 }
 
-/** A goal's pattern and difficulty, then ten puzzles. */
+/** A goal's own page: its pattern and difficulty, then ten puzzles. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GoalSheet(
+private fun GoalPage(
     goal: PuzzleGoal?,
     patternsFor: (PuzzleGoal) -> List<String>,
     onDismiss: () -> Unit,
     onStart: (PuzzleGoal, String?, Difficulty) -> Unit,
 ) {
-    // Keep the last goal on screen while the sheet slides away.
+    // Keep the last goal on the page while it slides away.
     var shown by remember { mutableStateOf(goal) }
     if (goal != null && goal != shown) shown = goal
     var pattern by remember(shown) { mutableStateOf<String?>(null) }
     var difficulty by remember(shown) { mutableStateOf(Difficulty.MATCHED) }
-    CtSheet(visible = goal != null, onDismiss = onDismiss) {
-        val g = shown ?: return@CtSheet
-        Text(g.title, style = CtType.Headline)
+    val g = shown ?: return
+    CtFullPage(
+        visible = goal != null,
+        title = g.title,
+        onBack = onDismiss,
+        bottom = { CtButton("Start 10 puzzles", onClick = { onStart(g, pattern, difficulty) }, modifier = Modifier.weight(1f)) },
+    ) {
         Group("Pattern") {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                 CtChip("Any", selected = pattern == null, onClick = { pattern = null })
@@ -226,7 +228,6 @@ private fun GoalSheet(
         Group("Difficulty") {
             CtSegmented(options = Difficulty.entries, selected = difficulty, label = { it.label }, onSelect = { difficulty = it })
         }
-        CtButton("Start 10 puzzles", onClick = { onStart(g, pattern, difficulty) }, modifier = Modifier.fillMaxWidth())
     }
 }
 

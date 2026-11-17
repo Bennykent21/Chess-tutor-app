@@ -35,7 +35,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -61,7 +60,7 @@ import com.chesstutor.app.design.CtControl
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtMetalIcon
 import com.chesstutor.app.design.CtProgressBar
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.repertoire.MasteryProgress
@@ -400,7 +399,7 @@ fun RepertoireRunScreen(
                 CtControl(Icons.AutoMirrored.Rounded.HelpOutline, "Why", enabled = run.canWhy, onClick = onWhy)
             }
         },
-        overlay = { MasterySheet(run, onDismiss = onDismissMastered) },
+        overlay = { MasteryDialog(run, onDismiss = onDismissMastered) },
     )
 }
 
@@ -476,10 +475,10 @@ private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.mome
 
 /** A level is won: its cup, what opens next, and the three cups (D76). */
 @Composable
-private fun MasterySheet(run: RunUi, onDismiss: () -> Unit) {
+private fun MasteryDialog(run: RunUi, onDismiss: () -> Unit) {
     val level = run.mastered
-    CtSheet(visible = level != null, onDismiss = onDismiss) {
-        if (level == null) return@CtSheet
+    CtDialog(visible = level != null, onDismiss = onDismiss) {
+        if (level == null) return@CtDialog
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
             Image(painterResource(cupOf(level)), contentDescription = null, modifier = Modifier.size(132.dp))
             val next = RepertoireLevel.entries.getOrNull(level.ordinal + 1)

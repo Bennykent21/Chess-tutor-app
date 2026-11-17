@@ -31,7 +31,7 @@ import com.chesstutor.app.design.CtProgressBar
 import com.chesstutor.app.design.CtScene
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtShapes
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.design.ctPressable
@@ -162,8 +162,8 @@ private fun Figure(cell: RatingCell, onClick: () -> Unit, modifier: Modifier = M
 
 /** Every piece to earn, the player's own marked, the ones above it dimmed. */
 @Composable
-internal fun RankSheet(visible: Boolean, rank: RatingRank, onDismiss: () -> Unit) {
-    CtSheet(visible = visible, onDismiss = onDismiss) {
+internal fun RankDialog(visible: Boolean, rank: RatingRank, onDismiss: () -> Unit) {
+    CtDialog(visible = visible, onDismiss = onDismiss) {
         CtSectionHeader(title = "Your piece")
         Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
             RatingRank.entries.reversed().forEach { piece ->
