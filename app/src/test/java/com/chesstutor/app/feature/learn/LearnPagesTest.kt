@@ -105,6 +105,9 @@ class LearnPagesTest {
         compose.onNodeWithText("Both sides").performClick()
         compose.onNodeWithText("Black").performClick()
         compose.onNodeWithText("Italian Game").assertDoesNotExist()
+        // The Caro-Kann is an intermediate course: it waits on its tier (D96).
+        compose.onNodeWithText("Caro-Kann").assertDoesNotExist()
+        compose.onNodeWithText("Intermediate").performClick()
         compose.onNodeWithText("Caro-Kann").assertExists()
         compose.onNodeWithText("Black").performClick()
         compose.onNodeWithText("Both sides").performClick()

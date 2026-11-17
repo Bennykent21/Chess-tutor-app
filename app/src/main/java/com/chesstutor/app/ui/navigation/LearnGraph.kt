@@ -1,5 +1,6 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.feature.learn.rememberLessonVideos
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -195,6 +196,7 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 learn = lessons,
                 onOpenCourse = { id -> navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } },
                 onBack = { navController.popBackStack() },
+                videos = rememberLessonVideos(),
             )
         }
         composable(
@@ -221,6 +223,9 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     }
                 },
                 onBack = { navController.popBackStack() },
+                videos = rememberLessonVideos(),
+                onDrills = group.book?.let { book -> { navController.navigate(AppRoutes.repertoire(book.book.id)) { launchSingleTop = true } } },
+                theme = state.appSettings.boardTheme,
             )
         }
         composable(
@@ -235,9 +240,11 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val repertoires by repertoireViewModel().state.collectAsStateWithLifecycle()
             // The trainer's opening this course belongs to (Phase 12).
             val book = course?.opening?.let { repertoires.book(it) }
+            val videos = rememberLessonVideos()
             CourseScreen(
                 course = course,
                 progress = lessons.progress,
+                videos = course?.let { videos.forCourse(it.id) }.orEmpty(),
                 onOpenLesson = { id ->
                     learn.openLesson(id)
                     navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
@@ -280,8 +287,11 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val course = player?.course
             // A finished variation course opens its drills: the last page offers them.
             val trainable = course?.takeIf { it.opening != null && CourseGate.isDone(it, lessons.progress) }
+            val videos = rememberLessonVideos()
             LessonPlayerScreen(
                 player = player,
+                // A course's video opens its first lesson (D96).
+                video = player?.takeIf { it.course.lessons.firstOrNull()?.id == it.lesson.id }?.let { videos.forCourse(it.course.id).firstOrNull() },
                 settings = state.appSettings,
                 onFeedback = viewModel::playBoardFeedback,
                 onNextLesson = { id -> learn.openLesson(id) },

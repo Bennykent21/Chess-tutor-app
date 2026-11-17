@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
+import com.chesstutor.app.design.CtMascotArt
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -348,14 +352,17 @@ fun RepertoireRunScreen(
         title = run.title,
         onBack = onBack,
         modifier = modifier,
+        // The talking coach, as in games and puzzles (D96); the steps go under the board.
         zone = {
-            Column(Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                RunProgress(run)
-                RunWords(run)
-            }
+            val words = coachWords(run)
+            val talk = rememberTalk(listOfNotNull(words?.let { TalkLine("${run.step}:${run.moment}:$it".hashCode(), it) }), key = run.title)
+            Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp) }, lines = talk)
         },
         under = {
-            BoardMoveList(entries = remember(board.version, board.moves.size) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
+                RunProgress(run)
+                BoardMoveList(entries = remember(board.version, board.moves.size) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
+            }
         },
         board = {
             val arrow = when (moment) {
@@ -439,16 +446,11 @@ private const val MAX_DOTS = 12
  * The words above the board: a title-sized line, and under it a quiet one. Most moves say
  * nothing; a branch or trap note says its first sentence; "Why" shows the whole note.
  */
-@Composable
-private fun RunWords(run: RunUi) {
+/** What the coach says: the moment's words and, when asked, why; one line. */
+private fun coachWords(run: RunUi): String? {
     val (line, quiet) = wordsOf(run)
-    Column(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)) {
-        if (line != null) Text(line, style = CtType.Title)
-        when {
-            run.why != null -> Text(run.why, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 5, overflow = TextOverflow.Ellipsis)
-            quiet != null -> Text(quiet, style = CtType.Caption.copy(color = CtColors.Text2))
-        }
-    }
+    val more = run.why ?: quiet
+    return listOfNotNull(line, more).joinToString(" ") { part -> if (part == line && more != null && !part.endsWith(".")) "$part." else part }.ifBlank { null }
 }
 
 private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.moment) {

@@ -32,6 +32,7 @@ import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtScene
 import com.chesstutor.app.design.CtScreenBackground
 import com.chesstutor.app.design.CtScreenTitle
+import com.chesstutor.app.design.CtGroupLabel
 import com.chesstutor.app.design.CtSectionHeader
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
@@ -92,7 +93,7 @@ fun LearnScreen(
                     )
                 }
 
-                CtSectionHeader(title = "Topics", modifier = Modifier.padding(top = CtSpacing.md))
+                CtGroupLabel("Topics", modifier = Modifier.padding(top = CtSpacing.md))
                 Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                     tiles.chunked(2).forEach { pair ->
                         Row(Modifier.height(124.dp), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {

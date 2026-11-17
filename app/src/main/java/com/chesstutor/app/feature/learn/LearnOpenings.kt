@@ -1,5 +1,11 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.foundation.layout.aspectRatio
+import com.chesstutor.app.domain.learn.LessonVideos
+import com.chesstutor.app.design.CtButtonStyle
+import com.chesstutor.app.design.CtButton
+import com.chesstutor.app.design.CtGroupLabel
+import com.chesstutor.app.design.CtTopBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -162,13 +168,21 @@ internal fun BoardThumbnail(fen: String?, theme: BoardTheme, flipped: Boolean, s
     }
 }
 
-/** A ring with a tick when everything is done, else "done/total". */
+/**
+ * How far a course is (D96): a ring that fills as lessons are done and becomes a filled disc with
+ * a tick at the end. No number inside, so long courses never crowd it; the count goes under the name.
+ */
 @Composable
 internal fun ProgressRing(done: Int, total: Int) {
     val share = if (total == 0) 0f else done.toFloat() / total
-    CtRing(listOf(CtRingPart(share, CtColors.Text)), diameter = 44.dp, stroke = 3.dp, modifier = Modifier.semantics { contentDescription = "$done of $total lessons" }) {
-        if (total > 0 && done == total) Icon(Icons.Rounded.Check, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(20.dp).align(Alignment.Center))
-        else Text("$done/$total", style = CtType.NavLabel.copy(color = CtColors.Text), maxLines = 1, modifier = Modifier.align(Alignment.Center))
+    val finished = total > 0 && done == total
+    val described = Modifier.semantics { contentDescription = "$done of $total lessons" }
+    if (finished) {
+        Box(described.size(40.dp).clip(CtShapes.Pill).background(CtColors.Text), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = CtColors.Bg, modifier = Modifier.size(22.dp))
+        }
+    } else {
+        CtRing(listOf(CtRingPart(share, CtColors.Text)), diameter = 40.dp, stroke = 4.dp, modifier = described)
     }
 }
 
@@ -185,6 +199,10 @@ fun LearnOpeningScreen(
     onTest: (() -> Unit)?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    videos: LessonVideos = LessonVideos.EMPTY,
+    /** The opening's drills in the trainer, when it has them. */
+    onDrills: (() -> Unit)? = null,
+    theme: BoardTheme = BoardTheme(),
 ) {
     val side = when (group.side) {
         PieceColor.WHITE -> "As White"
@@ -196,10 +214,17 @@ fun LearnOpeningScreen(
     val ordered = group.variations.sortedByDescending { course -> course.variations.sumOf { path -> shares.filter { it.path.take(path.size) == path }.sumOf { it.share } } }
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtBackBar(onBack = onBack)
+            // A small centred title like every page, and the opening's position on top (D96); its art replaces the board once drawn.
+            CtTopBar(title = group.title, onBack = onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
-                Text(group.title, style = CtType.Display)
-                Text(listOfNotNull(side, "${group.courses.size} courses", "$lessons lessons").joinToString(" · "), style = CtType.BodySmall.copy(color = CtColors.Text2))
+                group.picture?.let { fen ->
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        Box(Modifier.fillMaxWidth(0.56f).aspectRatio(1f).clip(CtShapes.Chip)) {
+                            Position.tryFromFen(fen).getOrNull()?.let { BoardView(it, theme, whiteAtBottom = group.side != PieceColor.BLACK, showCoordinates = false, showLegalDots = false) }
+                        }
+                        Text(listOfNotNull(side, "${group.courses.size} courses", "$lessons lessons").joinToString(" · "), style = CtType.Caption.copy(color = CtColors.Text2))
+                    }
+                }
                 Spacer(Modifier.height(CtSpacing.md))
                 group.ideas?.let { course -> CourseLine(course, "The ideas", null, progress, drills = null, onClick = { onOpenCourse(course) }) }
                 if (ordered.isNotEmpty()) {
@@ -211,6 +236,11 @@ fun LearnOpeningScreen(
                         val open = group.book?.let { book -> course.variations.all { CourseGate.isOpen(it, book.open) } } ?: false
                         CourseLine(course, course.title, detail.ifEmpty { null }, progress, drills = open, onClick = { onOpenCourse(course) })
                     }
+                }
+                VideoRow(videos.forCourses(group.courses.map { it.id }), modifier = Modifier.padding(top = CtSpacing.lg))
+                if (onDrills != null) {
+                    CtGroupLabel("Practise", modifier = Modifier.padding(top = CtSpacing.lg, bottom = CtSpacing.sm))
+                    CtButton(text = "Drills", style = CtButtonStyle.Secondary, onClick = onDrills, modifier = Modifier.fillMaxWidth())
                 }
                 if (onTest != null && group.book?.locked != false) {
                     Text(

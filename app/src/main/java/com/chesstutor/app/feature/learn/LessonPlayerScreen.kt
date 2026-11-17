@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.runtime.LaunchedEffect
+import com.chesstutor.app.domain.learn.LessonVideo
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -96,6 +98,8 @@ fun LessonPlayerScreen(
     onPreviousLesson: (lessonId: String) -> Unit = {},
     /** Opens Opening Battle on the course's line; null hides the button. */
     onPractise: (() -> Unit)? = null,
+    /** A video for the lesson's first page (D96); without one the lesson opens straight on the board. */
+    video: LessonVideo? = null,
     /** Opens puzzles with the course's themes; null hides the button. */
     onRelatedPuzzles: (() -> Unit)? = null,
     /** Opens the drills a just-finished course opened (Phase 12); null hides the button. */
@@ -113,8 +117,12 @@ fun LessonPlayerScreen(
     }
     if (state.phase == LessonPhase.DONE) {
         DonePage(state, settings, onNextLesson, onPreviousLesson, onReplay, onBack, onPractise, onRelatedPuzzles, onTrain, modifier)
+    } else if (video == null) {
+        // No video yet: no placeholder page, straight to the board.
+        LaunchedEffect(state.step) { player.next() }
+        CtScreenBackground(modifier) {}
     } else {
-        WatchPage(state, state.step as LessonStep.Watch, onStart = player::next, onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier)
+        WatchPage(state, state.step as LessonStep.Watch, video, onStart = player::next, onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier)
     }
 }
 
@@ -292,9 +300,9 @@ private fun RowScope.PreviousLessonButton(state: LessonPlayerState, onPreviousLe
     )
 }
 
-/** The lesson's first page: the video slot (a placeholder until lesson videos exist), its title and one line. */
+/** The lesson's first page (D96): a free video on the topic, what it teaches, then Start for the board. */
 @Composable
-private fun WatchPage(state: LessonPlayerState, step: LessonStep.Watch, onStart: () -> Unit, onBack: () -> Unit, onPreviousLesson: (String) -> Unit, modifier: Modifier) {
+private fun WatchPage(state: LessonPlayerState, step: LessonStep.Watch, video: LessonVideo, onStart: () -> Unit, onBack: () -> Unit, onPreviousLesson: (String) -> Unit, modifier: Modifier) {
     CtActionPage(
         title = state.lessonTitle,
         onBack = onBack,
@@ -304,21 +312,9 @@ private fun WatchPage(state: LessonPlayerState, step: LessonStep.Watch, onStart:
             CtButton(text = "Start", onClick = onStart, modifier = Modifier.weight(1f))
         },
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(CtShapes.Card)
-                .background(CtColors.Surface),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-                Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(40.dp))
-                Text("Video coming soon", style = CtType.Caption)
-            }
-        }
+        VideoCard(video, modifier = Modifier.fillMaxWidth())
         Text(step.title, style = CtType.Headline, modifier = Modifier.padding(top = CtSpacing.lg))
-        if (step.text.isNotBlank()) Text(step.text, style = CtType.Body.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.xs))
+        Text(video.why.ifBlank { "Watch the video, or go straight to the board." }, style = CtType.Body.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.xs))
     }
 }
 

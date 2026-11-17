@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.design.CtGroupLabel
+import com.chesstutor.app.domain.learn.LessonVideo
+import com.chesstutor.app.domain.learn.LessonVideos
+import com.chesstutor.app.design.CtSegmented
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -73,9 +77,10 @@ import com.chesstutor.app.domain.learn.PracticeResult
 import com.chesstutor.app.domain.learn.PracticeSets
 
 /**
- * A category page (plan 6.2, Phase 7D, canvas `LearnOpenings.dc.html`), for example Openings:
- * the topic's scene, then every course as a row with who it is for and its level, filtered by level
- * and side with dropdown chips. Search hides behind its icon until wanted.
+ * A topic page (plan 6.2, D96), for example Endgames: the topic's scene, then Beginner,
+ * Intermediate and Advanced along the top, each course of the chosen tier as a ring that fills
+ * (a tick once done) with its count under its name, and the tier's videos. Openings can also be
+ * filtered by side; search hides behind its icon until wanted.
  */
 @Composable
 fun LearnCategoryScreen(
@@ -84,15 +89,22 @@ fun LearnCategoryScreen(
     onOpenCourse: (courseId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    videos: LessonVideos = LessonVideos.EMPTY,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
-    var levelKey by rememberSaveable { mutableStateOf<String?>(null) }
-    var sideKey by rememberSaveable { mutableStateOf<String?>(null) }
     val all = learn.library.coursesIn(category)
+    // Opens on the first tier with something left to do.
+    val firstOpen = LessonLevel.entries.firstOrNull { level ->
+        all.any { course -> course.level == level && LearnHubModel.countOf(course.lessons, learn.progress).let { it.completed < it.total } }
+    } ?: LessonLevel.BEGINNER
+    var levelKey by rememberSaveable(firstOpen) { mutableStateOf(firstOpen.key) }
+    var sideKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val tier = LessonLevel.fromKey(levelKey) ?: LessonLevel.BEGINNER
     val filter = CourseFilter(
         query = query,
-        level = levelKey?.let(LessonLevel::fromKey),
+        // A search looks through every tier.
+        level = tier.takeIf { query.isBlank() },
         side = sideKey?.let { if (it == "white") PieceColor.WHITE else PieceColor.BLACK },
     )
     val shown = LearnHubModel.filter(all, filter)
@@ -126,16 +138,17 @@ fun LearnCategoryScreen(
                     Spacer(Modifier.height(CtSpacing.md))
                     CtTextField(value = query, onValueChange = { query = it }, label = "Search", placeholder = "Name or idea")
                 }
+                CtSegmented(
+                    options = LessonLevel.entries,
+                    selected = tier,
+                    label = { it.label },
+                    onSelect = { levelKey = it.key },
+                    modifier = Modifier.padding(top = CtSpacing.md),
+                )
                 Row(
-                    modifier = Modifier.padding(top = CtSpacing.md, bottom = CtSpacing.xs),
+                    modifier = Modifier.padding(top = CtSpacing.sm, bottom = CtSpacing.xs),
                     horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
                 ) {
-                    val levels = LessonLevel.entries.filter { level -> all.any { it.level == level } }
-                    FilterDropdown(
-                        label = levelKey?.let(LessonLevel::fromKey)?.label ?: "Any level",
-                        options = listOf(null to "Any level") + levels.map { it.key to it.label },
-                        onPick = { levelKey = it },
-                    )
                     if (LearnHubModel.offersSideFilter(all)) {
                         FilterDropdown(
                             label = when (sideKey) { "white" -> "White"; "black" -> "Black"; else -> "Both sides" },
@@ -147,13 +160,17 @@ fun LearnCategoryScreen(
                 if (shown.isEmpty()) {
                     CtEmptyState(
                         icon = icon,
-                        title = if (all.isEmpty()) "Lessons on the way" else "Nothing matches",
-                        body = if (all.isEmpty()) "Lessons for this category are being written." else "Try another word or clear the filters.",
+                        title = if (query.isBlank()) "${tier.label} courses on the way" else "Nothing matches",
+                        body = if (query.isBlank()) "Watch the videos below until they come." else "Try another word or clear the filters.",
                     )
                 }
                 shown.forEach { course ->
                     CourseRow(course, learn.progress, onClick = { onOpenCourse(course.id) })
                 }
+                VideoRow(
+                    videos = videos.forTopic(category, tier, all.map { it.id }.toSet()),
+                    modifier = Modifier.padding(top = CtSpacing.lg),
+                )
                 Spacer(Modifier.height(CtSpacing.xl))
             }
         }
@@ -182,12 +199,16 @@ private fun FilterDropdown(label: String, options: List<Pair<String?, String>>, 
     }
 }
 
-/** A course: how far you are round a ring, its name, who it is for and its level. */
+/** A course: how far you are round a ring (a tick once done), its name, who it is for and how many lessons are done. */
 @Composable
 private fun CourseRow(course: Course, progress: Map<String, LessonProgress>, onClick: () -> Unit) {
     val count = LearnHubModel.countOf(course.lessons, progress)
     val who = course.side?.let { if (it == PieceColor.WHITE) "For White" else "For Black" }
-    val lessons = "${count.total} lesson${if (count.total == 1) "" else "s"}"
+    val lessons = when {
+        count.completed == 0 -> "${count.total} lesson${if (count.total == 1) "" else "s"}"
+        count.completed == count.total -> "${count.total} of ${count.total} lessons, done"
+        else -> "${count.completed} of ${count.total} lessons"
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -197,30 +218,12 @@ private fun CourseRow(course: Course, progress: Map<String, LessonProgress>, onC
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        CtRing(listOf(CtRingPart(count.progress, CtColors.Accent)), diameter = 44.dp, stroke = 3.dp) {
-            Text("${count.completed}/${count.total}", style = CtType.Caption, maxLines = 1)
-        }
+        ProgressRing(count.completed, count.total)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(course.title, style = CtType.TitleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(listOfNotNull(who, lessons).joinToString(", "), style = CtType.Caption, maxLines = 1)
         }
-        LevelBars(course.level)
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2)
-    }
-}
-
-/** One, two or three rising bars for beginner, intermediate and advanced. */
-@Composable
-private fun LevelBars(level: LessonLevel) {
-    val filled = LessonLevel.entries.indexOf(level) + 1
-    Row(
-        modifier = Modifier.height(14.dp).semantics { contentDescription = level.label },
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        listOf(6, 10, 14).forEachIndexed { i, h ->
-            Box(Modifier.width(3.dp).height(h.dp).clip(CtShapes.Pill).background(if (i < filled) CtColors.Accent else CtColors.Track))
-        }
     }
 }
 
@@ -246,6 +249,8 @@ fun CourseScreen(
     practice: PracticeResult? = null,
     /** The course's drills in Train (Phase 12): open, or locked until the course is done; null hides the row. */
     drills: CourseDrills? = null,
+    /** Free videos on the course's topic (D96). */
+    videos: List<LessonVideo> = emptyList(),
 ) {
     CtScreenBackground(modifier) {
         if (course == null) {
@@ -280,8 +285,9 @@ fun CourseScreen(
                     }
                 }
                 drills?.let { DrillsRow(it, lessonsLeft = course.lessons.count { lesson -> progress[lesson.id]?.completed != true }) }
+                VideoRow(videos, modifier = Modifier.padding(top = CtSpacing.lg))
                 if (onPractise != null || onRelatedPuzzles != null || onPracticeSet != null) {
-                    CtSectionHeader(title = "Practise")
+                    CtGroupLabel("Practise", modifier = Modifier.padding(top = CtSpacing.lg))
                 }
                 onPracticeSet?.let {
                     CtListRow(

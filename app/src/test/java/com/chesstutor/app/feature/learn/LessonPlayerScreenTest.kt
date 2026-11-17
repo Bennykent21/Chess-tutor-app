@@ -72,10 +72,8 @@ class LessonPlayerScreenTest {
         player.start()
         show(player)
         step()
-        compose.onNodeWithText("Video coming soon").assertExists()
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_watch.png")
-
-        compose.onNodeWithText("Start").performClick()
+        // No video for the lesson: no placeholder page, straight to the board (D96).
+        compose.onNodeWithText("Video coming soon").assertDoesNotExist()
         step()
         compose.onNodeWithText("When a piece attacks the king", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_learn.png")

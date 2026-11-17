@@ -167,7 +167,8 @@ class RepertoireScreensTest {
         val note = "4.d3 protects e4, so the knight on f6 has nothing to take. This is the quiet way."
         shown = runUi(RunMoment.YourMove, toNf6 + "d2d3" + "f8c5", ring = "d3", why = note)
         compose.waitForIdle()
-        compose.onNodeWithText(note).assertExists()
+        // The coach says it after "Your move", in one line (D96).
+        compose.onNodeWithText(note, substring = true).assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_why.png")
 
@@ -180,7 +181,7 @@ class RepertoireScreensTest {
 
         shown = runUi(RunMoment.Finished(right = 5, total = 5), toNf6 + "d2d3")
         compose.waitForIdle()
-        compose.onNodeWithText("Line learnt").assertExists()
+        compose.onNodeWithText("Line learnt", substring = true).assertExists()
         compose.onNodeWithText("Next line").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_done.png")
