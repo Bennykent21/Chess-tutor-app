@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
+import com.chesstutor.app.design.CtMascotArt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -124,11 +128,11 @@ fun PositionRunScreen(
         title = run.set.title,
         onBack = onBack,
         modifier = modifier,
+        // The talking coach, as in games, puzzles and Learn drills (D97); the run's dots go under the board.
         zone = {
-            Column(Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                QueueDots(run)
-                RunWords(run)
-            }
+            val line = coachLine(run)
+            val talk = rememberTalk(listOf(TalkLine("${run.index}:${run.end}:$line".hashCode(), line)), key = run.set.title)
+            Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp) }, lines = talk)
         },
         board = {
             BoardHost(
@@ -147,13 +151,16 @@ fun PositionRunScreen(
             )
         },
         under = {
-            Text(
-                underOf(run),
-                style = CtType.Caption.copy(color = CtColors.Text2),
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter).padding(top = CtSpacing.sm),
-            )
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
+                QueueDots(run)
+                if (!run.ended) {
+                    Text(
+                        (if (run.side == PieceColor.WHITE) "White to move" else "Black to move") + if (run.thinking && run.learnerMoves > 0) " · Stockfish is thinking" else "",
+                        style = CtType.Caption.copy(color = CtColors.Text2),
+                        maxLines = 1,
+                    )
+                }
+            }
         },
         controls = {
             if (run.ended) {
@@ -187,21 +194,11 @@ private fun QueueDots(run: PositionRunUi) {
     }
 }
 
-/** The goal in one word while playing; how it ended, with a chip, once over. */
-@Composable
-private fun RunWords(run: PositionRunUi) {
-    Column(Modifier.fillMaxWidth().heightIn(min = 88.dp), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm, Alignment.Bottom)) {
-        val (word, chip, good) = wordsOf(run)
-        Text(word, style = CtType.Display)
-        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            if (run.ended) {
-                chip?.let { CtChip(it, color = if (good) CtColors.Success else CtColors.Error) }
-            } else {
-                CtChip(if (run.side == PieceColor.WHITE) "White to move" else "Black to move")
-                CtChip(if (run.thinking && run.learnerMoves > 0) "Stockfish is thinking" else "Stockfish defends")
-            }
-        }
-    }
+/** What the coach says (D97): the goal and the aim while playing; how it went once over. */
+private fun coachLine(run: PositionRunUi): String {
+    val (word, chip, _) = wordsOf(run)
+    val rest = if (run.ended) listOfNotNull(chip, underOf(run)) else listOf(run.position.aim)
+    return (listOf(word) + rest).filter { it.isNotBlank() }.joinToString(". ") { it.trimEnd('.') } + "."
 }
 
 private fun wordsOf(run: PositionRunUi): Triple<String, String?, Boolean> {

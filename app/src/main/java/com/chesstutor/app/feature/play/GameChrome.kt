@@ -1,5 +1,18 @@
 package com.chesstutor.app.feature.play
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.runtime.key
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.AnimatedVisibility
 import com.chesstutor.app.design.CtMetalIcon
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -15,8 +28,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
@@ -63,60 +74,93 @@ data class TalkLine(val id: Int, val text: String, val speaker: String? = null)
 
 /**
  * The last [MAX_TALK] lines said, newest last (D92): a new line joins at the bottom and the oldest
- * leaves once there are more. Starts again when [key] changes (a new game).
+ * leaves once there are more. Each line stays the newest for at least [MIN_READ_MS] so it can be
+ * read; lines that pile up meanwhile keep only each speaker's latest, and a line that repeats the
+ * newest one is not said twice. Starts again when [key] changes (a new game).
  */
 @Composable
 fun rememberTalk(said: List<TalkLine>, key: Any?): List<TalkLine> {
     val lines = remember(key) { mutableStateListOf<TalkLine>() }
+    val heard = remember(key) { HashSet<Int>() }
+    val waiting = remember(key) { Channel<TalkLine>(Channel.UNLIMITED) }
     LaunchedEffect(said.map { it.id }, key) {
-        said.filter { line -> lines.none { it.id == line.id } }.sortedBy { it.id }.forEach { lines += it }
-        while (lines.size > MAX_TALK) lines.removeAt(0)
+        said.filter { heard.add(it.id) }.sortedBy { it.id }.forEach { waiting.trySend(it) }
+    }
+    LaunchedEffect(key) {
+        while (true) {
+            val batch = mutableListOf(waiting.receive())
+            while (true) batch += waiting.tryReceive().getOrNull() ?: break
+            val fresh = batch.filter { line -> batch.last { it.speaker == line.speaker } === line }
+                .filterNot { line -> lines.lastOrNull()?.let { it.text == line.text && it.speaker == line.speaker } == true }
+            if (fresh.isEmpty()) continue
+            lines += fresh
+            while (lines.size > MAX_TALK) lines.removeAt(0)
+            delay(MIN_READ_MS)
+        }
     }
     return lines
 }
 
 private const val MAX_TALK = 2
+internal const val MIN_READ_MS = 1_200L
 
 /**
  * The speaker sits large at the bottom left of the zone above the board and talks to its right
- * (D92): the newest line stands just above the board, the one before it moves up and fades, and
- * a third pushes the oldest out, all sliding.
+ * (D92): the newest line stands just above the board, the one before it moves up, slightly faded
+ * but unchanged, and a third pushes the oldest out, all sliding.
  */
 @Composable
 fun ColumnScope.Talk(avatar: @Composable () -> Unit, lines: List<TalkLine>, modifier: Modifier = Modifier) {
     val reduceMotion = LocalReduceMotion.current
     val move = if (reduceMotion) 0 else CtMotion.OVERLAY_MS
+    // What is on screen: the lines said, plus one still fading out at the top.
+    val shown = remember { mutableStateListOf<TalkLine>() }
+    LaunchedEffect(lines.map { it.id }) {
+        lines.forEach { line -> if (shown.none { it.id == line.id }) shown += line }
+    }
+    val newestId = lines.lastOrNull()?.id
     Row(
         modifier = modifier.fillMaxWidth().weight(1f),
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
     ) {
         avatar()
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-            reverseLayout = true,
-            userScrollEnabled = false,
-            verticalArrangement = Arrangement.spacedBy(CtSpacing.sm, Alignment.Bottom),
-        ) {
-            items(lines.asReversed(), key = { it.id }) { line ->
-                val newest = line.id == lines.last().id
-                Column(
-                    modifier = Modifier
-                        .animateItem(fadeInSpec = tween(move), placementSpec = tween(move, easing = CtMotion.OverlayEase), fadeOutSpec = tween(move))
-                        .alpha(if (newest) 1f else 0.6f)
-                        .semantics { if (newest) liveRegion = LiveRegionMode.Polite },
-                ) {
-                    line.speaker?.let { Text(it, style = CtType.Caption.copy(color = CtColors.Text2), modifier = Modifier.padding(start = CtSpacing.md, bottom = 2.dp)) }
-                    CtSpeechBubble(tail = if (newest) CtTail.Start else CtTail.None, color = CtColors.Surface, modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            line.text,
-                            style = (if (newest) CtType.BodySmall else CtType.Caption).copy(color = CtColors.Text),
-                            maxLines = if (newest) 4 else 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+        // Bubbles stack up from the board; anything taller than the zone is cut off at the top.
+        Box(Modifier.weight(1f).fillMaxHeight().clipToBounds(), contentAlignment = Alignment.BottomStart) {
+            Column(Modifier.fillMaxWidth().wrapContentHeight(Alignment.Bottom, unbounded = true)) {
+                shown.toList().forEach { line ->
+                    key(line.id) {
+                        val there = lines.any { it.id == line.id }
+                        val seen = remember { MutableTransitionState(reduceMotion) }
+                        seen.targetState = there
+                        if (!there && seen.isIdle && !seen.currentState) LaunchedEffect(Unit) { shown.remove(line) }
+                        AnimatedVisibility(
+                            visibleState = seen,
+                            enter = expandVertically(tween(move, easing = CtMotion.OverlayEase), expandFrom = Alignment.Top) + fadeIn(tween(move)),
+                            exit = shrinkVertically(tween(move, easing = CtMotion.OverlayEase), shrinkTowards = Alignment.Bottom) + fadeOut(tween(move)),
+                        ) {
+                            TalkBubble(line, newest = line.id == newestId, fade = move)
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+/** One line in its bubble; the older line keeps its look and only fades a little. */
+@Composable
+private fun TalkBubble(line: TalkLine, newest: Boolean, fade: Int) {
+    val alpha by animateFloatAsState(if (newest) 1f else 0.72f, tween(fade), label = "talk")
+    Column(
+        modifier = Modifier
+            .padding(top = CtSpacing.sm)
+            .alpha(alpha)
+            .semantics { if (newest) liveRegion = LiveRegionMode.Polite },
+    ) {
+        line.speaker?.let { Text(it, style = CtType.Caption.copy(color = CtColors.Text2), modifier = Modifier.padding(start = CtSpacing.md, bottom = 2.dp)) }
+        CtSpeechBubble(tail = if (newest) CtTail.Start else CtTail.None, color = CtColors.Surface, modifier = Modifier.fillMaxWidth()) {
+            Text(line.text, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 4, overflow = TextOverflow.Ellipsis)
         }
     }
 }

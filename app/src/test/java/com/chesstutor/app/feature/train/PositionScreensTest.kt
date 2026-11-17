@@ -69,9 +69,8 @@ class PositionScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("Win").assertExists()
-        compose.onNodeWithText("White to move").assertExists()
-        compose.onNodeWithText("Promote the pawn").assertExists()
+        compose.onNodeWithText("Win. Promote the pawn", substring = true).assertExists()
+        compose.onNodeWithText("White to move", substring = true).assertExists()
         compose.onNodeWithText("1 of 5").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position.png")
         compose.onNodeWithText("Hint").performClick()
@@ -87,9 +86,7 @@ class PositionScreensTest {
                 PositionRunScreen(slipped, AppSettings(), onFeedback = {}, onHint = {}, onRestart = {}, onGiveUp = {}, onNext = { next = true }, onBack = {})
             }
         }
-        compose.onNodeWithText("Only a draw").assertExists()
-        compose.onNodeWithText("3.Kd5 let it slip").assertExists()
-        compose.onNodeWithText("Back tomorrow. Kd6 was the move.").assertExists()
+        compose.onNodeWithText("Only a draw. 3.Kd5 let it slip. Back tomorrow. Kd6 was the move.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position_slipped_dark.png")
         compose.onNodeWithText("Next position").performClick()
         assertEquals(true, next)
@@ -103,8 +100,7 @@ class PositionScreensTest {
                 PositionRunScreen(won, AppSettings(), onFeedback = {}, onHint = {}, onRestart = {}, onGiveUp = {}, onNext = {}, onBack = {})
             }
         }
-        compose.onNodeWithText("Converted in 12 moves").assertExists()
-        compose.onNodeWithText("3 more to go").assertExists()
+        compose.onNodeWithText("Won. Converted in 12 moves. 3 more to go.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position_won.png")
     }
 }

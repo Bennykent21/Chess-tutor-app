@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.analysis
 
+import com.chesstutor.app.feature.play.MIN_READ_MS
 import android.net.Uri
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.onRoot
@@ -101,6 +102,7 @@ class AnalysisScreenTest {
         compose.onNodeWithText("Play a move and I'll tell you how good it was.").assertExists()
         compose.onNode(hasContentDescription("Next move")).performClick()
         compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(MIN_READ_MS) // the coach's last line stays readable first (D97)
         compose.onNodeWithText("Pawn to f3 is a blunder", substring = true).assertExists()
         compose.onNode(hasContentDescription("1. f3 Blunder")).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/explore_blunder.png")

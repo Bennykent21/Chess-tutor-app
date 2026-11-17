@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.feature.play.MIN_READ_MS
 import com.chesstutor.app.gallery.shootBoth
 import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.runtime.getValue
@@ -158,6 +159,7 @@ class RepertoireScreensTest {
         // The watch: the learner's next move as an arrow, with its note's first sentence.
         shown = runUi(RunMoment.Watch("d2d3", "4.d3 protects e4, so the knight on f6 has nothing to take."), toNf6)
         compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(MIN_READ_MS) // the coach's last line stays readable first (D97)
         compose.onNodeWithText("4.d3 protects e4, so the knight on f6 has nothing to take.").assertExists()
         compose.onNodeWithText("Skip").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
@@ -168,6 +170,7 @@ class RepertoireScreensTest {
         shown = runUi(RunMoment.YourMove, toNf6 + "d2d3" + "f8c5", ring = "d3", why = note)
         compose.waitForIdle()
         // The coach says it after "Your move", in one line (D96).
+        compose.mainClock.advanceTimeBy(MIN_READ_MS)
         compose.onNodeWithText(note, substring = true).assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_why.png")
@@ -175,12 +178,14 @@ class RepertoireScreensTest {
         // A slip: the right move is drawn and named, nothing to tap.
         shown = runUi(RunMoment.Shown("4.d3", "d2d3"), toNf6, ring = "a3")
         compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(MIN_READ_MS)
         compose.onNodeWithText("Play 4.d3").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_slip.png")
 
         shown = runUi(RunMoment.Finished(right = 5, total = 5), toNf6 + "d2d3")
         compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(MIN_READ_MS)
         compose.onNodeWithText("Line learnt", substring = true).assertExists()
         compose.onNodeWithText("Next line").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())

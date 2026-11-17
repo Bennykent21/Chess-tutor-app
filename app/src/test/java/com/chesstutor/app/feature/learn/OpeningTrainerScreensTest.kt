@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.feature.play.MIN_READ_MS
 import com.chesstutor.app.gallery.shootBoth
 import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -65,9 +66,10 @@ class OpeningTrainerScreensTest {
                 OpeningDrillScreen(DrillUi(opening, line, session, lines = listOf(line)), AppSettings(), onFeedback = {}, onShowAnswer = {}, onAgain = {}, onNext = {}, onPickLine = {}, onBack = {})
             }
         }
-        compose.onNodeWithText("Your move (0 of 3). You play White.").assertExists()
+        compose.onNodeWithText("Your move. You play White.").assertExists()
         session.onMove(LegalMoveGenerator.generateLegalMoves(session.state.value.position).first { it.uci == "d2d4" })
         compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(MIN_READ_MS) // the coach's last line stays readable first (D97)
         compose.onNodeWithText("The book move is shown. Play it to carry on.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_trainer_drill.png")
     }
