@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import org.junit.Assert.assertEquals
 import com.chesstutor.app.design.CtBoardScreenTags
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -141,5 +143,16 @@ class LessonPlayerScreenTest {
         compose.onNodeWithText("Practise in Opening Battle").assertDoesNotExist()
         compose.onNodeWithText("Related puzzles").performScrollTo().performClick()
         assertTrue("Related puzzles opens the puzzles", related)
+    }
+
+    /** The visual pass (Phase 14B): a lesson at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryLesson() {
+        val player = LessonPlayer(course, course.lessons[0], InMemoryLessonProgressRepository(), scope, nextLesson = course.lessons[1])
+        player.start()
+        compose.shootBoth("learn", "06_lesson", settle = { step() }) {
+            LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {})
+        }
     }
 }

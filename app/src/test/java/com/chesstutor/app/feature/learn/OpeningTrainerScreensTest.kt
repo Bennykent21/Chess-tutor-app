@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -86,5 +88,24 @@ class OpeningTrainerScreensTest {
         compose.onNodeWithText("Best 6/10, solve 8 to master it").assertExists()
         compose.onNodeWithText("Practice set").performClick()
         assertEquals(true, played)
+    }
+
+    /** The visual pass (Phase 14B): the trainer and a drill at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryTrainer() {
+        val state = TrainerState(loading = false, openings = OpeningTrainer.openings.map { o -> TrainerOpeningState(o, OpeningTrainer.linesFor(o, tree), 0, 0, 0) })
+        compose.shootBoth("learn", "07_trainer") { OpeningTrainerScreen(state, onOpen = {}, onBack = {}) }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryDrill() {
+        val opening = OpeningTrainer.byId("italian")!!
+        val line = TrainerLine("Italian Game: Giuoco Piano", listOf("e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"), PieceColor.WHITE)
+        val session = OpeningDrillSession(line)
+        compose.shootBoth("learn", "08_drill") {
+            OpeningDrillScreen(DrillUi(opening, line, session, lines = listOf(line)), AppSettings(), onFeedback = {}, onShowAnswer = {}, onAgain = {}, onNext = {}, onPickLine = {}, onBack = {})
+        }
     }
 }

@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -113,5 +115,18 @@ class LearnOpeningsTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_opening_dark.png")
         compose.onNodeWithText("Know it already? Take the test").performClick()
         assertEquals(true, test)
+    }
+
+    /** The visual pass (Phase 14B): the openings list and an opening's page at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryOpenings() = compose.shootBoth("learn", "03_openings") {
+        OpeningsScreen(OpeningGroup.of(courses, listOf(bookUi)), progress, BoardTheme(), onOpen = {}, onBack = {})
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryOpening() = compose.shootBoth("learn", "04_opening") {
+        LearnOpeningScreen(OpeningGroup.of(courses, listOf(bookUi)).first(), progress, onOpenCourse = {}, onTest = {}, onBack = {})
     }
 }

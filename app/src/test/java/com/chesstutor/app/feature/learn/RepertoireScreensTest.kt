@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -189,5 +191,18 @@ class RepertoireScreensTest {
         compose.onNodeWithText("Standard is open: 55 new positions.").assertExists()
         // The result opens in its own window, so the whole screen is captured.
         captureScreenRoboImage("build/outputs/roborazzi/repertoire_mastered.png")
+    }
+
+    /** The visual pass (Phase 14B): a repertoire's page and a drill at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryRepertoire() = compose.shootBoth("learn", "09_repertoire") {
+        RepertoirePage(pageUi(), RepertoireActions(onBack = {}, onReview = {}, onLearn = {}, onTricky = {}, onPlayOut = {}))
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryRepertoireRun() = compose.shootBoth("learn", "10_repertoire_run") {
+        RepertoireRunScreen(run = runUi(RunMoment.YourMove, "$P g8f6".split(' ')), settings = AppSettings(), onFeedback = {}, onHint = {}, onWhy = {}, onLearnMore = {}, onDismissMastered = {}, onBack = {})
     }
 }
