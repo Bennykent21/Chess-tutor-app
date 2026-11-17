@@ -36,6 +36,29 @@ class LessonVideos(val all: List<LessonVideo>) {
     /** An opening's videos: every course of it, its ideas first. */
     fun forCourses(courseIds: List<String>): List<LessonVideo> = courseIds.flatMap(::forCourse)
 
+    fun byId(id: String): LessonVideo? = all.firstOrNull { it.id == id }
+
+    /**
+     * What to watch after [video] (D98): the same topic only, its course first, then its level,
+     * then the levels nearest to it, shortest first within each.
+     */
+    fun upNext(video: LessonVideo, topicOf: (courseId: String) -> String?, limit: Int = 8): List<LessonVideo> {
+        val topic = topicKey(video, topicOf) ?: return forCourse(video.course).filter { it.id != video.id }.take(limit)
+        return all.asSequence()
+            .filter { it.id != video.id && topicKey(it, topicOf) == topic }
+            .sortedWith(compareBy({ it.course != video.course }, { kotlin.math.abs(it.level.ordinal - video.level.ordinal) }, { it.minutes }))
+            .distinctBy { it.id }
+            .take(limit)
+            .toList()
+    }
+
+    /** "For you" (D98): the videos of the courses given, in that order, each video once. */
+    fun forYou(courseIds: List<String>, limit: Int = 8): List<LessonVideo> =
+        courseIds.distinct().asSequence().flatMap { forCourse(it).asSequence() }.distinctBy { it.id }.take(limit).toList()
+
+    private fun topicKey(video: LessonVideo, topicOf: (String) -> String?): String? =
+        if (video.course.startsWith("topic:")) video.course.removePrefix("topic:") else topicOf(video.course)
+
     companion object {
         val EMPTY = LessonVideos(emptyList())
 

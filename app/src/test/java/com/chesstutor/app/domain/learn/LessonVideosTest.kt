@@ -29,4 +29,31 @@ class LessonVideosTest {
         assertEquals(2, videos.forCourse("openings-caro-kann").size)
         assertTrue(LessonVideos.parse("not json").all.isEmpty())
     }
+
+    private fun video(id: String, course: String, level: LessonLevel = LessonLevel.BEGINNER, minutes: Int = 10) =
+        LessonVideo(course, level, id.padEnd(11, '_'), id, "Channel", minutes, "")
+
+    @Test
+    fun upNextStaysInTheTopicItsCourseFirstThenTheNearestLevel() {
+        val list = LessonVideos(
+            listOf(
+                video("now", "rook"),
+                video("sameCourse", "rook", minutes = 30),
+                video("topicExtra", "topic:endgames", LessonLevel.ADVANCED),
+                video("otherCourse", "pawn", LessonLevel.BEGINNER, minutes = 5),
+                video("middle", "pawn", LessonLevel.INTERMEDIATE),
+                video("tactics", "forks"),
+            ),
+        )
+        val topics = mapOf("rook" to "endgames", "pawn" to "endgames", "forks" to "tactics")
+        val next = list.upNext(list.byId("now".padEnd(11, '_'))!!, topicOf = topics::get).map { it.title }
+        assertEquals(listOf("sameCourse", "otherCourse", "middle", "topicExtra"), next)
+    }
+
+    @Test
+    fun forYouFollowsTheCoursesInOrderAndShowsEachVideoOnce() {
+        val list = LessonVideos(listOf(video("a", "one"), video("b", "two"), video("a", "two"), video("c", "three")))
+        assertEquals(listOf("b", "a", "c"), list.forYou(listOf("two", "one", "three", "two")).map { it.title })
+        assertEquals(2, list.forYou(listOf("two", "one", "three"), limit = 2).size)
+    }
 }

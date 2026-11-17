@@ -88,6 +88,10 @@ object AppRoutes {
     const val LEARN_OPENING_PATTERN = "learn/opening/{$OPENING_ID_ARG}"
     fun learnOpening(id: String): String = "learn/opening/$id"
     fun course(id: String): String = "learn/course/$id"
+    /** A lesson video in the app's own player, with what to watch next (D98). */
+    const val VIDEO_ID_ARG = "videoId"
+    const val VIDEO_PATTERN = "learn/video/{$VIDEO_ID_ARG}"
+    fun video(id: String): String = "learn/video/$id"
     /** A bot's page (pick colour, clock and rules), then the game itself, full screen in Home. */
     const val BOT_ID_ARG = "botId"
     const val BOT_PATTERN = "home/bot/{$BOT_ID_ARG}"
@@ -168,7 +172,7 @@ object AppRoutes {
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 
     private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN, GAMES_PATTERN, STATS_PATTERN, TRAINING)
-    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN)
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN, VIDEO_PATTERN)
     private val homePages = setOf(BOTS, WHATS_NEW, PLAY_MENU, CUSTOM_GAME, CHESS960)
     private val puzzlePages = emptySet<String>()
     private val trainPages = setOf(TRAIN_SIDE_PATTERN, TRAIN_POSITIONS_PATTERN, TRAIN_FROM_GAMES, TRAIN_LINES, TRAIN_LINE_PATTERN)

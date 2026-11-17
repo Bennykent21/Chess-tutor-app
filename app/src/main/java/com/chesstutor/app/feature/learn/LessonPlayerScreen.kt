@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.foundation.layout.fillMaxSize
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
 import androidx.compose.runtime.LaunchedEffect
 import com.chesstutor.app.domain.learn.LessonVideo
 import androidx.compose.foundation.layout.ColumnScope
@@ -148,22 +152,14 @@ private fun StepProgress(state: LessonPlayerState) {
     }
 }
 
-/** The words above the board: a quiet label ("Your turn", "Correct!") and the step's own sentence. */
-@Composable
-private fun LessonWords(state: LessonPlayerState, label: String?) {
-    Column(Modifier.fillMaxWidth().heightIn(min = 72.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)) {
-        if (label != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                when (state.feedbackTone) {
-                    FeedbackTone.GOOD -> ToneBadge(Icons.Rounded.Check, CtColors.Success, CtColors.OnSuccess, "Correct")
-                    FeedbackTone.BAD -> ToneBadge(Icons.Rounded.Close, CtColors.Error, CtColors.OnError, "Not quite")
-                    null -> Unit
-                }
-                Text(label, style = CtType.Caption.copy(color = CtColors.Accent))
-            }
-        }
-        Text(state.coachText, style = CtType.Title, maxLines = 5, overflow = TextOverflow.Ellipsis)
-    }
+/**
+ * What the coach says on a step (D98): "Correct!" or "Your turn" first, unless the step's own
+ * sentence already starts that way, then the sentence.
+ */
+internal fun lessonLine(label: String?, coachText: String): String {
+    val lead = label?.takeUnless { coachText.startsWith(it.substringBefore(',').trimEnd('!', '.'), ignoreCase = true) }
+        ?.let { if (it.endsWith("!") || it.endsWith(".")) it else "$it." }
+    return listOfNotNull(lead, coachText.takeIf { it.isNotBlank() }).joinToString(" ")
 }
 
 /** A thin horizontal evaluation bar: White's share on the light side, the number beside it (lessons only). */
@@ -181,21 +177,6 @@ private fun LessonEvalBar(centipawns: Int?, mate: Int?) {
             Box(Modifier.fillMaxHeight().fillMaxWidth(share).background(CtColors.Track))
         }
         Text(label, style = CtType.Label, modifier = Modifier.widthIn(min = 36.dp))
-    }
-}
-
-@Composable
-private fun ToneBadge(icon: ImageVector, fill: Color, ink: Color, description: String) {
-    Box(
-        modifier = Modifier
-            .padding(top = 1.dp)
-            .size(20.dp)
-            .clip(CtShapes.Pill)
-            .background(fill)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(14.dp))
     }
 }
 
@@ -229,13 +210,18 @@ private fun BoardStep(
         title = state.lessonTitle,
         onBack = onBack,
         modifier = modifier,
+        // The talking coach, as on every board screen (D98); the steps and the eval go under the board.
         zone = {
-            Column(Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            val words = lessonLine(label, state.coachText)
+            val talk = rememberTalk(listOf(TalkLine("${state.stepIndex}:$label:$words".hashCode(), words)), key = state.lessonTitle)
+            Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp) }, lines = talk, maxLines = 7)
+        },
+        under = {
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(CtSpacing.md, Alignment.CenterVertically)) {
                 StepProgress(state)
-                LessonWords(state, label)
+                if (state.evalCp != null || state.evalMate != null) LessonEvalBar(state.evalCp, state.evalMate)
             }
         },
-        under = { if (state.evalCp != null || state.evalMate != null) LessonEvalBar(state.evalCp, state.evalMate) },
         board = {
             BoardHost(
                 session = player.board,
@@ -312,7 +298,8 @@ private fun WatchPage(state: LessonPlayerState, step: LessonStep.Watch, video: L
             CtButton(text = "Start", onClick = onStart, modifier = Modifier.weight(1f))
         },
     ) {
-        VideoCard(video, modifier = Modifier.fillMaxWidth())
+        // The video plays right here (D98); Start goes to the board.
+        VideoFrame(video, autoplay = false, modifier = Modifier.fillMaxWidth().clip(CtShapes.Card))
         Text(step.title, style = CtType.Headline, modifier = Modifier.padding(top = CtSpacing.lg))
         Text(video.why.ifBlank { "Watch the video, or go straight to the board." }, style = CtType.Body.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.xs))
     }

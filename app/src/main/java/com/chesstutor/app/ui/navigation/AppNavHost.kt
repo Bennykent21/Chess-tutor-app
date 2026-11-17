@@ -1,5 +1,7 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.feature.learn.LocalVideoOpener
+import androidx.compose.runtime.CompositionLocalProvider
 import android.os.SystemClock
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -132,6 +134,8 @@ private fun AppShell(
             }
         }
     ) { innerPadding ->
+        // Every lesson video plays in the app's own player (D98).
+        CompositionLocalProvider(LocalVideoOpener provides { video -> navController.navigate(AppRoutes.video(video.id)) { launchSingleTop = true } }) {
         NavHost(
             navController = navController,
             startDestination = TopTab.HOME.graphRoute,
@@ -189,6 +193,7 @@ private fun AppShell(
                     engineElo = entry.arguments?.getInt(AppRoutes.ANALYSIS_ELO_ARG)?.takeIf { it > 0 },
                 )
             }
+        }
         }
     }
 }

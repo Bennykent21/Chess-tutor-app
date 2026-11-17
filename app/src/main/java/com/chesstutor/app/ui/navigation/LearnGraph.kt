@@ -1,5 +1,7 @@
 package com.chesstutor.app.ui.navigation
 
+import androidx.compose.runtime.remember
+import com.chesstutor.app.feature.learn.VideoScreen
 import com.chesstutor.app.feature.learn.rememberLessonVideos
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
@@ -52,6 +54,7 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val lessons by learn.learn.collectAsStateWithLifecycle()
             LearnScreen(
                 learn = lessons,
+                videos = rememberLessonVideos(),
                 actions = LearnHubActions(
                     onOpenCategory = { category -> navController.navigate(AppRoutes.learnCategory(category.key)) { launchSingleTop = true } },
                     onOpenLesson = { id ->
@@ -278,6 +281,27 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     popUpTo(AppRoutes.LESSON_OPEN_PATTERN) { inclusive = true }
                 }
             }
+        }
+        composable(
+            route = AppRoutes.VIDEO_PATTERN,
+            arguments = listOf(navArgument(AppRoutes.VIDEO_ID_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            val lessons by learnViewModel().learn.collectAsStateWithLifecycle()
+            val videos = rememberLessonVideos()
+            val video = videos.byId(entry.arguments?.getString(AppRoutes.VIDEO_ID_ARG).orEmpty())
+            val topics = remember(lessons.library) { lessons.library.courses.associate { it.id to it.category.key } }
+            VideoScreen(
+                video = video,
+                upNext = remember(video, topics) { video?.let { videos.upNext(it, topicOf = topics::get) }.orEmpty() },
+                // The next video takes this one's place, so Back returns to where videos were opened from.
+                onOpen = { next ->
+                    navController.navigate(AppRoutes.video(next.id)) {
+                        popUpTo(AppRoutes.VIDEO_PATTERN) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onBack = { navController.popBackStack() },
+            )
         }
         composable(AppRoutes.LESSON) { entry ->
             val learn = learnViewModel()

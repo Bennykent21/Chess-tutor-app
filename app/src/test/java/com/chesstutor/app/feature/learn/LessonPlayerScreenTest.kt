@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.feature.play.MIN_READ_MS
 import com.chesstutor.app.gallery.shootBoth
 import com.chesstutor.app.gallery.GALLERY_PHONE
 import org.junit.Assert.assertEquals
@@ -56,6 +57,8 @@ class LessonPlayerScreenTest {
         scheduler.advanceTimeBy(ms)
         scheduler.runCurrent()
         compose.waitForIdle()
+        // The coach's previous line stays readable before the next one comes (D97).
+        compose.mainClock.advanceTimeBy(MIN_READ_MS)
     }
 
     private fun show(player: LessonPlayer, onRelatedPuzzles: (() -> Unit)? = null) {
@@ -64,6 +67,14 @@ class LessonPlayerScreenTest {
                 LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {}, onRelatedPuzzles = onRelatedPuzzles)
             }
         }
+    }
+
+    @Test
+    fun theCoachLeadsWithTheVerdictOnlyWhenTheSentenceDoesNot() {
+        assertEquals("Correct! Well played.", lessonLine("Correct!", "Well played."))
+        assertEquals("Your turn: give check.", lessonLine("Your turn", "Your turn: give check."))
+        assertEquals("Challenge 1/2. Mate in one.", lessonLine("Challenge 1/2", "Mate in one."))
+        assertEquals("The rook checks.", lessonLine(null, "The rook checks."))
     }
 
     @Test
@@ -91,7 +102,7 @@ class LessonPlayerScreenTest {
 
         player.board.onMove(Move.fromUci("a1a8"))
         step()
-        compose.onNodeWithText("Correct!").assertExists()
+        compose.onNodeWithText("Correct!", substring = true).assertExists()
         // D39: the hint, the longer coach text and the new buttons never move the board.
         assertEquals(boardBefore, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
     }
@@ -122,7 +133,7 @@ class LessonPlayerScreenTest {
         player.start()
         show(player, onRelatedPuzzles = { related = true })
         step()
-        compose.onNodeWithText("Challenge 1/2").assertExists()
+        compose.onNodeWithText("Challenge 1/2", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_quiz.png")
 
         player.board.onMove(Move.fromUci("b1b8"))

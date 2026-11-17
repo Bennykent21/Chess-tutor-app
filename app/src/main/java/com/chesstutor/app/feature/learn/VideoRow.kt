@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -27,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,14 +57,25 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 /**
- * "Watch" (D96): a sideways row of free videos on the topic, each opening in YouTube. Nothing
- * when there are none; offline, the cards show a plain picture with the play mark.
+ * Opens a video in the app's own player (D98); the app shell provides it. Without one (previews,
+ * tests) a video opens in YouTube.
+ */
+val LocalVideoOpener = staticCompositionLocalOf<((LessonVideo) -> Unit)?> { null }
+
+/** Opens [video] in the YouTube app, or the browser without it. */
+fun openInYouTube(context: Context, video: LessonVideo) {
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(video.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+}
+
+/**
+ * "Watch" (D96): a sideways row of free videos on the topic, each opening in the app's player
+ * (D98). Nothing when there are none; offline, the cards show a plain picture with the play mark.
  */
 @Composable
-fun VideoRow(videos: List<LessonVideo>, modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(0.dp)) {
+fun VideoRow(videos: List<LessonVideo>, modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(0.dp), label: String = "Watch") {
     if (videos.isEmpty()) return
     Column(modifier, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        CtGroupLabel("Watch", modifier = Modifier.padding(contentPadding))
+        CtGroupLabel(label, modifier = Modifier.padding(contentPadding))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = contentPadding) {
             items(videos, key = { it.id + it.course }) { VideoCard(it) }
         }
@@ -73,29 +86,36 @@ fun VideoRow(videos: List<LessonVideo>, modifier: Modifier = Modifier, contentPa
 @Composable
 fun VideoCard(video: LessonVideo, modifier: Modifier = Modifier.width(208.dp)) {
     val context = LocalContext.current
-    val picture by produceState<ImageBitmap?>(Thumbnails.cached(video.thumbnail), video.thumbnail) { value = value ?: Thumbnails.load(video.thumbnail) }
+    val opener = LocalVideoOpener.current
     Column(
         modifier = modifier
             .clip(CtShapes.CardSmall)
-            .ctPressable(onClickLabel = "Watch on YouTube") {
-                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(video.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-            }
+            .ctPressable(onClickLabel = "Watch") { opener?.invoke(video) ?: openInYouTube(context, video) }
             .semantics(mergeDescendants = true) { contentDescription = "${video.title}, ${video.channel}, ${video.minutes} minutes" },
         verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
     ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(CtShapes.CardSmall).background(CtColors.Surface), contentAlignment = Alignment.Center) {
-            picture?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+        VideoThumbnail(video, Modifier.fillMaxWidth())
+        Text(video.title, style = CtType.Label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(video.channel, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** YouTube's picture of a video, with the play mark and its length in the corner. */
+@Composable
+fun VideoThumbnail(video: LessonVideo, modifier: Modifier = Modifier, playMark: Boolean = true) {
+    val picture by produceState<ImageBitmap?>(Thumbnails.cached(video.thumbnail), video.thumbnail) { value = value ?: Thumbnails.load(video.thumbnail) }
+    Box(modifier.aspectRatio(16f / 9f).clip(CtShapes.CardSmall).background(CtColors.Surface), contentAlignment = Alignment.Center) {
+        picture?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+        if (playMark) {
             Box(Modifier.size(40.dp).clip(CtShapes.Pill).background(Color.Black.copy(alpha = 0.55f)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = Color.White)
             }
-            Text(
-                "${video.minutes} min",
-                style = CtType.Caption.copy(color = Color.White),
-                modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).clip(RoundedCornerShape(4.dp)).background(Color.Black.copy(alpha = 0.65f)).padding(horizontal = 5.dp),
-            )
         }
-        Text(video.title, style = CtType.Label, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(video.channel, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            "${video.minutes} min",
+            style = CtType.Caption.copy(color = Color.White),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp).clip(RoundedCornerShape(4.dp)).background(Color.Black.copy(alpha = 0.65f)).padding(horizontal = 5.dp),
+        )
     }
 }
 

@@ -110,7 +110,13 @@ internal const val MIN_READ_MS = 1_200L
  * but unchanged, and a third pushes the oldest out, all sliding.
  */
 @Composable
-fun ColumnScope.Talk(avatar: @Composable () -> Unit, lines: List<TalkLine>, modifier: Modifier = Modifier) {
+fun ColumnScope.Talk(
+    avatar: @Composable () -> Unit,
+    lines: List<TalkLine>,
+    modifier: Modifier = Modifier,
+    /** How many lines the newest bubble may take; lessons explain more than games. */
+    maxLines: Int = 4,
+) {
     val reduceMotion = LocalReduceMotion.current
     val move = if (reduceMotion) 0 else CtMotion.OVERLAY_MS
     // What is on screen: the lines said, plus one still fading out at the top.
@@ -139,7 +145,7 @@ fun ColumnScope.Talk(avatar: @Composable () -> Unit, lines: List<TalkLine>, modi
                             enter = expandVertically(tween(move, easing = CtMotion.OverlayEase), expandFrom = Alignment.Top) + fadeIn(tween(move)),
                             exit = shrinkVertically(tween(move, easing = CtMotion.OverlayEase), shrinkTowards = Alignment.Bottom) + fadeOut(tween(move)),
                         ) {
-                            TalkBubble(line, newest = line.id == newestId, fade = move)
+                            TalkBubble(line, newest = line.id == newestId, fade = move, maxLines = maxLines)
                         }
                     }
                 }
@@ -150,7 +156,7 @@ fun ColumnScope.Talk(avatar: @Composable () -> Unit, lines: List<TalkLine>, modi
 
 /** One line in its bubble; the older line keeps its look and only fades a little. */
 @Composable
-private fun TalkBubble(line: TalkLine, newest: Boolean, fade: Int) {
+private fun TalkBubble(line: TalkLine, newest: Boolean, fade: Int, maxLines: Int) {
     val alpha by animateFloatAsState(if (newest) 1f else 0.72f, tween(fade), label = "talk")
     Column(
         modifier = Modifier
@@ -160,7 +166,7 @@ private fun TalkBubble(line: TalkLine, newest: Boolean, fade: Int) {
     ) {
         line.speaker?.let { Text(it, style = CtType.Caption.copy(color = CtColors.Text2), modifier = Modifier.padding(start = CtSpacing.md, bottom = 2.dp)) }
         CtSpeechBubble(tail = if (newest) CtTail.Start else CtTail.None, color = CtColors.Surface, modifier = Modifier.fillMaxWidth()) {
-            Text(line.text, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 4, overflow = TextOverflow.Ellipsis)
+            Text(line.text, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = maxLines, overflow = TextOverflow.Ellipsis)
         }
     }
 }
