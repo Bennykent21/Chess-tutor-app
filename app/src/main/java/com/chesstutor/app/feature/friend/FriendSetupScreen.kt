@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.friend
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,12 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,7 +52,7 @@ import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtShapes
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import com.chesstutor.app.design.CtSliderRow
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtToggleRow
@@ -63,7 +63,7 @@ import com.chesstutor.app.domain.game.Seating
 import com.chesstutor.app.feature.play.FriendSnapshot
 import kotlin.math.roundToInt
 
-/** Whose clock the custom-clock sheet is setting. */
+/** Whose clock the custom-clock dialog is setting. */
 private enum class ClockOwner { BOTH, FRIEND }
 
 /**
@@ -218,7 +218,7 @@ fun FriendSetupScreen(
         }
     }
 
-    CustomClockSheet(
+    CustomClockDialog(
         visible = customFor != null,
         start = (if (customFor == ClockOwner.FRIEND) draft.friendClock else draft.clock) ?: PlayerClock.of(10),
         onDismiss = { customFor = null },
@@ -284,10 +284,10 @@ private fun ClockChips(selected: PlayerClock?, allowNone: Boolean, onPick: (Play
 
 /** Minutes to start with and seconds added per move. */
 @Composable
-private fun CustomClockSheet(visible: Boolean, start: PlayerClock, onDismiss: () -> Unit, onUse: (PlayerClock) -> Unit) {
+private fun CustomClockDialog(visible: Boolean, start: PlayerClock, onDismiss: () -> Unit, onUse: (PlayerClock) -> Unit) {
     var minutes by remember(visible) { mutableFloatStateOf((start.initialMs / 60_000f).coerceIn(1f, MAX_MINUTES)) }
     var added by remember(visible) { mutableFloatStateOf((start.incrementMs / 1000f).coerceIn(0f, MAX_ADDED)) }
-    CtSheet(visible = visible, onDismiss = onDismiss) {
+    CtDialog(visible = visible, onDismiss = onDismiss) {
         CtSliderRow(
             title = "Minutes",
             value = minutes,

@@ -46,7 +46,9 @@ import com.chesstutor.app.engine.EngineStatus
 import com.chesstutor.app.feature.play.BotGame
 import com.chesstutor.app.feature.play.PlayScreen
 import com.chesstutor.app.viewmodel.AppUiState
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -67,7 +69,7 @@ import java.io.File
 import kotlin.random.Random
 
 /** Home, a bot's page and a game (step 3C), with screenshots for review. */
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalRoborazziApi::class)
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w400dp-h1500dp-xxhdpi")
@@ -246,7 +248,8 @@ class HomeScreensTest {
         compose.onNodeWithText("Wayne won").assertExists()
         // D39: the result slides up over the screen; the board underneath stays put.
         assertEquals(boardBefore, compose.onNodeWithContentDescription("Chess board", substring = true).fetchSemanticsNode().boundsInRoot)
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/Play_result.png")
+        // The result opens in its own window, so the whole screen is captured.
+        captureScreenRoboImage("build/outputs/roborazzi/Play_result.png")
         compose.onNode(hasText("Review this game")).performClick()
         assertTrue("the saved game opens", reviewed!!.startsWith("bot_wayne_"))
         compose.onNode(hasText("Rematch") and hasClickAction()).performClick()

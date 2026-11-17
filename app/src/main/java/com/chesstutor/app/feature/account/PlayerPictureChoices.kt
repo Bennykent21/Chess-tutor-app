@@ -34,7 +34,7 @@ import com.chesstutor.app.feature.home.PlayerAvatar
 
 private const val FACES_PER_ROW = 5
 
-/** What goes in the sheet: a photo, the Chess.com picture when that account is linked, or a face from the app. */
+/** What the picture dialog offers: a photo, the Chess.com picture when that account is linked, or a face from the app. */
 @Composable
 internal fun PlayerPictureChoices(
     current: PlayerPicture,

@@ -26,7 +26,9 @@ import com.chesstutor.app.domain.game.PlayerClock
 import com.chesstutor.app.domain.opening.OpeningTree
 import com.chesstutor.app.feature.play.FriendGame
 import com.chesstutor.app.feature.play.FriendPhase
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,6 +42,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /** Play a friend (Phase 11): the setup page and the game on one phone, at phone size. */
+@OptIn(ExperimentalRoborazziApi::class)
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h780dp-xxhdpi")
@@ -128,6 +131,7 @@ class FriendScreensTest {
         compose.onNodeWithText("Sam won").assertExists()
         compose.onNodeWithText("Rematch").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/friend_result.png")
+        // The result opens in its own window, so the whole screen is captured.
+        captureScreenRoboImage("build/outputs/roborazzi/friend_result.png")
     }
 }

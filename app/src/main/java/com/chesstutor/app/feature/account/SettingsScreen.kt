@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.chesstutor.app.design.ctEnter
 import com.chesstutor.app.design.CtTopBar
 import androidx.compose.material.icons.rounded.Info
@@ -38,7 +40,7 @@ import com.chesstutor.app.board.PieceSet
 import com.chesstutor.app.design.CtBackBar
 import com.chesstutor.app.design.CtMascotArt
 import com.chesstutor.app.design.CtScreenTitle
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -64,13 +66,11 @@ import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -155,9 +155,9 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     var exportMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmErase by rememberSaveable { mutableStateOf(false) }
-    var coachSheet by rememberSaveable { mutableStateOf(false) }
-    var nameSheet by rememberSaveable { mutableStateOf(false) }
-    var pictureSheet by rememberSaveable { mutableStateOf(false) }
+    var coachOpen by rememberSaveable { mutableStateOf(false) }
+    var nameOpen by rememberSaveable { mutableStateOf(false) }
+    var pictureOpen by rememberSaveable { mutableStateOf(false) }
     var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     BackHandler(enabled = page != null) { page = null }
     var pictureBusy by remember { mutableStateOf(false) }
@@ -166,7 +166,7 @@ fun SettingsScreen(
         scope.launch {
             if (image != null && actions.savePhoto(image)) {
                 actions.onPicture(PlayerPicture.Photo(System.currentTimeMillis()))
-                pictureSheet = false
+                pictureOpen = false
             } else {
                 pictureMessage = failure
             }
@@ -266,14 +266,14 @@ fun SettingsScreen(
                                     title = "Name",
                                     icon = Icons.Rounded.Person,
                                     subtitle = state.appSettings.playerName.ifBlank { "Not set" },
-                                    onClick = { nameSheet = true },
+                                    onClick = { nameOpen = true },
                                 )
                                 CtListRow(
                                     title = "Picture",
                                     icon = Icons.Rounded.Image,
                                     onClick = {
                                         pictureMessage = null
-                                        pictureSheet = true
+                                        pictureOpen = true
                                     },
                                     leading = { PlayerAvatar(state.appSettings.picture, state.appSettings.playerName.ifBlank { state.linkedProfile?.username.orEmpty() }) },
                                 )
@@ -281,7 +281,7 @@ fun SettingsScreen(
                                     title = "Coach",
                                     icon = Icons.Rounded.School,
                                     subtitle = state.appSettings.mascot.displayName,
-                                    onClick = { coachSheet = true },
+                                    onClick = { coachOpen = true },
                                     leading = { CtMascotArt(mascot = state.appSettings.mascot, height = 40.dp, modifier = Modifier.size(40.dp)) },
                                 )
                         }
@@ -391,10 +391,10 @@ fun SettingsScreen(
                 }
             }
         }
-        CtSheet(visible = coachSheet, onDismiss = { coachSheet = false }) {
-            CoachPicker(selected = state.appSettings.mascot, onSelect = { actions.onMascot(it); coachSheet = false })
+        CtDialog(visible = coachOpen, onDismiss = { coachOpen = false }) {
+            CoachPicker(selected = state.appSettings.mascot, onSelect = { actions.onMascot(it); coachOpen = false })
         }
-        CtSheet(visible = pictureSheet, onDismiss = { pictureSheet = false }) {
+        CtDialog(visible = pictureOpen, onDismiss = { pictureOpen = false }) {
             val linked = state.linkedProfile?.takeIf { it.platform == RatingPlatform.CHESS_COM }
             PlayerPictureChoices(
                 current = state.appSettings.picture,
@@ -416,14 +416,14 @@ fun SettingsScreen(
                 },
                 onChoose = { choice ->
                     actions.onPicture(choice)
-                    pictureSheet = false
+                    pictureOpen = false
                 },
             )
         }
-        CtSheet(visible = nameSheet, onDismiss = { nameSheet = false }) {
-            var draft by rememberSaveable(nameSheet) { mutableStateOf(state.appSettings.playerName) }
+        CtDialog(visible = nameOpen, onDismiss = { nameOpen = false }) {
+            var draft by rememberSaveable(nameOpen) { mutableStateOf(state.appSettings.playerName) }
             CtTextField(value = draft, onValueChange = { draft = it.take(AppSettingsCodec.MAX_PLAYER_NAME) }, label = "Name", placeholder = "What should the coach call you?")
-            CtButton(text = "Save", onClick = { actions.onName(draft); nameSheet = false }, modifier = Modifier.fillMaxWidth())
+            CtButton(text = "Save", onClick = { actions.onName(draft); nameOpen = false }, modifier = Modifier.fillMaxWidth())
         }
     }
     if (confirmErase) {

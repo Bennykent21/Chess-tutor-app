@@ -24,7 +24,9 @@ import com.chesstutor.app.domain.repertoire.RepertoireIndex
 import com.chesstutor.app.domain.repertoire.RepertoireLevel
 import com.chesstutor.app.domain.repertoire.TestRepertoire
 import com.chesstutor.app.domain.repertoire.TestRepertoire.P
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.chesstutor.app.domain.repertoire.Variation
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -35,6 +37,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.ZoneOffset
 
 /** The opening trainer's page, runs and mastery sheet (Phase 10, mock-up round 2), at phone size. */
+@OptIn(ExperimentalRoborazziApi::class)
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h780dp-xxhdpi")
@@ -184,6 +187,7 @@ class RepertoireScreensTest {
         compose.waitForIdle()
         compose.onNodeWithText("Core mastered").assertExists()
         compose.onNodeWithText("Standard is open: 55 new positions.").assertExists()
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_mastered.png")
+        // The result opens in its own window, so the whole screen is captured.
+        captureScreenRoboImage("build/outputs/roborazzi/repertoire_mastered.png")
     }
 }

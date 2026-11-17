@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.play
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.chesstutor.app.feature.home.PlayerAvatar
 import com.chesstutor.app.design.CtControl
 import com.chesstutor.app.board.LookBackBoard
@@ -32,12 +34,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,7 +68,7 @@ import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtConfirmDialog
 import com.chesstutor.app.design.CtIconButton
 import com.chesstutor.app.design.CtShapes
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtSpeechBubble
 import com.chesstutor.app.design.CtTail
@@ -85,7 +85,7 @@ import com.chesstutor.app.feature.home.battleCoachLine
  * A game against a bot (plan 6.1, Phase 7D, canvas `Play.dc.html`), built on the board screen
  * layout so the board never moves (D39): the bot's strip in the fixed row above the board, its
  * chat fading in over that strip (D41), you, the moves and the opening below the board, and
- * Resign, Undo, Hint and Chat at the bottom. The result slides up in a sheet.
+ * Resign, Undo, Hint and Chat at the bottom. The result opens in a centred card.
  */
 @Composable
 fun PlayScreen(
@@ -224,7 +224,7 @@ fun PlayScreen(
         controls = {
             when {
                 over -> {
-                    // Rematch and review live in the result sheet; this brings it back.
+                    // Rematch and review live in the result card; this brings it back.
                     CtIconButton(icon = Icons.Rounded.Search, contentDescription = "Explore", onClick = explore)
                     CtButton(text = "See the result", onClick = { resultClosed = false }, modifier = Modifier.weight(1f))
                 }
@@ -250,7 +250,7 @@ fun PlayScreen(
             }
         },
         overlay = {
-            CtSheet(visible = over && !resultClosed, onDismiss = { resultClosed = true }) {
+            CtDialog(visible = over && !resultClosed, onDismiss = { resultClosed = true }) {
                 if (state.phase == GamePhase.DRILL_DONE) {
                     DrillResult(state, onDrillAgain = onRematch, onExplore = explore, onBack = onBack)
                 } else {
@@ -364,7 +364,7 @@ private fun openingLine(state: BotGameState): String? {
     return if (state.inBook) "$name, in book" else "$name, out of book"
 }
 
-/** The game's result (canvas `Play.dc.html` game-over sheet): who won, the coach, then what next. */
+/** The game's result (canvas `Play.dc.html` game-over card): who won, the coach, then what next. */
 @Composable
 private fun GameResult(
     state: BotGameState,

@@ -4,6 +4,10 @@ Each release's notes on GitHub come from its section here. Versions follow [Sema
 
 ## [1.1.2] - 2026-11-17
 
+### Everywhere
+
+- No more panels sliding up from the bottom. A game's result, a cup won, a badge and short choices open as a card in the middle of the screen; filtering your games and choosing a puzzle goal get a page of their own.
+
 ### Updates
 
 - A new version now shows on Home: an arrow beside your streak while it waits, filling up as it downloads.

@@ -16,7 +16,7 @@ enum class TopTab(val graphRoute: String, val startRoute: String, val label: Str
 object AppRoutes {
     const val ENGINE_HEALTH = "account/engine"
     const val BOARD_SETTINGS = "account/board"
-    /** The Settings page (plan 6.4), replacing the old settings sheet. */
+    /** The Settings page (plan 6.4), replacing the old settings panel. */
     const val SETTINGS = "account/settings"
     /** Every bundled part and its licence, with the licence texts (Settings > About). */
     const val LICENCES = "account/licences"

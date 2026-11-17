@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,11 +23,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,7 +55,7 @@ import com.chesstutor.app.design.CtMenuItem
 import com.chesstutor.app.design.CtOverflowMenu
 import com.chesstutor.app.design.CtSegmented
 import com.chesstutor.app.design.CtShapes
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtTextField
 import com.chesstutor.app.design.CtType
@@ -100,7 +100,7 @@ fun PositionSetupScreen(
 /**
  * A board screen for setting up a position (From a position and Explore): the pieces to place
  * and who moves first sit above the fixed board, and the [nextLabel] button at the bottom opens
- * a sheet with the page's own [options] (side, opponent or strength) and the [startLabel]
+ * a centred dialog with the page's own [options] (side, opponent or strength) and the [startLabel]
  * button (D63: above the board they did not fit on a phone). Without [options] the bottom
  * button starts at once. Start position, kings only and a
  * FEN are in the menu. [SetupBoard.problem] keeps the button off until the position can be played.
@@ -153,8 +153,8 @@ internal fun SetupBoardScreen(
             CtButton(text = nextLabel, enabled = problem == null, onClick = { if (options == null) onStart() else optionsOpen = true }, modifier = Modifier.weight(1f))
         },
         overlay = {
-            FenSheet(fenOpen, board, onBoard, onDismiss = { fenOpen = false })
-            CtSheet(visible = optionsOpen, onDismiss = { optionsOpen = false }) {
+            FenDialog(fenOpen, board, onBoard, onDismiss = { fenOpen = false })
+            CtDialog(visible = optionsOpen, onDismiss = { optionsOpen = false }) {
                 options?.invoke(this)
                 CtButton(
                     text = startLabel,
@@ -171,7 +171,7 @@ internal fun SetupBoardScreen(
 
 /** Paste a position as a FEN; the board follows as soon as it reads. */
 @Composable
-private fun FenSheet(visible: Boolean, board: SetupBoard, onBoard: (SetupBoard) -> Unit, onDismiss: () -> Unit) {
+private fun FenDialog(visible: Boolean, board: SetupBoard, onBoard: (SetupBoard) -> Unit, onDismiss: () -> Unit) {
     var fenText by remember { mutableStateOf(board.toFen()) }
     var fenError by remember { mutableStateOf(false) }
     val boardFen = board.toFen()
@@ -179,7 +179,7 @@ private fun FenSheet(visible: Boolean, board: SetupBoard, onBoard: (SetupBoard) 
         fenText = boardFen
         fenError = false
     }
-    CtSheet(visible = visible, onDismiss = onDismiss) {
+    CtDialog(visible = visible, onDismiss = onDismiss) {
         CtTextField(
             value = fenText,
             onValueChange = { text ->

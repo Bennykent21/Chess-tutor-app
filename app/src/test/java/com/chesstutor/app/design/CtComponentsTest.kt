@@ -20,6 +20,9 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -60,20 +63,34 @@ class CtComponentsTest {
     }
 
     @Test
-    fun aSheetClosesFromOutsideButNotFromItsOwnContent() {
+    fun aDialogClosesFromOutsideButNotFromItsOwnContent() {
         var closed = 0
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                Box(Modifier.fillMaxSize()) {
-                    CtSheet(visible = true, onDismiss = { closed++ }) { Text("You won") }
-                }
+                CtDialog(visible = true, onDismiss = { closed++ }) { Text("You won") }
             }
         }
         compose.onNodeWithText("You won").performClick()
-        assertEquals("tapping the sheet itself keeps it open", 0, closed)
-        // The scrim behind the sheet: tapping outside closes it.
-        compose.onNode(SemanticsMatcher("click label Close") { it.config.getOrNull(SemanticsActions.OnClick)?.label == "Close" }).performClick()
+        assertEquals("tapping the card itself keeps it open", 0, closed)
+        // The scrim around the card: tapping outside closes it.
+        compose.onNode(SemanticsMatcher("click label Close") { it.config.getOrNull(SemanticsActions.OnClick)?.label == "Close" })
+            .performTouchInput { click(Offset(4f, 4f)) }
         assertEquals(1, closed)
+    }
+
+    @Test
+    fun aFullPageClosesWithItsBackArrow() {
+        var open by mutableStateOf(true)
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                Box(Modifier.fillMaxSize()) {
+                    CtFullPage(visible = open, title = "Filter games", onBack = { open = false }, bottom = { Text("Show 3 games") }) { Text("Result") }
+                }
+            }
+        }
+        compose.onNodeWithText("Show 3 games").assertExists()
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithText("Result").assertDoesNotExist()
     }
 
     @Test

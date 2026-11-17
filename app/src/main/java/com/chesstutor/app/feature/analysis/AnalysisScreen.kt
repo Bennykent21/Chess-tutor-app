@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.analysis
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.design.CtControl
 import com.chesstutor.app.design.CtTutor
@@ -11,7 +13,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import com.chesstutor.app.design.CtShapes
 import com.chesstutor.app.design.CtGroupLabel
 import com.chesstutor.app.design.CtSegmented
-import com.chesstutor.app.design.CtSheet
+import com.chesstutor.app.design.CtDialog
 import com.chesstutor.app.design.CtOverflowMenu
 import com.chesstutor.app.design.CtMenuItem
 import com.chesstutor.app.design.CtBoardScreen
@@ -29,11 +31,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -219,12 +219,12 @@ fun AnalysisScreen(
     }
     val marks = judged.mapValues { (_, j) -> MoveMark(j.move.quality.symbol, qualityColor(j.move.quality), j.move.quality.label, icon = qualityIcon(j.move.quality)) }
 
-    var engineSheet by remember { mutableStateOf(false) }
+    var engineOpen by remember { mutableStateOf(false) }
     val tryAgain: (() -> Unit)? = if (quality?.isError == true) session::back else null
     val menu = buildList {
         add(CtMenuItem("Flip board") { whiteAtBottom = !whiteAtBottom })
         add(CtMenuItem(if (showLines) "Hide engine lines" else "Show engine lines") { showLines = !showLines })
-        add(CtMenuItem("Play the engine") { engineSheet = true })
+        add(CtMenuItem("Play the engine") { engineOpen = true })
         add(CtMenuItem(if (drawing) "Stop drawing" else "Draw arrows") { drawing = !drawing })
         if (view.inVariation) {
             add(CtMenuItem("Make main line", onClick = session::promoteCurrent))
@@ -293,7 +293,7 @@ fun AnalysisScreen(
             if (tryAgain != null) CtControl(Icons.AutoMirrored.Rounded.Undo, "Try again", onClick = tryAgain)
         },
         overlay = {
-            CtSheet(visible = engineSheet, onDismiss = { engineSheet = false }) {
+            CtDialog(visible = engineOpen, onDismiss = { engineOpen = false }) {
                 Text("Play the engine", style = CtType.Headline)
                 OpponentPicker(
                     opponent = opponent,
@@ -306,7 +306,7 @@ fun AnalysisScreen(
                     },
                     onStrength = { strength = it },
                 )
-                CtButton(text = "Done", onClick = { engineSheet = false }, modifier = Modifier.fillMaxWidth())
+                CtButton(text = "Done", onClick = { engineOpen = false }, modifier = Modifier.fillMaxWidth())
             }
         },
     )

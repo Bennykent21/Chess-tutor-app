@@ -187,8 +187,6 @@ object CtShapes {
     val Control = RoundedCornerShape(14.dp)
     /** Small inner parts: a selected segment, board thumbnails. */
     val Chip = RoundedCornerShape(10.dp)
-    /** Sheets rise from the bottom with rounded top corners. */
-    val Sheet = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     /** Chips, badges and round buttons. */
     val Pill = RoundedCornerShape(percent = 50)
 }
@@ -254,7 +252,7 @@ val LocalCtType = staticCompositionLocalOf { CtTypeScale(CtColorScheme(Palette.P
 object CtType {
     /** Screen title, 30 sp. */
     val Display: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.display
-    /** Card and sheet title, 22 sp. */
+    /** Card and dialog title, 22 sp. */
     val Headline: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.headline
     /** Top bar title, 20 sp. */
     val TopBar: TextStyle @Composable @ReadOnlyComposable get() = LocalCtType.current.topBar
