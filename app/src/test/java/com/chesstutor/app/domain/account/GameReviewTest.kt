@@ -117,11 +117,8 @@ class GameReviewTest {
     }
 
     @Test
-    fun accuracyPunishesBigLosses() {
+    fun accuracyOverManyMovesIsTheirMean() {
         assertNull(GameReviewer.accuracyOf(emptyList()))
-        val steady = GameReviewer.accuracyOf(listOf(90.0, 90.0))!!
-        val spiky = GameReviewer.accuracyOf(listOf(100.0, 80.0))!!
-        assertEquals(90.0, steady, 0.001)
-        assertTrue("same average, but a bad move weighs more", spiky < steady)
+        assertEquals(90.0, GameReviewer.accuracyOf(listOf(100.0, 80.0))!!, 0.001)
     }
 }

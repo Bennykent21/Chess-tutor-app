@@ -3,7 +3,6 @@ package com.chesstutor.app.domain.account
 import com.chesstutor.app.core.PieceColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LichessAccuracyTest {
@@ -17,25 +16,27 @@ class LichessAccuracyTest {
     }
 
     @Test
-    fun moveAccuracyMatchesLichess() {
+    fun moveAccuracyFollowsChessComsSteeperCurve() {
         assertEquals(100.0, LichessAccuracy.moveAccuracy(50.0, 50.0), 1e-9)
         assertEquals("gaining chances is perfect", 100.0, LichessAccuracy.moveAccuracy(40.0, 60.0), 1e-9)
-        assertEquals(64.58, LichessAccuracy.moveAccuracy(60.0, 50.0), 0.01)
+        // Lichess gives a ten-point drop 64.6; chess.com's numbers fit a steeper curve (D89).
+        assertEquals(30.17, LichessAccuracy.moveAccuracy(60.0, 50.0), 0.01)
         assertEquals(0.0, LichessAccuracy.moveAccuracy(100.0, 0.0), 1e-9)
     }
 
     @Test
-    fun gameAccuracyWeighsBothSidesSeparately() {
+    fun gameAccuracyAveragesEachSidesMovesAfterTheBook() {
         assertNull(LichessAccuracy.gameAccuracy(listOf(50.0))[PieceColor.WHITE])
         val calm = LichessAccuracy.gameAccuracy(List(21) { 52.0 })
         assertEquals(100.0, calm[PieceColor.WHITE]!!, 1e-9)
         assertEquals(100.0, calm[PieceColor.BLACK]!!, 1e-9)
 
-        // Black blunders once (ply 6): White stays perfect, Black drops well below.
+        // Black blunders once (ply 6): White stays perfect, Black's five moves average one at zero.
         val wins = listOf(52.0, 52.0, 52.0, 52.0, 52.0, 52.0, 90.0, 90.0, 90.0, 90.0, 90.0)
         val acc = LichessAccuracy.gameAccuracy(wins)
         assertEquals(100.0, acc[PieceColor.WHITE]!!, 1e-9)
-        assertTrue("one blunder: ${acc[PieceColor.BLACK]}", acc[PieceColor.BLACK]!! < 70.0)
+        assertEquals(80.0, acc[PieceColor.BLACK]!!, 1e-9)
+        assertEquals("book moves don't count", 75.0, LichessAccuracy.gameAccuracy(wins, bookPlies = 2)[PieceColor.BLACK]!!, 1e-9)
 
         val blackFirst = LichessAccuracy.gameAccuracy(listOf(50.0, 30.0), firstMover = PieceColor.BLACK)
         assertEquals("Black gained, so Black's move was perfect", 100.0, blackFirst[PieceColor.BLACK]!!, 1e-9)

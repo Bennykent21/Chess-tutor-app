@@ -2,6 +2,12 @@
 
 Each release's notes on GitHub come from its section here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [1.1.1] - 2026-11-17
+
+### Game review
+
+- Accuracy closer to chess.com: tuned on six games reviewed on both, it now lands within about four points of chess.com's number. Book moves no longer count, and the accuracy for each game phase follows the same rule.
+
 ## [1.1.0] - 2026-11-16
 
 ### Train
