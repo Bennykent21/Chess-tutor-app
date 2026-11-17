@@ -61,10 +61,11 @@ import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.domain.game.PlayerClock
 import com.chesstutor.app.domain.game.Seating
 import com.chesstutor.app.feature.play.FriendSnapshot
+import com.chesstutor.app.feature.play.TimeControlPicker
+import com.chesstutor.app.feature.play.asTimeControl
+import com.chesstutor.app.feature.play.playerClock
 import kotlin.math.roundToInt
 
-/** Whose clock the custom-clock dialog is setting. */
-private enum class ClockOwner { BOTH, FRIEND }
 
 /**
  * Play a friend (Phase 11): on this phone or with a friend's phone nearby, who plays which
@@ -87,12 +88,11 @@ fun FriendSetupScreen(
     resumable: FriendSnapshot? = null,
     onResume: () -> Unit = {},
 ) {
-    var customFor by rememberSaveable { mutableStateOf<ClockOwner?>(null) }
     val nearby = draft.mode == FriendMode.NEARBY
     val friend = if (nearby) "your friend" else draft.friendName.trim().ifEmpty { "your friend" }
 
     CtActionPage(
-        title = "",
+        title = "Play a friend",
         onBack = onBack,
         bottom = {
             if (nearby) {
@@ -103,7 +103,6 @@ fun FriendSetupScreen(
             }
         },
     ) {
-        Text("Play a friend", style = CtType.Display)
         resumable?.let { saved ->
             CtListRow(
                 title = "Continue your game",
@@ -141,12 +140,9 @@ fun FriendSetupScreen(
             Seat(PieceColor.BLACK, draft, ownerName, theme, nearby) { name -> onChange { it.copy(friendName = name) } }
         }
 
-        CtGroupLabel("Clock")
-        ClockChips(
-            selected = draft.clock,
-            allowNone = true,
-            onPick = { clock -> onChange { it.copy(clock = clock, friendClock = it.friendClock.takeIf { clock != null }) } },
-            onCustom = { customFor = ClockOwner.BOTH },
+        TimeControlPicker(
+            selected = draft.clock.asTimeControl(),
+            onSelect = { tc -> val clock = tc.playerClock; onChange { it.copy(clock = clock, friendClock = it.friendClock.takeIf { clock != null }) } },
         )
         if (draft.clock != null) {
             CtToggleRow(
@@ -155,11 +151,11 @@ fun FriendSetupScreen(
                 onCheckedChange = { on -> onChange { it.copy(friendClock = if (on) it.clock else null) } },
             )
             if (draft.friendClock != null) {
-                ClockChips(
-                    selected = draft.friendClock,
+                TimeControlPicker(
+                    selected = draft.friendClock.asTimeControl(),
+                    onSelect = { tc -> onChange { it.copy(friendClock = tc.playerClock) } },
+                    title = "$friend's clock",
                     allowNone = false,
-                    onPick = { clock -> onChange { it.copy(friendClock = clock) } },
-                    onCustom = { customFor = ClockOwner.FRIEND },
                 )
             }
         }
@@ -217,17 +213,6 @@ fun FriendSetupScreen(
             }
         }
     }
-
-    CustomClockDialog(
-        visible = customFor != null,
-        start = (if (customFor == ClockOwner.FRIEND) draft.friendClock else draft.clock) ?: PlayerClock.of(10),
-        onDismiss = { customFor = null },
-        onUse = { clock ->
-            val owner = customFor
-            customFor = null
-            onChange { if (owner == ClockOwner.FRIEND) it.copy(friendClock = clock) else it.copy(clock = clock) }
-        },
-    )
 }
 
 /** One colour's seat: its king, and the owner's name or a field for the friend's. */
@@ -268,48 +253,4 @@ private fun RowScope.Seat(color: PieceColor, draft: FriendDraft, ownerName: Stri
     }
 }
 
-/** No clock, the quick clocks, and Custom, which shows the custom clock once one is set. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ClockChips(selected: PlayerClock?, allowNone: Boolean, onPick: (PlayerClock?) -> Unit, onCustom: () -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        if (allowNone) CtChip(text = "None", selected = selected == null, onClick = { onPick(null) })
-        PlayerClock.PRESETS.forEach { clock ->
-            CtChip(text = clock.label, selected = selected == clock, onClick = { onPick(clock) })
-        }
-        val custom = selected != null && selected !in PlayerClock.PRESETS
-        CtChip(text = if (custom) selected.label else "Custom", selected = custom, onClick = onCustom)
-    }
-}
-
-/** Minutes to start with and seconds added per move. */
-@Composable
-private fun CustomClockDialog(visible: Boolean, start: PlayerClock, onDismiss: () -> Unit, onUse: (PlayerClock) -> Unit) {
-    var minutes by remember(visible) { mutableFloatStateOf((start.initialMs / 60_000f).coerceIn(1f, MAX_MINUTES)) }
-    var added by remember(visible) { mutableFloatStateOf((start.incrementMs / 1000f).coerceIn(0f, MAX_ADDED)) }
-    CtDialog(visible = visible, onDismiss = onDismiss) {
-        CtSliderRow(
-            title = "Minutes",
-            value = minutes,
-            onValueChange = { minutes = it.roundToInt().toFloat() },
-            valueRange = 1f..MAX_MINUTES,
-            valueLabel = "${minutes.roundToInt()}",
-        )
-        CtSliderRow(
-            title = "Seconds added each move",
-            value = added,
-            onValueChange = { added = it.roundToInt().toFloat() },
-            valueRange = 0f..MAX_ADDED,
-            valueLabel = "${added.roundToInt()}",
-        )
-        CtButton(
-            text = "Use this clock",
-            onClick = { onUse(PlayerClock.of(minutes.roundToInt(), added.roundToInt())) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
 private const val MAX_NAME = 20
-private const val MAX_MINUTES = 90f
-private const val MAX_ADDED = 30f

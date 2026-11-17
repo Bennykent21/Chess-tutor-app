@@ -36,6 +36,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
@@ -49,6 +56,8 @@ fun CtDialog(
     visible: Boolean,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Drawn edge to edge above the padded content, such as a [CtDialogBand]. */
+    header: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (!visible) return
@@ -78,11 +87,15 @@ fun CtDialog(
                         .background(CtColors.Raised)
                         // Taps on the card itself must not reach the scrim behind it.
                         .pointerInput(Unit) { detectTapGestures { } }
-                        .verticalScroll(rememberScrollState())
-                        .padding(CtSpacing.xl),
-                    verticalArrangement = Arrangement.spacedBy(CtSpacing.lg),
-                    content = content,
-                )
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    header?.invoke()
+                    Column(
+                        modifier = Modifier.padding(start = CtSpacing.xl, end = CtSpacing.xl, bottom = CtSpacing.xl, top = if (header == null) CtSpacing.xl else CtSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(CtSpacing.lg),
+                        content = content,
+                    )
+                }
             }
         }
     }
@@ -122,6 +135,35 @@ fun CtFullPage(
             Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.lg), content = content)
         }
     }
+}
+
+/**
+ * The lit top of a moment worth marking (D92): a faint board pattern under a warm glow, with the
+ * moment's own picture in the middle (the result's piece, the cup, the badge).
+ */
+@Composable
+fun CtDialogBand(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    val squares = CtColors.Track
+    val glow = CtColors.Accent
+    val card = CtColors.Raised
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(124.dp)
+            .clipToBounds()
+            .drawBehind {
+                val cell = 22.dp.toPx()
+                val columns = (size.width / cell).toInt() + 1
+                val rows = (size.height / cell).toInt() + 1
+                for (r in 0 until rows) for (c in 0 until columns) {
+                    if ((r + c) % 2 == 0) drawRect(squares.copy(alpha = 0.55f), topLeft = Offset(c * cell, r * cell), size = Size(cell, cell))
+                }
+                drawRect(Brush.verticalGradient(0.4f to Color.Transparent, 1f to card))
+                drawRect(Brush.radialGradient(listOf(glow.copy(alpha = 0.5f), Color.Transparent), center = Offset(size.width / 2, size.height * 0.45f), radius = size.width * 0.45f))
+            },
+        contentAlignment = Alignment.Center,
+        content = content,
+    )
 }
 
 private val DialogShape = RoundedCornerShape(28.dp)

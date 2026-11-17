@@ -27,6 +27,12 @@ import com.chesstutor.app.feature.home.BattleSetupScreen
 import com.chesstutor.app.feature.home.BotBuilderScreen
 import com.chesstutor.app.feature.home.BotSetupScreen
 import com.chesstutor.app.feature.home.BotsScreen
+import com.chesstutor.app.feature.home.CustomGameScreen
+import com.chesstutor.app.feature.home.PlayMenuActions
+import com.chesstutor.app.feature.home.PlayMenuScreen
+import com.chesstutor.app.feature.friend.FriendMode
+import com.chesstutor.app.domain.bot.BotDraft
+import com.chesstutor.app.domain.bot.RosterBot
 import com.chesstutor.app.feature.home.ExploreSetupScreen
 import com.chesstutor.app.feature.home.HomeActions
 import com.chesstutor.app.feature.home.HomeLearning
@@ -73,8 +79,12 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                     onFromPosition = { navController.navigate(AppRoutes.POSITION) { launchSingleTop = true } },
                     onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
                     onExplore = { navController.navigate(AppRoutes.EXPLORE) { launchSingleTop = true } },
-                    onOpenBots = { navController.navigate(AppRoutes.BOTS) { launchSingleTop = true } },
+                    onOpenBots = { navController.navigate(AppRoutes.PLAY_MENU) { launchSingleTop = true } },
                     onWhatsNew = { navController.navigate(AppRoutes.WHATS_NEW) { launchSingleTop = true } },
+                    onOpenGame = { id ->
+                        navController.navigateToTab(TopTab.ACCOUNT)
+                        navController.navigate(AppRoutes.game(id)) { launchSingleTop = true }
+                    },
                     onNewBot = {
                         homeModel.newBot()
                         navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
@@ -224,10 +234,49 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                     homeModel.newBot()
                     navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
                 },
-                onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
-                onPlayFriend = { navController.navigate(AppRoutes.FRIEND) { launchSingleTop = true } },
                 onBack = { navController.popBackStack() },
             )
+        }
+        composable(AppRoutes.PLAY_MENU) {
+            val friendModel = friendViewModel()
+            fun go(route: String) = navController.navigate(route) { launchSingleTop = true }
+            PlayMenuScreen(
+                actions = PlayMenuActions(
+                    onBots = { go(AppRoutes.BOTS) },
+                    onCustomGame = { go(AppRoutes.CUSTOM_GAME) },
+                    onOpeningBattle = { go(AppRoutes.BATTLE) },
+                    onFromPosition = { go(AppRoutes.POSITION) },
+                    onChess960 = { go(AppRoutes.CHESS960) },
+                    onThisPhone = {
+                        friendModel.update { it.copy(mode = FriendMode.THIS_PHONE) }
+                        go(AppRoutes.FRIEND)
+                    },
+                    onNearby = {
+                        friendModel.update { it.copy(mode = FriendMode.NEARBY) }
+                        go(AppRoutes.FRIEND)
+                    },
+                    onWatch = { go(AppRoutes.WATCH) },
+                    onExplore = { go(AppRoutes.EXPLORE) },
+                ),
+                onBack = { navController.popBackStack() },
+            )
+        }
+        for (route in listOf(AppRoutes.CUSTOM_GAME, AppRoutes.CHESS960)) {
+            composable(route) {
+                val homeModel = homeViewModel()
+                CustomGameScreen(
+                    theme = state.appSettings.boardTheme,
+                    startIn960 = route == AppRoutes.CHESS960,
+                    onStart = { rating, side, rules, chess960 ->
+                        homeModel.start(customComputer(rating), side, rules, startFen = chess960?.let(Chess960::startFen) ?: Position.STARTING_FEN)
+                        navController.navigate(AppRoutes.PLAY) {
+                            popUpTo(route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
         composable(AppRoutes.WATCH) { entry ->
             val homeModel = homeViewModel()
@@ -351,7 +400,12 @@ internal fun Shell.homeViewModel(): HomeViewModel {
                 lessonProgress = AppContainer.provideLessonProgress(context).observe(),
                 loadDaily = { PuzzleModes.daily(AppContainer.loadPuzzlePack(context), LocalDate.now())?.let(DailyPreview::of) },
                 puzzleHistory = AppContainer.providePuzzleRepository(context).history(),
+                analysisSummaries = AppContainer.provideGameAnalysis(context).observeSummaries(),
             ),
         ),
     )
 }
+
+/** The computer at [rating] for a custom game (D92): Bolt's face, not saved as a bot of the player's. */
+private fun customComputer(rating: Int): RosterBot =
+    BotDraft(name = "Computer", face = "bolt", rating = rating).toCustomBot("custom_computer", System.currentTimeMillis()).asRosterBot()

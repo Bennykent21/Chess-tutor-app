@@ -11,6 +11,8 @@ import com.chesstutor.app.design.CtTheme
 import com.chesstutor.app.domain.bot.BotRoster
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertEquals
+import androidx.compose.ui.test.onNodeWithContentDescription
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -44,16 +46,36 @@ class BotChess960Test {
     }
 
     @Test
-    fun thePlayPageHasAPictureTileForPlayingAFriend() {
+    fun thePlayPageListsEveryWayToPlay() {
         var friend = false
+        var nearby = false
+        var chess960 = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                BotsScreen(roster = BotRoster.bots, myBots = emptyList(), onOpenBot = {}, onNewBot = {}, onWatch = {}, onPlayFriend = { friend = true }, onBack = {})
+                PlayMenuScreen(PlayMenuActions(onThisPhone = { friend = true }, onNearby = { nearby = true }, onChess960 = { chess960 = true }), onBack = {})
             }
         }
-        compose.onNodeWithText("This phone or nearby").assertExists()
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/play_friend_tile.png")
-        compose.onNodeWithText("Play a friend").performClick()
-        assertTrue(friend)
+        compose.onNodeWithText("Bots").assertExists()
+        compose.onNodeWithText("Custom game").assertExists()
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/play_menu.png")
+        compose.onNodeWithText("On this phone").performClick()
+        compose.onNodeWithText("Nearby").performClick()
+        compose.onNodeWithText("Chess960").performClick()
+        assertTrue(friend && nearby && chess960)
+    }
+
+    @Test
+    fun aChess960StartIsPickedWithTheArrows() {
+        var chosen: Int? = null
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                CustomGameScreen(theme = com.chesstutor.app.board.BoardTheme(), startIn960 = true, onStart = { _, _, _, c -> chosen = c }, onBack = {})
+            }
+        }
+        val first = compose.onNode(androidx.compose.ui.test.hasContentDescription("Chess960 position", substring = true)).fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsProperties.ContentDescription].single().removePrefix("Chess960 position ").toInt()
+        compose.onNodeWithContentDescription("Next start").performScrollTo().performClick()
+        compose.onNode(hasText("Play")).performClick()
+        assertEquals((first + 1) % 960, chosen)
     }
 }

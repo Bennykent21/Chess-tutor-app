@@ -23,6 +23,7 @@ import com.chesstutor.app.domain.bot.BotRepository
 import com.chesstutor.app.domain.bot.ChatLevel
 import com.chesstutor.app.domain.bot.MaiaSource
 import com.chesstutor.app.domain.bot.CustomBot
+import com.chesstutor.app.domain.account.AnalysisSummary
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.bot.RosterBot
 import com.chesstutor.app.domain.game.GameRules
@@ -122,6 +123,10 @@ data class HomeUiState(
     val nextStep: NextStep? = null,
     /** Today's puzzle for its tile; null until the pack has loaded. */
     val daily: DailyPreview? = null,
+    /** The newest game, with its accuracy once reviewed (D92). */
+    val lastGame: LastGame? = null,
+    /** Monday to Sunday: the days with a game or a solved puzzle (D92). */
+    val week: List<Boolean> = List(7) { false },
 )
 
 /** What Home reads from Learn, Puzzles and Account for its Continue and Recommended cards. */
@@ -131,6 +136,8 @@ class HomeLearning(
     val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
     val loadDaily: suspend () -> DailyPreview? = { null },
     val puzzleHistory: Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList()),
+    /** Reviewed games' accuracies, for the last game on Home (D92). */
+    val analysisSummaries: Flow<Map<String, AnalysisSummary>> = flowOf(emptyMap()),
 )
 
 /**
@@ -171,6 +178,10 @@ class HomeViewModel(
     }.flowOn(worker)
     private val snapshot = MutableStateFlow(store.load())
 
+    /** The last game and every game's date, for Home's look back (D92). */
+    private val recap: Flow<Pair<LastGame?, List<Long>>> =
+        combine(games.observeGames(), learning.analysisSummaries) { list, summaries -> HomeRecap.lastGame(list, summaries) to list.map { it.dateMillis } }
+
     /** Loaded eagerly, so a saved game against one of them can be resumed at once. */
     val myBots: StateFlow<List<CustomBot>> = bots.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -189,9 +200,14 @@ class HomeViewModel(
                 nextLesson = lesson,
                 nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
             )
-        }.combine(daily.combine(learning.puzzleHistory) { preview, history -> preview to history }) { state, (preview, history) ->
+        }.combine(combine(daily, learning.puzzleHistory, recap) { preview, history, look -> Triple(preview, history, look) }) { state, (preview, history, look) ->
             val today = Instant.ofEpochMilli(clock()).atZone(ZoneId.systemDefault()).toLocalDate()
-            state.copy(daily = preview, dailySolved = PuzzleModes.solvedOn(preview?.puzzleId, history, today))
+            state.copy(
+                daily = preview,
+                dailySolved = PuzzleModes.solvedOn(preview?.puzzleId, history, today),
+                lastGame = look.first,
+                week = HomeRecap.week(today, look.second + history.filter { it.solved }.map { it.finishedAt }),
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
             BotRoster.byId(s.botId)?.let { s.toResumeCard(it) }
         }))

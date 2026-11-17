@@ -54,6 +54,9 @@ import com.chesstutor.app.feature.home.BattleSetupScreen
 import com.chesstutor.app.feature.home.BotBuilderScreen
 import com.chesstutor.app.feature.home.BotSetupScreen
 import com.chesstutor.app.feature.home.BotsScreen
+import com.chesstutor.app.feature.home.CustomGameScreen
+import com.chesstutor.app.feature.home.PlayMenuActions
+import com.chesstutor.app.feature.home.PlayMenuScreen
 import com.chesstutor.app.feature.home.ExploreDraft
 import com.chesstutor.app.feature.home.ExploreSetupScreen
 import com.chesstutor.app.feature.home.FirstRunScreen
@@ -161,7 +164,16 @@ class HomeTabGalleryTest {
     fun firstRun() = shoot("02_first_run") { FirstRunScreen(mascot = Mascot.PIP, pieceSet = PieceSet.DEFAULT, onName = {}, onStartingLevel = {}) }
 
     @Test
-    fun bots() = shoot("03_bots") { BotsScreen(roster = BotRoster.bots, myBots = emptyList(), onOpenBot = {}, onNewBot = {}, onWatch = {}, onPlayFriend = {}, onBack = {}) }
+    fun bots() = shoot("03_bots") { BotsScreen(roster = BotRoster.bots, myBots = emptyList(), onOpenBot = {}, onNewBot = {}, onBack = {}) }
+
+    @Test
+    fun playMenu() = shoot("03b_play") { PlayMenuScreen(PlayMenuActions(), onBack = {}) }
+
+    @Test
+    fun customGame() = shoot("03c_custom_game") { CustomGameScreen(theme = BoardTheme(), onStart = { _, _, _, _ -> }, onBack = {}) }
+
+    @Test
+    fun chess960() = shoot("03d_chess960") { CustomGameScreen(theme = BoardTheme(), startIn960 = true, onStart = { _, _, _, _ -> }, onBack = {}) }
 
     @Test
     fun botSetup() = shoot("04_bot_page") { BotSetupScreen(BotRoster.byId("marlo")!!, onPlay = { _, _, _ -> }, onBack = {}) }

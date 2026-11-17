@@ -46,7 +46,7 @@ import com.chesstutor.app.domain.bot.BotStyle
 import com.chesstutor.app.domain.bot.MistakeLevel
 import com.chesstutor.app.domain.bot.ResignPolicy
 import com.chesstutor.app.domain.bot.ThinkSpeed
-import com.chesstutor.app.domain.game.TimeControl
+import com.chesstutor.app.feature.play.TimeControlPicker
 import kotlin.math.roundToInt
 
 /**
@@ -123,8 +123,7 @@ fun BotBuilderScreen(
         CtListRow(title = "Black", icon = null, subtitle = openingSummary(draft.black), onClick = { onChooseOpenings(PieceColor.BLACK) })
 
         CtSectionHeader(title = "Rules")
-        CtGroupLabel("Clock")
-        CtSegmented(TimeControl.entries, draft.rules.timeControl, ::clockLabel, { t -> onChange { it.copy(rules = it.rules.copy(timeControl = t)) } })
+        TimeControlPicker(selected = draft.rules.timeControl, onSelect = { t -> onChange { it.copy(rules = it.rules.copy(timeControl = t)) } })
         Column(Modifier.padding(top = CtSpacing.sm)) {
             CtToggleRow(title = "Takebacks", checked = draft.rules.takebacks, onCheckedChange = { v -> onChange { it.copy(rules = it.rules.copy(takebacks = v)) } })
             CtToggleRow(title = "Hints", checked = draft.rules.hints, onCheckedChange = { v -> onChange { it.copy(rules = it.rules.copy(hints = v)) } })

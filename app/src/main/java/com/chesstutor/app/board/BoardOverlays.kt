@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,13 +93,12 @@ fun BoardEvalBar(
     val share by animateFloatAsState(target, tween(if (reduceMotion) 0 else 450), label = "evalShare")
     val whiteLeads = target >= 0.5f
     val label = EvalMath.label(centipawns, mateIn)
+    // Square and flush with the board (D92); White's share in white, Black's in black, in every theme.
     Box(
         modifier = modifier
             .width(EVAL_BAR_WIDTH)
             .fillMaxHeight()
-            .clip(CtShapes.Chip)
-            .background(CtColors.BgDeep)
-            .border(1.dp, CtColors.Line, CtShapes.Chip)
+            .background(SideTones.Black)
             .semantics { contentDescription = EvalMath.spoken(centipawns, mateIn) },
     ) {
         Box(
@@ -106,13 +106,13 @@ fun BoardEvalBar(
                 .fillMaxWidth()
                 .fillMaxHeight(share)
                 .align(if (whiteAtBottom) Alignment.BottomCenter else Alignment.TopCenter)
-                .background(CtColors.Text),
+                .background(SideTones.White),
         )
         // The score sits on the leading side's colour, at that side's end of the bar.
         val atBottom = whiteLeads == whiteAtBottom
         Text(
             text = label.removePrefix("+").removePrefix("-"),
-            style = CtType.Caption.copy(color = if (whiteLeads) CtColors.BgDeep else CtColors.Text),
+            style = CtType.Caption.copy(color = if (whiteLeads) SideTones.OnWhite else SideTones.OnBlack),
             maxLines = 1,
             softWrap = false,
             modifier = Modifier
@@ -123,7 +123,18 @@ fun BoardEvalBar(
 }
 
 /** Eval bar width; [BoardWithEvalBar] leaves room for it. */
-val EVAL_BAR_WIDTH = 26.dp
+val EVAL_BAR_WIDTH = 22.dp
+
+/**
+ * White's and Black's own colours, the same in every theme (D92): the eval bar and the clocks
+ * show who is who by them, as the pieces do.
+ */
+object SideTones {
+    val White = Color(0xFFF7F4EE)
+    val OnWhite = Color(0xFF1E1B17)
+    val Black = Color(0xFF1E1B17)
+    val OnBlack = Color(0xFFF2EDE3)
+}
 
 /**
  * The board with an optional eval bar to its left, sized from the available width (the
@@ -137,12 +148,8 @@ fun BoardWithEvalBar(
     board: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val gap = CtSpacing.sm
-        val boardSize = if (evalBar != null) maxWidth - EVAL_BAR_WIDTH - gap else maxWidth
-        Row(
-            modifier = Modifier.height(boardSize),
-            horizontalArrangement = Arrangement.spacedBy(gap),
-        ) {
+        val boardSize = if (evalBar != null) maxWidth - EVAL_BAR_WIDTH else maxWidth
+        Row(modifier = Modifier.height(boardSize)) {
             evalBar?.invoke(Modifier.fillMaxHeight())
             board(Modifier.size(boardSize))
         }

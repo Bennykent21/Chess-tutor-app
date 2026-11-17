@@ -1,6 +1,15 @@
 package com.chesstutor.app.feature.play
 
 import androidx.compose.runtime.getValue
+import com.chesstutor.app.design.CtDialogBand
+import com.chesstutor.app.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.Image
+import android.content.Intent
+import android.content.Context
 import androidx.compose.runtime.setValue
 import com.chesstutor.app.feature.home.PlayerAvatar
 import com.chesstutor.app.design.CtControl
@@ -105,8 +114,11 @@ fun PlayScreen(
     val setup = game.setup
     val bot = setup.bot
     val watch = setup.watch
-    val whiteBottom = whiteAtBottom(settings.boardOrientation, setup.playerColor)
+    var flipped by rememberSaveable(game) { mutableStateOf(false) }
+    val whiteBottom = whiteAtBottom(settings.boardOrientation, setup.playerColor) != flipped
     val drill = game.battle?.mode == BattleMode.DRILL
+    var optionsOpen by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
 
     // Each sound plays once, even when the screen recomposes.
     var lastSound by remember(game) { mutableIntStateOf(state.sound?.id ?: 0) }
@@ -127,6 +139,14 @@ fun PlayScreen(
     @Composable
     fun takenBy(color: PieceColor) = CapturedPieces(material.takenBy(color), color.opposite(), material.leadOf(color), pieceSet)
     val explore = { onAnalyse(setup.startFen, board.moves.map { it.uci }) }
+    // What the bot said, and in a bot-vs-bot game what the other one said, newest last (D92).
+    val talk = rememberTalk(
+        listOfNotNull(
+            state.chatOf(state.botColor)?.let { TalkLine(it.id, it.text, speaker = if (watch != null) bot.name else null) },
+            watch?.let { other -> state.chatOf(setup.playerColor)?.let { TalkLine(it.id, it.text, speaker = other.name) } },
+        ),
+        key = game,
+    )
 
     val over = state.phase == GamePhase.OVER || state.phase == GamePhase.DRILL_DONE
     // The result opens by itself when the game ends; closing it shows the final position.
@@ -138,64 +158,42 @@ fun PlayScreen(
     val title = when {
         watch != null -> "Bot vs bot"
         state.battleTitle != null -> "Opening battle"
-        else -> "vs ${bot.name}"
+        else -> "vs ${bot.name} · ${bot.rating}"
     }
     CtBoardScreen(
         title = title,
         onBack = onBack,
         zone = {
-            BoardMoveList(
-                entries = remember(board.version) { moveListOf(board.start, board.moves) },
-                currentPly = look.ply,
-                onSelect = look::show,
-            )
-            openingLine(state)?.let { Text(it, style = CtType.Caption) }
-            // The bot's line stands on its strip and grows upward: it may cover the move list, never the board.
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.BottomStart) {
-                state.battleTitle?.let { battle ->
-                    CtCoachStrip(
-                        mascot = settings.mascot,
-                        label = battle,
-                        text = battleCoachLine(battle, state.opening, state.inBook, state.drillMessage),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                ChatOverlay(
-                    chat = state.chatOf(state.botColor),
-                    onDismiss = game::dismissChat,
-                    maxLines = 6,
-                    modifier = Modifier.padding(start = CtSpacing.xxl).wrapContentHeight(Alignment.Bottom, unbounded = true),
+            // The opening, one quiet line at the top: whether you are still in book.
+            openingLine(state)?.let { Text(it, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            state.battleTitle?.let { battle ->
+                CtCoachStrip(
+                    mascot = settings.mascot,
+                    label = battle,
+                    text = battleCoachLine(battle, state.opening, state.inBook, state.drillMessage),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            PlayerStrip(
-                name = bot.name,
-                detail = if (state.phase == GamePhase.BOT_TURN) "Thinking…" else "${bot.rating}, ${bot.style.label}",
-                clock = clockOf(state.botColor),
-                running = state.phase == GamePhase.BOT_TURN && toMove == state.botColor,
-                avatar = { BotAvatar(bot.face, bot.rating, size = 40.dp) },
-                captured = { takenBy(state.botColor) },
-            )
+            Talk(avatar = { BotAvatar(bot.face, bot.rating, size = 76.dp) }, lines = talk)
         },
         under = {
-            if (watch != null) {
-                PlayerStrip(
-                    name = watch.name,
-                    detail = if (state.phase == GamePhase.PLAYER_TURN) "Thinking…" else "${watch.rating}, ${watch.style.label}",
-                    clock = clockOf(setup.playerColor),
-                    running = state.phase == GamePhase.PLAYER_TURN,
-                    avatar = { BotAvatar(watch.face, watch.rating, size = 40.dp) },
-                    captured = { takenBy(setup.playerColor) },
-                    chat = state.chatOf(setup.playerColor),
-                    onDismissChat = game::dismissChat,
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
+                val live = state.phase == GamePhase.PLAYER_TURN || state.phase == GamePhase.BOT_TURN
+                ClockRow(
+                    whiteMs = whiteLeft,
+                    blackMs = blackLeft,
+                    running = toMove.takeIf { live && whiteLeft != null },
+                    whiteTook = { takenBy(PieceColor.WHITE) },
+                    blackTook = { takenBy(PieceColor.BLACK) },
                 )
-            } else {
-                PlayerStrip(
-                    name = "You",
-                    detail = if (setup.playerColor == PieceColor.WHITE) "White" else "Black",
-                    clock = clockOf(setup.playerColor),
-                    running = state.phase == GamePhase.PLAYER_TURN,
-                    avatar = { PlayerAvatar(settings.picture, settings.playerName) },
-                    captured = { takenBy(setup.playerColor) },
+                MoveStrip(
+                    entries = remember(board.version) { moveListOf(board.start, board.moves) },
+                    currentPly = look.ply,
+                    onSelect = look::show,
+                    onBack = look::back,
+                    onForward = look::forward,
+                    canGoBack = look.canGoBack,
+                    canGoForward = look.ply < look.latestPly,
                 )
             }
         },
@@ -222,35 +220,53 @@ fun PlayScreen(
             }
         },
         controls = {
+            val options = { optionsOpen = true }
             when {
                 over -> {
                     // Rematch and review live in the result card; this brings it back.
-                    CtIconButton(icon = Icons.Rounded.Search, contentDescription = "Explore", onClick = explore)
+                    CtIconButton(icon = Icons.Rounded.Menu, contentDescription = "Options", onClick = options)
                     CtButton(text = "See the result", onClick = { resultClosed = false }, modifier = Modifier.weight(1f))
                 }
                 watch != null -> {
+                    CtControl(Icons.Rounded.Menu, "Options", onClick = options)
                     CtControl(if (state.paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause, if (state.paused) "Resume" else "Pause", onClick = game::togglePause)
                     CtControl(Icons.Rounded.Stop, "Stop", onClick = onBack)
                 }
                 else -> {
+                    CtControl(Icons.Rounded.Menu, "Options", onClick = options)
                     CtControl(
                         icon = Icons.Rounded.Flag,
                         label = if (drill) "Stop" else "Resign",
                         enabled = state.phase != GamePhase.STARTING,
                         onClick = { if (drill) onBack() else confirmResign = true },
                     )
-                    if (setup.rules.takebacks) CtControl(Icons.AutoMirrored.Rounded.Undo, "Undo", enabled = state.canTakeBack, onClick = game::takeBack)
                     if (setup.rules.hints) CtControl(Icons.Rounded.Lightbulb, "Hint", enabled = state.phase == GamePhase.PLAYER_TURN, onClick = game::hint)
-                    if (!drill) {
-                        // Cycles Off, Some, Lots; the bots' chat setting (review R6).
-                        val next = ChatLevel.entries[(settings.chatLevel.ordinal + 1) % ChatLevel.entries.size]
-                        CtControl(Icons.AutoMirrored.Rounded.Chat, "Chat: ${settings.chatLevel.label}", onClick = { onChatLevel(next) })
-                    }
+                    if (setup.rules.takebacks) CtControl(Icons.AutoMirrored.Rounded.Undo, "Undo", enabled = state.canTakeBack, onClick = game::takeBack)
                 }
             }
         },
         overlay = {
-            CtDialog(visible = over && !resultClosed, onDismiss = { resultClosed = true }) {
+            CtDialog(visible = optionsOpen, onDismiss = { optionsOpen = false }) {
+                GameOptions(
+                    botName = bot.name.takeIf { watch == null && !drill },
+                    chatLevel = settings.chatLevel,
+                    onFlip = {
+                        flipped = !flipped
+                        optionsOpen = false
+                    },
+                    onExplore = {
+                        optionsOpen = false
+                        explore()
+                    },
+                    onShare = if (over) { { game.pgn()?.let { sharePgn(context, it) } } } else null,
+                    onChatLevel = onChatLevel,
+                )
+            }
+            CtDialog(
+                visible = over && !resultClosed,
+                onDismiss = { resultClosed = true },
+                header = { ResultBand(state) },
+            ) {
                 if (state.phase == GamePhase.DRILL_DONE) {
                     DrillResult(state, onDrillAgain = onRematch, onExplore = explore, onBack = onBack)
                 } else {
@@ -414,7 +430,6 @@ private fun GameResult(
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         CtButton(
             text = "Rematch",
-            icon = Icons.Rounded.Refresh,
             style = if (onReview != null) CtButtonStyle.Secondary else CtButtonStyle.Primary,
             onClick = onRematch,
             modifier = Modifier.weight(1f),
@@ -423,4 +438,30 @@ private fun GameResult(
     }
     // "Explore" opens the analysis board; "Review this game" the Stockfish review.
     CtButton(text = "Explore the position", icon = Icons.Rounded.Search, style = CtButtonStyle.Ghost, onClick = onExplore, modifier = Modifier.fillMaxWidth())
+}
+
+/** Hands the game's PGN to Android's share sheet (another app, a file, a message). */
+private fun sharePgn(context: Context, pgn: String) {
+    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, pgn)
+    runCatching { context.startActivity(Intent.createChooser(send, "Share the game").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+}
+
+/** The lit top of the result card (D92): the winner's crown, the toppled king, or a half for a draw. */
+@Composable
+private fun ResultBand(state: BotGameState) {
+    val result = state.result
+    CtDialogBand {
+        when {
+            result == null -> Unit
+            result.winner == null -> Text("½", style = CtType.Display.copy(color = CtColors.Text))
+            else -> {
+                val crown = state.playerWon || (state.setup.watch != null && result.winner == state.botColor)
+                Image(
+                    painterResource(if (crown) R.drawable.ic_result_win else R.drawable.ic_result_loss),
+                    contentDescription = null,
+                    modifier = Modifier.size(72.dp),
+                )
+            }
+        }
+    }
 }

@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -228,10 +230,7 @@ fun CtBadge(
     }
 }
 
-/**
- * One choice out of a few, side by side (System, Light, Dark). Read as radio buttons.
- * The selected segment is raised; colours fade over 240 ms.
- */
+/** One choice of a few, side by side; the raised pill slides to the chosen one (D92). */
 @Composable
 fun <T> CtSegmented(
     options: List<T>,
@@ -241,38 +240,47 @@ fun <T> CtSegmented(
     modifier: Modifier = Modifier,
 ) {
     val reduceMotion = LocalReduceMotion.current
-    Row(
+    val gap = 4.dp
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .height(CtSpacing.touchTarget)
             .clip(CtShapes.Control)
             .background(CtColors.Surface)
-            .padding(4.dp)
-            .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(gap),
     ) {
-        options.forEach { option ->
-            val on = option == selected
-            val fill by animateColorAsState(
-                targetValue = if (on) CtColors.Raised else CtColors.Surface,
-                animationSpec = tween(if (reduceMotion) 0 else CtMotion.THEME_MS, easing = CtMotion.EaseOut),
-                label = "segment",
-            )
-            val lift = when {
-                !on -> Modifier
-                else -> Modifier.shadow(1.dp, CtShapes.Chip, ambientColor = CtColors.Text.copy(alpha = 0.08f), spotColor = CtColors.Text.copy(alpha = 0.16f))
-            }
+        val count = options.size.coerceAtLeast(1)
+        val segment = (maxWidth - gap * (count - 1)) / count
+        val index = options.indexOf(selected)
+        val x by animateDpAsState(
+            targetValue = (segment + gap) * index.coerceAtLeast(0),
+            animationSpec = tween(if (reduceMotion) 0 else CtMotion.OVERLAY_MS, easing = CtMotion.OverlayEase),
+            label = "segmentPill",
+        )
+        if (index >= 0) {
             Box(
-                modifier = Modifier
-                    .weight(1f)
+                Modifier
+                    .offset(x = x)
+                    .width(segment)
                     .fillMaxHeight()
-                    .then(lift)
+                    .shadow(1.dp, CtShapes.Chip, ambientColor = CtColors.Text.copy(alpha = 0.08f), spotColor = CtColors.Text.copy(alpha = 0.16f))
                     .clip(CtShapes.Chip)
-                    .background(fill)
-                    .selectable(selected = on, role = Role.RadioButton, onClick = { onSelect(option) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = label(option), style = CtType.Label.copy(color = if (on) CtColors.Text else CtColors.Text2), maxLines = 1)
+                    .background(CtColors.Raised),
+            )
+        }
+        Row(Modifier.fillMaxSize().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+            options.forEach { option ->
+                val on = option == selected
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(CtShapes.Chip)
+                        .selectable(selected = on, role = Role.RadioButton, onClick = { onSelect(option) }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = label(option), style = CtType.Label.copy(color = if (on) CtColors.Text else CtColors.Text2), maxLines = 1)
+                }
             }
         }
     }
