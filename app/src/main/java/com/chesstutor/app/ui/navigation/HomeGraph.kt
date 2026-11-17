@@ -38,6 +38,7 @@ import com.chesstutor.app.feature.home.PositionSetupScreen
 import com.chesstutor.app.feature.home.WatchSetupScreen
 import com.chesstutor.app.feature.play.PlayScreen
 import com.chesstutor.app.feature.play.SharedPrefsActiveGameStore
+import com.chesstutor.app.feature.update.WhatsNewScreen
 import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.StartingLevel
 import com.chesstutor.app.navigation.TopTab
@@ -52,9 +53,12 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             val home by homeModel.home.collectAsStateWithLifecycle()
             LaunchedEffect(state.effectiveUserRating) { homeModel.setPlayerRating(state.effectiveUserRating) }
             LaunchedEffect(dueReviews) { homeModel.setDueMistakes(dueReviews) }
+            val updates = AppContainer.provideUpdateCenter(LocalContext.current.applicationContext)
+            val update by updates.state.collectAsStateWithLifecycle()
             HomeScreen(
                 state = state,
                 home = home,
+                update = update,
                 actions = HomeActions(
                     onQuickMatch = {
                         homeModel.quickMatch()
@@ -70,6 +74,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                     onWatch = { navController.navigate(AppRoutes.WATCH) { launchSingleTop = true } },
                     onExplore = { navController.navigate(AppRoutes.EXPLORE) { launchSingleTop = true } },
                     onOpenBots = { navController.navigate(AppRoutes.BOTS) { launchSingleTop = true } },
+                    onWhatsNew = { navController.navigate(AppRoutes.WHATS_NEW) { launchSingleTop = true } },
                     onNewBot = {
                         homeModel.newBot()
                         navController.navigate(AppRoutes.builder()) { launchSingleTop = true }
@@ -102,6 +107,18 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                         }
                     }
                 )
+            )
+        }
+        composable(AppRoutes.WHATS_NEW) {
+            val context = LocalContext.current
+            val updates = AppContainer.provideUpdateCenter(context.applicationContext)
+            val update by updates.state.collectAsStateWithLifecycle()
+            LaunchedEffect(updates) { updates.seen() }
+            WhatsNewScreen(
+                state = update,
+                onUpdate = { updates.update(context) },
+                onAllow = { updates.openInstallPermission(context) },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(

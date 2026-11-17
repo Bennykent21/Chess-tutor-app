@@ -19,9 +19,9 @@ import com.chesstutor.app.design.CtSpacing
 import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.update.AppUpdates
 
-/** The centred prompt for an update (D88), over whatever screen is open. */
+/** The centred prompt for an update (D88), over whatever screen is open; What's new opens the full notes (D90). */
 @Composable
-fun UpdatePrompt(center: UpdateCenter) {
+fun UpdatePrompt(center: UpdateCenter, onWhatsNew: () -> Unit) {
     val shown by center.prompt.collectAsStateWithLifecycle()
     val state by center.state.collectAsStateWithLifecycle()
     if (!shown) return
@@ -32,12 +32,16 @@ fun UpdatePrompt(center: UpdateCenter) {
         onAllow = { center.openInstallPermission(context) },
         onLater = center::later,
         onHide = center::hide,
+        onWhatsNew = {
+            center.seen()
+            onWhatsNew()
+        },
     )
 }
 
 /** What the prompt says at each stage; separate from [UpdateCenter] so tests can show every stage. */
 @Composable
-fun UpdateDialog(state: UpdateState, onUpdate: () -> Unit, onAllow: () -> Unit, onLater: () -> Unit, onHide: () -> Unit) {
+fun UpdateDialog(state: UpdateState, onUpdate: () -> Unit, onAllow: () -> Unit, onLater: () -> Unit, onHide: () -> Unit, onWhatsNew: () -> Unit) {
     val title = when (state) {
         is UpdateState.Available -> "Chess Tutor ${state.release.version}"
         is UpdateState.Downloading -> "Chess Tutor ${state.release.version}"
@@ -79,7 +83,9 @@ fun UpdateDialog(state: UpdateState, onUpdate: () -> Unit, onAllow: () -> Unit, 
         dismissButton = {
             when (state) {
                 is UpdateState.NeedsPermission -> Action("Open settings", onAllow)
-                is UpdateState.Available, is UpdateState.Ready, is UpdateState.Failed -> Action("Later", onLater)
+                // Tapping outside is Later; the notes are one tap away.
+                is UpdateState.Available -> Action("What's new", onWhatsNew)
+                is UpdateState.Ready, is UpdateState.Failed -> Action("Later", onLater)
                 else -> Unit
             }
         },

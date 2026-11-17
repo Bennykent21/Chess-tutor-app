@@ -131,6 +131,8 @@ data class SettingsActions(
     val supportUrl: String = BuildConfig.SUPPORT_URL,
     /** In-app updates (D88); null, or not enabled, hides the row (test builds). */
     val updates: UpdateCenter? = null,
+    /** What's new, when an update waits (D90). */
+    val onWhatsNew: () -> Unit = {},
     val onBack: () -> Unit = {},
 )
 
@@ -361,7 +363,7 @@ fun SettingsScreen(
                                     Text("Chess Tutor ${BuildConfig.VERSION_NAME}", style = CtType.TitleSmall)
                                     Text("Free software under the GNU GPL v3. Everything runs on your phone.", style = CtType.Caption)
                                 }
-                                actions.updates?.takeIf { it.enabled }?.let { center -> UpdateRow(center) }
+                                actions.updates?.takeIf { it.enabled }?.let { center -> UpdateRow(center, actions.onWhatsNew) }
                                 CtListRow(
                                     title = "Source code",
                                     subtitle = "github.com/Bennykent21/Chess-tutor-app",
@@ -460,9 +462,9 @@ private fun summaryOf(page: SettingsPage, state: AppUiState): String? = when (pa
     SettingsPage.ABOUT -> "Version ${BuildConfig.VERSION_NAME}"
 }
 
-/** Settings > About: where updates stand; a tap shows the update or asks GitHub now (D88). */
+/** Settings > About: where updates stand; a tap opens What's new, or asks GitHub now (D88, D90). */
 @Composable
-private fun UpdateRow(center: UpdateCenter) {
+private fun UpdateRow(center: UpdateCenter, onWhatsNew: () -> Unit) {
     val update by center.state.collectAsStateWithLifecycle()
     CtListRow(
         title = "Updates",
@@ -475,7 +477,7 @@ private fun UpdateRow(center: UpdateCenter) {
             else -> "Check for a new version"
         },
         icon = Icons.Rounded.SystemUpdate,
-        onClick = center::openFromSettings,
+        onClick = { if (update.release != null) onWhatsNew() else center.checkNow() },
     )
 }
 

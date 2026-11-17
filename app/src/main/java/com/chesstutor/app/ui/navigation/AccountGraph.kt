@@ -150,6 +150,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
                     onOpenBoardSettings = { navController.navigate(AppRoutes.BOARD_SETTINGS) },
                     onOpenEngineHealth = { navController.navigate(AppRoutes.ENGINE_HEALTH) },
                     onOpenLicences = { navController.navigate(AppRoutes.LICENCES) },
+                    onWhatsNew = { navController.navigate(AppRoutes.WHATS_NEW) { launchSingleTop = true } },
                     onReviewDepth = viewModel::setReviewDepth,
                     onName = viewModel::setPlayerName,
                     onPicture = { picture ->

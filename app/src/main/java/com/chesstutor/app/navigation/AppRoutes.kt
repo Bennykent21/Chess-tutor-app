@@ -155,6 +155,8 @@ object AppRoutes {
 
     /** Every bot, your own bots, "Build a bot" and "Watch two" (D42). */
     const val BOTS = "home/bots"
+    /** What's new in the version waiting to be installed (D90): from the Home icon, the prompt and Settings. */
+    const val WHATS_NEW = "home/whats-new"
     /** Explore's start page on Home: choose the position and who the engine plays. */
     const val EXPLORE = "home/explore"
 
@@ -162,7 +164,7 @@ object AppRoutes {
 
     private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN, GAMES_PATTERN, STATS_PATTERN, TRAINING)
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN)
-    private val homePages = setOf(BOTS)
+    private val homePages = setOf(BOTS, WHATS_NEW)
     private val puzzlePages = setOf(PUZZLE_LEVELS)
     private val trainPages = setOf(TRAIN_SIDE_PATTERN, TRAIN_POSITIONS_PATTERN, TRAIN_FROM_GAMES, TRAIN_LINES, TRAIN_LINE_PATTERN)
 
