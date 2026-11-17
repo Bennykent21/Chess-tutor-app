@@ -50,7 +50,6 @@ object AppRoutes {
     /** Custom run: rating, pattern, how many and a timer (D64). */
     const val PUZZLE_CUSTOM = "puzzles/custom"
     /** Every level of the five worlds (D43). */
-    const val PUZZLE_LEVELS = "puzzles/levels"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
     const val PUZZLE_DAILY = "puzzles/daily"
     /** Mistakes review: due positions from the player's own games, full screen on the board. */
@@ -171,7 +170,7 @@ object AppRoutes {
     private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN, GAMES_PATTERN, STATS_PATTERN, TRAINING)
     private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN)
     private val homePages = setOf(BOTS, WHATS_NEW, PLAY_MENU, CUSTOM_GAME, CHESS960)
-    private val puzzlePages = setOf(PUZZLE_LEVELS)
+    private val puzzlePages = emptySet<String>()
     private val trainPages = setOf(TRAIN_SIDE_PATTERN, TRAIN_POSITIONS_PATTERN, TRAIN_FROM_GAMES, TRAIN_LINES, TRAIN_LINE_PATTERN)
 
     /** The bottom bar shows on the four main tabs only: every other page and board gets the room. */

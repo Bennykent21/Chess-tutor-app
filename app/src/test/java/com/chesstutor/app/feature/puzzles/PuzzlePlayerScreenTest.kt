@@ -81,9 +81,9 @@ class PuzzlePlayerScreenTest {
         show(player)
         step(700)
         compose.onNodeWithText("Level 3").assertExists()
-        compose.onNodeWithText("1 of 5").assertExists()
-        compose.onNodeWithText("Find the checkmate in one move").assertExists()
-        compose.onNodeWithText("Black to move").assertExists()
+        // Who moves and what to find are the coach's one line; the run is dots under the board (D95).
+        compose.onNodeWithContentDescription("Puzzle 1 of 5", substring = true).assertExists()
+        compose.onNodeWithText("Black to move. Find the checkmate in one move").assertExists()
         val boardWhileSolving = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
         compose.onNodeWithText("Hint").performClick()
         step(10)
@@ -92,7 +92,6 @@ class PuzzlePlayerScreenTest {
         player.state.value.board!!.onMove(Move.fromUci("d8h4"))
         step(100)
         compose.onNodeWithText("Correct! Well found.").assertExists()
-        compose.onNodeWithText("Solved").assertExists()
         // What a puzzle earns (XP, rating) and its themes wait for the run's result screen.
         compose.onNodeWithText("Mate in 1").assertDoesNotExist()
         compose.onNodeWithText("+", substring = true).assertDoesNotExist()

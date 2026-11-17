@@ -16,7 +16,6 @@ import com.chesstutor.app.di.AppContainer
 import com.chesstutor.app.feature.puzzles.MistakeReviewActions
 import com.chesstutor.app.feature.puzzles.MistakeReviewScreen
 import com.chesstutor.app.feature.puzzles.MistakeReviewViewModel
-import com.chesstutor.app.feature.puzzles.PuzzleLevelsScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
 import com.chesstutor.app.feature.puzzles.CustomRunScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
@@ -41,21 +40,8 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
                 },
                 onOpenModes = { navController.navigate(AppRoutes.PUZZLE_MODES) { launchSingleTop = true } },
                 onReviewMistakes = { navController.navigate(AppRoutes.MISTAKE_REVIEW) { launchSingleTop = true } },
-                onOpenLevels = { navController.navigate(AppRoutes.PUZZLE_LEVELS) { launchSingleTop = true } },
                 onDailyPuzzle = { navController.navigate(AppRoutes.PUZZLE_DAILY) { launchSingleTop = true } },
                 boardTheme = state.appSettings.boardTheme,
-            )
-        }
-        composable(AppRoutes.PUZZLE_LEVELS) { entry ->
-            val puzzles = puzzlesViewModel()
-            val levels by puzzles.home.collectAsStateWithLifecycle()
-            PuzzleLevelsScreen(
-                state = levels,
-                onPlayLevel = { level ->
-                    puzzles.startLevel(level)
-                    navController.navigate(AppRoutes.PUZZLE_PLAYER) { launchSingleTop = true }
-                },
-                onBack = { navController.popBackStack() },
             )
         }
         // Home's daily challenge card: starts today's puzzle, then shows the player.
@@ -114,7 +100,7 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
                 patternsFor = puzzles::patternsFor,
                 actions = PuzzleModeActions(
                     onRush = { minutes -> play { puzzles.startRush(minutes) } },
-                    onThemed = { goal, pattern, difficulty -> play { puzzles.startThemed(goal, pattern, difficulty) } },
+                    onThemed = { goal, pattern, difficulty, count, timed -> play { puzzles.startThemed(goal, pattern, difficulty, count, timed) } },
                     onOpenCustom = { navController.navigate(AppRoutes.PUZZLE_CUSTOM) { launchSingleTop = true } },
                     onMistakes = { play { puzzles.startMistakes() } }
                 ),
@@ -122,6 +108,7 @@ internal fun NavGraphBuilder.puzzlesGraph(shell: Shell) = with(shell) {
                 boardTheme = state.appSettings.boardTheme,
                 rushBest = rushBest,
                 missed = missed,
+                goalStats = puzzles.goalStats.collectAsStateWithLifecycle().value,
             )
         }
         composable(AppRoutes.PUZZLE_CUSTOM) { entry ->

@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,7 +28,6 @@ import com.chesstutor.app.feature.puzzles.CustomRunScreen
 import com.chesstutor.app.feature.puzzles.MistakeReviewActions
 import com.chesstutor.app.feature.puzzles.MistakeReviewScreen
 import com.chesstutor.app.feature.puzzles.MistakeReviewViewModel
-import com.chesstutor.app.feature.puzzles.PuzzleLevelsScreen
 import com.chesstutor.app.feature.puzzles.PuzzleModeActions
 import com.chesstutor.app.feature.puzzles.PuzzleModesScreen
 import com.chesstutor.app.feature.puzzles.PuzzlePlayer
@@ -122,20 +122,17 @@ class PuzzlesTabGalleryTest {
 
     @Test
     fun home() = shoot("01_puzzles") {
-        PuzzlesHomeScreen(state = state, dueReviewCount = 3, onPlayLevel = {}, onOpenModes = {}, onReviewMistakes = {}, onOpenLevels = {})
+        PuzzlesHomeScreen(state = state, dueReviewCount = 3, onPlayLevel = {}, onOpenModes = {}, onReviewMistakes = {})
     }
-
-    @Test
-    fun levels() = shoot("02_levels") { PuzzleLevelsScreen(state = state, onPlayLevel = {}, onBack = {}) }
 
     @Test
     fun modes() = shoot("03_modes") {
-        PuzzleModesScreen(patternsFor = { patterns.getValue(it) }, actions = PuzzleModeActions({}, { _, _, _ -> }, {}, {}), onBack = {})
+        PuzzleModesScreen(patternsFor = { patterns.getValue(it) }, actions = PuzzleModeActions({}, { _, _, _, _, _ -> }, {}, {}), onBack = {})
     }
 
     @Test
-    fun goalPage() = shoot("04_goal", between = { if (!dark) compose.onNodeWithText("Checkmate", substring = true).performClick() }) {
-        PuzzleModesScreen(patternsFor = { patterns.getValue(it) }, actions = PuzzleModeActions({}, { _, _, _ -> }, {}, {}), onBack = {})
+    fun goalPage() = shoot("04_goal", between = { if (!dark) compose.onNodeWithContentDescription("Checkmate").performClick() }) {
+        PuzzleModesScreen(patternsFor = { patterns.getValue(it) }, actions = PuzzleModeActions({}, { _, _, _, _, _ -> }, {}, {}), onBack = {})
     }
 
     @Test
