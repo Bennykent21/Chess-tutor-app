@@ -5,13 +5,23 @@ import com.chesstutor.app.data.model.GameRecord
 import com.chesstutor.app.domain.account.AnalysisSummary
 import com.chesstutor.app.domain.account.GameLibrary
 import com.chesstutor.app.domain.account.GameOutcome
+import com.chesstutor.app.domain.account.PlyEval
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
 /** The player's newest game, for Home (D92): who against, how it went, and the accuracy once reviewed. */
-data class LastGame(val id: String, val opponent: String, val outcome: GameOutcome, val moves: Int, val accuracy: Double?) {
+data class LastGame(
+    val id: String,
+    val opponent: String,
+    val outcome: GameOutcome,
+    val moves: Int,
+    val accuracy: Double?,
+    val userWhite: Boolean = true,
+    /** The player's winning chances (0 to 1) after each move once reviewed, for the small graph. */
+    val graph: List<Float> = emptyList(),
+) {
     /** "Won against Marlo", "Lost to Marlo", "Drew with Marlo". */
     val title: String
         get() = when (outcome) {
@@ -34,8 +44,13 @@ object HomeRecap {
             outcome = GameLibrary.outcomeOf(game),
             moves = (game.moveCount + 1) / 2,
             accuracy = summaries[game.id]?.accuracyFor(color),
+            userWhite = color == PieceColor.WHITE,
         )
     }
+
+    /** [evals]' winning chances from the player's side, in move order, for the graph. */
+    fun graph(evals: List<PlyEval>, userWhite: Boolean): List<Float> =
+        evals.sortedBy { it.ply }.map { e -> (e.whiteWin / 100.0).toFloat().let { if (userWhite) it else 1f - it } }
 
     /** Monday to Sunday of [today]'s week: true where something was played that day. */
     fun week(today: LocalDate, activeAt: List<Long>, zone: ZoneId = ZoneId.systemDefault()): List<Boolean> {

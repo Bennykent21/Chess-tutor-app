@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.home
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import com.chesstutor.app.domain.account.PlyEval
 import com.chesstutor.app.domain.puzzle.DailyPreview
 import java.time.ZoneId
 import java.time.Instant
@@ -68,7 +72,10 @@ import kotlin.random.Random
 /** Opening Battle's setup page (plan 6.1): side, opening line, mode, replies and opponent. */
 data class BattleDraft(
     val side: SideChoice = SideChoice.RANDOM,
+    /** The line shown on the preview board, and played when nothing is ticked. */
     val line: Opening? = null,
+    /** Openings ticked in the picker (D93); the bot picks one of their lines at the start. */
+    val picked: Set<String> = emptySet(),
     val mode: BattleMode = BattleMode.PLAY,
     val exactReplies: Boolean = true,
     val opponentId: String = "ziggy",
@@ -138,12 +145,15 @@ class HomeLearning(
     val puzzleHistory: Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList()),
     /** Reviewed games' accuracies, for the last game on Home (D92). */
     val analysisSummaries: Flow<Map<String, AnalysisSummary>> = flowOf(emptyMap()),
+    /** A game's saved engine view, for the last game's graph (D93). */
+    val observeEvals: (String) -> Flow<List<PlyEval>> = { flowOf(emptyList()) },
 )
 
 /**
  * The Home tab's view model: the roster, the resume and recommended cards, and the game being
  * played. Unfinished games are saved after every move ([ActiveGameStore]) and cleared at the end.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     private val engine: EngineService,
     private val openings: suspend () -> OpeningTree,
@@ -181,6 +191,10 @@ class HomeViewModel(
     /** The last game and every game's date, for Home's look back (D92). */
     private val recap: Flow<Pair<LastGame?, List<Long>>> =
         combine(games.observeGames(), learning.analysisSummaries) { list, summaries -> HomeRecap.lastGame(list, summaries) to list.map { it.dateMillis } }
+            .flatMapLatest { (last, dates) ->
+                if (last?.accuracy == null) flowOf(last to dates)
+                else learning.observeEvals(last.id).map { evals -> last.copy(graph = HomeRecap.graph(evals, last.userWhite)) to dates }
+            }
 
     /** Loaded eagerly, so a saved game against one of them can be resumed at once. */
     val myBots: StateFlow<List<CustomBot>> = bots.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -405,7 +419,9 @@ class HomeViewModel(
     /** Starts the battle; false while no opening is picked. */
     fun startBattle(): Boolean {
         val draft = mutableBattle.value
-        val line = draft.line ?: return false
+        // One of the ticked openings' lines, at random (D93); a single picked line plays as it is.
+        val candidates = mutableTree.value?.openings.orEmpty().filter { o -> draft.picked.any(o::isWithin) }
+        val line = candidates.randomOrNull(random) ?: draft.line ?: return false
         val bot = BotRoster.byId(draft.opponentId) ?: return false
         val color = when (draft.side) {
             SideChoice.WHITE -> PieceColor.WHITE

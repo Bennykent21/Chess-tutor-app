@@ -49,6 +49,8 @@ data class BoardMarks(
     val lastMoveColor: Long? = null,
     /** A small round label on a square's corner, such as a move's quality ("??"). */
     val badge: SquareBadge? = null,
+    /** A move queued while the other side thinks (D93): its two squares tinted until it plays. */
+    val premove: Pair<Square, Square>? = null,
 )
 
 /** A round label drawn on the top-right corner of [square]: [text] on [color] (ARGB). */
@@ -197,6 +199,9 @@ private fun DrawScope.drawSquares(colors: BoardColors, marks: BoardMarks, whiteA
         drawRect(if (square.isLightSquare) light else dark, topLeft, cellSize)
         if (marks.lastMove != null && (square == marks.lastMove.first || square == marks.lastMove.second)) {
             drawRect(Color(marks.lastMoveColor ?: BoardMarkColors.LAST_MOVE), topLeft, cellSize)
+        }
+        if (marks.premove != null && (square == marks.premove.first || square == marks.premove.second)) {
+            drawRect(Color(BoardMarkColors.PREMOVE), topLeft, cellSize)
         }
         if (square == marks.selected) {
             drawRect(Color(BoardMarkColors.SELECTED), topLeft, cellSize)

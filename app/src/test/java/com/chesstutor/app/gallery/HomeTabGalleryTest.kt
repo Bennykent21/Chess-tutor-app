@@ -156,6 +156,11 @@ class HomeTabGalleryTest {
             recommendation = PlayRecommender.recommend(emptyList(), 800),
             dayStreak = 4,
             gamesPlayed = 3,
+            lastGame = com.chesstutor.app.feature.home.LastGame(
+                id = "bot_marlo_1", opponent = "Marlo", outcome = com.chesstutor.app.domain.account.GameOutcome.LOSS, moves = 31, accuracy = 72.4,
+                graph = listOf(0.5f, 0.52f, 0.55f, 0.5f, 0.6f, 0.58f, 0.45f, 0.3f, 0.35f, 0.2f, 0.15f, 0.1f),
+            ),
+            week = listOf(true, true, true, false, false, false, false),
         ).let { it.copy(nextStep = NextStep.Bot(it.recommendation!!)) }
         shoot("01_home") { HomeScreen(state = AppUiState(assessmentState = "COMPLETE"), home = home, actions = noHome) }
     }
@@ -213,7 +218,7 @@ class HomeTabGalleryTest {
     @Test
     fun battleSetup() = shoot("09_opening_battle") {
         BattleSetupScreen(
-            draft = BattleDraft(line = tree.openings.first { it.name == "Sicilian Defense: Najdorf Variation" }),
+            draft = BattleDraft(line = tree.openings.first { it.name == "Sicilian Defense: Najdorf Variation" }, picked = setOf("Sicilian Defense", "Italian Game")),
             onChange = {}, onPickOpening = {}, onStart = {}, onBack = {},
         )
     }

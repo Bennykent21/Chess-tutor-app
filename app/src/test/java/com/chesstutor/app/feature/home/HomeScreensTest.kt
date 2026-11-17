@@ -329,7 +329,7 @@ class HomeScreensTest {
                 BattleSetupScreen(draft = draft, onChange = { draft = it(draft) }, onPickOpening = {}, onStart = { started = true }, onBack = {})
             }
         }
-        compose.onNodeWithText("Choose an opening").assertExists()
+        compose.onNodeWithText("Choose openings").assertExists()
         compose.onNodeWithText("Start").assertIsNotEnabled()
         draft = draft.copy(line = tree.openings.first { it.name == "Sicilian Defense: Najdorf Variation" })
         compose.onNodeWithText("Drill it").performClick()

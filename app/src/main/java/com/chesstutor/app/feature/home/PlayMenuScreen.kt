@@ -10,8 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.GridOn
-import androidx.compose.material.icons.rounded.MenuBook
-import androidx.compose.material.icons.rounded.PhoneAndroid
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SmartToy
@@ -53,11 +53,11 @@ fun PlayMenuScreen(actions: PlayMenuActions, onBack: () -> Unit, modifier: Modif
                 CtGroupLabel("Against the computer")
                 CtListRow(title = "Bots", subtitle = "12 characters, 250 to 3000", icon = Icons.Rounded.SmartToy, onClick = actions.onBots, modifier = Modifier.ctEnter(0))
                 CtListRow(title = "Custom game", subtitle = "Any strength, side and clock", icon = Icons.Rounded.Tune, onClick = actions.onCustomGame, modifier = Modifier.ctEnter(0))
-                CtListRow(title = "Opening battle", subtitle = "Play from an opening you choose", icon = Icons.Rounded.MenuBook, onClick = actions.onOpeningBattle, modifier = Modifier.ctEnter(1))
+                CtListRow(title = "Opening battle", subtitle = "Play from an opening you choose", icon = Icons.AutoMirrored.Rounded.MenuBook, onClick = actions.onOpeningBattle, modifier = Modifier.ctEnter(1))
                 CtListRow(title = "From a position", subtitle = "Set up the board, then play", icon = Icons.Rounded.GridOn, onClick = actions.onFromPosition, modifier = Modifier.ctEnter(1))
                 CtListRow(title = "Chess960", subtitle = "Pick any of the 960 starts", icon = Icons.Rounded.Shuffle, onClick = actions.onChess960, modifier = Modifier.ctEnter(1))
                 CtGroupLabel("Against a friend")
-                CtListRow(title = "On this phone", subtitle = "Pass and play, or face to face", icon = Icons.Rounded.PhoneAndroid, onClick = actions.onThisPhone, modifier = Modifier.ctEnter(2))
+                CtListRow(title = "On this phone", subtitle = "Pass and play, or face to face", icon = Icons.Rounded.Smartphone, onClick = actions.onThisPhone, modifier = Modifier.ctEnter(2))
                 CtListRow(title = "Nearby", subtitle = "Two phones on the same Wi-Fi", icon = Icons.Rounded.Wifi, onClick = actions.onNearby, modifier = Modifier.ctEnter(2))
                 CtGroupLabel("Watch and study")
                 CtListRow(title = "Watch two bots", subtitle = "Pick any pair", icon = Icons.Rounded.Visibility, onClick = actions.onWatch, modifier = Modifier.ctEnter(3))

@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.play
 
+import com.chesstutor.app.design.CtMetalIcon
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -230,7 +231,7 @@ private fun OptionRow(icon: ImageVector, label: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg),
     ) {
-        Icon(icon, contentDescription = null, tint = CtColors.Text)
+        CtMetalIcon(icon, size = 30.dp)
         Text(label, style = CtType.TitleSmall)
     }
 }

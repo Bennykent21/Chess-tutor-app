@@ -171,6 +171,9 @@ private fun AppShell(
             ) { entry ->
                 val context = LocalContext.current
                 val engine = remember(context) { AppContainer.provideEngineService(context) }
+                // Explore needs the engine to itself: background reviews pause (D93).
+                val account = shell.accountViewModel()
+                LaunchedEffect(Unit) { account.pauseBackground() }
                 AnalysisScreen(
                     startFen = entry.arguments?.getString(AppRoutes.ANALYSIS_FEN_ARG) ?: Position.STARTING_FEN,
                     line = entry.arguments?.getString(AppRoutes.ANALYSIS_LINE_ARG).orEmpty().split(' ').filter { it.isNotBlank() },

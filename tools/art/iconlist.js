@@ -6,6 +6,8 @@ const list = {
     delete_forever: red, bug_report: red, favorite: red, download: blue, code: steel, description: steel, analytics: blue,
     tune: steel, history: ember, map: green, check_circle: green, sports_esports: violet, school: green, bolt: gold,
     psychology: blue, auto_stories: red, shield: ember,
+    smart_toy: blue, swords: red, shuffle: violet, smartphone: teal, wifi: teal, visibility: green, search: gold,
+    local_fire_department: ember, swap_vert: steel, ios_share: blue, replay: blue,
 };
 const medals = { cup: 'emoji_events', puzzle: 'extension', cap: 'school', chart: 'analytics' };
 export const ICONS = [

@@ -44,7 +44,7 @@ class NearbyScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("Chess960 · 3").assertExists()
+        compose.onNodeWithContentDescription("Chess960 position 3").assertExists()
         compose.onNodeWithText("Face to face").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/friend_setup_nearby.png")
         compose.onNodeWithText("Host").performClick()

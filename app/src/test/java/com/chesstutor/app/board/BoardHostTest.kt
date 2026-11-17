@@ -1,5 +1,8 @@
 package com.chesstutor.app.board
 
+import com.chesstutor.app.core.PieceColor
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -216,5 +219,54 @@ class BoardHostTest {
         assertEquals(null, checkedKing(Position.initial()))
         val mated = Position.fromFen("rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3")
         assertEquals(Square.fromAlgebraic("e1"), checkedKing(mated))
+    }
+
+    /** A session whose board is read-only until [open], as in a game while the bot thinks. */
+    private class WaitingSession : BoardSession {
+        val mutable = MutableStateFlow(BoardSessionState(Position.initial(), movable = null))
+        override val state: StateFlow<BoardSessionState> = mutable
+        val played = mutableListOf<Move>()
+        fun open() { mutable.value = mutable.value.copy(movable = PieceColor.WHITE, version = mutable.value.version + 1) }
+        override fun onMove(move: Move): BoardFeedback {
+            played += move
+            return MoveEffects.CORRECT
+        }
+    }
+
+    @Test
+    fun aPremoveQueuedWhileWaitingPlaysWhenItIsYourTurn() {
+        val session = WaitingSession()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BoardHost(session = session, theme = BoardTheme(), modifier = Modifier.width(320.dp), premoveColor = PieceColor.WHITE)
+            }
+        }
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        board.performTouchInput { click(centre("e2", width.toFloat())) }
+        board.performTouchInput { click(centre("e4", width.toFloat())) }
+        compose.waitForIdle()
+        assertTrue("nothing plays while the other side moves", session.played.isEmpty())
+        session.open()
+        compose.waitForIdle()
+        assertEquals(listOf(Move.fromUci("e2e4")), session.played)
+    }
+
+    @Test
+    fun anIllegalPremoveIsDroppedAndTheSamePieceTwiceCancels() {
+        val session = WaitingSession()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BoardHost(session = session, theme = BoardTheme(), modifier = Modifier.width(320.dp), premoveColor = PieceColor.WHITE)
+            }
+        }
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        board.performTouchInput { click(centre("e2", width.toFloat())) }
+        board.performTouchInput { click(centre("e2", width.toFloat())) }
+        // A pawn three squares forward is never legal.
+        board.performTouchInput { click(centre("a2", width.toFloat())) }
+        board.performTouchInput { click(centre("a5", width.toFloat())) }
+        session.open()
+        compose.waitForIdle()
+        assertTrue(session.played.isEmpty())
     }
 }

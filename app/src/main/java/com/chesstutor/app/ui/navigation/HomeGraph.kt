@@ -56,6 +56,9 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
         friendPages(shell)
         composable(TopTab.HOME.startRoute) { entry ->
             val homeModel = homeViewModel()
+            // The newest games get reviewed while Home is open, so it can show their graphs (D93).
+            val account = accountViewModel()
+            LaunchedEffect(Unit) { account.reviewRecentInBackground() }
             val home by homeModel.home.collectAsStateWithLifecycle()
             LaunchedEffect(state.effectiveUserRating) { homeModel.setPlayerRating(state.effectiveUserRating) }
             LaunchedEffect(dueReviews) { homeModel.setDueMistakes(dueReviews) }
@@ -331,24 +334,38 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                 onStart = {
                     if (homeModel.startBattle()) navController.navigate(AppRoutes.PLAY) { launchSingleTop = true }
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                theme = state.appSettings.boardTheme,
             )
         }
         composable(AppRoutes.BATTLE_PICK) { entry ->
             val homeModel = homeViewModel()
             val tree by homeModel.openingTree.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) { homeModel.loadOpenings() }
+            val battle by homeModel.battle.collectAsStateWithLifecycle()
             OpeningPickerScreen(
                 tree = tree,
                 onPick = { line ->
-                    homeModel.updateBattle { it.copy(line = line) }
+                    homeModel.updateBattle { it.copy(line = line, picked = emptySet()) }
                     navController.popBackStack()
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                title = "Openings",
+                // Tick one or several; the bot picks among them (D93).
+                selection = OpeningSelection(
+                    selected = battle.picked,
+                    onChange = { names ->
+                        homeModel.updateBattle { draft ->
+                            draft.copy(picked = names, line = tree?.openings?.firstOrNull { o -> names.any(o::isWithin) } ?: draft.line)
+                        }
+                    },
+                ),
             )
         }
         composable(AppRoutes.PLAY) { entry ->
             val homeModel = homeViewModel()
+            val account = accountViewModel()
+            LaunchedEffect(Unit) { account.pauseBackground() }
             val game by homeModel.game.collectAsStateWithLifecycle()
             val current = game
             if (current == null) {
@@ -401,6 +418,7 @@ internal fun Shell.homeViewModel(): HomeViewModel {
                 loadDaily = { PuzzleModes.daily(AppContainer.loadPuzzlePack(context), LocalDate.now())?.let(DailyPreview::of) },
                 puzzleHistory = AppContainer.providePuzzleRepository(context).history(),
                 analysisSummaries = AppContainer.provideGameAnalysis(context).observeSummaries(),
+                observeEvals = { id -> AppContainer.provideGameAnalysis(context).observeEvals(id) },
             ),
         ),
     )

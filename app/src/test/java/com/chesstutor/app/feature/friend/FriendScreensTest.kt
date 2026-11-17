@@ -78,7 +78,7 @@ class FriendScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("Play a friend").assertExists()
+        compose.onNodeWithText("Play on this phone").assertExists()
         compose.onNodeWithText("Sam").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/friend_setup.png")
 

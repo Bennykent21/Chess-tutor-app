@@ -79,6 +79,8 @@ object BoardMarkColors {
     const val LAST_MOVE = 0x7AD6AA4AL
     /** Brass at 66%. */
     const val SELECTED = 0xA8D6AA4AL
+    /** A queued premove: a cool red at 55%, unlike any move already played. */
+    const val PREMOVE = 0x8CC8504AL
     /** Dark ink at 26%: dots on empty squares, rings on captures. */
     const val LEGAL_DOT = 0x42281C0AL
     const val CHECK = 0xD9D9473BL

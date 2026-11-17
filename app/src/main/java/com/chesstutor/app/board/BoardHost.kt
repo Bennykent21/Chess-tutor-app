@@ -96,12 +96,20 @@ fun BoardHost(
     badge: SquareBadge? = null,
     /** This side's pieces are drawn upside down, for a friend sitting across the phone. */
     turned: PieceColor? = null,
+    /**
+     * The player's colour where premoves are allowed (D93): while the other side moves, a
+     * piece of this colour and a square can be picked, and the move plays as soon as it is
+     * the player's turn, if it is legal then.
+     */
+    premoveColor: PieceColor? = null,
 ) {
     val state by session.state.collectAsState()
     var drawPreview by remember { mutableStateOf<Pair<Square, Square>?>(null) }
     val reduceMotion = LocalReduceMotion.current
 
     var selected by remember { mutableStateOf<Square?>(null) }
+    var premoveFrom by remember { mutableStateOf<Square?>(null) }
+    var premove by remember { mutableStateOf<Pair<Square, Square>?>(null) }
     var dragged by remember { mutableStateOf<DraggedPiece?>(null) }
     var pendingPromotion by remember { mutableStateOf<Pair<Square, Square>?>(null) }
     // A move made by dragging lands where it was dropped, so its piece does not slide.
@@ -188,6 +196,39 @@ fun BoardHost(
         }
     }
 
+    // The queued move plays the moment it is the player's turn, or is dropped if it is no longer legal.
+    LaunchedEffect(state.version, state.movable) {
+        val queued = premove ?: return@LaunchedEffect
+        if (premoveColor == null || state.movable != premoveColor) return@LaunchedEffect
+        premove = null
+        val move = state.legalMoves.firstOrNull { it.from == queued.first && it.to == queued.second && (it.promotion == null || it.promotion == PieceType.QUEEN) }
+            ?: state.legalMoves.firstOrNull { it.from == queued.first && BoardInput.targetsFrom(queued.first, listOf(it)).contains(queued.second) }
+        if (move != null) handle(BoardIntent.Play(move))
+    }
+    if (premoveColor == null && (premove != null || premoveFrom != null)) {
+        premove = null
+        premoveFrom = null
+    }
+    val currentPremoveColor by rememberUpdatedState(premoveColor)
+
+    /** A tap while the other side moves: pick a piece, then its square; the same piece again cancels. */
+    fun premoveTap(square: Square, position: Position) {
+        val from = premoveFrom
+        val own = position.pieceAt(square)?.color == currentPremoveColor
+        when {
+            from == null -> {
+                premove = null
+                premoveFrom = square.takeIf { own }
+            }
+            square == from -> premoveFrom = null
+            own -> premoveFrom = square
+            else -> {
+                premove = from to square
+                premoveFrom = null
+            }
+        }
+    }
+
     val currentWhiteAtBottom by rememberUpdatedState(shownWhiteAtBottom)
     val currentAutoQueen by rememberUpdatedState(autoQueen)
     val currentPromotion by rememberUpdatedState(pendingPromotion)
@@ -197,7 +238,8 @@ fun BoardHost(
 
     val marks = BoardMarks(
         lastMove = state.lastMove?.let { it.from to it.to },
-        selected = selected ?: dragged?.from,
+        selected = selected ?: dragged?.from ?: premoveFrom,
+        premove = premove,
         legalTargets = (selected ?: dragged?.from)?.let { BoardInput.targetsFrom(it, state.legalMoves) } ?: emptySet(),
         check = checkSquare,
         // Arrows wait until the move has landed, so they never point from a moving piece.
@@ -254,13 +296,28 @@ fun BoardHost(
                         }
                         // Read live state, not the last composition: two quick taps can arrive between frames.
                         val now = currentSession.state.value
-                        val pickable = BoardInput.canPick(now.position, start, now.movable)
+                        val premoving = now.movable == null && currentPremoveColor != null
+                        val pickable = BoardInput.canPick(now.position, start, now.movable) ||
+                            (premoving && now.position.pieceAt(start)?.color == currentPremoveColor)
                         var dragging = false
                         while (true) {
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
                                 change.consume()
+                                if (premoving) {
+                                    val released = BoardGeometry.squareAt(change.position.x, change.position.y, boardSize, currentWhiteAtBottom)
+                                    if (dragging) {
+                                        dragged = null
+                                        if (released != null && released != start) {
+                                            premove = start to released
+                                            premoveFrom = null
+                                        }
+                                    } else if (released == start) {
+                                        premoveTap(start, now.position)
+                                    }
+                                    break
+                                }
                                 if (dragging) {
                                     dragged = null
                                     val target = BoardGeometry.squareAt(change.position.x, change.position.y, boardSize, currentWhiteAtBottom)

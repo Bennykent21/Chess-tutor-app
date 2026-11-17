@@ -215,6 +215,8 @@ fun PlayScreen(
                         autoQueen = settings.autoQueen,
                         arrows = listOfNotNull(state.hint),
                         onFeedback = onFeedback,
+                        // Queue a move while the bot thinks (D93).
+                        premoveColor = setup.playerColor.takeIf { watch == null && !over },
                     )
                 }
             }

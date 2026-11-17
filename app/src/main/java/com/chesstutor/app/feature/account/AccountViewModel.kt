@@ -266,6 +266,34 @@ class AccountViewModel(
         }
     }
 
+    /** Games this view model started reviewing by itself, so playing can pause them. */
+    private val background = HashSet<String>()
+
+    /**
+     * Reviews the newest games that have no review yet, [limit] at most, one after another (D93),
+     * so Home and Stats can show their graphs and accuracy without asking. A half-done review
+     * resumes where it stopped.
+     */
+    fun reviewRecentInBackground(limit: Int = AUTO_REVIEW_GAMES) {
+        if (engine == null) return
+        viewModelScope.launch {
+            val state = games.first { !it.loading }
+            state.games.sortedByDescending { it.dateMillis }
+                .filter { it.id !in state.analysed }
+                .take(limit)
+                .forEach { game ->
+                    background += game.id
+                    analyse(game.id)
+                }
+        }
+    }
+
+    /** A game or Explore needs the engine: background reviews stop and resume later. */
+    fun pauseBackground() {
+        background.toList().forEach(::stopAnalysis)
+        background.clear()
+    }
+
     /** Stops [gameId]'s analysis; what is done so far stays saved, so it resumes later. */
     fun stopAnalysis(gameId: String) {
         running.remove(gameId)?.cancel()
@@ -315,6 +343,9 @@ class AccountViewModel(
     companion object {
         /** How long an analysis waits for a just-saved game to appear in the list. */
         const val GAME_WAIT_MS = 10_000L
+
+        /** How many of the newest games are reviewed without asking (D93). */
+        const val AUTO_REVIEW_GAMES = 5
     }
 
     class Factory(

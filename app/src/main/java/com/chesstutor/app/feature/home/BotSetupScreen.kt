@@ -103,15 +103,7 @@ fun BotSetupScreen(
             CtToggleRow(title = "Evaluation bar", checked = evalBar, onCheckedChange = { evalBar = it })
             CtToggleRow(title = "Chess960", checked = chess960 != null, onCheckedChange = { on -> chess960 = if (on) Chess960.random() else null })
         }
-        chess960?.let { number ->
-            CtListRow(
-                title = "Position $number",
-                subtitle = "Tap for another. Castling still ends on g or c.",
-                icon = null,
-                onClick = { chess960 = Chess960.random() },
-                leading = { BoardThumbnail(Chess960.startFen(number), theme, flipped = false, size = 44.dp) },
-            )
-        }
+        chess960?.let { number -> Chess960Picker(number, theme, onChange = { chess960 = it }) }
         Repertoire(bot)
     }
 

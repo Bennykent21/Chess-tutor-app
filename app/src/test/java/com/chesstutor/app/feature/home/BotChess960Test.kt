@@ -38,7 +38,7 @@ class BotChess960Test {
             }
         }
         compose.onNodeWithText("Chess960").performScrollTo().performClick()
-        compose.onNode(hasText("Position ", substring = true)).performScrollTo().assertExists()
+        compose.onNodeWithContentDescription("Next start").performScrollTo().assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/bot_setup_960.png")
         compose.onNode(hasText("Play")).performClick()
         assertNotNull(started)

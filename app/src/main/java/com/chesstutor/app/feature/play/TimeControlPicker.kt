@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.play
 
+import com.chesstutor.app.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -98,7 +101,7 @@ fun TimeControlPicker(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                 TimeControl.GROUPS.forEach { (kind, clocks) ->
-                    Group(kind) {
+                    Group(kind, icon = KIND_ICONS[kind]) {
                         clocks.forEach { clock ->
                             Tile(clock.label, selected == clock && !customOpen) {
                                 customOpen = false
@@ -150,10 +153,16 @@ fun TimeControlPicker(
 private const val MAX_MINUTES = 90f
 private const val MAX_ADDED = 60f
 
+/** The metal clocks for each kind of game (the same ones Stats uses). */
+private val KIND_ICONS = mapOf("Bullet" to R.drawable.icon_clock_bullet, "Blitz" to R.drawable.icon_clock_blitz, "Rapid" to R.drawable.icon_clock_rapid)
+
 @Composable
-private fun Group(title: String, tiles: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+private fun Group(title: String, icon: Int? = null, tiles: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        Text(title, style = CtType.Label.copy(color = CtColors.Text2))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+            if (icon != null) Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(22.dp))
+            Text(title, style = CtType.Label.copy(color = CtColors.Text2))
+        }
         Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), content = tiles)
     }
 }

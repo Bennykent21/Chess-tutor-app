@@ -122,6 +122,23 @@ class AccountViewModelTest {
     }
 
     @Test
+    fun theNewestUnreviewedGamesAreReviewedWithoutAsking() = runTest(dispatcher) {
+        val repo = InMemoryGameRepository()
+        listOf("old" to 1L, "mid" to 2L, "new" to 3L).forEach { (id, date) -> repo.saveGame(record(id, date)) }
+        val analysis = InMemoryGameAnalysisRepository()
+        val vm = AccountViewModel(repo, { tree }, flowOf(PuzzleStats()), analysis, GameAnalyzerTest.FakeEngine(), null, worker = dispatcher)
+        backgroundScope.launch { vm.games.collect {} }
+        advanceUntilIdle()
+        vm.reviewRecentInBackground(limit = 2)
+        advanceUntilIdle()
+        assertEquals(setOf("mid", "new"), vm.games.value.analysed.keys)
+        // Already reviewed games are skipped, so the next call takes the oldest.
+        vm.reviewRecentInBackground(limit = 2)
+        advanceUntilIdle()
+        assertEquals(setOf("old", "mid", "new"), vm.games.value.analysed.keys)
+    }
+
+    @Test
     fun stoppingKeepsWhatWasDone() = runTest(dispatcher) {
         val repo = InMemoryGameRepository()
         repo.saveGame(record("g", date = 1))

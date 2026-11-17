@@ -1,10 +1,14 @@
 package com.chesstutor.app.feature.analysis
 
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
+import com.chesstutor.app.design.CtMascotArt
+import com.chesstutor.app.core.SanFormatter
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.design.CtControl
-import com.chesstutor.app.design.CtTutor
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
@@ -48,7 +52,6 @@ import com.chesstutor.app.board.BoardFeedback
 import com.chesstutor.app.board.BoardHost
 import com.chesstutor.app.board.BoardSession
 import com.chesstutor.app.board.BoardWithEvalBar
-import com.chesstutor.app.board.EngineLinesPanel
 import com.chesstutor.app.board.MarkKind
 import com.chesstutor.app.board.MoveMark
 import com.chesstutor.app.board.SquareRing
@@ -219,6 +222,17 @@ fun AnalysisScreen(
     }
     val marks = judged.mapValues { (_, j) -> MoveMark(j.move.quality.symbol, qualityColor(j.move.quality), j.move.quality.label, icon = qualityIcon(j.move.quality)) }
 
+    // The coach says what the engine sees, in the same sliding bubbles as a bot (D93).
+    val bestSan = best?.firstMove?.let { uci -> state.legalMoves.firstOrNull { it.uci == uci } }?.let { SanFormatter.format(state.position, it) }
+    val coachLine = when {
+        shown != null -> "${shown.comment.headline} ${shown.comment.detail}".trim()
+        thinking -> null
+        bestSan != null -> "${if (engineStatus.isDegraded) "The Lite engine" else "Stockfish"} likes $bestSan here${evalText(best?.centipawns, best?.mateInMoves)?.let { ", $it" } ?: ""}."
+        state.lastMove == null -> "Play a move and I'll tell you how good it was."
+        else -> null
+    }
+    val talk = rememberTalk(listOfNotNull(coachLine?.let { TalkLine("$current:$it".hashCode(), it) }), key = Unit)
+
     var engineOpen by remember { mutableStateOf(false) }
     val tryAgain: (() -> Unit)? = if (quality?.isError == true) session::back else null
     val menu = buildList {
@@ -241,21 +255,10 @@ fun AnalysisScreen(
             if (engineStatus.isDegraded) {
                 CtBadge(text = "Lite engine: Stockfish is not answering", icon = Icons.Rounded.Warning)
             }
-            CtTutor(settings.mascot, mood = if (quality?.isError == true) MascotMood.KIND else MascotMood.READY) {
-                Verdict(verdict = shown, hasMove = state.lastMove != null, thinking = thinking, evalCp = best?.centipawns, evalMate = best?.mateInMoves)
-            }
-            if (showLines) {
-                EngineLinesPanel(
-                    position = state.position,
-                    lines = lines,
-                    engineName = if (engineStatus.isDegraded) "Lite engine" else "Stockfish",
-                    onPlayLine = { line ->
-                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
-                            ?.takeIf { move -> state.legalMoves.any { it.uci == move.uci } }
-                            ?.let { onFeedback(board.onMove(it)) }
-                    },
-                )
-            }
+            Talk(
+                avatar = { CtMascotArt(settings.mascot, height = 76.dp, mood = if (quality?.isError == true) MascotMood.KIND else MascotMood.READY) },
+                lines = talk,
+            )
         },
         under = { AnalysisMoveList(view = view, onSelect = session::goTo, marks = marks) },
         board = {
@@ -313,32 +316,6 @@ fun AnalysisScreen(
 }
 
 /** The verdict on the move just played (or what to do next), in the coach's bubble above the board. */
-@Composable
-private fun Verdict(verdict: JudgedMove?, hasMove: Boolean, thinking: Boolean, evalCp: Int?, evalMate: Int?) {
-    Row(
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-    ) {
-        if (verdict != null) QualityIcon(verdict.move.quality, size = 32)
-        Column(Modifier.weight(1f)) {
-            when {
-                thinking -> Text("The engine is thinking…", style = CtType.TitleSmall)
-                verdict != null -> {
-                    Text(verdict.comment.headline, style = CtType.TitleSmall)
-                    Text(verdict.comment.detail, style = CtType.Caption)
-                }
-                hasMove -> Text("Checking that move…", style = CtType.TitleSmall)
-                else -> Text("Play a move and I'll tell you how good it was.", style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 2)
-            }
-        }
-        val eval = evalText(evalCp, evalMate)
-        if (eval != null) {
-            Text(eval, style = CtType.Label, modifier = Modifier.clip(CtShapes.Chip).background(CtColors.Surface).padding(horizontal = 10.dp, vertical = CtSpacing.xs))
-        }
-    }
-}
-
 /** "+0.9", "−2.3" or "M3" from White's side; null before the engine answers. */
 internal fun evalText(cp: Int?, mate: Int?): String? = when {
     mate != null && mate != 0 -> "M${kotlin.math.abs(mate)}"
