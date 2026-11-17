@@ -72,7 +72,6 @@ import com.chesstutor.app.design.CtBoardScreen
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtCoachBubble
-import com.chesstutor.app.design.CtCoachStrip
 import com.chesstutor.app.design.CtColors
 import com.chesstutor.app.design.CtConfirmDialog
 import com.chesstutor.app.design.CtIconButton
@@ -144,6 +143,10 @@ fun PlayScreen(
         listOfNotNull(
             state.chatOf(state.botColor)?.let { TalkLine(it.id, it.text, speaker = if (watch != null) bot.name else null) },
             watch?.let { other -> state.chatOf(setup.playerColor)?.let { TalkLine(it.id, it.text, speaker = other.name) } },
+            // In an opening battle the bot itself says how the line is going (D94: no second coach).
+            state.battleTitle?.let { battle ->
+                battleCoachLine(battle, state.opening, state.inBook, state.drillMessage).let { TalkLine(-1 - (it.hashCode() and 0x7FFFFFF), it) }
+            },
         ),
         key = game,
     )
@@ -166,14 +169,6 @@ fun PlayScreen(
         zone = {
             // The opening, one quiet line at the top: whether you are still in book.
             openingLine(state)?.let { Text(it, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis) }
-            state.battleTitle?.let { battle ->
-                CtCoachStrip(
-                    mascot = settings.mascot,
-                    label = battle,
-                    text = battleCoachLine(battle, state.opening, state.inBook, state.drillMessage),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
             Talk(avatar = { BotAvatar(bot.face, bot.rating, size = 76.dp) }, lines = talk)
         },
         under = {
