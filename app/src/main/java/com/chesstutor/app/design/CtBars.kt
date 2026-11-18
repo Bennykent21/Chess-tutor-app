@@ -164,7 +164,10 @@ private fun TopTab.icon(): ImageVector = when (this) {
     TopTab.ACCOUNT -> Icons.Rounded.Person
 }
 
-/** The five-tab bottom bar (plan section 3; Train in the centre, Phase 12): the active tab sits in a tonal pill. */
+/**
+ * The five-tab bottom bar (plan section 3; Train in the centre, Phase 12): icons only (D101), the
+ * active tab in a tonal pill; each tab's name is still read out by TalkBack.
+ */
 @Composable
 fun CtBottomBar(
     selected: TopTab?,
@@ -177,7 +180,7 @@ fun CtBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .height(80.dp)
+                .height(60.dp)
                 .selectableGroup(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -198,9 +201,10 @@ fun CtBottomBar(
                             indication = null,
                             role = Role.Tab,
                             onClick = { onSelect(tab) },
-                        ),
+                        )
+                        .semantics { contentDescription = tab.label },
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(CtSpacing.xs, Alignment.CenterVertically),
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Box(
                         modifier = Modifier.size(width = 60.dp, height = 32.dp).clip(CtShapes.Pill).background(pill),
@@ -208,11 +212,6 @@ fun CtBottomBar(
                     ) {
                         Icon(tab.icon(), contentDescription = null, tint = if (isSelected) CtColors.NavIcon else CtColors.Text2, modifier = Modifier.size(22.dp))
                     }
-                    Text(
-                        text = tab.label,
-                        style = if (isSelected) CtType.NavLabel.copy(color = CtColors.Text, fontWeight = CtType.Label.fontWeight) else CtType.NavLabel,
-                        maxLines = 1,
-                    )
                 }
             }
         }

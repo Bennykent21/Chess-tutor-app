@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -76,5 +78,13 @@ class FromYourGamesTest {
         }
         compose.onNodeWithText("Import your games in Account, or play a few here.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_from_games_empty_dark.png")
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun gallery() {
+        compose.shootBoth("train", "04_from_games") {
+            FromYourGamesScreen(FindingsState(loading = false, report = report), BoardTheme(), onTrainLine = { _, _ -> }, onTrainEnding = {}, onBack = {})
+        }
     }
 }

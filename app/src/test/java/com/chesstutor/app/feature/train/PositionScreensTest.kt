@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -102,5 +104,20 @@ class PositionScreensTest {
         }
         compose.onNodeWithText("Won. Converted in 12 moves. 3 more to go.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position_won.png")
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun gallerySets() {
+        val ui = sets.map { PositionSetUi(it, if (it.id == "king-pawn") 2 else 0) }
+        compose.shootBoth("train", "02_endgames") { PositionSetsScreen(PositionKind.ENDGAME, ui.filter { it.set.kind == PositionKind.ENDGAME }, BoardTheme(), onOpen = {}, onBack = {}) }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryRun() {
+        compose.shootBoth("train", "03_position", settle = { compose.mainClock.advanceTimeBy(com.chesstutor.app.feature.play.MIN_READ_MS) }) {
+            PositionRunScreen(runOf("king-pawn"), AppSettings(), onFeedback = {}, onHint = {}, onRestart = {}, onGiveUp = {}, onNext = {}, onBack = {})
+        }
     }
 }

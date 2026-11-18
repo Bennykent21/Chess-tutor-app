@@ -69,7 +69,23 @@ object ReviewQueue {
  * costs nothing) and the opponent's come with [playOpponent]. Pure, so it is unit tested; the
  * screen saves [outcome].
  */
-class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = Instant::now) {
+class ReviewSession(
+    cards: List<DueCard>,
+    /** Drills and challenges (D101): a card missed goes to the back of the queue until it is right. */
+    private val repeatMisses: Boolean = false,
+    private val now: () -> Instant = Instant::now,
+) {
+    private val queue = cards.toMutableList()
+
+    /** The run's cards, a missed one again at the end when [repeatMisses]. */
+    val cards: List<DueCard> get() = queue
+
+    /** How many different positions the run asks, however often a missed one comes back. */
+    val positions: Int = cards.map { it.state.id }.distinct().size
+
+    /** Positions answered right the first time they were asked. */
+    val rightFirstTry: Int get() = results.groupBy { it.first.id }.values.count { it.first().second.firstTryRight }
+
     var index: Int = 0
         private set
 
@@ -94,8 +110,8 @@ class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = I
         startCard()
     }
 
-    val current: DueCard? get() = cards.getOrNull(index)
-    val finished: Boolean get() = index >= cards.size
+    val current: DueCard? get() = queue.getOrNull(index)
+    val finished: Boolean get() = index >= queue.size
     val outcome: List<Pair<CardState, CardReview>> get() = results.toList()
     val rightFirstTime: Int get() = results.count { it.second.firstTryRight }
 
@@ -184,6 +200,40 @@ class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = I
 
     private fun finish(card: DueCard, right: Boolean) {
         results += RepertoireCards.afterRecall(card.state, right, hinted, now())
+        if (repeatMisses && !right) queue += card.copy(fromStart = false)
         done = true
+    }
+}
+
+/**
+ * Practice from memory, any time (D101): no teaching, nothing scheduled. A drill walks one
+ * variation's learnt positions in the order of its lines; a challenge mixes learnt positions from
+ * every variation of an opening, more of them the higher the learner's cup.
+ */
+object Drills {
+    /** Lines with something learnt before the challenge opens. */
+    const val CHALLENGE_LINES = 2
+
+    /** Positions per challenge at each level: Core, Standard, Deep. */
+    const val CHALLENGE_STEP = 10
+
+    fun challengeSize(level: RepertoireLevel, learnt: Int, linesLearnt: Int): Int =
+        if (linesLearnt < CHALLENGE_LINES) 0 else minOf(learnt, CHALLENGE_STEP * (level.ordinal + 1))
+
+    /** The learnt positions of the variation that starts with [path], in the order of its lines. */
+    fun variation(index: RepertoireIndex, path: List<String>, states: Collection<CardState>, now: Instant): List<DueCard> =
+        learnt(index, states, now).filter { it.path.take(path.size) == path }.sortedBy { it.path.joinToString(" ") }
+
+    /** [size] learnt positions of the opening, mixed. */
+    fun challenge(index: RepertoireIndex, states: Collection<CardState>, size: Int, now: Instant, random: kotlin.random.Random = kotlin.random.Random.Default): List<DueCard> =
+        learnt(index, states, now).shuffled(random).take(size)
+
+    private fun learnt(index: RepertoireIndex, states: Collection<CardState>, now: Instant): List<DueCard> {
+        val mine = states.filter { it.bookId == index.book.id }.associateBy { it.key }
+        return index.book.cards().mapNotNull { node ->
+            val state = mine[node.key] ?: return@mapNotNull null
+            val path = index.pathTo(node.key) ?: return@mapNotNull null
+            DueCard(index, node, state, path)
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.domain.repertoire.Drills
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -73,6 +74,8 @@ data class RepertoireBookUi(
     val nextLine: String? = null,
     /** The variations open for drilling (Phase 12); null when every one is. */
     val open: OpenLines? = null,
+    /** Positions in a challenge now (D101); 0 until [Drills.CHALLENGE_LINES] lines have something learnt. */
+    val challenge: Int = 0,
 ) {
     /** No variation is open yet: take the course, or the test. */
     val locked: Boolean get() = open != null && open.open.isEmpty() && !open.rest
@@ -100,7 +103,7 @@ data class ReplyChart(val after: String, val replies: List<ChartReply>)
 data class ChartReply(val san: String, val share: Double, val error: Boolean)
 
 /** TEST is an opening's test-out (Phase 12): no hints, nothing saved, four of five right opens its drills. */
-enum class RunKind { LEARN, REVIEW, TRICKY, TEST }
+enum class RunKind { LEARN, REVIEW, TRICKY, TEST, DRILL, CHALLENGE }
 
 /** What the trainer is saying at this moment of a run. */
 sealed interface RunMoment {
@@ -227,6 +230,8 @@ class RepertoireViewModel(
         val mine = cardMap.values.filter { it.bookId == book.id }
         val now = clock()
         val introduced = mine.map { it.key }.toSet()
+        val variations = RepertoireVariations.of(index, band(book), progress.unlocked, mine.associateBy { it.key }, open)
+        val learnt = book.cards().count { it.key in introduced }
         return RepertoireBookUi(
             book = book,
             index = index,
@@ -238,10 +243,11 @@ class RepertoireViewModel(
             chart = chartOf(index, band(book)),
             introduced = book.cards().count { it.key in introduced },
             total = book.cards().size,
-            variations = RepertoireVariations.of(index, band(book), progress.unlocked, mine.associateBy { it.key }, open),
+            variations = variations,
             readiness = RepertoireVariations.readiness(book, progress.unlocked, mine.associateBy { it.key }),
             nextLine = LearnPlanner.next(index, progress.unlocked, introduced, allowed = open)?.variation,
             open = open,
+            challenge = Drills.challengeSize(progress.unlocked, learnt, variations.count { it.introduced > 0 }),
         )
     }
 
@@ -434,6 +440,28 @@ class RepertoireViewModel(
         startQueue(RunKind.TEST, "Test", queue)
     }
 
+    /**
+     * One variation from memory (D101): every position of it learnt so far, in the order of its
+     * lines, no teaching; a miss comes back until it is right. Nothing is scheduled.
+     */
+    fun startDrill(bookId: String, path: List<String>) {
+        val index = indexes.value?.firstOrNull { it.book.id == bookId } ?: return
+        val queue = Drills.variation(index, path, cards.value.values, clock())
+        if (queue.isEmpty()) return
+        startQueue(RunKind.DRILL, index.book.title, queue)
+    }
+
+    /**
+     * The opening's challenge (D101): learnt positions from all its variations, mixed, more of
+     * them at each cup; misses come back until every one is right. Nothing is scheduled.
+     */
+    fun startChallenge(bookId: String, random: Random = Random.Default) {
+        val ui = state.value.book(bookId) ?: return
+        val queue = Drills.challenge(ui.index, cards.value.values, ui.challenge, clock(), random)
+        if (queue.isEmpty()) return
+        startQueue(RunKind.CHALLENGE, "Challenge", queue)
+    }
+
     /** The tricky lines of [bookId], each from the start of its line (D76). */
     fun startTricky(bookId: String) {
         val index = indexes.value?.firstOrNull { it.book.id == bookId } ?: return
@@ -444,7 +472,7 @@ class RepertoireViewModel(
 
     private fun startQueue(kind: RunKind, title: String, queue: List<DueCard>) {
         clear()
-        val session = ReviewSession(queue, clock)
+        val session = ReviewSession(queue, repeatMisses = kind == RunKind.DRILL || kind == RunKind.CHALLENGE, now = clock)
         review = session
         val board = RepertoireBoard(line = { reviewLine(session) to (session.isOwnTurn && moment.lets()) }, submit = ::submitReview)
         mutableRun.value = RunUi(kind, title, queue.first().book.side, board, moment, null, 0, queue.size, tricky = queue.first().fromStart)
@@ -502,8 +530,8 @@ class RepertoireViewModel(
         moment = RunMoment.CardDone(log.firstTryRight, card.dueAt, played, shown)
         publish()
         mutableRun.value?.board?.refresh(animate = played != null)
-        // A test only looks: the schedule stays as it is.
-        if (mutableRun.value?.kind != RunKind.TEST) {
+        // A test, a drill and a challenge only look: the schedule stays as it is.
+        if (mutableRun.value?.kind !in setOf(RunKind.TEST, RunKind.DRILL, RunKind.CHALLENGE)) {
             viewModelScope.launch {
                 repository.save(listOf(card), listOf(log))
                 reviewLog.value = reviewLog.value + (card.bookId to repository.reviews(card.bookId))
@@ -526,6 +554,11 @@ class RepertoireViewModel(
                 val session = review ?: return
                 session.next()
                 if (session.finished) {
+                    if (mutableRun.value?.kind == RunKind.DRILL || mutableRun.value?.kind == RunKind.CHALLENGE) {
+                        moment = RunMoment.Finished(session.rightFirstTry, session.positions)
+                        publish()
+                        return
+                    }
                     if (mutableRun.value?.kind == RunKind.TEST) {
                         if (session.rightFirstTime >= testPassMark(session.cards.size)) tests?.pass(session.cards.first().book.id)
                         moment = RunMoment.Finished(session.rightFirstTime, session.cards.size)

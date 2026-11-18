@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.design.CtChip
+import androidx.compose.material.icons.rounded.Bolt
+import com.chesstutor.app.domain.repertoire.Drills
 import com.chesstutor.app.feature.play.rememberTalk
 import com.chesstutor.app.feature.play.TalkLine
 import com.chesstutor.app.feature.play.Talk
@@ -106,6 +109,10 @@ data class RepertoireActions(
     val onCourse: (() -> Unit)? = null,
     /** The opening's test, which opens every line at once (Phase 12). */
     val onTest: (() -> Unit)? = null,
+    /** Drills one variation from memory, any time (D101). */
+    val onDrillVariation: (List<String>) -> Unit = {},
+    /** The opening's challenge: learnt positions from every variation, mixed (D101). */
+    val onChallenge: () -> Unit = {},
 )
 
 /**
@@ -149,10 +156,25 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
         }
         if (ui.variations.isNotEmpty()) {
             Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg)) {
-                VariationList(ui.variations, actions.onLearnVariation)
+                VariationList(ui.variations, actions.onLearnVariation, actions.onDrillVariation)
             }
         }
         Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.xl)) {
+            // Mixed positions from every learnt line, more at each cup; closed until two lines are begun (D101).
+            if (ui.introduced > 0) {
+                val open = ui.challenge > 0
+                CtListRow(
+                    title = "Challenge",
+                    subtitle = if (open) null else "Learn ${Drills.CHALLENGE_LINES} lines to open it",
+                    icon = null,
+                    onClick = { if (open) actions.onChallenge() },
+                    leading = { CtMetalIcon(Icons.Rounded.Bolt, size = 36.dp) },
+                    trailing = {
+                        if (open) Text("${ui.challenge}", style = CtType.BodySmall.copy(color = CtColors.Text2))
+                        else Icon(Icons.Rounded.Lock, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(16.dp))
+                    },
+                )
+            }
             if (ui.tricky > 0) {
                 CtListRow(
                     title = "Tricky lines", icon = null, onClick = actions.onTricky,
@@ -183,17 +205,19 @@ private fun ReadinessRing(readiness: Double) {
 
 /**
  * The opponent's choices (D77): each bar is as long as the choice is common, solid moves fill
- * it dark and moves met once fill it pale. A tap learns the next new moves of that variation;
- * one with nothing open yet is faint and locked.
+ * it dark and moves met once fill it pale. A tap learns the next new moves of that variation, or,
+ * when it has none left, drills it from memory (D101); one begun but not finished also has a
+ * Drill chip. One with nothing open yet is faint and locked.
  */
 @Composable
-private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -> Unit) {
+private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -> Unit, onDrill: (List<String>) -> Unit) {
     val longest = variations.maxOf { it.share }.coerceAtLeast(0.01)
     Text("Variations", style = CtType.TitleSmall)
     Spacer(Modifier.height(CtSpacing.xs))
     variations.forEach { v ->
         val open = v.cards > 0 && !v.locked
         val fresh = open && v.cards > v.introduced
+        val drillable = open && v.introduced > 0
         val spoken = buildString {
             append("${v.label}, ${percent(v.share)} of games")
             if (open) append(", ${v.solid} of ${v.cards} solid") else append(", locked")
@@ -202,7 +226,13 @@ private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = CtSpacing.touchTarget)
-                .then(if (fresh) Modifier.ctPressable(onClickLabel = "Learn ${v.label}") { onLearn(v.path) } else Modifier)
+                .then(
+                    when {
+                        fresh -> Modifier.ctPressable(onClickLabel = "Learn ${v.label}") { onLearn(v.path) }
+                        drillable -> Modifier.ctPressable(onClickLabel = "Drill ${v.label}") { onDrill(v.path) }
+                        else -> Modifier
+                    },
+                )
                 .semantics(mergeDescendants = true) { contentDescription = spoken }
                 .padding(vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -214,6 +244,7 @@ private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -
                     if (v.name != null) Text(v.move, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1)
                 }
                 if (!open) Icon(Icons.Rounded.Lock, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(13.dp))
+                if (fresh && drillable) CtChip(text = "Drill", onClick = { onDrill(v.path) })
                 Text(percent(v.share), style = CtType.Caption.copy(color = CtColors.Text2))
             }
             val track = CtColors.Track
@@ -462,11 +493,17 @@ private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.mome
     RunMoment.FromTheTop -> "Your turn" to "Play the line back."
     is RunMoment.Watch -> (m.words ?: "Watch the line") to null
     is RunMoment.Also -> "Also good" to (m.san?.let { "Your move here is $it." } ?: "Not the move to remember here.")
-    is RunMoment.Shown -> "Play ${m.san}" to if (run.kind == RunKind.LEARN) null else "This position comes back sooner."
+    is RunMoment.Shown -> "Play ${m.san}" to when (run.kind) {
+        RunKind.LEARN -> null
+        RunKind.DRILL, RunKind.CHALLENGE -> "It comes back at the end."
+        else -> "This position comes back sooner."
+    }
     is RunMoment.CardDone -> (if (m.right) null else "Comes back today") to null
     is RunMoment.Finished -> if (run.kind == RunKind.TEST) {
         if (m.right >= RepertoireViewModel.testPassMark(m.total)) "Passed" to "${m.right} of ${m.total} right. The drills are open."
         else "Not yet" to "${m.right} of ${m.total} right. Take the course, or try again tomorrow."
+    } else if (run.kind == RunKind.DRILL || run.kind == RunKind.CHALLENGE) {
+        (if (m.right == m.total) "Every one first try" else "All solved") to "${m.right} of ${m.total} first try."
     } else if (run.kind == RunKind.LEARN) {
         "Line learnt" to "${m.right} of ${m.total} first try. Back tomorrow."
     } else {

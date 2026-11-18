@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -83,5 +85,12 @@ class TrainScreenTest {
     fun aboutThirtySecondsAPosition() {
         assertEquals(1, minutesFor(1))
         assertEquals(6, minutesFor(12))
+    }
+
+    /** The visual pass (Phase 14B): the Train tab at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun gallery() {
+        compose.shootBoth("train", "01_train") { TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions({}, {}, {})) }
     }
 }

@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -124,5 +126,19 @@ class MyLinesTest {
         assertEquals("Mine", MyLine.freeName("Mine", emptyList()))
         assertEquals("Mine 3", MyLine.freeName(" Mine ", listOf("Mine", "Mine 2")))
         assertEquals("My line", MyLine.freeName("  ", emptyList()))
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryLines() {
+        compose.shootBoth("train", "05_my_lines") {
+            MyLinesScreen(listOf(friedLiver, friedLiver.copy(id = "2", name = "Caro-Kann: my Advance", side = PieceColor.BLACK, moves = "e2e4 c7c6 d2d4 d7d5 e4e5 c8f5".split(' '))), BoardTheme(), {}, {}, {}, {})
+        }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryLine() {
+        compose.shootBoth("train", "06_my_line") { MyLineScreen(friedLiver, BoardTheme(), onDrill = {}, onPlay = {}, onDelete = {}, onBack = {}) }
     }
 }

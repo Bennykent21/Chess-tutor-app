@@ -405,4 +405,51 @@ class RepertoireTrainerTest {
         assertEquals(0.1, shut.count { it == SparringPick.Leave } / 10_000.0, 0.02)
         assertNull(RepertoireGuide.sparringPick(book.nodes.getValue(key("$P g8f6")), null, DEEP))
     }
+
+    // ---------------------------------------------------------------- drills (D101)
+
+    @Test
+    fun aDrillAsksAMissedPositionAgainAtTheEndUntilItIsRight() {
+        val states = book.cards(CORE).take(3).mapIndexed { i, n -> RepertoireCards.introduce(book.id, n, day0.plusSeconds(i.toLong())) }
+        val queue = states.mapNotNull { st -> index.pathTo(st.key)?.let { DueCard(index, book.nodes.getValue(st.key), st, it) } }
+        val session = ReviewSession(queue, repeatMisses = true) { day(1) }
+        assertEquals(3, session.positions)
+        val first = session.current!!
+        session.showAnswer()
+        session.next()
+        assertEquals("the missed one waits at the end", 4, session.cards.size)
+        repeat(2) {
+            session.submit(session.current!!.node.move!!)
+            session.next()
+        }
+        assertEquals(first.state.id, session.current!!.state.id)
+        session.submit(first.node.move!!)
+        session.next()
+        assertTrue(session.finished)
+        assertEquals(2, session.rightFirstTry)
+        assertEquals(3, session.positions)
+    }
+
+    @Test
+    fun theChallengeOpensAfterTwoLinesAndGrowsWithTheCup() {
+        assertEquals(0, Drills.challengeSize(CORE, learnt = 30, linesLearnt = 1))
+        assertEquals(10, Drills.challengeSize(CORE, learnt = 30, linesLearnt = 2))
+        assertEquals(20, Drills.challengeSize(RepertoireLevel.STANDARD, learnt = 30, linesLearnt = 3))
+        assertEquals(24, Drills.challengeSize(DEEP, learnt = 24, linesLearnt = 3))
+        val states = introducedAll(CORE, day0).values
+        val challenge = Drills.challenge(index, states, 2, day(1), kotlin.random.Random(1))
+        assertEquals(2, challenge.size)
+        assertEquals(2, challenge.map { it.state.id }.distinct().size)
+    }
+
+    @Test
+    fun aVariationDrillKeepsToItsLinesInOrder() {
+        val states = introducedAll(DEEP, day0).values
+        val all = Drills.variation(index, emptyList(), states, day(1))
+        val first = all.first().path
+        val inside = Drills.variation(index, first, states, day(1))
+        assertTrue(inside.isNotEmpty())
+        assertTrue(inside.all { it.path.take(first.size) == first })
+        assertEquals(inside.map { it.path.joinToString(" ") }.sorted(), inside.map { it.path.joinToString(" ") })
+    }
 }

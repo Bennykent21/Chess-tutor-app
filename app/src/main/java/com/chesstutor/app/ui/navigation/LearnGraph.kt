@@ -116,6 +116,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                         { navController.navigate(AppRoutes.learnOpening(id)) { launchSingleTop = true } }
                     },
                     onTest = openRun { repertoire.startTest(id) },
+                    onDrillVariation = { path -> openRun { repertoire.startDrill(id, path) }() },
+                    onChallenge = openRun { repertoire.startChallenge(id) },
                     onPlayOut = {
                         homeModel.presetBattle(ui.battleLine, ui.book.side)
                         navController.navigateToTab(TopTab.HOME)
