@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.audio.SoundPack
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.chesstutor.app.design.ctEnter
@@ -107,6 +108,7 @@ data class SettingsActions(
     val onOnlineEngine: (Boolean) -> Unit = {},
     val onSound: (Boolean) -> Unit = {},
     val onHaptics: (Boolean) -> Unit = {},
+    val onSoundPack: (SoundPack) -> Unit = {},
     val onReduceMotion: (Boolean) -> Unit = {},
     /** Frosted glass across the app (D106). */
     val onGlass: (Boolean) -> Unit = {},
@@ -294,6 +296,16 @@ fun SettingsScreen(
                                 CtToggleRow(title = "Sound", checked = state.appSettings.soundEnabled, onCheckedChange = actions.onSound)
                                 CtToggleRow(title = "Vibration", checked = state.appSettings.hapticsEnabled, onCheckedChange = actions.onHaptics)
                                 CtToggleRow(title = "Reduce motion", checked = state.appSettings.reduceMotion, onCheckedChange = actions.onReduceMotion)
+
+                                Spacer(Modifier.height(CtSpacing.md))
+                                Text("Sound pack", style = CtType.Label)
+                                Spacer(Modifier.height(CtSpacing.sm))
+                                CtSegmented(
+                                    options = SoundPack.entries,
+                                    selected = state.appSettings.soundPack,
+                                    label = { it.label },
+                                    onSelect = actions.onSoundPack,
+                                )
 
                                 Spacer(Modifier.height(CtSpacing.md))
                                 Text("Bot chat", style = CtType.Label)

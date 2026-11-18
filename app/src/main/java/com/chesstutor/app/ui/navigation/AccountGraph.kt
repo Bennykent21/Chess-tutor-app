@@ -167,6 +167,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
                     onAppearance = viewModel::setAppearance,
                     onSound = viewModel::setSoundEnabled,
                     onHaptics = viewModel::setHapticsEnabled,
+                    onSoundPack = viewModel::setSoundPack,
                     onReduceMotion = viewModel::setReduceMotion,
                     onGlass = viewModel::setGlass,
                     onAutoReview = viewModel::setAutoReview,

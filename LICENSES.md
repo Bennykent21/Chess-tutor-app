@@ -53,13 +53,23 @@ Sound effects (`app/src/main/res/raw/sfx_*.ogg`), played by `audio/ChessSoundMan
 | `sfx_wrong.ogg` | `error_008.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
 | `sfx_tap.ogg` | `click_002.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
 
+Sound packs Studio, Piano, Retro and Sci-fi (D108; `app/src/main/res/raw/sfx_studio_*`, `sfx_piano_*`,
+`sfx_retro_*`, `sfx_scifi_*`), chosen in Settings > Sound and play:
+
+| Files | Original files | Pack | Licence |
+|---|---|---|---|
+| `sfx_<pack>_move`, `_capture`, `_check`, `_promote`, `_win`, `_lose` (`.ogg`) | `Move`, `Capture`, `Check`, `GenericNotify`, `Victory`, `Defeat` (`.ogg`) from `public/sound/sfx` (Studio), `piano`, `nes` (Retro) and `futuristic` (Sci-fi) | Enigmahack, via `lichess-org/lila` (listed in its `COPYING.md`) | AGPLv3 or later (`licenses/AGPL-3.0.txt`), combined with the GPL-3.0 app as GPL-3.0 section 13 allows |
+
+Castling uses each pack's move sound; right, wrong and tap use the Kenney sounds above in every pack.
+Lichess's own standard sounds are not free and are not used.
+
 The files are unchanged copies. CC0 needs no credit; Kenney asks for an optional one, which the
 in-app licences page gives (kenney.nl).
 
 **In the app:** Settings > About > Open-source licences lists every part above with its author
 and licence (`feature/account/LicencesScreen.kt`, `CREDITS`), and shows the full licence texts
 bundled in `app/src/main/assets/licenses/`: `GPL-3.0.txt` (the official text from gnu.org, also
-the repository's `LICENSE`), `Apache-2.0.txt`, `MIT-fantasy-pieces.txt` and `OFL-1.1.txt`
+the repository's `LICENSE`), `Apache-2.0.txt`, `MIT-fantasy-pieces.txt`, `OFL-1.1.txt` and `AGPL-3.0.txt`
 (copies of `licenses/`). Libraries compiled into the app: AndroidX and Jetpack Compose (Apache
 2.0), Kotlin and kotlinx.coroutines (Apache 2.0), OkHttp and Moshi (Apache 2.0), android-youtube-player by Pierfrancesco Soffritti (Apache 2.0, wraps YouTube's own IFrame player),
 desugar_jdk_libs (GPL v2 with the Classpath Exception).

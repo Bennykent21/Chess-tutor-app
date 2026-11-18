@@ -1,5 +1,6 @@
 package com.chesstutor.app.data.settings
 
+import com.chesstutor.app.audio.SoundPack
 import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.PieceSet
@@ -25,6 +26,7 @@ class AppSettingsTest {
         val custom = AppSettings(
             glass = true,
             soundEnabled = false,
+            soundPackId = "piano",
             hapticsEnabled = false,
             showCoordinates = false,
             showLegalDots = false,
@@ -131,6 +133,14 @@ class AppSettingsTest {
         }
         // Phase 0 stored the placeholder piece set "classic"; it now means the Classic set.
         assertEquals(PieceSet.CBURNETT, AppSettingsCodec.decode(mapOf(AppSettingsCodec.PIECE_SET to "classic")).boardTheme.pieceSet)
+    }
+
+    @Test
+    fun soundPackDecodesToKnownIdsOnly() {
+        for (stored in listOf<Any?>("bells", "", 3, null)) {
+            assertEquals("stored value $stored", SoundPack.WOOD, AppSettingsCodec.decode(mapOf(AppSettingsCodec.SOUND_PACK to stored)).soundPack)
+        }
+        assertEquals(SoundPack.RETRO, AppSettingsCodec.decode(mapOf(AppSettingsCodec.SOUND_PACK to "retro")).soundPack)
     }
 
     @Test
