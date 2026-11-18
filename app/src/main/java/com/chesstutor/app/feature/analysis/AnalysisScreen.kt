@@ -81,11 +81,15 @@ import com.chesstutor.app.feature.account.qualityIcon
 import com.chesstutor.app.feature.account.qualityColor
 import com.chesstutor.app.feature.home.EXPLORE_STRENGTHS
 
-/** A quick first look, then a deeper one, so lines appear fast and then firm up. */
-private val ANALYSIS_STEPS_MS = listOf(300, 1500)
+/** A quick first look, so lines appear fast, before the search that grades the move. */
+private const val GLANCE_MS = 300
 
-/** A position skipped too fast to be analysed is looked at this long when its move is judged. */
-private const val CATCH_UP_MS = 1000
+/**
+ * The search a move is graded on (D108): deep enough to see the bigger win a short look misses,
+ * capped in time for slow phones. A position skipped too fast is looked at the same way.
+ */
+private const val SETTLE_DEPTH = 18
+private const val SETTLE_MS = 3000
 
 /** How long the engine thinks over its reply at full strength. */
 private const val REPLY_MS = 800
@@ -164,7 +168,7 @@ fun AnalysisScreen(
         val lite = { engine.status.value.isDegraded }
         // The position before the last move needs the engine's view too, to judge that move.
         if (parentId != null && previous != null && evals[parentId] == null) {
-            ExploreJudge.evalOf(previous, engine.analyse(previous.toFen(), lines = 3, movetimeMs = CATCH_UP_MS), lite())?.let {
+            ExploreJudge.evalOf(previous, engine.analyseWithin(previous.toFen(), lines = 3, depth = SETTLE_DEPTH, movetimeMs = SETTLE_MS), lite())?.let {
                 evals[parentId] = it
                 if (settled[parentId] == null) settled[parentId] = it
             }
@@ -177,13 +181,13 @@ fun AnalysisScreen(
             return@LaunchedEffect
         }
         val fen = position.toFen()
-        for ((step, movetime) in ANALYSIS_STEPS_MS.withIndex()) {
-            val result = engine.analyse(fen, lines = 3, movetimeMs = movetime)
+        for (settle in listOf(false, true)) {
+            val result = if (settle) engine.analyseWithin(fen, lines = 3, depth = SETTLE_DEPTH, movetimeMs = SETTLE_MS) else engine.analyse(fen, lines = 3, movetimeMs = GLANCE_MS)
             if (result.isNotEmpty()) {
                 lines = result
                 ExploreJudge.evalOf(position, result, lite())?.let {
                     evals[node] = it
-                    if (step == ANALYSIS_STEPS_MS.lastIndex) settled[node] = it
+                    if (settle) settled[node] = it
                 }
             }
         }

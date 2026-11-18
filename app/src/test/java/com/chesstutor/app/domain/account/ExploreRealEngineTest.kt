@@ -12,7 +12,7 @@ import org.junit.Test
 
 /**
  * Explore's grading against the real Stockfish of this PC (tools/.cache/stockfish), the way the
- * screen asks it: three lines for 1.5 s on each side of a move. Skipped where that binary is missing.
+ * screen settles it: three lines to depth 18 (at most 3 s) on each side of a move. Skipped where that binary is missing.
  */
 class ExploreRealEngineTest {
 
@@ -30,12 +30,15 @@ class ExploreRealEngineTest {
             // A good move for White and one for Black.
             "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2" to "g1f3",
             "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2" to "b8c6",
+            // A rook up, White can take the checking queen or only block it (D108).
+            "2b1kbnr/pppp1ppp/2n5/4q3/8/2N2N2/PPPP1PPP/R1BQKB1R w KQk - 0 5" to "f3e5",
+            "2b1kbnr/pppp1ppp/2n5/4q3/8/2N2N2/PPPP1PPP/R1BQKB1R w KQk - 0 5" to "f1e2",
         )
         for ((fen, uci) in cases) {
             val before = Position.fromFen(fen)
             val after = LegalMoveGenerator.makeMove(before, LegalMoveGenerator.generateLegalMoves(before).first { it.uci == uci })
-            val beforeEval = ExploreJudge.evalOf(before, engine.analyse(before.toFen(), lines = 3, movetimeMs = 1500))!!
-            val afterEval = ExploreJudge.evalOf(after, engine.analyse(after.toFen(), lines = 3, movetimeMs = 1500))!!
+            val beforeEval = ExploreJudge.evalOf(before, engine.analyseWithin(before.toFen(), lines = 3, depth = 18, movetimeMs = 3000))!!
+            val afterEval = ExploreJudge.evalOf(after, engine.analyseWithin(after.toFen(), lines = 3, depth = 18, movetimeMs = 3000))!!
             val judged = ExploreJudge.judge(before, uci, beforeEval, afterEval)!!
             println("EXPLORE $uci: ${judged.move.quality} before=${beforeEval.centipawns}/${beforeEval.mate} best=${beforeEval.bestMove} after=${afterEval.centipawns}/${afterEval.mate} win ${judged.move.winBefore}->${judged.move.winAfter}")
         }

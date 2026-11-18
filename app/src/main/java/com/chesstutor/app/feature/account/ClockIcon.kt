@@ -84,7 +84,7 @@ private fun ClockChip(clock: TimeClass?, on: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .height(40.dp)
-            .clip(CtShapes.Pill)
+            .clip(CtShapes.Chip)
             .background(if (on) CtColors.Primary else CtColors.Surface)
             .ctPressable(role = Role.Tab, onClickLabel = "Show $label", onClick = onClick)
             .semantics(mergeDescendants = true) {

@@ -41,7 +41,7 @@ class BoardThemeTest {
         assertEquals(PieceSet.entries.size, PieceSet.entries.map { it.id }.toSet().size)
         // Settings store these ids; renaming one would silently reset players' choices.
         assertEquals(listOf("classic", "meadow", "lagoon", "walnut", "ice", "neon", "marble", "lilac", "coral", "harbour", "graphite", "maple", "sage", "teak", "night", "honey", "rose", "parchment", "baize", "mono", "slate"), BoardColors.entries.map { it.id })
-        assertEquals(listOf("cburnett", "merida", "chessnut", "fantasy"), PieceSet.entries.map { it.id })
+        assertEquals(listOf("cburnett", "merida", "chessnut", "fantasy", "celtic", "spatial", "mpchess", "rhosgfx"), PieceSet.entries.map { it.id })
     }
 
     @Test

@@ -261,7 +261,7 @@ private fun Periods(selected: GraphPeriod, onPick: (GraphPeriod) -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .height(36.dp)
-                    .clip(CtShapes.Pill)
+                    .clip(CtShapes.Chip)
                     .then(if (on) Modifier.background(CtColors.Surface) else Modifier)
                     .ctPressable(role = Role.Tab, onClickLabel = "Show ${period.label}") { onPick(period) }
                     .semantics { this.selected = on },

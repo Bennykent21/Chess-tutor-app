@@ -265,7 +265,8 @@ fun <T> CtSegmented(
                     .fillMaxHeight()
                     .shadow(1.dp, CtShapes.Chip, ambientColor = CtColors.Text.copy(alpha = 0.08f), spotColor = CtColors.Text.copy(alpha = 0.16f))
                     .clip(CtShapes.Chip)
-                    .background(CtColors.Raised),
+                    // Solid even in frosted glass: a see-through thumb shows its own shadow as a dark patch.
+                    .background(CtColors.Raised.copy(alpha = 1f)),
             )
         }
         Row(Modifier.fillMaxSize().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(gap)) {

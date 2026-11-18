@@ -189,6 +189,10 @@ object CtShapes {
     val Control = RoundedCornerShape(14.dp)
     /** Small inner parts: a selected segment, board thumbnails. */
     val Chip = RoundedCornerShape(10.dp)
+    /** Data panels, such as the Stats page's: squarer than a card, so figures read as a sheet, not bubbles (D108). */
+    val Panel = RoundedCornerShape(12.dp)
+    /** Small marks inside a panel: side squares, little boards. */
+    val Mark = RoundedCornerShape(4.dp)
     /** Chips, badges and round buttons. */
     val Pill = RoundedCornerShape(percent = 50)
 }

@@ -25,6 +25,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Extension
@@ -39,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.Role
@@ -158,12 +164,13 @@ fun CtBackBar(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-private fun TopTab.icon(): ImageVector = when (this) {
-    TopTab.HOME -> Icons.Rounded.Home
-    TopTab.LEARN -> Icons.AutoMirrored.Rounded.MenuBook
-    TopTab.TRAIN -> Icons.Rounded.TrackChanges
-    TopTab.PUZZLES -> Icons.Rounded.Extension
-    TopTab.ACCOUNT -> Icons.Rounded.Person
+/** Filled for the tab in view, outlined for the rest (D108). */
+private fun TopTab.icon(selected: Boolean): ImageVector = when (this) {
+    TopTab.HOME -> if (selected) Icons.Rounded.Home else Icons.Outlined.Home
+    TopTab.LEARN -> if (selected) Icons.AutoMirrored.Rounded.MenuBook else Icons.AutoMirrored.Outlined.MenuBook
+    TopTab.TRAIN -> if (selected) Icons.Rounded.TrackChanges else Icons.Outlined.TrackChanges
+    TopTab.PUZZLES -> if (selected) Icons.Rounded.Extension else Icons.Outlined.Extension
+    TopTab.ACCOUNT -> if (selected) Icons.Rounded.Person else Icons.Outlined.Person
 }
 
 /**
@@ -197,7 +204,7 @@ fun CtBottomBar(
             TopTab.entries.forEach { tab ->
                 val isSelected = tab == selected
                 val pill by animateColorAsState(
-                    targetValue = if (isSelected) CtColors.NavPill else CtColors.Bg,
+                    targetValue = if (isSelected) CtColors.NavPill else Color.Transparent,
                     animationSpec = tween(if (reduceMotion) 0 else CtMotion.FADE_MS, easing = CtMotion.EaseOut),
                     label = "navPill",
                 )
@@ -220,7 +227,7 @@ fun CtBottomBar(
                         modifier = Modifier.size(width = 60.dp, height = 32.dp).clip(CtShapes.Pill).background(pill),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(tab.icon(), contentDescription = null, tint = if (isSelected) CtColors.NavIcon else CtColors.Text2, modifier = Modifier.size(22.dp))
+                        Icon(tab.icon(isSelected), contentDescription = null, tint = if (isSelected) CtColors.NavIcon else CtColors.Text2, modifier = Modifier.size(22.dp))
                     }
                 }
             }

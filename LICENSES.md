@@ -32,6 +32,9 @@ known before release (plan.md, section 9). Add a row whenever an asset is added.
 | Piece set "merida" | `design/pieces/merida/*.svg`; `piece_merida_*.xml` | Armando Hernandez Marroquin, via `lichess-org/lila` `public/piece/merida` | GPLv2 or later, used here under GPL-3.0 (`LICENSE`) |
 | Piece set "chessnut" | `design/pieces/chessnut/*.svg`; `piece_chessnut_*.xml` | Alexis Luengas, `LexLuengas/chessnut-pieces` ("Copyright 2015 Alexis Luengas"), via `lichess-org/lila` | Apache License 2.0 (`licenses/Apache-2.0.txt`). Converted from SVG to VectorDrawable; shapes unchanged |
 | Piece set "fantasy" | `design/pieces/fantasy/*.svg`; `piece_fantasy_*.xml` | Maurizio Monge, `maurimo/chess-art`, via `lichess-org/lila` | MIT (`licenses/MIT-fantasy-pieces.txt`) |
+| Piece sets "celtic" and "spatial" (D108) | `design/pieces/celtic/*.svg`, `design/pieces/spatial/*.svg`; `piece_celtic_*.xml`, `piece_spatial_*.xml` | Maurizio Monge, `maurimo/chess-art`, via `lichess-org/lila` | MIT (`licenses/MIT-fantasy-pieces.txt`, the same repository's licence) |
+| Piece set "mpchess" (shown as "Ink", D108) | `design/pieces/mpchess/*.svg`; `piece_mpchess_*.xml` | Maxime Chupin (`chupinmaxime`), via `lichess-org/lila` | GPLv3 or later, used here under GPL-3.0 (`LICENSE`) |
+| Piece set "rhosgfx" (shown as "Terracotta", D108) | `design/pieces/rhosgfx/*.svg`; `piece_rhosgfx_*.xml` | RhosGFX (rhosgfx.itch.io), via `lichess-org/lila` | CC0 1.0 |
 | Board colour themes | `app/src/main/java/com/chesstutor/app/board/BoardTheme.kt` | Original, made for this project | GPL-3.0, with the app |
 | Launcher icon for Android 7 | `app/src/main/res/mipmap-*/ic_launcher*.webp` | Rendered from the vector launcher icon above (the Classic knight) by `tools/render_launcher_icons.py` | GPLv2 or later, used here under GPL-3.0 (`LICENSE`) |
 

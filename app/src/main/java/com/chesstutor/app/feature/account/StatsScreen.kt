@@ -9,14 +9,12 @@ import com.chesstutor.app.domain.account.GraphPeriod
 import com.chesstutor.app.domain.account.GameInsights
 import com.chesstutor.app.domain.account.ReviewedGame
 import com.chesstutor.app.design.ctGlow
-import com.chesstutor.app.design.ctGlass
 import com.chesstutor.app.design.CtGlassCard
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Path
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
 import com.chesstutor.app.board.SideTones
 import com.chesstutor.app.design.CtGroupLabel
@@ -149,10 +147,11 @@ fun StatsScreen(
                         body = if (whole.games == 0) "Import your games or play a bot." else "Pick a longer period above.",
                     )
                 } else {
-                    CtGlassCard(Modifier.fillMaxWidth().ctEnter(1)) {
+                    // Results and records on one panel: figures on a sheet, not a box each (D108).
+                    CtGlassCard(Modifier.fillMaxWidth().ctEnter(1), shape = CtShapes.Panel) {
                         ResultsBar(report.results, onShow = { show(GameFilter(timeClass = clock, outcome = it)) })
+                        RecordGrid(gameRecords(report, accuracy, clock, onOpenGame, show), Modifier.padding(top = CtSpacing.md))
                     }
-                    RecordBoxes(gameRecords(report, accuracy, clock, onOpenGame, show), Modifier.ctEnter(2))
                     Endings(report, onShow = { outcome, ending -> show(GameFilter(timeClass = clock, outcome = outcome, ending = ending)) })
                     MoreInsights(insight, clock, report, clockGames, onShow = show)
                     OpeningsAs(PieceColor.WHITE, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, show)
@@ -196,22 +195,20 @@ private fun gameRecords(report: ClockReport, accuracy: Double?, clock: TimeClass
     )
 }
 
-/** Records three to a row in boxes of one size, each a number over its name; a tap opens its games (D104). */
+/** Records three to a row, each a number over its name; a tap opens its games (D104, D108). */
 @Composable
-private fun RecordBoxes(records: List<Record>, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+private fun RecordGrid(records: List<Record>, modifier: Modifier = Modifier) {
+    Column(modifier) {
         records.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            Row {
                 row.forEach { record ->
                     Column(
                         Modifier
                             .weight(1f)
-                            .height(76.dp)
-                            .ctGlass(CtShapes.CardSmall)
+                            .height(64.dp)
                             .then(record.onOpen?.let { Modifier.ctPressable(onClickLabel = "Show the games", onClick = it) } ?: Modifier)
-                            .semantics(mergeDescendants = true) {}
-                            .padding(CtSpacing.sm),
-                        verticalArrangement = Arrangement.SpaceBetween,
+                            .semantics(mergeDescendants = true) {},
+                        verticalArrangement = Arrangement.Center,
                     ) {
                         Text(record.value, style = CtType.Number, maxLines = 1)
                         Text(record.label, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -246,7 +243,7 @@ internal fun Figures(records: List<Record>, modifier: Modifier = Modifier) {
 private fun Endings(report: ClockReport, onShow: (GameOutcome, GameEnding) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         CtGroupLabel("How games end")
-        CtGlassCard(Modifier.fillMaxWidth()) {
+        CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
             Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg)) {
                 Endings("Won by", report.wonBy, Modifier.weight(1f), onShow = { onShow(GameOutcome.WIN, it) })
                 Endings("Lost by", report.lostBy, Modifier.weight(1f), onShow = { onShow(GameOutcome.LOSS, it) })
@@ -291,7 +288,7 @@ private fun MoreInsights(insight: ClockInsight?, clock: TimeClass, report: Clock
         CtGroupLabel(insight?.let { "Insights · ${it.reviewed} reviewed game${if (it.reviewed == 1) "" else "s"}" } ?: "Insights")
         if (insight != null) {
             if (insight.phaseAccuracy.isNotEmpty()) {
-                CtGlassCard(Modifier.fillMaxWidth()) {
+                CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
                     Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                         Text("Accuracy by phase", style = CtType.TitleSmall)
                         val weakest = insight.phaseAccuracy.minByOrNull { it.value }?.key
@@ -304,13 +301,15 @@ private fun MoreInsights(insight: ClockInsight?, clock: TimeClass, report: Clock
                 }
             }
             if (insight.winning > 0 || insight.lost > 0) {
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    InsightBox("${insight.converted} / ${insight.winning}", "Winning positions converted", Modifier.weight(1f))
-                    InsightBox("${insight.saved} / ${insight.lost}", "Lost positions saved", Modifier.weight(1f))
+                CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+                        InsightFigure("${insight.converted} / ${insight.winning}", "Winning positions converted", Modifier.weight(1f))
+                        InsightFigure("${insight.saved} / ${insight.lost}", "Lost positions saved", Modifier.weight(1f))
+                    }
                 }
             }
             if (insight.losses > 0) {
-                CtGlassCard(Modifier.fillMaxWidth()) {
+                CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
                     Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                         Text("Where your losses turned", style = CtType.TitleSmall)
                         PhaseBars(insight.turned)
@@ -322,7 +321,7 @@ private fun MoreInsights(insight: ClockInsight?, clock: TimeClass, report: Clock
                     Triple("Lost on time", report.lostBy[GameEnding.TIME] ?: 0, GameEnding.TIME),
                 ).filter { it.second > 0 }
                 if (reasons.isNotEmpty()) {
-                    CtGlassCard(Modifier.fillMaxWidth()) {
+                    CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
                         Text("Why you lose", style = CtType.TitleSmall, modifier = Modifier.padding(bottom = CtSpacing.xs))
                         reasons.forEach { (label, n, ending) ->
                             Row(
@@ -342,7 +341,7 @@ private fun MoreInsights(insight: ClockInsight?, clock: TimeClass, report: Clock
                 }
             }
             if (insight.accuracy.size >= 2) {
-                CtGlassCard(Modifier.fillMaxWidth()) {
+                CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
                     Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Accuracy over time", style = CtType.TitleSmall, modifier = Modifier.weight(1f))
@@ -354,7 +353,7 @@ private fun MoreInsights(insight: ClockInsight?, clock: TimeClass, report: Clock
             }
         }
         if (byRating.isNotEmpty()) {
-            CtGlassCard(Modifier.fillMaxWidth()) {
+            CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
                 Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                     Text("Against the rating", style = CtType.TitleSmall)
                     RatingBand.entries.forEach { band ->
@@ -370,7 +369,7 @@ private fun MoreInsights(insight: ClockInsight?, clock: TimeClass, report: Clock
             }
         }
         if (byDay.values.sumOf { it.games } >= MIN_DAY_GAMES) {
-            CtGlassCard(Modifier.fillMaxWidth()) {
+            CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
                 Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                     Text("When you play best", style = CtType.TitleSmall)
                     DayBars(byDay)
@@ -387,17 +386,17 @@ private const val MIN_DAY_GAMES = 8
 private fun LabelledBar(label: String, share: Float, value: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), modifier = Modifier.semantics(mergeDescendants = true) {}) {
         Text(label, style = CtType.BodySmall, modifier = Modifier.width(96.dp))
-        Box(Modifier.weight(1f).height(8.dp).clip(CtShapes.Pill).background(CtColors.Track)) {
+        Box(Modifier.weight(1f).height(8.dp).background(CtColors.Track)) {
             Box(Modifier.fillMaxHeight().fillMaxWidth(share.coerceIn(0f, 1f)).background(color))
         }
         Text(value, style = CtType.Label, modifier = Modifier.width(48.dp))
     }
 }
 
-/** One number and what it counts, on glass. */
+/** One number and what it counts. */
 @Composable
-private fun InsightBox(value: String, label: String, modifier: Modifier) {
-    Column(modifier.height(84.dp).ctGlass(CtShapes.CardSmall).padding(CtSpacing.sm).semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.SpaceBetween) {
+private fun InsightFigure(value: String, label: String, modifier: Modifier) {
+    Column(modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(value, style = CtType.Number, maxLines = 1)
         Text(label, style = CtType.Caption, maxLines = 2)
     }
@@ -421,7 +420,6 @@ private fun DayBars(byDay: Map<DayPart, Wdl>) {
                     Modifier
                         .fillMaxWidth()
                         .height((52f * (wdl?.score ?: 0f)).dp.coerceAtLeast(3.dp))
-                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                         .background(
                             when {
                                 wdl == null -> CtColors.Track
@@ -451,7 +449,6 @@ private fun PhaseBars(turned: Map<GamePhase, Int>) {
                     Modifier
                         .fillMaxWidth()
                         .height((52f * n / most).dp.coerceAtLeast(3.dp))
-                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                         .background(if (phase == top && n > 0) CtColors.Error else CtColors.Track),
                 )
                 Text(phase.label, style = CtType.Caption, maxLines = 1)
@@ -508,9 +505,9 @@ private fun OpeningsAs(
             Box(
                 Modifier
                     .size(24.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(CtShapes.Mark)
                     .background(if (color == PieceColor.WHITE) SideTones.White else SideTones.Black)
-                    .then(if (color == PieceColor.WHITE) Modifier.border(1.dp, CtColors.Line, RoundedCornerShape(6.dp)) else Modifier),
+                    .then(if (color == PieceColor.WHITE) Modifier.border(1.dp, CtColors.Line, CtShapes.Mark) else Modifier),
             )
             Text(side, style = CtType.Title, modifier = Modifier.weight(1f))
             Text(percent(total.score), style = CtType.Label)
@@ -572,7 +569,7 @@ private fun ResultFigure(value: String, label: String) {
 /** Wins, draws and losses side by side, each as wide as its share. */
 @Composable
 private fun WdlBar(wdl: Wdl, modifier: Modifier = Modifier, thickness: Dp = 4.dp) {
-    Row(modifier.fillMaxWidth().height(thickness).clip(CtShapes.Pill), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(modifier.fillMaxWidth().height(thickness), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         counts(wdl).filter { (_, n) -> n > 0 }.forEach { (outcome, n) ->
             Box(Modifier.weight(n.toFloat()).fillMaxHeight().background(outcomeColor(outcome)))
         }
@@ -592,7 +589,7 @@ private fun OpeningRow(row: WdlRow, fen: String?, boardTheme: BoardTheme, weak: 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
     ) {
-        Box(Modifier.size(52.dp).clip(CtShapes.Chip)) { BoardPicture(fen, boardTheme, zoom = 1.8f) }
+        Box(Modifier.size(52.dp).clip(CtShapes.Mark)) { BoardPicture(fen, boardTheme, zoom = 1.8f) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                 Text(row.label, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))

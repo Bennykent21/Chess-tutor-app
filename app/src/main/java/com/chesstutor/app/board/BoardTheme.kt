@@ -13,7 +13,11 @@ enum class PieceSet(val id: String, val displayName: String, val credit: String)
     CBURNETT("cburnett", "Classic", "Colin M.L. Burnett, GPLv2+"),
     MERIDA("merida", "Merida", "Armando Hernandez Marroquin, GPLv2+"),
     CHESSNUT("chessnut", "Chessnut", "Alexis Luengas, Apache 2.0"),
-    FANTASY("fantasy", "Fantasy", "Maurizio Monge, MIT");
+    FANTASY("fantasy", "Fantasy", "Maurizio Monge, MIT"),
+    CELTIC("celtic", "Celtic", "Maurizio Monge, MIT"),
+    SPATIAL("spatial", "Spatial", "Maurizio Monge, MIT"),
+    MPCHESS("mpchess", "Ink", "Maxime Chupin, GPLv3+"),
+    RHOSGFX("rhosgfx", "Terracotta", "RhosGFX, CC0");
 
     companion object {
         val DEFAULT = CBURNETT

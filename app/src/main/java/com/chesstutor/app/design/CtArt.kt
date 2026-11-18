@@ -1,5 +1,6 @@
 package com.chesstutor.app.design
 
+import android.graphics.Bitmap
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import android.content.res.Resources
@@ -53,7 +54,7 @@ import kotlin.math.roundToInt
 
 /**
  * A rendered scene (D56): one picture on pure black for dark themes and one on pure white for
- * light themes, made by `tools/art`. [CtArt] blends it into any theme's colours.
+ * light themes, made by `tools/art`. [CtArt] lifts it off that ground onto any theme's colours.
  */
 enum class CtScene(@param:DrawableRes val night: Int, @param:DrawableRes val day: Int) {
     BASICS(R.drawable.art_basics_night, R.drawable.art_basics_day),
@@ -93,17 +94,122 @@ private object ArtCache {
 
     fun cached(id: Int, width: Int): ImageBitmap? = pictures.get(key(id, width))
 
-    fun load(resources: Resources, id: Int, width: Int): ImageBitmap? {
+    fun load(resources: Resources, id: Int, width: Int, night: Boolean): ImageBitmap? {
         cached(id, width)?.let { return it }
         val options = BitmapFactory.Options().apply { inSampleSize = sampleFor(width) }
-        val picture = BitmapFactory.decodeResource(resources, id, options)?.asImageBitmap() ?: return null
+        val decoded = BitmapFactory.decodeResource(resources, id, options) ?: return null
+        val picture = keyOut(decoded, night).asImageBitmap()
         pictures.put(key(id, width), picture)
         return picture
     }
+
+    /**
+     * The art's black (night) or white (day) ground made see-through once, as it loads (D108), so
+     * it is drawn plainly on any background with no blending layer, which flickered while scrolling.
+     * Each pixel's distance from the ground becomes its opacity. A night piece's body is nearly
+     * black, though, and would let the background through like a film, so a soft dark pool is kept
+     * behind every piece, which stays solid and sharp.
+     */
+    private fun keyOut(source: Bitmap, night: Boolean): Bitmap {
+        val w = source.width
+        val h = source.height
+        val px = IntArray(w * h)
+        source.getPixels(px, 0, w, 0, 0, w, h)
+        val pool = if (night) IntArray(w * h).also { poolOf(px, w, h).apply { getPixels(it, 0, w, 0, 0, w, h) }.recycle() } else null
+        for (i in px.indices) {
+            val c = px[i]
+            val r = c shr 16 and 0xFF
+            val g = c shr 8 and 0xFF
+            val b = c and 0xFF
+            px[i] = if (night) {
+                // The keyed picture over its black pool: opacity a + p(1 - a), colour c / opacity.
+                val keyed = maxOf(r, g, b)
+                val a = keyed + (pool!![i] ushr 24) * (255 - keyed) / 255
+                if (a == 0) 0 else (a shl 24) or (r * 255 / a shl 16) or (g * 255 / a shl 8) or (b * 255 / a)
+            } else {
+                val a = 255 - minOf(r, g, b)
+                if (a == 0) 0 else (a shl 24) or (255 - (255 - r) * 255 / a shl 16) or (255 - (255 - g) * 255 / a shl 8) or (255 - (255 - b) * 255 / a)
+            }
+        }
+        return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
+    }
+
+    /**
+     * The dark pool behind a night picture's pieces, as a black picture of [w] by [h] whose opacity
+     * is the pool. On a coarse grid: the lit cells are widened to close gaps in a piece's rim, what
+     * they enclose is filled, the widening is taken back, and the edge is softened.
+     */
+    private fun poolOf(px: IntArray, w: Int, h: Int): Bitmap {
+        val cell = max(4, w / POOL_CELLS)
+        val cols = (w + cell - 1) / cell
+        val rows = (h + cell - 1) / cell
+        val lit = BooleanArray(cols * rows)
+        for (y in 0 until h) for (x in 0 until w) {
+            val c = px[y * w + x]
+            if (maxOf(c shr 16 and 0xFF, c shr 8 and 0xFF, c and 0xFF) > POOL_LIGHT) lit[y / cell * cols + x / cell] = true
+        }
+        val closed = grow(lit, cols, rows)
+        // Dark cells reached from the edge are ground; every other cell is a piece or inside one.
+        val ground = BooleanArray(cols * rows)
+        val queue = ArrayDeque<Int>()
+        for (k in closed.indices) {
+            val x = k % cols
+            val y = k / cols
+            if (!closed[k] && (x == 0 || y == 0 || x == cols - 1 || y == rows - 1)) {
+                ground[k] = true
+                queue.add(k)
+            }
+        }
+        while (queue.isNotEmpty()) {
+            val k = queue.removeFirst()
+            val x = k % cols
+            val y = k / cols
+            for (n in intArrayOf(if (x > 0) k - 1 else -1, if (x < cols - 1) k + 1 else -1, if (y > 0) k - cols else -1, if (y < rows - 1) k + cols else -1)) {
+                if (n >= 0 && !closed[n] && !ground[n]) {
+                    ground[n] = true
+                    queue.add(n)
+                }
+            }
+        }
+        val wideGround = grow(ground, cols, rows)
+        var pool = FloatArray(cols * rows) { if (lit[it] || !wideGround[it]) 1f else 0f }
+        repeat(2) { pool = soften(pool, cols, rows) }
+        val small = IntArray(cols * rows) { (pool[it] * 255).roundToInt() shl 24 }
+        val coarse = Bitmap.createBitmap(small, cols, rows, Bitmap.Config.ARGB_8888)
+        return Bitmap.createScaledBitmap(coarse, w, h, true).also { if (it !== coarse) coarse.recycle() }
+    }
+
+    /** [cells] widened by [POOL_CLOSE] cells every way. */
+    private fun grow(cells: BooleanArray, cols: Int, rows: Int): BooleanArray {
+        val out = BooleanArray(cells.size)
+        for (y in 0 until rows) for (x in 0 until cols) {
+            if (!cells[y * cols + x]) continue
+            for (yy in max(0, y - POOL_CLOSE)..min(rows - 1, y + POOL_CLOSE)) for (xx in max(0, x - POOL_CLOSE)..min(cols - 1, x + POOL_CLOSE)) out[yy * cols + xx] = true
+        }
+        return out
+    }
+
+    /** Each cell averaged with its eight neighbours (the edge repeated). */
+    private fun soften(cells: FloatArray, cols: Int, rows: Int): FloatArray = FloatArray(cells.size) { k ->
+        val x = k % cols
+        val y = k / cols
+        var sum = 0f
+        for (dy in -1..1) for (dx in -1..1) sum += cells[(y + dy).coerceIn(0, rows - 1) * cols + (x + dx).coerceIn(0, cols - 1)]
+        sum / 9
+    }
+
+    /** The pool's grid: this many cells across the picture. */
+    private const val POOL_CELLS = 60
+
+    /** Cells a piece's rim is widened by to close its gaps. */
+    private const val POOL_CLOSE = 2
+
+    /** Brightness, out of 255, above which a cell holds part of a piece. */
+    private const val POOL_LIGHT = 38
 }
 
 /** Draws [picture] covering the area, shifted up or down by [focusY] (0 top, 1 bottom). */
-private fun DrawScope.drawCover(picture: ImageBitmap, focusY: Float, blend: BlendMode, alpha: Float) {
+private fun DrawScope.drawCover(picture: ImageBitmap, focusY: Float, alpha: Float) {
     val fit = max(size.width / picture.width, size.height / picture.height)
     val width = (size.width / fit).roundToInt().coerceAtMost(picture.width)
     val height = (size.height / fit).roundToInt().coerceAtMost(picture.height)
@@ -113,14 +219,13 @@ private fun DrawScope.drawCover(picture: ImageBitmap, focusY: Float, blend: Blen
         srcSize = IntSize(width, height),
         dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
         alpha = alpha,
-        blendMode = blend,
         filterQuality = FilterQuality.High,
     )
 }
 
 /**
- * A scene melted into the page: black becomes [stage] on dark themes and white becomes it on
- * light ones, so there is no box around the picture. The foot fades to [stage], where words go,
+ * A scene melted into the page: its black (dark themes) or white (light ones) ground is see-through,
+ * so there is no box around the picture. The foot fades to [stage], where words go,
  * and [lift] slides the picture up by that share of its height to keep them clear of the pieces.
  * [alive] lets it swell very slowly, for the one big picture on a page.
  */
@@ -136,23 +241,16 @@ fun CtArt(
 ) {
     val dark = CtColors.IsDark
     val id = if (dark) scene.night else scene.day
-    // In frosted glass the art keeps no stage of its own: it is drawn on black (night) or white (day)
-    // in a layer screened or multiplied onto whatever is behind, so the glow shows round it (D107).
+    // The art carries its own transparency (D108), so it is drawn plainly: on the stage, or straight
+    // on the glow in frosted glass, where its foot fades out inside its own layer (D107).
     val glass = LocalGlass.current
-    val ground = if (glass) (if (dark) Color.Black else Color.White) else stage
-    val blend = if (glass) BlendMode.SrcOver else if (dark) BlendMode.Screen else BlendMode.Modulate
     val reduceMotion = LocalReduceMotion.current
     val resources = LocalContext.current.resources
-    val layer = if (glass) {
-        Modifier.graphicsLayer {
-            compositingStrategy = CompositingStrategy.Offscreen
-            blendMode = if (dark) BlendMode.Screen else BlendMode.Multiply
-        }
-    } else Modifier
-    BoxWithConstraints(modifier.then(layer).background(ground).clipToBounds().clearAndSetSemantics {}) {
+    val layer = if (glass) Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen } else Modifier.background(stage)
+    BoxWithConstraints(modifier.then(layer).clipToBounds().clearAndSetSemantics {}) {
         val width = constraints.maxWidth
         val picture by produceState(ArtCache.cached(id, width), id, width) {
-            value = withContext(Dispatchers.IO) { ArtCache.load(resources, id, width) }
+            value = withContext(Dispatchers.IO) { ArtCache.load(resources, id, width, night = dark) }
         }
         val shown by animateFloatAsState(if (picture != null) 1f else 0f, tween(if (reduceMotion) 0 else CtMotion.THEME_MS), label = "ctArtShown")
         val swell = if (alive && !reduceMotion) {
@@ -163,12 +261,18 @@ fun CtArt(
             1f
         }
         Canvas(Modifier.fillMaxSize()) {
-            picture?.let { translate(top = -size.height * lift) { scale(swell) { drawCover(it, focusY, blend, shown) } } }
+            picture?.let { translate(top = -size.height * lift) { scale(swell) { drawCover(it, focusY, shown) } } }
         }
         // The fade must end before a lifted picture does, or the picture's foot shows as an edge.
         val fadeTo = min(0.92f, 0.98f - lift)
         if (fadeFrom < fadeTo) {
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(fadeFrom to ground.copy(alpha = 0f), fadeTo to ground)))
+            if (glass) {
+                Canvas(Modifier.fillMaxSize()) {
+                    drawRect(Brush.verticalGradient(0f to Color.Black, fadeFrom to Color.Black, fadeTo to Color.Transparent), blendMode = BlendMode.DstIn)
+                }
+            } else {
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(fadeFrom to stage.copy(alpha = 0f), fadeTo to stage)))
+            }
         }
     }
 }

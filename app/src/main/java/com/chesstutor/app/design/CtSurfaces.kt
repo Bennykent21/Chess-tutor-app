@@ -158,9 +158,10 @@ fun CtGlassCard(
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
     contentPadding: PaddingValues = PaddingValues(CtSpacing.md),
+    shape: Shape = CtShapes.Card,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val base = modifier.ctGlass()
+    val base = modifier.ctGlass(shape)
     val clickable = if (onClick != null) base.ctPressable(onClickLabel = onClickLabel, onClick = onClick) else base
     Column(modifier = clickable.padding(contentPadding), content = content)
 }

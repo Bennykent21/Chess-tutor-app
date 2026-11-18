@@ -41,6 +41,30 @@ object PieceArt {
             R.drawable.piece_fantasy_bk, R.drawable.piece_fantasy_bq, R.drawable.piece_fantasy_br,
             R.drawable.piece_fantasy_bb, R.drawable.piece_fantasy_bn, R.drawable.piece_fantasy_bp,
         ),
+        PieceSet.CELTIC to intArrayOf(
+            R.drawable.piece_celtic_wk, R.drawable.piece_celtic_wq, R.drawable.piece_celtic_wr,
+            R.drawable.piece_celtic_wb, R.drawable.piece_celtic_wn, R.drawable.piece_celtic_wp,
+            R.drawable.piece_celtic_bk, R.drawable.piece_celtic_bq, R.drawable.piece_celtic_br,
+            R.drawable.piece_celtic_bb, R.drawable.piece_celtic_bn, R.drawable.piece_celtic_bp,
+        ),
+        PieceSet.SPATIAL to intArrayOf(
+            R.drawable.piece_spatial_wk, R.drawable.piece_spatial_wq, R.drawable.piece_spatial_wr,
+            R.drawable.piece_spatial_wb, R.drawable.piece_spatial_wn, R.drawable.piece_spatial_wp,
+            R.drawable.piece_spatial_bk, R.drawable.piece_spatial_bq, R.drawable.piece_spatial_br,
+            R.drawable.piece_spatial_bb, R.drawable.piece_spatial_bn, R.drawable.piece_spatial_bp,
+        ),
+        PieceSet.MPCHESS to intArrayOf(
+            R.drawable.piece_mpchess_wk, R.drawable.piece_mpchess_wq, R.drawable.piece_mpchess_wr,
+            R.drawable.piece_mpchess_wb, R.drawable.piece_mpchess_wn, R.drawable.piece_mpchess_wp,
+            R.drawable.piece_mpchess_bk, R.drawable.piece_mpchess_bq, R.drawable.piece_mpchess_br,
+            R.drawable.piece_mpchess_bb, R.drawable.piece_mpchess_bn, R.drawable.piece_mpchess_bp,
+        ),
+        PieceSet.RHOSGFX to intArrayOf(
+            R.drawable.piece_rhosgfx_wk, R.drawable.piece_rhosgfx_wq, R.drawable.piece_rhosgfx_wr,
+            R.drawable.piece_rhosgfx_wb, R.drawable.piece_rhosgfx_wn, R.drawable.piece_rhosgfx_wp,
+            R.drawable.piece_rhosgfx_bk, R.drawable.piece_rhosgfx_bq, R.drawable.piece_rhosgfx_br,
+            R.drawable.piece_rhosgfx_bb, R.drawable.piece_rhosgfx_bn, R.drawable.piece_rhosgfx_bp,
+        ),
     )
 
     private val typeOrder = listOf(PieceType.KING, PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT, PieceType.PAWN)
