@@ -1,5 +1,8 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -69,12 +72,13 @@ fun CtTopBar(
                 }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
+                // A long name shrinks to fit on one line rather than being cut (D99).
+                BasicText(
                     text = title,
-                    style = CtType.TopBar,
-                    textAlign = TextAlign.Center,
+                    style = CtType.TopBar.merge(color = CtColors.Text, textAlign = TextAlign.Center),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = CtType.TopBar.fontSize),
                     modifier = Modifier.semantics { heading() },
                 )
                 if (subtitle != null) {

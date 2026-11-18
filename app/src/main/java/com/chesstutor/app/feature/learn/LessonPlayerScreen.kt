@@ -1,5 +1,12 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.design.ctPressable
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import com.chesstutor.app.domain.learn.PlainMoves
 import androidx.compose.foundation.layout.fillMaxSize
 import com.chesstutor.app.feature.play.rememberTalk
 import com.chesstutor.app.feature.play.TalkLine
@@ -70,7 +77,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.style.TextOverflow
@@ -102,8 +108,8 @@ fun LessonPlayerScreen(
     onPreviousLesson: (lessonId: String) -> Unit = {},
     /** Opens Opening Battle on the course's line; null hides the button. */
     onPractise: (() -> Unit)? = null,
-    /** A video for the lesson's first page (D96); without one the lesson opens straight on the board. */
-    video: LessonVideo? = null,
+    /** The lesson's own videos for its first page (D99); without any the lesson opens straight on the board. */
+    videos: List<LessonVideo> = emptyList(),
     /** Opens puzzles with the course's themes; null hides the button. */
     onRelatedPuzzles: (() -> Unit)? = null,
     /** Opens the drills a just-finished course opened (Phase 12); null hides the button. */
@@ -115,40 +121,24 @@ fun LessonPlayerScreen(
         return
     }
     val state by player.state.collectAsState()
+    // A lesson with its own videos opens on them first, even when its steps start on the board (D99).
+    var watched by rememberSaveable(player.lesson.id) { mutableStateOf(false) }
+    if (videos.isNotEmpty() && !watched && state.stepIndex == 0 && state.phase != LessonPhase.DONE && state.step !is LessonStep.Watch) {
+        WatchPage(state, state.lessonTitle, videos, plain = PlainMoves.appliesTo(player.course), onStart = { watched = true }, onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier)
+        return
+    }
     if (state.phase != LessonPhase.DONE && state.step !is LessonStep.Watch) {
         BoardStep(player, state, settings, onFeedback, onBack, onPreviousLesson, modifier)
         return
     }
     if (state.phase == LessonPhase.DONE) {
         DonePage(state, settings, onNextLesson, onPreviousLesson, onReplay, onBack, onPractise, onRelatedPuzzles, onTrain, modifier)
-    } else if (video == null) {
+    } else if (videos.isEmpty()) {
         // No video yet: no placeholder page, straight to the board.
         LaunchedEffect(state.step) { player.next() }
         CtScreenBackground(modifier) {}
     } else {
-        WatchPage(state, state.step as LessonStep.Watch, video, onStart = player::next, onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier)
-    }
-}
-
-/** One thin segment per step of the lesson: done, current, still to come (canvas `Lesson.dc.html`). */
-@Composable
-private fun StepProgress(state: LessonPlayerState) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) {
-                contentDescription = "${state.phase.label}, step ${minOf(state.stepIndex + 1, state.stepCount)} of ${state.stepCount}"
-            },
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs),
-    ) {
-        repeat(state.stepCount) { i ->
-            val color = when {
-                i < state.stepIndex -> CtColors.Accent
-                i == state.stepIndex -> CtColors.Text2
-                else -> CtColors.Track
-            }
-            Box(Modifier.weight(1f).height(4.dp).clip(CtShapes.Pill).background(color))
-        }
+        WatchPage(state, (state.step as LessonStep.Watch).title, videos, plain = PlainMoves.appliesTo(player.course), onStart = player::next, onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier)
     }
 }
 
@@ -206,20 +196,23 @@ private fun BoardStep(
             state.mistakeSquare?.let { SquareRing(Square.fromAlgebraic(it), MarkKind.MISTAKE) },
         )
     val yourMove = state.step is LessonStep.Play && !state.canAdvance
+    // Beginner courses say moves in words; the notation course teaches the letters (D99).
+    val plain = PlainMoves.appliesTo(player.course)
     CtBoardScreen(
-        title = state.lessonTitle,
+        // The course's name (the variation), shrunk to fit; the steps fill the bar under it (D99).
+        title = state.courseTitle,
         onBack = onBack,
         modifier = modifier,
-        // The talking coach, as on every board screen (D98); the steps and the eval go under the board.
+        progress = if (state.stepCount == 0) 0f else (state.stepIndex + 1f) / state.stepCount,
+        // The talking coach, as on every board screen (D98); the eval goes under the board.
         zone = {
-            val words = lessonLine(label, state.coachText)
+            val words = lessonLine(label, state.coachText).let { if (plain) PlainMoves.soften(it) else it }
             val talk = rememberTalk(listOf(TalkLine("${state.stepIndex}:$label:$words".hashCode(), words)), key = state.lessonTitle)
             Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp) }, lines = talk, maxLines = 7)
         },
         under = {
-            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(CtSpacing.md, Alignment.CenterVertically)) {
-                StepProgress(state)
-                if (state.evalCp != null || state.evalMate != null) LessonEvalBar(state.evalCp, state.evalMate)
+            if (state.evalCp != null || state.evalMate != null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LessonEvalBar(state.evalCp, state.evalMate) }
             }
         },
         board = {
@@ -251,9 +244,10 @@ private fun BoardStep(
                     onClick = player::togglePause,
                 )
             }
+            // "Next", not "Skip": the learner goes at their own pace (D99).
             CtControl(
-                icon = if (state.isLastStep) Icons.Rounded.Check else Icons.Rounded.SkipNext,
-                label = if (state.isLastStep) "Finish" else "Skip",
+                icon = if (state.isLastStep) Icons.Rounded.Check else Icons.AutoMirrored.Rounded.ArrowForward,
+                label = if (state.isLastStep) "Finish" else "Next",
                 enabled = state.canAdvance,
                 onClick = player::next,
             )
@@ -286,22 +280,58 @@ private fun RowScope.PreviousLessonButton(state: LessonPlayerState, onPreviousLe
     )
 }
 
-/** The lesson's first page (D96): a free video on the topic, what it teaches, then Start for the board. */
+/**
+ * The lesson's first page (D99): the lesson's own video plays here, with what it teaches; when the
+ * lesson has more than one, the others sit under it and a tap swaps them in. Next goes to the board.
+ */
 @Composable
-private fun WatchPage(state: LessonPlayerState, step: LessonStep.Watch, video: LessonVideo, onStart: () -> Unit, onBack: () -> Unit, onPreviousLesson: (String) -> Unit, modifier: Modifier) {
+private fun WatchPage(
+    state: LessonPlayerState,
+    heading: String,
+    videos: List<LessonVideo>,
+    plain: Boolean,
+    onStart: () -> Unit,
+    onBack: () -> Unit,
+    onPreviousLesson: (String) -> Unit,
+    modifier: Modifier,
+) {
+    var shown by rememberSaveable(videos) { mutableStateOf(0) }
+    val video = videos[shown.coerceIn(videos.indices)]
     CtActionPage(
-        title = state.lessonTitle,
+        title = state.courseTitle,
         onBack = onBack,
         modifier = modifier,
         bottom = {
             PreviousLessonIcon(state, onPreviousLesson)
-            CtButton(text = "Start", onClick = onStart, modifier = Modifier.weight(1f))
+            CtButton(text = "Next", onClick = onStart, modifier = Modifier.weight(1f))
         },
     ) {
-        // The video plays right here (D98); Start goes to the board.
         VideoFrame(video, autoplay = false, modifier = Modifier.fillMaxWidth().clip(CtShapes.Card))
-        Text(step.title, style = CtType.Headline, modifier = Modifier.padding(top = CtSpacing.lg))
-        Text(video.why.ifBlank { "Watch the video, or go straight to the board." }, style = CtType.Body.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.xs))
+        Text(heading.let { if (plain) PlainMoves.soften(it) else it }, style = CtType.Headline, modifier = Modifier.padding(top = CtSpacing.lg))
+        Text(video.why.ifBlank { "Watch the video, then try it on the board." }, style = CtType.Body.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.xs))
+        videos.forEachIndexed { i, other ->
+            if (i != shown) OtherVideo(other, onClick = { shown = i }, modifier = Modifier.padding(top = CtSpacing.md))
+        }
+    }
+}
+
+/** Another video of the same lesson: its picture, title and channel; a tap plays it above. */
+@Composable
+private fun OtherVideo(video: LessonVideo, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CtShapes.CardSmall)
+            .ctPressable(onClickLabel = "Play this video", onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = "${video.title}, ${video.channel}, ${video.minutes} minutes" },
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        VideoThumbnail(video, Modifier.width(128.dp), playMark = false)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(video.title, style = CtType.Label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(video.channel, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 

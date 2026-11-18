@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,48 +55,9 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-/**
- * Opens a video in the app's own player (D98); the app shell provides it. Without one (previews,
- * tests) a video opens in YouTube.
- */
-val LocalVideoOpener = staticCompositionLocalOf<((LessonVideo) -> Unit)?> { null }
-
 /** Opens [video] in the YouTube app, or the browser without it. */
 fun openInYouTube(context: Context, video: LessonVideo) {
     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(video.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-}
-
-/**
- * "Watch" (D96): a sideways row of free videos on the topic, each opening in the app's player
- * (D98). Nothing when there are none; offline, the cards show a plain picture with the play mark.
- */
-@Composable
-fun VideoRow(videos: List<LessonVideo>, modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(0.dp), label: String = "Watch") {
-    if (videos.isEmpty()) return
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        CtGroupLabel(label, modifier = Modifier.padding(contentPadding))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = contentPadding) {
-            items(videos, key = { it.id + it.course }) { VideoCard(it) }
-        }
-    }
-}
-
-/** One video: YouTube's picture with its length, the title and the channel. */
-@Composable
-fun VideoCard(video: LessonVideo, modifier: Modifier = Modifier.width(208.dp)) {
-    val context = LocalContext.current
-    val opener = LocalVideoOpener.current
-    Column(
-        modifier = modifier
-            .clip(CtShapes.CardSmall)
-            .ctPressable(onClickLabel = "Watch") { opener?.invoke(video) ?: openInYouTube(context, video) }
-            .semantics(mergeDescendants = true) { contentDescription = "${video.title}, ${video.channel}, ${video.minutes} minutes" },
-        verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
-    ) {
-        VideoThumbnail(video, Modifier.fillMaxWidth())
-        Text(video.title, style = CtType.Label, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(video.channel, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
 }
 
 /** YouTube's picture of a video, with the play mark and its length in the corner. */

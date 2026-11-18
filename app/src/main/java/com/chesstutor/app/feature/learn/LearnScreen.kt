@@ -1,7 +1,5 @@
 package com.chesstutor.app.feature.learn
 
-import androidx.compose.foundation.layout.PaddingValues
-import com.chesstutor.app.domain.learn.LessonVideos
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,18 +53,9 @@ fun LearnScreen(
     learn: LearnState,
     actions: LearnHubActions,
     modifier: Modifier = Modifier,
-    videos: LessonVideos = LessonVideos.EMPTY,
 ) {
     val tiles = remember(learn) { LearnHubModel.tiles(learn.library, learn.progress) }
     val next = remember(learn) { LearnHubModel.continueLesson(learn.library, learn.progress) }
-    // For you (D98): the next lesson's course, the courses under way, then untouched ones from the easiest level up.
-    val forYou = remember(learn, videos) {
-        val courses = learn.library.courses
-        val counts = courses.associate { it.id to LearnHubModel.countOf(it.lessons, learn.progress) }
-        val underWay = courses.filter { counts.getValue(it.id).let { n -> n.completed in 1 until n.total } }
-        val untouched = courses.filter { counts.getValue(it.id).completed == 0 }.sortedBy { it.level.ordinal }
-        videos.forYou(listOfNotNull(next?.first?.id) + underWay.map { it.id } + untouched.map { it.id })
-    }
     val done = tiles.sumOf { it.completedLessons }
     val total = tiles.sumOf { it.totalLessons }
 
@@ -116,12 +105,6 @@ fun LearnScreen(
                     }
                 }
             }
-            VideoRow(
-                videos = forYou,
-                label = "For you",
-                modifier = Modifier.padding(top = CtSpacing.lg),
-                contentPadding = PaddingValues(horizontal = CtSpacing.gutter),
-            )
         }
     }
 }

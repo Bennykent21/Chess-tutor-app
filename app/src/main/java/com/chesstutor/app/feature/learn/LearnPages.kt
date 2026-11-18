@@ -1,8 +1,7 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.domain.learn.PlainMoves
 import com.chesstutor.app.design.CtGroupLabel
-import com.chesstutor.app.domain.learn.LessonVideo
-import com.chesstutor.app.domain.learn.LessonVideos
 import com.chesstutor.app.design.CtSegmented
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -79,7 +78,7 @@ import com.chesstutor.app.domain.learn.PracticeSets
 /**
  * A topic page (plan 6.2, D96), for example Endgames: the topic's scene, then Beginner,
  * Intermediate and Advanced along the top, each course of the chosen tier as a ring that fills
- * (a tick once done) with its count under its name, and the tier's videos. Openings can also be
+ * (a tick once done) with its count under its name. Openings can also be
  * filtered by side; search hides behind its icon until wanted.
  */
 @Composable
@@ -89,7 +88,6 @@ fun LearnCategoryScreen(
     onOpenCourse: (courseId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    videos: LessonVideos = LessonVideos.EMPTY,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
@@ -161,16 +159,12 @@ fun LearnCategoryScreen(
                     CtEmptyState(
                         icon = icon,
                         title = if (query.isBlank()) "${tier.label} courses on the way" else "Nothing matches",
-                        body = if (query.isBlank()) "Watch the videos below until they come." else "Try another word or clear the filters.",
+                        body = if (query.isBlank()) "They are being written." else "Try another word or clear the filters.",
                     )
                 }
                 shown.forEach { course ->
                     CourseRow(course, learn.progress, onClick = { onOpenCourse(course.id) })
                 }
-                VideoRow(
-                    videos = videos.forTopic(category, tier, all.map { it.id }.toSet()),
-                    modifier = Modifier.padding(top = CtSpacing.lg),
-                )
                 Spacer(Modifier.height(CtSpacing.xl))
             }
         }
@@ -249,8 +243,6 @@ fun CourseScreen(
     practice: PracticeResult? = null,
     /** The course's drills in Train (Phase 12): open, or locked until the course is done; null hides the row. */
     drills: CourseDrills? = null,
-    /** Free videos on the course's topic (D96). */
-    videos: List<LessonVideo> = emptyList(),
 ) {
     CtScreenBackground(modifier) {
         if (course == null) {
@@ -277,15 +269,16 @@ fun CourseScreen(
                 }
             }
             Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg)) {
-                course.lessons.forEachIndexed { i, lesson ->
-                    if (lesson == current) {
+                course.lessons.forEachIndexed { i, original ->
+                    // Beginner courses name their lessons in plain words (D99).
+                    val lesson = if (PlainMoves.appliesTo(course)) original.copy(title = PlainMoves.soften(original.title)) else original
+                    if (original == current) {
                         CurrentLesson(number = i + 1, lesson = lesson, progress = progress[lesson.id], onOpen = { onOpenLesson(lesson.id) })
                     } else {
                         LessonRow(number = i + 1, lesson = lesson, done = progress[lesson.id]?.completed == true, onClick = { onOpenLesson(lesson.id) })
                     }
                 }
                 drills?.let { DrillsRow(it, lessonsLeft = course.lessons.count { lesson -> progress[lesson.id]?.completed != true }) }
-                VideoRow(videos, modifier = Modifier.padding(top = CtSpacing.lg))
                 if (onPractise != null || onRelatedPuzzles != null || onPracticeSet != null) {
                     CtGroupLabel("Practise", modifier = Modifier.padding(top = CtSpacing.lg))
                 }

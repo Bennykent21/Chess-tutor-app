@@ -89,9 +89,9 @@ class LessonPlayerScreenTest {
         compose.onNodeWithText("When a piece attacks the king", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_learn.png")
 
-        compose.onNodeWithText("Skip").performClick()
+        compose.onNodeWithText("Next").performClick()
         step()
-        compose.onNodeWithText("Skip").performClick()
+        compose.onNodeWithText("Next").performClick()
         step()
         compose.onNodeWithText("Your turn: give check with the rook.").assertExists()
         val boardBefore = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()

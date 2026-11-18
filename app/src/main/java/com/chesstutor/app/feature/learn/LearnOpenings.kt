@@ -1,7 +1,6 @@
 package com.chesstutor.app.feature.learn
 
 import androidx.compose.foundation.layout.aspectRatio
-import com.chesstutor.app.domain.learn.LessonVideos
 import com.chesstutor.app.design.CtButtonStyle
 import com.chesstutor.app.design.CtButton
 import com.chesstutor.app.design.CtGroupLabel
@@ -199,7 +198,6 @@ fun LearnOpeningScreen(
     onTest: (() -> Unit)?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    videos: LessonVideos = LessonVideos.EMPTY,
     /** The opening's drills in the trainer, when it has them. */
     onDrills: (() -> Unit)? = null,
     theme: BoardTheme = BoardTheme(),
@@ -237,7 +235,6 @@ fun LearnOpeningScreen(
                         CourseLine(course, course.title, detail.ifEmpty { null }, progress, drills = open, onClick = { onOpenCourse(course) })
                     }
                 }
-                VideoRow(videos.forCourses(group.courses.map { it.id }), modifier = Modifier.padding(top = CtSpacing.lg))
                 if (onDrills != null) {
                     CtGroupLabel("Practise", modifier = Modifier.padding(top = CtSpacing.lg, bottom = CtSpacing.sm))
                     CtButton(text = "Drills", style = CtButtonStyle.Secondary, onClick = onDrills, modifier = Modifier.fillMaxWidth())

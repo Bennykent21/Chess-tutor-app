@@ -1,5 +1,12 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,7 +71,8 @@ object CtBoardScreenTags {
  * height on every board screen of a phone and nothing above it can move it. The zone stacks up from the
  * board: long text fills it upward and scrolls inside (see [CtTutor]), and anything that spills
  * out of it covers the top bar but never the board, which is drawn after it. Dialogs and passing
- * messages go in [overlay], which covers instead of pushing.
+ * messages go in [overlay], which covers instead of pushing. A [progress] fills a thin square bar
+ * from edge to edge under the top bar (D99), drawn over the zone's top so the board never moves.
  */
 @Composable
 fun CtBoardScreen(
@@ -77,6 +85,7 @@ fun CtBoardScreen(
     under: @Composable BoxScope.() -> Unit = {},
     controls: (@Composable RowScope.() -> Unit)? = null,
     overlay: @Composable BoxScope.() -> Unit = {},
+    progress: Float? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize().background(CtColors.Bg)) {
         // The same sizes on every board screen, with or without controls, so all boards line up.
@@ -86,15 +95,17 @@ fun CtBoardScreen(
             Box(Modifier.fillMaxWidth().height(CtBoardScreenSpec.TopBarHeight), contentAlignment = Alignment.CenterStart) {
                 CtTopBar(title = title, onBack = onBack, trailing = actions)
             }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(zoneHeight)
-                    .padding(start = CtSpacing.lg, end = CtSpacing.lg, bottom = CtSpacing.sm)
-                    .testTag(CtBoardScreenTags.ZONE),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.sm, Alignment.Bottom),
-                content = zone,
-            )
+            Box(Modifier.fillMaxWidth().height(zoneHeight)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = CtSpacing.lg, end = CtSpacing.lg, top = if (progress != null) CtSpacing.sm else 0.dp, bottom = CtSpacing.sm)
+                        .testTag(CtBoardScreenTags.ZONE),
+                    verticalArrangement = Arrangement.spacedBy(CtSpacing.sm, Alignment.Bottom),
+                    content = zone,
+                )
+                if (progress != null) CtFillBar(progress, Modifier.align(Alignment.TopCenter))
+            }
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
@@ -123,5 +134,24 @@ fun CtBoardScreen(
             )
         }
         overlay()
+    }
+}
+
+/**
+ * How far through a lesson or run (D99): a thin square bar from edge to edge that fills, so a
+ * long lesson needs no row of segments.
+ */
+@Composable
+fun CtFillBar(progress: Float, modifier: Modifier = Modifier) {
+    val reduceMotion = LocalReduceMotion.current
+    val share by animateFloatAsState(progress.coerceIn(0f, 1f), tween(if (reduceMotion) 0 else CtMotion.OVERLAY_MS), label = "fill")
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .background(CtColors.Track)
+            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(progress.coerceIn(0f, 1f), 0f..1f) },
+    ) {
+        Box(Modifier.fillMaxHeight().fillMaxWidth(share).background(CtColors.Accent))
     }
 }

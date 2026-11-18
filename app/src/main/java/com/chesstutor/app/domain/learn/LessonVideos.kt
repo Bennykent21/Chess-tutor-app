@@ -16,6 +16,10 @@ data class LessonVideo(
     val minutes: Int,
     /** One line on what it teaches. */
     val why: String,
+    /** The lesson it opens, when it is meant for one lesson; else the course's first lesson. */
+    val lesson: String? = null,
+    /** Where in the video that lesson's part starts, in seconds. */
+    val start: Int = 0,
 ) {
     val url: String get() = "https://www.youtube.com/watch?v=$id"
 
@@ -23,41 +27,20 @@ data class LessonVideo(
     val thumbnail: String get() = "https://i.ytimg.com/vi/$id/mqdefault.jpg"
 }
 
-/** The videos, and which ones go with a course, a topic's tier or an opening (D96). */
+/** The videos, and which lesson each one opens (D99): every lesson has its own, no feed. */
 class LessonVideos(val all: List<LessonVideo>) {
 
     fun forCourse(courseId: String): List<LessonVideo> = all.filter { it.course == courseId }
 
-    /** A topic's videos at [level]: its courses' own, then the topic's extra ones, longest last. */
-    fun forTopic(category: LessonCategory, level: LessonLevel, courseIds: Set<String>): List<LessonVideo> =
-        all.filter { it.level == level && (it.course in courseIds || it.course == "topic:${category.key}") }
-            .sortedWith(compareBy({ it.course.startsWith("topic:") }, { it.minutes }))
-
-    /** An opening's videos: every course of it, its ideas first. */
-    fun forCourses(courseIds: List<String>): List<LessonVideo> = courseIds.flatMap(::forCourse)
-
-    fun byId(id: String): LessonVideo? = all.firstOrNull { it.id == id }
-
     /**
-     * What to watch after [video] (D98): the same topic only, its course first, then its level,
-     * then the levels nearest to it, shortest first within each.
+     * The videos a lesson opens on: the ones made for it, or, for a course's first lesson, the
+     * course's videos not tied to a lesson. Other lessons go straight to the board.
      */
-    fun upNext(video: LessonVideo, topicOf: (courseId: String) -> String?, limit: Int = 8): List<LessonVideo> {
-        val topic = topicKey(video, topicOf) ?: return forCourse(video.course).filter { it.id != video.id }.take(limit)
-        return all.asSequence()
-            .filter { it.id != video.id && topicKey(it, topicOf) == topic }
-            .sortedWith(compareBy({ it.course != video.course }, { kotlin.math.abs(it.level.ordinal - video.level.ordinal) }, { it.minutes }))
-            .distinctBy { it.id }
-            .take(limit)
-            .toList()
+    fun forLesson(course: Course, lessonId: String): List<LessonVideo> {
+        val own = all.filter { it.lesson == lessonId }
+        if (own.isNotEmpty()) return own
+        return if (course.lessons.firstOrNull()?.id == lessonId) forCourse(course.id).filter { it.lesson == null } else emptyList()
     }
-
-    /** "For you" (D98): the videos of the courses given, in that order, each video once. */
-    fun forYou(courseIds: List<String>, limit: Int = 8): List<LessonVideo> =
-        courseIds.distinct().asSequence().flatMap { forCourse(it).asSequence() }.distinctBy { it.id }.take(limit).toList()
-
-    private fun topicKey(video: LessonVideo, topicOf: (String) -> String?): String? =
-        if (video.course.startsWith("topic:")) video.course.removePrefix("topic:") else topicOf(video.course)
 
     companion object {
         val EMPTY = LessonVideos(emptyList())
@@ -78,6 +61,8 @@ class LessonVideos(val all: List<LessonVideo>) {
                         channel = m["channel"] as? String ?: "",
                         minutes = (m["minutes"] as? Number)?.toInt() ?: 0,
                         why = m["why"] as? String ?: "",
+                        lesson = m["lesson"] as? String,
+                        start = (m["start"] as? Number)?.toInt()?.coerceAtLeast(0) ?: 0,
                     )
                 },
             )
