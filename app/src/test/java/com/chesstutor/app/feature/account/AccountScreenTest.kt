@@ -93,7 +93,7 @@ class AccountScreenTest {
         compose.onNodeWithText("Puzzles").assertExists()
         compose.onNodeWithText("Level ${stats.playerLevel.level}").assertExists()
         compose.onNodeWithContentDescription("5-day streak").assertExists()
-        compose.onNodeWithText("Link your account").assertExists()
+        compose.onNodeWithText("Link your games").assertExists()
         compose.onNodeWithText("Recent games").performScrollTo()
         compose.onNodeWithText("@rookie99").assertExists()
         compose.onNodeWithText("Recent activity").assertDoesNotExist()
@@ -218,7 +218,7 @@ class AccountScreenTest {
         compose.onNodeWithText("Clean").assertExists()
         compose.onNodeWithText("Themes to work on").performScrollTo()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_training.png")
-        compose.onNodeWithText("0%").performScrollTo().performClick()
+        compose.onNodeWithText("0% solved first try").performScrollTo().performClick()
         assertEquals("pin", practised)
         compose.onNodeWithText("Mistakes to review").performScrollTo().performClick()
         assertTrue(reviewed)
@@ -428,9 +428,9 @@ class AccountScreenTest {
             }
         }
         compose.onNodeWithText("@kenny").assertExists()
-        compose.onNodeWithText("Lichess").assertExists()
+        compose.onNodeWithText("Lichess", substring = true).assertExists()
         compose.onNodeWithText("1848").assertExists()
-        compose.onNodeWithText("Link your account").assertDoesNotExist()
+        compose.onNodeWithText("Link your games").assertDoesNotExist()
         compose.onNodeWithContentDescription("Settings").assertExists()
 
         page = "settings"
@@ -462,10 +462,9 @@ class AccountScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("You won").assertExists()
-        compose.onNodeWithText("Checkmate, 3 moves, today").assertExists()
-        compose.onNodeWithText("Italian Game").assertExists()
-        compose.onNodeWithText("Giuoco Piano").assertExists()
+        // The coach says how it ended; the opening is a faint line under the title (D104).
+        compose.onNodeWithText("You won: checkmate, 3 moves, today.").assertExists()
+        compose.onNodeWithText("Italian Game · Giuoco Piano").assertExists()
         compose.onNodeWithText("Accuracy", substring = true).assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/account_game.png")
 
@@ -474,7 +473,8 @@ class AccountScreenTest {
         compose.onNodeWithContentDescription("Previous move").performClick()
         compose.onNodeWithContentDescription("Next move").assertIsEnabled()
         compose.onNodeWithText("Nf3").performClick()
-        compose.onNodeWithText("Italian Game").performClick()
+        compose.onNodeWithContentDescription("More options").performClick()
+        compose.onNodeWithText("Learn this opening").performClick()
         assertEquals("openings-italian", course)
         compose.onNodeWithText("Review").performClick()
         assertTrue(reviewed)

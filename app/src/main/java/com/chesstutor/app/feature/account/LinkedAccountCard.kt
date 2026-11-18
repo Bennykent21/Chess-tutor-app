@@ -90,25 +90,29 @@ private fun LinkStatus(state: AppUiState, actions: AccountActions) {
 
 @Composable
 private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
-    var platformName by rememberSaveable { mutableStateOf(RatingPlatform.CHESS_COM.name) }
+    // Two buttons first; the name and how many games appear once a site is picked (D104).
+    var platformName by rememberSaveable { mutableStateOf<String?>(null) }
     var username by rememberSaveable { mutableStateOf("") }
-    val platform = RatingPlatform.valueOf(platformName)
+    val platform = platformName?.let(RatingPlatform::valueOf)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        CtMetalIcon(Icons.Rounded.Link, size = 36.dp)
+        CtMetalIcon(Icons.Rounded.Link, size = 32.dp)
         Spacer(Modifier.width(CtSpacing.md))
-        Column(Modifier.weight(1f)) {
-            Text("Link your account", style = CtType.TitleSmall)
-            Text("Bring in your games and rating from Chess.com or Lichess. New games then arrive by themselves.", style = CtType.Caption)
-        }
+        Text("Link your games", style = CtType.TitleSmall, modifier = Modifier.weight(1f))
     }
     Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         RatingPlatform.entries.forEach { p ->
-            CtChip(text = p.displayName, selected = p == platform, onClick = { platformName = p.name })
+            CtButton(
+                text = p.displayName,
+                style = if (p == platform) CtButtonStyle.Primary else CtButtonStyle.Secondary,
+                onClick = { platformName = p.name },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
+    if (platform == null) return
     CtTextField(value = username, onValueChange = { username = it.trim() }, label = "Username", placeholder = "Your ${platform.displayName} name")
-    DepthChips(depth, actions.onImportDepth)
+    DepthChips(depth, actions.onImportDepth, explain = false)
     CtButton(
         text = "Link and import",
         icon = Icons.Rounded.Link,
@@ -120,9 +124,9 @@ private fun LinkForm(depth: ImportDepth, actions: AccountActions) {
 
 /** How many games of each clock to import; once linked, [more] reaches back past the oldest game here. */
 @Composable
-private fun DepthChips(depth: ImportDepth, onDepth: (ImportDepth) -> Unit, more: Boolean = false) {
+private fun DepthChips(depth: ImportDepth, onDepth: (ImportDepth) -> Unit, more: Boolean = false, explain: Boolean = true) {
     Text(if (more) "Import older games" else "Games to import", style = CtType.Label)
-    Text(if (more) "Of each time control, before your oldest here." else "Of each time control: rapid, blitz and bullet.", style = CtType.Caption)
+    if (explain) Text(if (more) "Of each time control, before your oldest here." else "Of each time control: rapid, blitz and bullet.", style = CtType.Caption)
     Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         ImportDepth.entries.forEach { d ->
             CtChip(text = d.label, color = CtColors.Violet, selected = d == depth, onClick = { onDepth(d) })

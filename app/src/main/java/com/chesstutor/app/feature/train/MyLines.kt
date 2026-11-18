@@ -239,7 +239,7 @@ fun MyLineScreen(
                 Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
                     BoardThumbnail(remember(played, ply) { fenAfter(played, ply) }, theme, flipped = line.side == PieceColor.BLACK, size = 220.dp)
                 }
-                BoardMoveList(entries = remember(played) { moveListOf(Position.initial(), played) }, currentPly = ply, onSelect = { ply = it })
+                BoardMoveList(entries = remember(played) { moveListOf(Position.initial(), played) }, currentPly = ply, onSelect = { ply = it }, bleed = CtSpacing.gutter)
                 CtButton(text = "Drill it", onClick = onDrill, modifier = Modifier.fillMaxWidth())
                 CtButton(text = "Play it out vs Stockfish", style = CtButtonStyle.Secondary, onClick = onPlay, modifier = Modifier.fillMaxWidth())
                 CtButton(text = "Delete", style = CtButtonStyle.Ghost, onClick = { deleting = true }, modifier = Modifier.fillMaxWidth())

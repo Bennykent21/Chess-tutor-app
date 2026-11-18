@@ -58,6 +58,8 @@ data class FindingsReport(
     val findings: List<GameFinding> = emptyList(),
     /** The learner's taught openings, with results and how well they keep to the line (D103). */
     val openings: List<OpeningRecord> = emptyList(),
+    /** What the reviewed games of each clock say, for Stats (D104). */
+    val insights: Map<com.chesstutor.app.domain.account.TimeClass, com.chesstutor.app.domain.account.ClockInsight> = emptyMap(),
 ) {
     /** The learner's own opening moves that were the line's, while the book covered the game; null without any. */
     val onLineShare: Double? get() = openings.sumOf { it.bookMoves }.takeIf { it > 0 }?.let { openings.sumOf { o -> o.onLine }.toDouble() / it }

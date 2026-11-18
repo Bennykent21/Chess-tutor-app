@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -99,33 +102,24 @@ internal fun outcomeColor(outcome: GameOutcome): Color = when (outcome) {
     else -> CtColors.Text2
 }
 
-/** The result's picture on the result's colour. */
+/** The result as a metal shape with nothing behind it (D104): a green crown, a steel handshake, a red toppled king. */
 @Composable
 internal fun ResultSquare(outcome: GameOutcome, size: Dp = 32.dp) {
-    val fill = when (outcome) {
-        GameOutcome.WIN, GameOutcome.LOSS -> outcomeColor(outcome)
-        else -> CtColors.Track
-    }
-    val ink = when (outcome) {
-        GameOutcome.WIN -> CtColors.OnSuccess
-        GameOutcome.LOSS -> CtColors.OnError
-        else -> CtColors.Text
-    }
     val spoken = when (outcome) {
         GameOutcome.WIN -> "Won"
         GameOutcome.LOSS -> "Lost"
         GameOutcome.DRAW -> "Drawn"
         GameOutcome.UNKNOWN -> "Unfinished"
     }
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(size * 0.28f))
-            .background(fill)
-            .semantics { contentDescription = spoken },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(outcomeIcon(outcome), contentDescription = null, tint = ink, modifier = Modifier.size(size * 0.66f))
+    val art = when (outcome) {
+        GameOutcome.WIN -> R.drawable.icon_result_win
+        GameOutcome.LOSS -> R.drawable.icon_result_loss
+        GameOutcome.DRAW -> R.drawable.icon_handshake
+        GameOutcome.UNKNOWN -> null
+    }
+    Box(Modifier.size(size).semantics { contentDescription = spoken }, contentAlignment = Alignment.Center) {
+        if (art != null) Image(painterResource(art), contentDescription = null, modifier = Modifier.fillMaxSize())
+        else Icon(Icons.Rounded.Remove, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(size * 0.66f))
     }
 }
 

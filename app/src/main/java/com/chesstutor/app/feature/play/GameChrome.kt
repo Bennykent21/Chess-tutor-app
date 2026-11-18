@@ -226,7 +226,7 @@ fun MoveStrip(
 ) {
     Row(modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
         StepButton(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Previous move", canGoBack, onBack)
-        BoardMoveList(entries = entries, currentPly = currentPly, onSelect = onSelect, modifier = Modifier.weight(1f))
+        BoardMoveList(entries = entries, currentPly = currentPly, onSelect = onSelect, modifier = Modifier.weight(1f), bleed = 0.dp)
         StepButton(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next move", canGoForward, onForward)
     }
 }

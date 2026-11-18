@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.board.SideTones
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -37,9 +38,10 @@ fun EvalGraph(
     modifier: Modifier = Modifier,
 ) {
     val slots = (totalPositions - 1).coerceAtLeast(1)
-    val midColor = CtColors.Line
-    val areaColor = CtColors.Text.copy(alpha = 0.85f)
-    val lineColor = CtColors.Text2
+    // White's share is light over a dark ground, as the pieces are, in both themes (D104).
+    val midColor = SideTones.OnBlack.copy(alpha = 0.35f)
+    val areaColor = SideTones.White
+    val lineColor = SideTones.OnWhite.copy(alpha = 0.45f)
     val blunderColor = qualityColor(MoveQuality.BLUNDER)
     val mistakeColor = qualityColor(MoveQuality.MISTAKE)
     val cursorColor = CtColors.Accent
@@ -48,7 +50,7 @@ fun EvalGraph(
             .fillMaxWidth()
             .height(88.dp)
             .clip(CtShapes.CardSmall)
-            .background(CtColors.BgDeep)
+            .background(SideTones.Black)
             .semantics { contentDescription = "Evaluation graph. Tap to jump to a move." }
             .pointerInput(points.size, slots) {
                 detectTapGestures { offset ->
@@ -60,7 +62,8 @@ fun EvalGraph(
         val w = size.width
         val h = size.height
         fun x(ply: Int) = ply / slots.toFloat() * w
-        fun y(share: Float) = h * (1f - share.coerceIn(0.02f, 0.98f))
+        // A clear win stops short of the edge, so each side always keeps a sliver.
+        fun y(share: Float) = h * (1f - share.coerceIn(0.06f, 0.94f))
 
         // The middle line: equal chances.
         drawLine(midColor, Offset(0f, h / 2), Offset(w, h / 2), strokeWidth = 1.dp.toPx())

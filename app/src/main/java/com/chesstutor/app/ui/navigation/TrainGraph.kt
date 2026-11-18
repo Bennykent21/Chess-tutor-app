@@ -1,5 +1,6 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.domain.account.GameInsights
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -269,7 +270,7 @@ internal fun Shell.findingsViewModel(): GameFindingsViewModel {
                 game.id to GameReviewer.review(game.startFen ?: Position.STARTING_FEN, game.moves, analysis.evals(game.id), game.bookPlies)
             }
             val books = AppContainer.provideRepertoireLoader(context).load()
-            FindingsReport(games.size, reviews.size, GameFindings.of(games, books, reviews), GameFindings.openings(games, books))
+            FindingsReport(games.size, reviews.size, GameFindings.of(games, books, reviews), GameFindings.openings(games, books), GameInsights.of(games, reviews))
         },
     )
 }

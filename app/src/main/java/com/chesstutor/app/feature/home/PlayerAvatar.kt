@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.home
 
+import com.chesstutor.app.design.CtMetalIcon
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -59,6 +60,6 @@ private fun Initial(name: String, size: Dp) {
     if (letter.isNotEmpty()) {
         Text(letter, style = if (size < 48.dp) CtType.TitleSmall else CtType.Headline)
     } else {
-        Icon(Icons.Rounded.Person, contentDescription = null, tint = CtColors.Text, modifier = Modifier.size(size / 2))
+        CtMetalIcon(Icons.Rounded.Person, size = size * 0.6f)
     }
 }

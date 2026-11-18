@@ -51,33 +51,47 @@ private fun RatingRank.scene(): CtScene = when (this) {
     RatingRank.KING -> CtScene.RANK_KING
 }
 
-/** The player's earned piece, lit on the page (D56), with who they are at its foot; a tap shows every piece. */
+/**
+ * Who the player is (D104, mock-up round 6): their earned piece, small and lit (D56), beside their
+ * name, rank and level; a tap on the piece shows every piece to earn.
+ */
 @Composable
-internal fun AccountHero(state: AppUiState, rank: RatingRank, onOpenRanks: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(300.dp)
-            .ctPressable(onClickLabel = "See the pieces you can earn", onClick = onOpenRanks)
-            .semantics { contentDescription = "Your piece: ${rank.label}" },
-    ) {
-        CtArt(rank.scene(), Modifier.matchParentSize(), fadeFrom = 0.55f, alive = true)
-        PlayerRow(state, Modifier.align(Alignment.BottomStart).padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.xs))
-    }
-}
-
-/** The player's picture and "@name", with the site the ratings come from. */
-@Composable
-private fun PlayerRow(state: AppUiState, modifier: Modifier = Modifier) {
+internal fun AccountHero(state: AppUiState, rank: RatingRank, level: PuzzleStats, onOpenRanks: () -> Unit, modifier: Modifier = Modifier) {
     val linked = state.linkedProfile
     val name = state.appSettings.playerName.trim()
     val title = name.ifEmpty { linked?.let { "@${it.username}" } ?: "You" }
-    val detail = linked?.let { if (name.isEmpty()) it.platform.displayName else "@${it.username} · ${it.platform.displayName}" }
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-        PlayerAvatar(state.appSettings.picture, name.ifEmpty { linked?.username.orEmpty() }, size = 48.dp)
+    val detail = listOfNotNull("${rank.label} rank", linked?.let { if (name.isEmpty()) it.platform.displayName else "@${it.username} · ${it.platform.displayName}" })
+    Row(
+        modifier.fillMaxWidth().padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+    ) {
+        Box(
+            Modifier
+                .size(width = 88.dp, height = 104.dp)
+                .clip(CtShapes.CardSmall)
+                .ctPressable(onClickLabel = "See the pieces you can earn", onClick = onOpenRanks)
+                .semantics { contentDescription = "Your piece: ${rank.label}" },
+        ) {
+            CtArt(rank.scene(), Modifier.matchParentSize(), fadeFrom = 0.8f, alive = true)
+        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
-            Text(title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (detail != null) Text(detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                if (state.appSettings.picture != com.chesstutor.app.data.settings.PlayerPicture.None) {
+                    PlayerAvatar(state.appSettings.picture, name.ifEmpty { linked?.username.orEmpty() }, size = 28.dp)
+                }
+                Text(title, style = CtType.Title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Text(detail.joinToString(" · "), style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(
+                modifier = Modifier.padding(top = CtSpacing.xs).semantics(mergeDescendants = true) {},
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+            ) {
+                Text("Level ${level.playerLevel.level}", style = CtType.Label)
+                CtProgressBar(progress = level.playerLevel.progress, height = 3.dp, modifier = Modifier.weight(1f))
+                Text("${String.format(Locale.UK, "%,d", level.totalXp)} XP", style = CtType.Caption)
+            }
         }
     }
 }
@@ -125,21 +139,11 @@ internal fun Numbers(
     onOpenPuzzles: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ratingCells(state, stats.rating).forEachIndexed { i, cell ->
-                if (i > 0) Box(Modifier.width(1.dp).height(40.dp).background(CtColors.Line))
-                Figure(cell, onClick = { cell.clock?.let(onOpenClock) ?: onOpenPuzzles() }, modifier = Modifier.weight(1f))
-            }
-        }
-        Row(
-            modifier = Modifier.semantics(mergeDescendants = true) {},
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-        ) {
-            Text("Level ${stats.playerLevel.level}", style = CtType.Label)
-            CtProgressBar(progress = stats.playerLevel.progress, height = 3.dp, modifier = Modifier.weight(1f))
-            Text("${String.format(Locale.UK, "%,d", stats.totalXp)} XP", style = CtType.Caption)
+    // The level now sits by the name in the hero (D104).
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        ratingCells(state, stats.rating).forEachIndexed { i, cell ->
+            if (i > 0) Box(Modifier.width(1.dp).height(40.dp).background(CtColors.Line))
+            Figure(cell, onClick = { cell.clock?.let(onOpenClock) ?: onOpenPuzzles() }, modifier = Modifier.weight(1f))
         }
     }
 }

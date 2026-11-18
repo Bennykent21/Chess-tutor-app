@@ -108,10 +108,12 @@ private fun ThemeRow(theme: ThemeScore, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
     ) {
-        CtRing(listOf(CtRingPart(theme.rate, CtColors.metal(MetalHue.VIOLET))), diameter = 48.dp, stroke = 4.dp) {
-            Text(percent(theme.rate), style = CtType.Caption, maxLines = 1)
+        // A ring with no number inside, as in Learn (D104); the share is written under the name.
+        CtRing(listOf(CtRingPart(theme.rate, CtColors.metal(MetalHue.VIOLET))), diameter = 40.dp, stroke = 4.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(theme.name, style = CtType.TitleSmall)
+            Text("${percent(theme.rate)} solved first try", style = CtType.Caption)
         }
-        Text(theme.name, style = CtType.TitleSmall, modifier = Modifier.weight(1f))
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(20.dp))
     }
 }

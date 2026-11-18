@@ -104,9 +104,12 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
             val games by account.games.collectAsStateWithLifecycle()
             val openingCourses by account.openingCourses.collectAsStateWithLifecycle()
             val clock = entry.arguments?.getString(AppRoutes.CLOCK_ARG)?.let { name -> TimeClass.entries.firstOrNull { it.name == name } } ?: TimeClass.RAPID
+            val findings by findingsViewModel().state.collectAsStateWithLifecycle()
             StatsScreen(
                 games = games,
                 state = state,
+                insights = findings.report.insights,
+                onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
                 initialClock = clock,
                 now = remember { System.currentTimeMillis() },
                 courseIdFor = { family -> OpeningCourses.courseFor(family, openingCourses)?.id },

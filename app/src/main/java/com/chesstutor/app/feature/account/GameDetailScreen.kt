@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
+import com.chesstutor.app.design.CtMascotArt
 import android.content.ClipData
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -77,9 +81,9 @@ data class GameDetailActions(
 )
 
 /**
- * One saved game (plan section 6.4, mock-up round 15): the result, the game on a fixed board
- * to step through with a move strip that follows it, the opening (a tap opens its course),
- * and Review. Accuracy lives on the review; Copy PGN and Delete sit in the menu.
+ * One saved game (D104, mock-up round 6): laid out like every board screen. The opening is a
+ * faint line under the title, the coach says how the game ended, the game steps on a fixed board
+ * with the move strip, and Review. Copy PGN, Delete and the opening's course sit in the menu.
  */
 @Composable
 fun GameDetailScreen(
@@ -113,6 +117,7 @@ fun GameDetailScreen(
 
     CtBoardScreen(
         title = "vs ${game.opponent}",
+        subtitle = listOfNotNull(game.opening?.family, game.opening?.variation?.takeIf { it.isNotBlank() }).joinToString(" · ").ifEmpty { game.openingName },
         onBack = actions.onBack,
         modifier = modifier,
         actions = {
@@ -122,20 +127,13 @@ fun GameDetailScreen(
                     copyScope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("PGN", pgn))) }
                 },
                 onDelete = { confirmDelete = true },
+                onLearn = courseId?.let { id -> { actions.onOpenCourse(id) } },
             )
         },
+        // The coach says how it ended, as on every board screen.
         zone = {
-            OpeningRow(game, courseId, settings, onOpen = { courseId?.let(actions.onOpenCourse) })
-            if (game.record.incompleteParse) {
-                Text("Some moves could not be read from this game.", style = CtType.Caption.copy(color = CtColors.Error))
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                ResultSquare(game.outcome, size = 40.dp)
-                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
-                    Text(resultTitle(game), style = CtType.Title)
-                    Text(resultLine(game, now), style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
+            val said = gameEndLine(game, now)
+            Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp) }, lines = rememberTalk(listOf(TalkLine(said.hashCode(), said)), key = game.id))
         },
         under = {
             if (entries.isNotEmpty()) MoveStrip(entries, review = null, current = ply, onSelect = { ply = it })
@@ -174,7 +172,7 @@ fun GameDetailScreen(
 
 /** Copy PGN and Delete game, out of the way in the top bar's menu. */
 @Composable
-private fun GameMenu(onCopy: () -> Unit, onDelete: () -> Unit) {
+private fun GameMenu(onCopy: () -> Unit, onDelete: () -> Unit, onLearn: (() -> Unit)? = null) {
     var open by remember { mutableStateOf(false) }
     Box {
         Box(
@@ -187,6 +185,15 @@ private fun GameMenu(onCopy: () -> Unit, onDelete: () -> Unit) {
             Icon(Icons.Rounded.MoreVert, contentDescription = "More options", tint = CtColors.Text)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = CtColors.Raised) {
+            onLearn?.let { learn ->
+                DropdownMenuItem(
+                    text = { Text("Learn this opening", style = CtType.Body.copy(color = CtColors.Text)) },
+                    onClick = {
+                        open = false
+                        learn()
+                    },
+                )
+            }
             DropdownMenuItem(
                 text = { Text("Copy PGN", style = CtType.Body.copy(color = CtColors.Text)) },
                 onClick = {
@@ -205,34 +212,7 @@ private fun GameMenu(onCopy: () -> Unit, onDelete: () -> Unit) {
     }
 }
 
-/** The opening with the player's own knight; a tap opens its course when one teaches it. */
-@Composable
-private fun OpeningRow(game: GameSummary, courseId: String?, settings: AppSettings, onOpen: () -> Unit) {
-    val title = game.openingFamily ?: if (game.startFen != null) "Set-up position" else "Opening not named"
-    val detail = openingDetail(game)
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 60.dp)
-                .then(if (courseId != null) Modifier.ctPressable(onClickLabel = "Learn the $title", onClick = onOpen) else Modifier)
-                .semantics(mergeDescendants = true) {}
-                .padding(vertical = CtSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Box(Modifier.size(40.dp).clip(CtShapes.Pill).background(CtColors.Surface), contentAlignment = Alignment.Center) {
-                Image(painterResource(PieceArt.drawable(settings.boardTheme.pieceSet, Piece(PieceType.KNIGHT, PieceColor.WHITE))), contentDescription = null, modifier = Modifier.size(32.dp))
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CtSpacing.xxs)) {
-                Text(title, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (detail != null) Text(detail, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            if (courseId != null) Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(20.dp))
-        }
-    }
-}
-
+/** "You won", "You lost" or "Draw". */
 internal fun resultTitle(game: GameSummary): String = when (game.outcome) {
     GameOutcome.WIN -> "You won"
     GameOutcome.LOSS -> "You lost"
@@ -253,4 +233,11 @@ internal fun openingDetail(game: GameSummary): String? {
     val variation = game.openingName?.substringAfter(':', "")?.trim()?.ifEmpty { null }
     val book = game.leftBookAtMove?.let { "out of book on move $it" }
     return listOfNotNull(variation, book).joinToString(", ").ifEmpty { null }?.replaceFirstChar(Char::uppercaseChar)
+}
+
+/** What the coach says about a finished game: "You won: checkmate, 23 moves, today." */
+internal fun gameEndLine(game: GameSummary, now: Long): String {
+    val line = resultLine(game, now).replaceFirstChar { it.lowercase() }
+    val unread = if (game.record.incompleteParse) " Some moves could not be read." else ""
+    return "${resultTitle(game)}: $line.$unread"
 }

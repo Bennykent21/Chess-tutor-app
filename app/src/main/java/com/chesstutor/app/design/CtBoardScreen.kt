@@ -86,6 +86,8 @@ fun CtBoardScreen(
     controls: (@Composable RowScope.() -> Unit)? = null,
     overlay: @Composable BoxScope.() -> Unit = {},
     progress: Float? = null,
+    /** A faint line under the title, such as a game's opening (D104). */
+    subtitle: String? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize().background(CtColors.Bg)) {
         // The same sizes on every board screen, with or without controls, so all boards line up.
@@ -93,7 +95,7 @@ fun CtBoardScreen(
         val zoneHeight = CtBoardScreenSpec.zoneHeight(maxHeight, side)
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().height(CtBoardScreenSpec.TopBarHeight), contentAlignment = Alignment.CenterStart) {
-                CtTopBar(title = title, onBack = onBack, trailing = actions)
+                CtTopBar(title = title, onBack = onBack, trailing = actions, subtitle = subtitle)
             }
             Box(Modifier.fillMaxWidth().height(zoneHeight)) {
                 Column(

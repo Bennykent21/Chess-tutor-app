@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.ui.graphics.Brush
+import com.chesstutor.app.board.SideTones
 import com.chesstutor.app.design.CtMascotArt
 import com.chesstutor.app.design.CtSpeechBubble
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -166,7 +168,7 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
     val white = if (game.userColor == PieceColor.WHITE) "You" else game.opponent
     val black = if (game.userColor == PieceColor.BLACK) "You" else game.opponent
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 96.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 128.dp)) {
         CtTopBar(title = "Game review", onBack = actions.onBack)
         Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
             AnalysisStatus(state, review, actions)
@@ -206,17 +208,24 @@ private fun BoxScope.ReviewSummary(game: GameSummary, state: ReviewState, mascot
             }
         }
     }
-    CtButton(
-        text = "Start review",
-        icon = Icons.Rounded.PlayArrow,
-        onClick = { onStart(1.coerceAtMost(review?.totalPlies ?: 0)) },
-        enabled = game.moves.isNotEmpty(),
-        modifier = Modifier
+    // The page fades out under the button, and room is kept below the list, so nothing hides behind it (D104).
+    val page = CtColors.Bg
+    Box(
+        Modifier
             .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(0f to page.copy(alpha = 0f), 0.35f to page))
             .navigationBarsPadding()
-            .padding(CtSpacing.gutter)
-            .fillMaxWidth(),
-    )
+            .padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.xl, bottom = CtSpacing.gutter),
+    ) {
+        CtButton(
+            text = "Start review",
+            icon = Icons.Rounded.PlayArrow,
+            onClick = { onStart(1.coerceAtMost(review?.totalPlies ?: 0)) },
+            enabled = game.moves.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 /** What the graph shows at the tapped point: the move, its quality and the evaluation. */
@@ -279,14 +288,14 @@ private fun countColor(quality: MoveQuality): Color = if (quality == MoveQuality
 private val COLUMN = 88.dp
 private val GAP = 36.dp
 
-/** A player's name over their accuracy: White's box light, Black's dark, like the pieces. */
+/** A player's name over their accuracy, in the colour they played, in both themes (D104). */
 @Composable
 private fun AccuracyBox(name: String, accuracy: Double?, light: Boolean, modifier: Modifier) {
-    val ink = if (light) CtColors.Text else CtColors.Bg
+    val ink = if (light) SideTones.OnWhite else SideTones.OnBlack
     Column(
         modifier = modifier
             .clip(CtShapes.CardSmall)
-            .background(if (light) CtColors.Raised else CtColors.Text)
+            .background(if (light) SideTones.White else SideTones.Black)
             .then(if (light) Modifier.border(1.dp, CtColors.Line, CtShapes.CardSmall) else Modifier)
             .semantics(mergeDescendants = true) {}
             .padding(vertical = CtSpacing.sm),
@@ -539,40 +548,20 @@ internal object GamePositions {
         com.chesstutor.app.domain.account.GameReviewer.positions(game.startFen ?: Position.STARTING_FEN, game.moves).getOrNull(ply)
 }
 
-/** The game's moves in one scrolling row that keeps the current move in view (like the big sites). */
+/** The game's moves in the shared strip, the current move held in the centre, each with its grade (D104). */
 @Composable
 internal fun MoveStrip(entries: List<com.chesstutor.app.board.MoveListEntry>, review: GameReview?, current: Int?, onSelect: (Int) -> Unit) {
-    val listState = rememberLazyListState()
-    LaunchedEffect(current) {
-        current?.takeIf { it > 0 }?.let { listState.animateScrollToItem((it - 2).coerceAtLeast(0)) }
-    }
-    LazyRow(
-        state = listState,
-        modifier = Modifier.fillMaxWidth().clip(CtShapes.CardSmall).background(CtColors.Surface),
-        contentPadding = PaddingValues(horizontal = CtSpacing.sm, vertical = CtSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xxs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        itemsIndexed(entries) { index, entry ->
-            val ply = index + 1
+    com.chesstutor.app.board.BoardMoveList(
+        entries = entries,
+        currentPly = current ?: 0,
+        onSelect = onSelect,
+        after = { ply, selected ->
             val quality = review?.move(ply)?.quality
-            val selected = ply == current
-            Row(
-                modifier = Modifier
-                    .clip(CtShapes.Chip)
-                    .background(if (selected) CtColors.Primary else CtColors.Surface)
-                    .ctPressable(onClickLabel = "Go to ${entry.san}") { onSelect(ply) }
-                    .padding(horizontal = CtSpacing.xs, vertical = CtSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                entry.numberLabel?.let { Text("$it ", style = CtType.Caption.copy(color = if (selected) CtColors.OnPrimary else CtColors.Text2)) }
-                Text(entry.san, style = CtType.Label.copy(color = if (selected) CtColors.OnPrimary else CtColors.Text))
-                quality?.symbol?.takeIf { it.isNotEmpty() }?.let {
-                    Text(it, style = CtType.Label.copy(color = if (selected) CtColors.OnPrimary else qualityTextOnPage(quality)))
-                }
+            quality?.symbol?.takeIf { it.isNotEmpty() }?.let {
+                Text(it, style = CtType.Label.copy(color = if (selected) CtColors.OnGold else qualityTextOnPage(quality)))
             }
-        }
-    }
+        },
+    )
 }
 
 /** The coach in a [mood] beside a tailed speech bubble holding [content] (D41). */

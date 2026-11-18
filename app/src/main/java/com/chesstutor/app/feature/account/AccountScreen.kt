@@ -87,7 +87,7 @@ fun AccountScreen(
                         SettingsButton(onClick = actions.onOpenSettings)
                     }
                 }
-                item(key = "hero") { AccountHero(state, rank, onOpenRanks = { ranksOpen = true }) }
+                item(key = "hero") { AccountHero(state, rank, stats, onOpenRanks = { ranksOpen = true }) }
                 item(key = "numbers") {
                     Numbers(
                         state = state,
