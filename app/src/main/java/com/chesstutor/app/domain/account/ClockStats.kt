@@ -30,6 +30,9 @@ data class ClockRecords(
     val bestWin: GameSummary?,
     val longestWinStreak: Int,
     val averageOpponent: Int?,
+    /** When the longest win streak began and ended, to show exactly those games (D105). */
+    val winStreakFrom: Long? = null,
+    val winStreakTo: Long? = null,
 )
 
 /** Everything Stats shows for one clock (D60). */
@@ -77,6 +80,8 @@ object ClockStats {
                 bestWin = wins.filter { it.opponentRating > 0 }.maxByOrNull { it.opponentRating },
                 longestWinStreak = longestRun(byDate.map { it.outcome == GameOutcome.WIN }),
                 averageOpponent = finished.map { it.opponentRating }.filter { it > 0 }.takeIf { it.isNotEmpty() }?.average()?.toInt(),
+                winStreakFrom = longestRunRange(byDate.map { it.outcome == GameOutcome.WIN })?.let { byDate[it.first].dateMillis },
+                winStreakTo = longestRunRange(byDate.map { it.outcome == GameOutcome.WIN })?.let { byDate[it.last].dateMillis },
             ),
             trend = RatingTrend(clock, byDate.filter { it.playerRating != null }.map { RatingPoint(it.dateMillis, it.playerRating!!) }),
             wonBy = endings(wins),
@@ -89,6 +94,19 @@ object ClockStats {
 
     private fun endings(games: List<GameSummary>): Map<GameEnding, Int> =
         games.groupingBy { GameEnding.of(it.record.termination) }.eachCount()
+
+    /** Where the longest run of true values starts and ends, the earliest if two are as long; null with none. */
+    internal fun longestRunRange(values: List<Boolean>): IntRange? {
+        var best: IntRange? = null
+        var start = -1
+        values.forEachIndexed { i, v ->
+            if (v) {
+                if (start < 0) start = i
+                if (best == null || i - start > best!!.last - best!!.first) best = start..i
+            } else start = -1
+        }
+        return best
+    }
 
     /** The longest run of true values in a row. */
     internal fun longestRun(values: List<Boolean>): Int {

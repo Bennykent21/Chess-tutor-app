@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.ui.test.assertCountEquals
 import com.chesstutor.app.gallery.shootBoth
 import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.assertIsEnabled
@@ -499,6 +500,24 @@ class AccountScreenTest {
         )
         assertTrue(openingDetail(strange)!!.endsWith("out of book on move 4"))
         assertEquals("You lost", resultTitle(strange.copy(outcome = com.chesstutor.app.domain.account.GameOutcome.LOSS)))
+    }
+
+    @Test
+    fun theClockChipsChangeEveryNumber() {
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                StatsScreen(
+                    games = games, state = AppUiState(), initialClock = com.chesstutor.app.domain.account.TimeClass.RAPID, now = 1_760_000_000_000,
+                    courseIdFor = { null }, onOpenCourse = {}, onShowGames = {}, onBack = {},
+                )
+            }
+        }
+        compose.onAllNodesWithText("100%").onFirst().assertExists()
+        compose.onNodeWithContentDescription("Blitz", substring = true).performClick()
+        compose.waitForIdle()
+        // The blitz game was a loss: the score and the records follow the chip.
+        compose.onAllNodesWithText("100%").assertCountEquals(0)
+        compose.onAllNodesWithText("0%").onFirst().assertExists()
     }
 
     // ---------------------------------------------------------------- the visual pass (Phase 14B)

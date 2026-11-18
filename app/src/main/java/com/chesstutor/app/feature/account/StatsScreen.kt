@@ -152,14 +152,17 @@ internal data class Record(val value: String, val label: String, val onOpen: (()
 /** The records the hero and graph do not already show (rating and peak are there); each opens its games (D104). */
 private fun gameRecords(report: ClockReport, accuracy: Double?, clock: TimeClass, onOpenGame: (String) -> Unit, onShow: (GameFilter) -> Unit): List<Record> {
     val r = report.records
-    val all = { onShow(GameFilter(timeClass = clock)) }
+    // Only numbers that stand for a set of games open them: the best win, the streak's own games, all games (D105).
+    val streak = if (r.winStreakFrom != null && r.longestWinStreak > 0) {
+        { onShow(GameFilter(timeClass = clock, fromMillis = r.winStreakFrom, toMillis = r.winStreakTo)) }
+    } else null
     return listOf(
         Record(r.bestWin?.opponentRating?.toString() ?: "–", "Best win", r.bestWin?.let { win -> { onOpenGame(win.id) } }),
-        Record("${r.longestWinStreak}", "Win streak", { onShow(GameFilter(timeClass = clock, outcome = GameOutcome.WIN)) }),
-        Record(accuracy?.let(::accuracyText) ?: "–", "Accuracy", all),
-        Record(r.averageOpponent?.toString() ?: "–", "Avg opponent", all),
-        Record(report.averageMoves?.toString() ?: "–", "Moves a game", all),
-        Record("${report.games}", "Games", all),
+        Record("${r.longestWinStreak}", "Win streak", streak),
+        Record(accuracy?.let(::accuracyText) ?: "–", "Accuracy"),
+        Record(r.averageOpponent?.toString() ?: "–", "Avg opponent"),
+        Record(report.averageMoves?.toString() ?: "–", "Avg moves"),
+        Record("${report.games}", "Games", { onShow(GameFilter(timeClass = clock)) }),
     )
 }
 

@@ -56,4 +56,16 @@ class GameInsightsTest {
         val games = listOf(game("0-1", termination = "timeout"), game("0-1", termination = "checkmate"))
         assertEquals(1, GameLibrary.filter(games, filter).size)
     }
+
+    @Test
+    fun theWinStreakOpensExactlyItsGames() {
+        assertEquals(4..6, ClockStats.longestRunRange(listOf(false, true, true, false, true, true, true)))
+        assertEquals(null, ClockStats.longestRunRange(listOf(false, false)))
+        val games = listOf(game("1-0"), game("1-0"), game("0-1"), game("1-0"), game("1-0"), game("1-0"))
+        val records = ClockStats.report(games, TimeClass.RAPID).records
+        assertEquals(3, records.longestWinStreak)
+        val filter = GameFilter(timeClass = TimeClass.RAPID, fromMillis = records.winStreakFrom, toMillis = records.winStreakTo)
+        assertEquals(filter, GameFilter.decode(filter.encode()))
+        assertEquals(3, GameLibrary.filter(games, filter).size)
+    }
 }
