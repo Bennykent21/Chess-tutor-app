@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.ui.text.style.TextAlign
 import com.chesstutor.app.design.CtChip
 import androidx.compose.material.icons.rounded.Bolt
 import com.chesstutor.app.domain.repertoire.Drills
@@ -441,31 +442,34 @@ fun RepertoireRunScreen(
     )
 }
 
-/** A dot per new move of a line, or a thin bar with "3 / 12" for a review. */
+/**
+ * A dot per new move of a line, or per position of a review, drill or challenge, centred under the
+ * board (D102): green when right, red when missed, the current one darker. A long review gets a
+ * thin bar with "3 / 40" instead.
+ */
 @Composable
 private fun RunProgress(run: RunUi) {
     if (run.moment is RunMoment.Watch) {
         // While the line plays itself there is nothing to count yet.
-        Text("WATCH", style = CtType.Caption.copy(color = CtColors.Accent, letterSpacing = 1.2.sp))
+        Text("WATCH", style = CtType.Caption.copy(color = CtColors.Accent, letterSpacing = 1.2.sp), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         return
     }
     val dots = run.kind == RunKind.LEARN || run.steps <= MAX_DOTS
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        if (dots) {
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                repeat(run.steps) { i ->
-                    val color = when {
-                        i < run.step -> CtColors.Success
-                        i == run.step && run.moment !is RunMoment.Finished -> CtColors.Text2
-                        else -> CtColors.Track
-                    }
-                    Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
+    if (dots) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+            repeat(run.steps) { i ->
+                val color = when {
+                    i in run.missed -> CtColors.Error
+                    i < run.step -> CtColors.Success
+                    i == run.step && run.moment !is RunMoment.Finished -> CtColors.Text2
+                    else -> CtColors.Track
                 }
+                Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
             }
-        } else {
-            CtProgressBar(progress = if (run.steps == 0) 0f else run.step.toFloat() / run.steps, height = 3.dp, modifier = Modifier.weight(1f))
         }
-        if (run.kind != RunKind.LEARN) {
+    } else {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            CtProgressBar(progress = if (run.steps == 0) 0f else run.step.toFloat() / run.steps, height = 3.dp, modifier = Modifier.weight(1f))
             Text("${(run.step + 1).coerceAtMost(run.steps)} / ${run.steps}", style = CtType.Caption.copy(color = CtColors.Text2))
         }
     }
@@ -490,7 +494,7 @@ private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.mome
         run.tricky -> "A tricky line, from the start."
         else -> null
     }
-    RunMoment.FromTheTop -> "Your turn" to "Play the line back."
+    RunMoment.FromTheTop -> if (run.repeatPass) "Once more" to "Play it back without help." else "Your turn" to "Play the line back."
     is RunMoment.Watch -> (m.words ?: "Watch the line") to null
     is RunMoment.Also -> "Also good" to (m.san?.let { "Your move here is $it." } ?: "Not the move to remember here.")
     is RunMoment.Shown -> "Play ${m.san}" to when (run.kind) {
@@ -498,7 +502,15 @@ private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.mome
         RunKind.DRILL, RunKind.CHALLENGE -> "It comes back at the end."
         else -> "This position comes back sooner."
     }
-    is RunMoment.CardDone -> (if (m.right) null else "Comes back today") to null
+    is RunMoment.CardDone -> when {
+        run.kind == RunKind.DRILL || run.kind == RunKind.CHALLENGE -> when {
+            !m.right -> "Missed. It comes back later."
+            m.again -> "First pass. Once more later to be sure."
+            else -> null
+        }
+        m.right -> null
+        else -> "Comes back today"
+    } to null
     is RunMoment.Finished -> if (run.kind == RunKind.TEST) {
         if (m.right >= RepertoireViewModel.testPassMark(m.total)) "Passed" to "${m.right} of ${m.total} right. The drills are open."
         else "Not yet" to "${m.right} of ${m.total} right. Take the course, or try again tomorrow."

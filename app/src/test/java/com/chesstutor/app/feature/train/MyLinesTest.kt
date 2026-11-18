@@ -101,7 +101,7 @@ class MyLinesTest {
                 MyLineScreen(friedLiver, BoardTheme(), onDrill = {}, onPlay = { played = true }, onDelete = {}, onBack = {})
             }
         }
-        compose.onNodeWithText("1.e4 e5 2.Nf3 Nc6 3.Bc4 Nf6 4.Ng5 d5 5.exd5 Nxd5 6.Nxf7").assertExists()
+        compose.onNodeWithText("Nxf7").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_my_line_dark.png")
         compose.onNodeWithText("Play it out vs Stockfish").performClick()
         assertTrue(played)

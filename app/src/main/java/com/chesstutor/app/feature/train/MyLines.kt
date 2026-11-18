@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.core.Move
+import com.chesstutor.app.design.CtTopBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -145,6 +147,21 @@ fun sanLine(moves: List<String>): String {
     return out.toString()
 }
 
+/** The line's moves as board moves, as far as they are legal. */
+private fun playedMoves(moves: List<String>): List<Move> {
+    var position = Position.initial()
+    val out = ArrayList<Move>()
+    for (uci in moves) {
+        val move = LegalMoveGenerator.generateLegalMoves(position).firstOrNull { it.uci == uci } ?: break
+        out += move
+        position = LegalMoveGenerator.makeMove(position, move)
+    }
+    return out
+}
+
+private fun fenAfter(moves: List<Move>, ply: Int): String =
+    moves.take(ply).fold(Position.initial()) { position, move -> LegalMoveGenerator.makeMove(position, move) }.toFen()
+
 private fun endFen(moves: List<String>): String {
     var position = Position.initial()
     for (uci in moves) position = LegalMoveGenerator.generateLegalMoves(position).firstOrNull { it.uci == uci }?.let { LegalMoveGenerator.makeMove(position, it) } ?: break
@@ -166,9 +183,8 @@ fun MyLinesScreen(
 ) {
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtBackBar(onBack = onBack)
+            CtTopBar(title = "Your openings", onBack = onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                Text("Your openings", style = CtType.Display)
                 if (lines.isEmpty()) {
                     Text("Build a line move by move, drill it, then play it out against Stockfish.", style = CtType.Body.copy(color = CtColors.Text2))
                 }
@@ -213,18 +229,17 @@ fun MyLineScreen(
     modifier: Modifier = Modifier,
 ) {
     var deleting by rememberSaveable { mutableStateOf(false) }
+    // The board follows the move strip: tap a move to see the position after it (D102).
+    val played = remember(line.moves) { playedMoves(line.moves) }
+    var ply by rememberSaveable(line.moves) { mutableStateOf(played.size) }
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtBackBar(onBack = onBack)
+            CtTopBar(title = line.name, onBack = onBack, subtitle = sideLabel(line.side))
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(line.name, style = CtType.Display)
-                    Text(sideLabel(line.side), style = CtType.Caption.copy(color = CtColors.Text2))
-                }
                 Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                    BoardThumbnail(remember(line.moves) { endFen(line.moves) }, theme, flipped = line.side == PieceColor.BLACK, size = 220.dp)
+                    BoardThumbnail(remember(played, ply) { fenAfter(played, ply) }, theme, flipped = line.side == PieceColor.BLACK, size = 220.dp)
                 }
-                Text(remember(line.moves) { sanLine(line.moves) }, style = CtType.Body)
+                BoardMoveList(entries = remember(played) { moveListOf(Position.initial(), played) }, currentPly = ply, onSelect = { ply = it })
                 CtButton(text = "Drill it", onClick = onDrill, modifier = Modifier.fillMaxWidth())
                 CtButton(text = "Play it out vs Stockfish", style = CtButtonStyle.Secondary, onClick = onPlay, modifier = Modifier.fillMaxWidth())
                 CtButton(text = "Delete", style = CtButtonStyle.Ghost, onClick = { deleting = true }, modifier = Modifier.fillMaxWidth())

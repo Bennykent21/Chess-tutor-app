@@ -73,7 +73,6 @@ class PositionScreensTest {
         }
         compose.onNodeWithText("Win. Promote the pawn", substring = true).assertExists()
         compose.onNodeWithText("White to move", substring = true).assertExists()
-        compose.onNodeWithText("1 of 5").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position.png")
         compose.onNodeWithText("Hint").performClick()
         assertEquals(true, hint)
@@ -88,7 +87,7 @@ class PositionScreensTest {
                 PositionRunScreen(slipped, AppSettings(), onFeedback = {}, onHint = {}, onRestart = {}, onGiveUp = {}, onNext = { next = true }, onBack = {})
             }
         }
-        compose.onNodeWithText("Only a draw. 3.Kd5 let it slip. Back tomorrow. Kd6 was the move.").assertExists()
+        compose.onNodeWithText("Only a draw. 3.Kd5 let it slip. Kd6 was the move. It comes back at the end.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position_slipped_dark.png")
         compose.onNodeWithText("Next position").performClick()
         assertEquals(true, next)

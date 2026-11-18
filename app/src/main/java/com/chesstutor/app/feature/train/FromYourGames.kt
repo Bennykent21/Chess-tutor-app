@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.design.CtTopBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -85,17 +86,12 @@ fun FromYourGamesScreen(
     val report = state.report
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtBackBar(onBack = onBack)
+            CtTopBar(
+                title = "From your games",
+                onBack = onBack,
+                subtitle = if (state.loading) null else "${report.games} game${if (report.games == 1) "" else "s"}" + if (report.reviewed > 0) " · ${report.reviewed} reviewed" else "",
+            )
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("From your games", style = CtType.Display)
-                    if (!state.loading) {
-                        Text(
-                            "${report.games} game${if (report.games == 1) "" else "s"}" + if (report.reviewed > 0) " · ${report.reviewed} reviewed" else "",
-                            style = CtType.Caption.copy(color = CtColors.Text2),
-                        )
-                    }
-                }
                 if (!state.loading && report.findings.isEmpty()) {
                     Text(
                         if (report.games == 0) "Import your games in Account, or play a few here." else "Nothing comes back yet. A slip shows here once it repeats.",

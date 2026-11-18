@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.design.CtTopBar
 import com.chesstutor.app.feature.play.rememberTalk
 import com.chesstutor.app.feature.play.TalkLine
 import com.chesstutor.app.feature.play.Talk
@@ -73,9 +74,8 @@ fun PositionSetsScreen(
 ) {
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtBackBar(onBack = onBack)
+            CtTopBar(title = if (kind == PositionKind.ENDGAME) "Endgames" else "Middlegames", onBack = onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                Text(if (kind == PositionKind.ENDGAME) "Endgames" else "Middlegames", style = CtType.Display)
                 Column {
                     sets.forEach { ui -> SetRow(ui, theme, onClick = { onOpen(ui.set.id) }) }
                 }
@@ -151,7 +151,7 @@ fun PositionRunScreen(
             )
         },
         under = {
-            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly, horizontalAlignment = Alignment.CenterHorizontally) {
                 QueueDots(run)
                 if (!run.ended) {
                     Text(
@@ -176,21 +176,18 @@ fun PositionRunScreen(
     )
 }
 
-/** A dot per position of this run, and "3 of 12". */
+/** A dot per position of this run, centred (D102): green won without help, red slipped or helped, the current one darker. */
 @Composable
 private fun QueueDots(run: PositionRunUi) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            run.queue.indices.take(MAX_DOTS).forEach { i ->
-                val color = when {
-                    i < run.index -> CtColors.Success
-                    i == run.index -> CtColors.Text2
-                    else -> CtColors.Track
-                }
-                Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+        run.queue.indices.take(MAX_DOTS).forEach { i ->
+            val color = when {
+                i < run.results.size -> if (run.results[i]) CtColors.Success else CtColors.Error
+                i == run.index -> CtColors.Text2
+                else -> CtColors.Track
             }
+            Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
         }
-        Text("${run.index + 1} of ${run.queue.size}", style = CtType.Caption.copy(color = CtColors.Text2))
     }
 }
 
@@ -225,7 +222,8 @@ private fun wordsOf(run: PositionRunUi): Triple<String, String?, Boolean> {
 private fun underOf(run: PositionRunUi): String = when {
     !run.ended -> run.position.aim
     run.outcome == PositionOutcome.SLIPPED ->
-        "Back tomorrow." + (run.better?.let { " $it was the move." } ?: "")
+        (run.better?.let { "$it was the move. " } ?: "") + "It comes back at the end."
+    run.comesBack -> "With a hint, so it comes back at the end, without one."
     run.next != null -> "${run.queue.size - run.index - 1} more to go"
     else -> "Set done"
 }

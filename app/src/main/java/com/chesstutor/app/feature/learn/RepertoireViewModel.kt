@@ -130,7 +130,8 @@ sealed interface RunMoment {
     data class Shown(val san: String, val uci: String) : RunMoment
 
     /** A review card is over: [played] is the right move now on the board, [shown] the answer drawn after "Show me". The next card follows by itself. */
-    data class CardDone(val right: Boolean, val dueAt: Instant, val played: String?, val shown: String?) : RunMoment
+    /** [again]: the card comes back later in this drill or challenge (D102). */
+    data class CardDone(val right: Boolean, val dueAt: Instant, val played: String?, val shown: String?, val again: Boolean = false) : RunMoment
 
     data class Finished(val right: Int, val total: Int) : RunMoment
 }
@@ -162,6 +163,10 @@ data class RunUi(
     val why: String? = null,
     /** True when the learner's last move has a note to show. */
     val canWhy: Boolean = false,
+    /** Steps missed so far (red dots, D102). */
+    val missed: Set<Int> = emptySet(),
+    /** A learn run playing its line again because the last pass needed help (D102). */
+    val repeatPass: Boolean = false,
 )
 
 /**
@@ -290,6 +295,7 @@ class RepertoireViewModel(
         val before = run.position
         val line = run.segment.moves.take(run.ply)
         val expected = run.segment.moves.getOrNull(run.ply) ?: return MoveEffects.ILLEGAL
+        val restartsBefore = run.restarts
         val result = run.submit(move.uci) ?: return MoveEffects.ILLEGAL
         hintFrom = null
         whyOpen = false
@@ -299,6 +305,10 @@ class RepertoireViewModel(
                 val after = LegalMoveGenerator.makeMove(before, move)
                 ring = move.to.algebraic to true
                 lastNote = run.book.at(after)?.note
+                if (run.restarts > restartsBefore) {
+                    playBackAgain(run)
+                    return MoveEffects.CORRECT
+                }
                 moment = RunMoment.YourMove
                 follow()
                 if (run.pass == LearnRun.Pass.DONE) MoveEffects.CORRECT else MoveEffects.feedbackFor(before, move, after)
@@ -378,6 +388,22 @@ class RepertoireViewModel(
                 }
             }
             publish()
+        }
+    }
+
+    /** The line needed help: it stays a moment, then starts again from the top, from memory (D102). */
+    private fun playBackAgain(run: LearnRun) {
+        job?.cancel()
+        job = viewModelScope.launch {
+            frozen = run.segment.moves
+            mutableRun.value?.board?.refresh(animate = true)
+            publish()
+            delay(PASS_PAUSE_MS)
+            frozen = null
+            ring = null
+            moment = RunMoment.FromTheTop
+            mutableRun.value?.board?.refresh(animate = false)
+            follow()
         }
     }
 
@@ -518,8 +544,13 @@ class RepertoireViewModel(
             }
             CardAnswer.WRONG -> {
                 ring = move.to.algebraic to false
-                moment = RunMoment.Shown(numbered(before, legal(before, expected), session.ply), expected)
-                publish()
+                if (session.done) {
+                    // A drill's first miss: noted, not shown; the next position comes (D102).
+                    saveLast(session, played = null)
+                } else {
+                    moment = RunMoment.Shown(numbered(before, legal(before, expected), session.ply), expected)
+                    publish()
+                }
                 MoveEffects.WRONG
             }
         }
@@ -527,11 +558,15 @@ class RepertoireViewModel(
 
     private fun saveLast(session: ReviewSession, played: String?, shown: String? = null) {
         val (card, log) = session.outcome.last()
-        moment = RunMoment.CardDone(log.firstTryRight, card.dueAt, played, shown)
+        moment = RunMoment.CardDone(log.firstTryRight, card.dueAt, played, shown, again = session.returning)
         publish()
         mutableRun.value?.board?.refresh(animate = played != null)
-        // A test, a drill and a challenge only look: the schedule stays as it is.
-        if (mutableRun.value?.kind !in setOf(RunKind.TEST, RunKind.DRILL, RunKind.CHALLENGE)) {
+        // A test only looks. A drill or challenge saves only a position's first miss, so what the
+        // learner fails in practice comes back in their reviews (D102); a right answer changes nothing.
+        val kind = mutableRun.value?.kind
+        val practice = kind == RunKind.DRILL || kind == RunKind.CHALLENGE
+        val firstAsk = session.outcome.count { it.first.id == card.id } == 1
+        if (kind != RunKind.TEST && (!practice || (firstAsk && !log.firstTryRight))) {
             viewModelScope.launch {
                 repository.save(listOf(card), listOf(log))
                 reviewLog.value = reviewLog.value + (card.bookId to repository.reviews(card.bookId))
@@ -714,6 +749,12 @@ class RepertoireViewModel(
             ringRight = ring?.second ?: true,
             why = lastNote?.text?.takeIf { whyOpen },
             canWhy = lastNote != null,
+            missed = when {
+                run != null -> run.segment.newCards.withIndex().filter { it.value in run.missedNow }.map { it.index }.toSet()
+                session != null -> session.outcome.withIndex().filter { !it.value.second.firstTryRight }.map { it.index }.toSet()
+                else -> emptySet()
+            },
+            repeatPass = (run?.restarts ?: 0) > 0,
         )
     }
 

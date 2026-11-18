@@ -71,10 +71,26 @@ object ReviewQueue {
  */
 class ReviewSession(
     cards: List<DueCard>,
-    /** Drills and challenges (D101): a card missed goes to the back of the queue until it is right. */
+    /**
+     * Drills and challenges (D101, D102): a first miss is not shown, only noted, and the card comes
+     * back at a random later point; from the second miss the move is shown. After a miss a card
+     * must come right twice (a first pass, then once more) before it leaves the run.
+     */
     private val repeatMisses: Boolean = false,
+    private val random: kotlin.random.Random = kotlin.random.Random.Default,
     private val now: () -> Instant = Instant::now,
 ) {
+    private class Track {
+        var misses = 0
+        var confirming = false
+    }
+
+    private val tracks = HashMap<String, Track>()
+
+    /** The card just finished comes back later in the run: missed, or a first pass after a miss. */
+    var returning: Boolean = false
+        private set
+
     private val queue = cards.toMutableList()
 
     /** The run's cards, a missed one again at the end when [repeatMisses]. */
@@ -138,8 +154,14 @@ class ReviewSession(
             CardAnswer.ALSO -> answer
             CardAnswer.RIGHT -> answer.also { finish(card, right = !missed) }
             CardAnswer.WRONG -> answer.also {
-                missed = true
-                shown = card.node.move
+                val track = if (repeatMisses) tracks.getOrPut(card.state.id, ::Track).also { it.misses++ } else null
+                if (track != null && track.misses == 1) {
+                    // Noted, not shown: the learner moves on and meets it again later.
+                    finish(card, right = false)
+                } else {
+                    missed = true
+                    shown = card.node.move
+                }
             }
         }
     }
@@ -165,6 +187,7 @@ class ReviewSession(
         shown = expected
         if (atCard) {
             missed = true
+            if (repeatMisses) tracks.getOrPut(card.state.id, ::Track).misses++
             finish(card, right = false)
         }
         return shown
@@ -200,8 +223,25 @@ class ReviewSession(
 
     private fun finish(card: DueCard, right: Boolean) {
         results += RepertoireCards.afterRecall(card.state, right, hinted, now())
-        if (repeatMisses && !right) queue += card.copy(fromStart = false)
+        returning = false
+        if (repeatMisses) {
+            val track = tracks.getOrPut(card.state.id, ::Track)
+            if (!right) {
+                track.confirming = false
+                comeBack(card)
+            } else if (track.misses > 0 && !track.confirming) {
+                track.confirming = true
+                comeBack(card)
+            }
+        }
         done = true
+    }
+
+    /** Puts [card] back at a random point later in the run, not straight after itself when there is room. */
+    private fun comeBack(card: DueCard) {
+        returning = true
+        val from = minOf(index + 2, queue.size)
+        queue.add(random.nextInt(from, queue.size + 1), card.copy(fromStart = false))
     }
 }
 
