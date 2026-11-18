@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -497,5 +499,67 @@ class AccountScreenTest {
         )
         assertTrue(openingDetail(strange)!!.endsWith("out of book on move 4"))
         assertEquals("You lost", resultTitle(strange.copy(outcome = com.chesstutor.app.domain.account.GameOutcome.LOSS)))
+    }
+
+    // ---------------------------------------------------------------- the visual pass (Phase 14B)
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryAccount() {
+        compose.shootBoth("account", "01_account") { AccountScreen(state = AppUiState(), games = games, stats = stats, actions = AccountActions()) }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGames() {
+        compose.shootBoth("account", "02_games") { GamesScreen(games = games, initialFilter = GameFilter(), onOpenGame = {}, onBack = {}) }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGame() {
+        val game = games.game("bot_1")!!
+        compose.shootBoth("account", "03_game") {
+            GameDetailScreen(game = game, settings = AppSettings(), actions = GameDetailActions(), courseId = "openings-italian", now = game.dateMillis)
+        }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryStats() {
+        compose.shootBoth("account", "05_stats") {
+            StatsScreen(
+                games = games, state = AppUiState(), initialClock = com.chesstutor.app.domain.account.TimeClass.RAPID, now = 1_760_000_000_000,
+                courseIdFor = { null }, onOpenCourse = {}, onShowGames = {}, onBack = {},
+            )
+        }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryTraining() {
+        val history = (1..6).map { i ->
+            com.chesstutor.app.domain.puzzle.PuzzleHistoryEntry("p$i", solved = true, clean = i % 2 == 0, ratingAfter = 1000 + i * 15, finishedAt = i.toLong())
+        }
+        val training = com.chesstutor.app.domain.account.TrainingCalculator.report(
+            history, { id -> if (id.removePrefix("p").toInt() % 2 == 0) setOf("fork") else setOf("pin") }, lessonsDone = 12, lessonsTotal = 48,
+        )
+        compose.shootBoth("account", "06_training") {
+            TrainingScreen(training = training, stats = stats, dueReviewCount = 2, now = 10, onReviewMistakes = {}, onPracticeTheme = {}, onBack = {})
+        }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun gallerySettings() {
+        compose.shootBoth("account", "07_settings") {
+            SettingsScreen(state = AppUiState(), accountActions = AccountActions(), actions = SettingsActions(crashLog = { "" }, clearCrashLog = {}, eraseEverything = {}, supportUrl = ""))
+        }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryLicences() {
+        compose.shootBoth("account", "09_licences") { LicencesScreen(onBack = {}) }
     }
 }

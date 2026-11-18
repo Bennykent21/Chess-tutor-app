@@ -129,7 +129,9 @@ fun FromYourGamesScreen(
                 )
                 if (numbers.isNotEmpty()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        // Three slots of one size, whatever shows in them.
                         numbers.forEach { (value, label) -> NumberBox(value, label, Modifier.weight(1f)) }
+                        repeat(3 - numbers.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
                 if (report.openings.isNotEmpty()) {
@@ -157,7 +159,7 @@ private const val MAX_SLIPS = 3
 /** One number and what it counts. */
 @Composable
 private fun NumberBox(value: String, label: String, modifier: Modifier) {
-    Column(modifier.clip(CtShapes.CardSmall).background(CtColors.Raised).padding(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier.height(96.dp).clip(CtShapes.CardSmall).background(CtColors.Raised).padding(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(value, style = CtType.Headline)
         Text(label, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 2)
     }

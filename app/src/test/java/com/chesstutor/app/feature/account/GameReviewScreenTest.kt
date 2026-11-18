@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import com.chesstutor.app.design.CtBoardScreenTags
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.getBoundsInRoot
@@ -218,5 +220,17 @@ class GameReviewScreenTest {
         assertEquals(0, backToGamePly(listOf(0, 1), listOf(1), current = 42))
         assertEquals("91.5%", accuracyText(91.46))
         assertEquals("–", accuracyText(null))
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun gallerySummary() {
+        compose.shootBoth("account", "04a_review") { GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions()) }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryMove() {
+        compose.shootBoth("account", "04b_review_move") { GameReviewScreen(state = state(evals), settings = AppSettings(), engine = null, actions = ReviewActions(), startPly = 6) }
     }
 }
