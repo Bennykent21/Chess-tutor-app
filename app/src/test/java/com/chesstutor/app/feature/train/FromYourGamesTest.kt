@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.train
 
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.onAllNodesWithText
+import com.chesstutor.app.domain.train.OpeningRecord
 import com.chesstutor.app.gallery.shootBoth
 import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -48,25 +51,39 @@ class FromYourGamesTest {
                 after = "3.Bc4", played = "3...Nd4", better = "3...Nf6", times = 3, reached = 4,
             ),
         ),
+        openings = listOf(
+            OpeningRecord("caro-kann", "Caro-Kann", PieceColor.BLACK, games = 34, wins = 15, draws = 6, losses = 13, keptLine = 20, bookMoves = 100, onLine = 72),
+            OpeningRecord("italian", "Italian Game", PieceColor.WHITE, games = 21, wins = 12, draws = 2, losses = 7, keptLine = 18, bookMoves = 50, onLine = 46),
+        ),
     )
 
     @Test
-    fun repeatedMistakesShowAsNumbersWithTrainIt() {
+    fun numbersOpeningsEndingsAndMistakesEachWithTrain() {
         var line: Pair<String, List<String>>? = null
         var ending: String? = null
+        var position: String? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                FromYourGamesScreen(FindingsState(loading = false, report = report), BoardTheme(), onTrainLine = { id, p -> line = id to p }, onTrainEnding = { ending = it }, onBack = {})
+                FromYourGamesScreen(
+                    FindingsState(loading = false, report = report), BoardTheme(),
+                    onTrainLine = { id, p -> line = id to p }, onTrainEnding = { ending = it }, onBack = {}, onTrainPosition = { position = it },
+                )
             }
         }
-        compose.onNodeWithText("6/9").assertExists()
         compose.onNodeWithText("120 games · 14 reviewed").assertExists()
-        compose.onNodeWithText("3 of 4 games").assertExists()
+        // 118 of 150 own opening moves were the line's (D103).
+        compose.onNodeWithText("79%").assertExists()
+        compose.onNodeWithText("2/7").assertExists()
+        compose.onNodeWithText("in 6 of 9 games", substring = true).assertExists()
+        compose.onNodeWithText("On your line in 18 of 21 games.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_from_games.png")
-        compose.onNodeWithText("Train it").performClick()
+        val train = compose.onAllNodesWithText("Train")
+        train[0].performClick()
         assertEquals("caro-kann" to path, line)
-        compose.onNodeWithText("Rook endings").performClick()
+        train[1].performScrollTo().performClick()
         assertEquals("rook-endings", ending)
+        train[2].performScrollTo().performClick()
+        assertEquals(report.findings.filterIsInstance<GameFinding.RepeatedMistake>().single().fen, position)
     }
 
     @Test

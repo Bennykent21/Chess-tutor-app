@@ -57,6 +57,23 @@ sealed interface GameFinding {
     }
 }
 
+/**
+ * How the learner does in one of their taught openings (D103): its games and results, how many
+ * kept to the line as far as the book goes, and their own moves on and off the line meanwhile.
+ */
+data class OpeningRecord(
+    val bookId: String,
+    val title: String,
+    val side: PieceColor,
+    val games: Int,
+    val wins: Int,
+    val draws: Int,
+    val losses: Int,
+    val keptLine: Int,
+    val bookMoves: Int,
+    val onLine: Int,
+)
+
 /** Endings with a matching set in Train's endgames. */
 enum class EndingKind(val title: String, val setId: String) {
     ROOK("Rook endings", "rook-endings"),
@@ -83,6 +100,39 @@ object GameFindings {
 
     fun of(games: List<GameSummary>, books: List<RepertoireBook>, reviews: Map<String, GameReview>): List<GameFinding> =
         (lineSlips(games, books) + endings(games) + mistakes(games, reviews)).sortedByDescending { it.weight }
+
+    /** Each taught opening the learner has played (D103), most played first. */
+    fun openings(games: List<GameSummary>, books: List<RepertoireBook>): List<OpeningRecord> = books.mapNotNull { book ->
+        val mine = games.filter { it.startFen == null && it.userColor == book.side && it.moves.take(book.start.size) == book.start }
+        if (mine.isEmpty()) return@mapNotNull null
+        var kept = 0
+        var bookMoves = 0
+        var onLine = 0
+        for (game in mine) {
+            var position = Position.initial()
+            var left = false
+            for ((ply, uci) in game.moves.withIndex()) {
+                if (ply >= OPENING_PLIES) break
+                val node = book.at(position) ?: break
+                if (node.own && book.isCard(node) && node.move != null && position.sideToMove == book.side) {
+                    bookMoves++
+                    if (uci == node.move || uci in node.also) onLine++ else {
+                        left = true
+                        break
+                    }
+                }
+                position = RepertoireIndex.play(position, uci) ?: break
+            }
+            if (!left) kept++
+        }
+        OpeningRecord(
+            bookId = book.id, title = book.title, side = book.side, games = mine.size,
+            wins = mine.count { it.outcome == GameOutcome.WIN },
+            draws = mine.count { it.outcome == GameOutcome.DRAW },
+            losses = mine.count { it.outcome == GameOutcome.LOSS },
+            keptLine = kept, bookMoves = bookMoves, onLine = onLine,
+        )
+    }.sortedByDescending { it.games }
 
     fun lineSlips(games: List<GameSummary>, books: List<RepertoireBook>): List<GameFinding.LineSlip> = books.flatMap { book ->
         val reached = HashMap<String, Int>()

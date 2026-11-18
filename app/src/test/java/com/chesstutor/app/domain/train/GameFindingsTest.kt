@@ -45,6 +45,21 @@ class GameFindingsTest {
     }
 
     @Test
+    fun anOpeningRecordCountsItsGamesResultsAndMovesOnTheLine() {
+        val book = TestRepertoire.caroKann()
+        val games = List(3) { game("e2e4 c7c6 d2d4 d7d5 e4e5 e7e6 g1f3", "black", result = "1-0") } +
+            game("e2e4 c7c6 d2d4 d7d5 e4e5 c8f5 g1f3", "black", result = "0-1") +
+            game("e2e4 e7e5 g1f3", "black") +
+            game("e2e4 c7c6 d2d4 d7d5 e4e5 e7e6", "white")
+        val record = GameFindings.openings(games, listOf(book)).single()
+        assertEquals("only games that start like the opening, with the learner on its side", 4, record.games)
+        assertEquals(1, record.wins)
+        assertEquals(3, record.losses)
+        assertEquals(1, record.keptLine)
+        assertEquals("each slip is one move off the line", 3, record.bookMoves - record.onLine)
+    }
+
+    @Test
     fun aSlipOnceIsNotAFinding() {
         val games = listOf(game("e2e4 c7c6 d2d4 d7d5 e4e5 e7e6", "black"), game("e2e4 c7c6 d2d4 d7d5 e4e5 c8f5", "black"))
         assertTrue(GameFindings.lineSlips(games, listOf(TestRepertoire.caroKann())).isEmpty())

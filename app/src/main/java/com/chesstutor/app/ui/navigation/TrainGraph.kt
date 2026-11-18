@@ -197,6 +197,11 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
             FromYourGamesScreen(
                 state = findings,
                 theme = state.appSettings.boardTheme,
+                // A repeated mistake's position against Stockfish, which plays the other side.
+                onTrainPosition = { fen ->
+                    val engine = if (fen.split(' ').getOrNull(1) == "b") "white" else "black"
+                    navController.navigate(AppRoutes.analysis(fen, engineSide = engine)) { launchSingleTop = true }
+                },
                 onTrainLine = { bookId, path ->
                     // Straight into the line when it can be learnt; else the opening's page says why not.
                     val book = repertoires.book(bookId)
@@ -264,7 +269,7 @@ internal fun Shell.findingsViewModel(): GameFindingsViewModel {
                 game.id to GameReviewer.review(game.startFen ?: Position.STARTING_FEN, game.moves, analysis.evals(game.id), game.bookPlies)
             }
             val books = AppContainer.provideRepertoireLoader(context).load()
-            FindingsReport(games.size, reviews.size, GameFindings.of(games, books, reviews))
+            FindingsReport(games.size, reviews.size, GameFindings.of(games, books, reviews), GameFindings.openings(games, books))
         },
     )
 }
