@@ -36,11 +36,13 @@ import com.chesstutor.app.ui.theme.InterFontFamily
 
 /** The colour roles of the current theme and mode, as Compose colours. Values live in [Palette]. */
 @Immutable
-class CtColorScheme(val palette: CtPalette) {
+class CtColorScheme(val palette: CtPalette, glass: Boolean = false) {
     val isDark = palette.dark
     val bg = Color(palette.bg)
-    val surface = Color(palette.surface)
-    val raised = Color(palette.raised)
+    // With frosted glass the app's own surfaces let the glow through (D107); Material's stay solid for dialogs.
+    // Controls (buttons, chips) stay nearly solid so they read on a frosted card; cards are clearer still.
+    val surface = Color(palette.surface).let { if (glass) it.copy(alpha = if (isDark) 0.82f else 0.85f) else it }
+    val raised = Color(palette.raised).let { if (glass) it.copy(alpha = if (isDark) 0.5f else 0.58f) else it }
     val line = Color(palette.line)
     val track = Color(palette.track)
     val text = Color(palette.text)
@@ -65,8 +67,8 @@ class CtColorScheme(val palette: CtPalette) {
             tertiary = accent, onTertiary = onAccent,
             background = bg, onBackground = text,
             surface = bg, onSurface = text,
-            surfaceVariant = surface, onSurfaceVariant = text2,
-            surfaceContainerLowest = bg, surfaceContainerLow = surface, surfaceContainer = raised,
+            surfaceVariant = Color(palette.surface), onSurfaceVariant = text2,
+            surfaceContainerLowest = bg, surfaceContainerLow = Color(palette.surface), surfaceContainer = Color(palette.raised),
             surfaceContainerHigh = raised, surfaceContainerHighest = track,
             inverseSurface = text, inverseOnSurface = bg,
             outline = line, outlineVariant = line,
@@ -79,8 +81,8 @@ class CtColorScheme(val palette: CtPalette) {
             tertiary = accent, onTertiary = onAccent,
             background = bg, onBackground = text,
             surface = bg, onSurface = text,
-            surfaceVariant = surface, onSurfaceVariant = text2,
-            surfaceContainerLowest = bg, surfaceContainerLow = surface, surfaceContainer = raised,
+            surfaceVariant = Color(palette.surface), onSurfaceVariant = text2,
+            surfaceContainerLowest = bg, surfaceContainerLow = Color(palette.surface), surfaceContainer = Color(palette.raised),
             surfaceContainerHigh = raised, surfaceContainerHighest = track,
             inverseSurface = text, inverseOnSurface = bg,
             outline = line, outlineVariant = line,
@@ -293,7 +295,7 @@ fun CtTheme(
     content: @Composable () -> Unit,
 ) {
     val dark = appearance.isDark(isSystemInDarkTheme())
-    val colors = remember(theme, dark) { CtColorScheme(Palette.of(theme, dark)) }
+    val colors = remember(theme, dark, glass) { CtColorScheme(Palette.of(theme, dark), glass) }
     val type = remember(colors) { CtTypeScale(colors) }
     val view = LocalView.current
     if (!view.isInEditMode) {

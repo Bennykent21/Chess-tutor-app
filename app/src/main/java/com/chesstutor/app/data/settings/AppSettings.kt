@@ -40,6 +40,8 @@ data class AppSettings(
     val reduceMotion: Boolean = false,
     /** Frosted, see-through cards over a soft glow, across the app (D106). */
     val glass: Boolean = false,
+    /** Review the five newest games in the background (D93, D107). */
+    val autoReview: Boolean = true,
     val autoQueen: Boolean = false,
     val boardOrientation: BoardOrientation = BoardOrientation.FOLLOW_SIDE,
     /** Always a known [BoardColors.id] once decoded. */
@@ -95,6 +97,7 @@ object AppSettingsCodec {
     const val LEGAL_DOTS = "show_legal_dots"
     const val REDUCE_MOTION = "reduce_motion"
     const val GLASS = "glass_look"
+    const val AUTO_REVIEW = "auto_review"
     const val AUTO_QUEEN = "auto_queen"
     const val ORIENTATION = "board_orientation"
     const val BOARD_THEME = "board_theme_id"
@@ -125,6 +128,7 @@ object AppSettingsCodec {
             showLegalDots = bool(LEGAL_DOTS, defaults.showLegalDots),
             reduceMotion = bool(REDUCE_MOTION, defaults.reduceMotion),
             glass = bool(GLASS, defaults.glass),
+            autoReview = bool(AUTO_REVIEW, defaults.autoReview),
             autoQueen = bool(AUTO_QUEEN, defaults.autoQueen),
             boardOrientation = orientation,
             boardThemeId = BoardColors.fromId(values[BOARD_THEME] as? String).id,
@@ -152,6 +156,7 @@ object AppSettingsCodec {
         LEGAL_DOTS to settings.showLegalDots,
         REDUCE_MOTION to settings.reduceMotion,
         GLASS to settings.glass,
+        AUTO_REVIEW to settings.autoReview,
         AUTO_QUEEN to settings.autoQueen,
         ORIENTATION to settings.boardOrientation.name,
         BOARD_THEME to settings.boardThemeId,

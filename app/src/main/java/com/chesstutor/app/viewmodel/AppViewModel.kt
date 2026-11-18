@@ -269,6 +269,8 @@ class AppViewModel(
 
     fun setGlass(enabled: Boolean) = updateSettings { it.copy(glass = enabled) }
 
+    fun setAutoReview(enabled: Boolean) = updateSettings { it.copy(autoReview = enabled) }
+
     fun setChatLevel(level: ChatLevel) = updateSettings { it.copy(chatLevel = level) }
 
     fun setAutoQueen(enabled: Boolean) = updateSettings { it.copy(autoQueen = enabled) }

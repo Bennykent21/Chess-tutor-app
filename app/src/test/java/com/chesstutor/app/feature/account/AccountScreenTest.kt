@@ -581,4 +581,18 @@ class AccountScreenTest {
     fun galleryLicences() {
         compose.shootBoth("account", "09_licences") { LicencesScreen(onBack = {}) }
     }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlassAccount() {
+        compose.shootBoth("glass", "04_account", glass = true) { AccountScreen(state = AppUiState(), games = games, stats = stats, actions = AccountActions()) }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlassSettings() {
+        compose.shootBoth("glass", "05_settings", glass = true) {
+            SettingsScreen(state = AppUiState(), accountActions = AccountActions(), actions = SettingsActions(crashLog = { "" }, clearCrashLog = {}, eraseEverything = {}, supportUrl = ""))
+        }
+    }
 }

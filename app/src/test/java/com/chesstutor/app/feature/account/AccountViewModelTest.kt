@@ -132,10 +132,10 @@ class AccountViewModelTest {
         vm.reviewRecentInBackground(limit = 2)
         advanceUntilIdle()
         assertEquals(setOf("mid", "new"), vm.games.value.analysed.keys)
-        // Already reviewed games are skipped, so the next call takes the oldest.
+        // Only the newest games: once they are reviewed, nothing older is started (D107).
         vm.reviewRecentInBackground(limit = 2)
         advanceUntilIdle()
-        assertEquals(setOf("old", "mid", "new"), vm.games.value.analysed.keys)
+        assertEquals(setOf("mid", "new"), vm.games.value.analysed.keys)
     }
 
     @Test

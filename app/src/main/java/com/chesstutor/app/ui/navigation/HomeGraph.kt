@@ -58,7 +58,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
             val homeModel = homeViewModel()
             // The newest games get reviewed while Home is open, so it can show their graphs (D93).
             val account = accountViewModel()
-            LaunchedEffect(Unit) { account.reviewRecentInBackground() }
+            LaunchedEffect(state.appSettings.autoReview) { if (state.appSettings.autoReview) account.reviewRecentInBackground() else account.pauseBackground() }
             val home by homeModel.home.collectAsStateWithLifecycle()
             LaunchedEffect(state.effectiveUserRating) { homeModel.setPlayerRating(state.effectiveUserRating) }
             LaunchedEffect(dueReviews) { homeModel.setDueMistakes(dueReviews) }

@@ -89,7 +89,7 @@ fun CtBoardScreen(
     /** A faint line under the title, such as a game's opening (D104). */
     subtitle: String? = null,
 ) {
-    BoxWithConstraints(modifier.fillMaxSize().background(CtColors.Bg)) {
+    BoxWithConstraints(modifier.fillMaxSize().ctPage()) {
         // The same sizes on every board screen, with or without controls, so all boards line up.
         val side = CtBoardScreenSpec.boardSize(maxWidth, maxHeight)
         val zoneHeight = CtBoardScreenSpec.zoneHeight(maxHeight, side)

@@ -1,5 +1,7 @@
 package com.chesstutor.app.ui.navigation
 
+import androidx.compose.ui.graphics.Color
+import com.chesstutor.app.design.ctAppBackground
 import android.os.SystemClock
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -120,8 +122,9 @@ private fun AppShell(
     shell.accountViewModel()
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = CtColors.BgDeep,
+        modifier = modifier.fillMaxSize().ctAppBackground(),
+        // Frosted glass draws its glow behind the whole app, so nothing in between may be solid (D107).
+        containerColor = if (state.appSettings.glass) Color.Transparent else CtColors.BgDeep,
         bottomBar = {
             // The first run is a full screen of its own (D46).
             if (AppRoutes.showsBottomBar(currentRoute) && !needsWelcome(state.assessmentState)) {

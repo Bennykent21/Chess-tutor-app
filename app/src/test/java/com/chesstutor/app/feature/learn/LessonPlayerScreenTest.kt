@@ -164,4 +164,14 @@ class LessonPlayerScreenTest {
             LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {})
         }
     }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlassLesson() {
+        val player = LessonPlayer(course, course.lessons[0], InMemoryLessonProgressRepository(), scope, nextLesson = course.lessons[1])
+        player.start()
+        compose.shootBoth("glass", "06_lesson", settle = { step() }, glass = true) {
+            LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {})
+        }
+    }
 }

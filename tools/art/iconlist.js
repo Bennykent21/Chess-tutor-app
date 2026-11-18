@@ -8,6 +8,7 @@ const list = {
     psychology: blue, auto_stories: red, shield: ember,
     smart_toy: blue, swords: red, shuffle: violet, smartphone: teal, wifi: teal, visibility: green, search: gold,
     local_fire_department: ember, swap_vert: steel, ios_share: blue, replay: blue,
+    result_win: green, result_loss: red, handshake: steel,
 };
 const medals = { cup: 'emoji_events', puzzle: 'extension', cap: 'school', chart: 'analytics' };
 export const ICONS = [

@@ -1,5 +1,8 @@
 package com.chesstutor.app.engine
 
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -55,6 +58,37 @@ class StockfishProcessClientTest {
         val result = client(launcher).analyze(AnalysisRequest(requestId = 2, fen = afterE4, movetimeMs = 50))
         assertEquals("e7e5", result.bestMoveUci)
         assertEquals(-25, result.centipawns)
+    }
+
+    @Test
+    fun aGivenUpSearchsLateLinesNeverScoreTheNextPosition() = runBlocking {
+        var goes = 0
+        val launcher = FakeLauncher {
+            FakeStockfishProcess { command ->
+                if (command.startsWith("go")) {
+                    goes++
+                    // The first search never answers by itself; its last lines only come out later,
+                    // after the next search has started (D107).
+                    if (goes == 2) {
+                        emit(
+                            "info depth 18 score cp 900 nodes 1 pv d8h4",
+                            "bestmove d8h4",
+                            "info depth 10 score cp 20 nodes 1000 nps 50000 pv e2e4",
+                            "bestmove e2e4",
+                        )
+                    }
+                } else {
+                    defaultScript(command)
+                }
+            }
+        }
+        val engine = client(launcher)
+        val first = launch { engine.analyze(AnalysisRequest(requestId = 20, fen = afterE4, movetimeMs = 5_000)) }
+        delay(500)
+        first.cancelAndJoin()
+        val result = engine.analyze(AnalysisRequest(requestId = 21, fen = startFen, movetimeMs = 50))
+        assertEquals("e2e4", result.bestMoveUci)
+        assertEquals(20, result.centipawns)
     }
 
     @Test

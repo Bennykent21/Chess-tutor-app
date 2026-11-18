@@ -1,5 +1,7 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import android.content.res.Resources
 import android.graphics.BitmapFactory
 import android.util.LruCache
@@ -134,10 +136,20 @@ fun CtArt(
 ) {
     val dark = CtColors.IsDark
     val id = if (dark) scene.night else scene.day
-    val blend = if (dark) BlendMode.Screen else BlendMode.Modulate
+    // In frosted glass the art keeps no stage of its own: it is drawn on black (night) or white (day)
+    // in a layer screened or multiplied onto whatever is behind, so the glow shows round it (D107).
+    val glass = LocalGlass.current
+    val ground = if (glass) (if (dark) Color.Black else Color.White) else stage
+    val blend = if (glass) BlendMode.SrcOver else if (dark) BlendMode.Screen else BlendMode.Modulate
     val reduceMotion = LocalReduceMotion.current
     val resources = LocalContext.current.resources
-    BoxWithConstraints(modifier.background(stage).clipToBounds().clearAndSetSemantics {}) {
+    val layer = if (glass) {
+        Modifier.graphicsLayer {
+            compositingStrategy = CompositingStrategy.Offscreen
+            blendMode = if (dark) BlendMode.Screen else BlendMode.Multiply
+        }
+    } else Modifier
+    BoxWithConstraints(modifier.then(layer).background(ground).clipToBounds().clearAndSetSemantics {}) {
         val width = constraints.maxWidth
         val picture by produceState(ArtCache.cached(id, width), id, width) {
             value = withContext(Dispatchers.IO) { ArtCache.load(resources, id, width) }
@@ -156,7 +168,7 @@ fun CtArt(
         // The fade must end before a lifted picture does, or the picture's foot shows as an edge.
         val fadeTo = min(0.92f, 0.98f - lift)
         if (fadeFrom < fadeTo) {
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(fadeFrom to stage.copy(alpha = 0f), fadeTo to stage)))
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(fadeFrom to ground.copy(alpha = 0f), fadeTo to ground)))
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.design.ctPage
 import androidx.compose.ui.text.style.TextAlign
 import com.chesstutor.app.design.CtChip
 import androidx.compose.material.icons.rounded.Bolt
@@ -124,7 +125,7 @@ data class RepertoireActions(
  */
 @Composable
 fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().background(CtColors.Bg).verticalScroll(rememberScrollState())) {
+    Column(modifier.fillMaxSize().ctPage().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(236.dp)) {
             CtArt(CtScene.OPENINGS, Modifier.fillMaxSize(), fadeFrom = 0.45f)
             CtIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = actions.onBack, modifier = Modifier.padding(CtSpacing.xs))

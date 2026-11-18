@@ -110,6 +110,8 @@ data class SettingsActions(
     val onReduceMotion: (Boolean) -> Unit = {},
     /** Frosted glass across the app (D106). */
     val onGlass: (Boolean) -> Unit = {},
+    /** Reviewing the newest games in the background (D107). */
+    val onAutoReview: (Boolean) -> Unit = {},
     val onAppTheme: (AppTheme) -> Unit = {},
     val onAppearance: (Appearance) -> Unit = {},
     /** The design gallery, shown while the Phase 7 redesign is under way. */
@@ -315,6 +317,7 @@ fun SettingsScreen(
                                 )
                                 Spacer(Modifier.height(CtSpacing.xs))
                                 Text(state.appSettings.reviewDepth.detail, style = CtType.Caption)
+                                CtToggleRow(title = "Review new games by itself", checked = state.appSettings.autoReview, onCheckedChange = actions.onAutoReview)
                                 CtToggleRow(
                                     title = "Online engine as a backup",
                                     subtitle = "If Stockfish stops, a free online engine answers",

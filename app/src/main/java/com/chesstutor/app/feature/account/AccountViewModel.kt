@@ -270,17 +270,18 @@ class AccountViewModel(
     private val background = HashSet<String>()
 
     /**
-     * Reviews the newest games that have no review yet, [limit] at most, one after another (D93),
-     * so Home and Stats can show their graphs and accuracy without asking. A half-done review
-     * resumes where it stopped.
+     * Reviews the [limit] newest games, those with no review yet, one after another (D93), so Home
+     * and Stats can show their graphs and accuracy without asking. Only the newest games: once they
+     * are reviewed nothing older is started, so it never works back through the whole history
+     * (D107). A half-done review resumes where it stopped.
      */
     fun reviewRecentInBackground(limit: Int = AUTO_REVIEW_GAMES) {
         if (engine == null) return
         viewModelScope.launch {
             val state = games.first { !it.loading }
             state.games.sortedByDescending { it.dateMillis }
-                .filter { it.id !in state.analysed }
                 .take(limit)
+                .filter { it.id !in state.analysed && it.id !in running }
                 .forEach { game ->
                     background += game.id
                     analyse(game.id)

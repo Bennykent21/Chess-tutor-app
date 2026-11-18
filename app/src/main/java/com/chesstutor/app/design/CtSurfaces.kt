@@ -43,9 +43,7 @@ fun CtScreenBackground(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(CtColors.Bg)
-            // With frosted glass on, a soft glow sits behind every page (D106).
-            .then(if (LocalGlass.current) Modifier.ctGlow(CtColors.Accent) else Modifier),
+            .ctPage(),
         content = content,
     )
 }
@@ -170,9 +168,18 @@ fun CtGlassCard(
 /** A soft glow of [hue] in the top corner and a warm one further down, behind a page (D106). */
 fun Modifier.ctGlow(hue: Color): Modifier = composed {
     val warm = CtColors.Accent
-    val strength = if (CtColors.IsDark) 0.26f else 0.32f
+    val strength = if (CtColors.IsDark) 0.3f else 0.4f
     drawBehind {
         drawRect(Brush.radialGradient(listOf(hue.copy(alpha = strength), Color.Transparent), center = Offset(size.width * 0.15f, size.height * 0.05f), radius = size.width * 1.1f))
         drawRect(Brush.radialGradient(listOf(warm.copy(alpha = strength * 0.5f), Color.Transparent), center = Offset(size.width, size.height * 0.45f), radius = size.width * 0.9f))
     }
+}
+
+/** A page's own background: the theme's, or nothing in frosted glass, where the app's glow shows through (D107). */
+fun Modifier.ctPage(): Modifier = composed { if (LocalGlass.current) this else background(CtColors.Bg) }
+
+/** What sits behind every screen: the theme's background, with the glow in frosted glass (D107). */
+fun Modifier.ctAppBackground(): Modifier = composed {
+    val base = background(CtColors.Bg)
+    if (LocalGlass.current) base.ctGlow(CtColors.Accent) else base
 }

@@ -1,5 +1,7 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.BasicText
@@ -175,12 +177,20 @@ fun CtBottomBar(
     modifier: Modifier = Modifier,
 ) {
     val reduceMotion = LocalReduceMotion.current
-    Column(modifier = modifier.fillMaxWidth().background(CtColors.Bg)) {
+    val glass = LocalGlass.current
+    val line = CtColors.Line
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (glass) Modifier.background(CtColors.Raised).drawBehind { drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) } else Modifier.background(CtColors.Bg)),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .height(60.dp)
+                // The icons sit a little above the middle, clear of the phone's own gesture bar.
+                .padding(bottom = 6.dp)
                 .selectableGroup(),
             verticalAlignment = Alignment.CenterVertically,
         ) {

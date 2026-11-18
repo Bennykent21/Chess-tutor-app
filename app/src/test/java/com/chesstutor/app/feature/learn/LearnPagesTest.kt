@@ -170,4 +170,14 @@ class LearnPagesTest {
     fun galleryCourse() = compose.shootBoth("learn", "05_course") {
         CourseScreen(course = checkAndMate, progress = learn.progress, onOpenLesson = {}, onBack = {}, onRelatedPuzzles = {}, onPracticeSet = {})
     }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlassHub() = compose.shootBoth("glass", "01_learn", glass = true) { LearnScreen(learn = learn, actions = LearnHubActions(onOpenCategory = {}, onOpenLesson = {})) }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlassCourse() = compose.shootBoth("glass", "02_course", glass = true) {
+        CourseScreen(course = checkAndMate, progress = learn.progress, onOpenLesson = {}, onBack = {}, onRelatedPuzzles = {}, onPracticeSet = {})
+    }
 }

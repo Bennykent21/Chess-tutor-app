@@ -1,5 +1,7 @@
 package com.chesstutor.app.gallery
 
+import androidx.compose.foundation.layout.fillMaxSize
+import com.chesstutor.app.design.ctAppBackground
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,10 +20,13 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
  * `recordRoborazziDebug`. [settle] runs before each picture, for clocks driven by a test scheduler.
  */
 @OptIn(ExperimentalRoborazziApi::class)
-fun ComposeContentTestRule.shootBoth(tab: String, name: String, settle: () -> Unit = {}, content: @Composable () -> Unit) {
+fun ComposeContentTestRule.shootBoth(tab: String, name: String, settle: () -> Unit = {}, glass: Boolean = false, content: @Composable () -> Unit) {
     var dark by mutableStateOf(false)
     setContent {
-        CtTheme(theme = AppTheme.PARCHMENT, appearance = if (dark) Appearance.DARK else Appearance.LIGHT, reduceMotion = true) { content() }
+        CtTheme(theme = AppTheme.PARCHMENT, appearance = if (dark) Appearance.DARK else Appearance.LIGHT, reduceMotion = true, glass = glass) {
+            // The app's own background sits behind every screen, as in AppNavHost.
+            androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().ctAppBackground()) { content() }
+        }
     }
     waitForIdle()
     settle()

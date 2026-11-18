@@ -93,4 +93,10 @@ class TrainScreenTest {
     fun gallery() {
         compose.shootBoth("train", "01_train") { TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions({}, {}, {})) }
     }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlass() {
+        compose.shootBoth("glass", "03_train", glass = true) { TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions({}, {}, {})) }
+    }
 }

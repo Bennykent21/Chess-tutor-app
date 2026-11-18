@@ -169,6 +169,7 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
                     onHaptics = viewModel::setHapticsEnabled,
                     onReduceMotion = viewModel::setReduceMotion,
                     onGlass = viewModel::setGlass,
+                    onAutoReview = viewModel::setAutoReview,
                     exportPgn = {
                         AppContainer.provideGameRepository(context).getRecentGames(Int.MAX_VALUE)
                             .joinToString("\n\n") { PgnFormatter.reconstructPgnFromGameRecord(it).trim() }
