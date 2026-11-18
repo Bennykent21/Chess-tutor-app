@@ -1,6 +1,5 @@
 package com.chesstutor.app.ui.navigation
 
-import androidx.compose.ui.graphics.Color
 import com.chesstutor.app.design.ctAppBackground
 import android.os.SystemClock
 import androidx.compose.animation.EnterTransition
@@ -64,7 +63,7 @@ fun AppNavHost(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val settings = state.appSettings
-    CtTheme(theme = settings.appTheme, appearance = settings.appearance, reduceMotion = settings.reduceMotion, glass = settings.glass) {
+    CtTheme(theme = settings.appTheme, appearance = settings.appearance, reduceMotion = settings.reduceMotion) {
         when (StartScreen.of(state.profileLoaded)) {
             // A blank screen for the moment it takes to read the saved profile.
             StartScreen.LOADING -> Box(modifier.fillMaxSize().background(CtColors.Bg))
@@ -123,8 +122,7 @@ private fun AppShell(
 
     Scaffold(
         modifier = modifier.fillMaxSize().ctAppBackground(),
-        // Frosted glass draws its glow behind the whole app, so nothing in between may be solid (D107).
-        containerColor = if (state.appSettings.glass) Color.Transparent else CtColors.BgDeep,
+        containerColor = CtColors.BgDeep,
         bottomBar = {
             // The first run is a full screen of its own (D46).
             if (AppRoutes.showsBottomBar(currentRoute) && !needsWelcome(state.assessmentState)) {

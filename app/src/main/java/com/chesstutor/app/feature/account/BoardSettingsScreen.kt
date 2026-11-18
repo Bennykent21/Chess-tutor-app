@@ -105,12 +105,18 @@ fun BoardSettingsScreen(
                     .padding(start = CtSpacing.gutter, end = CtSpacing.gutter, bottom = CtSpacing.xl),
             ) {
                 CtSectionHeader(title = "Pieces")
-                Row(
+                // Four to a row, so every set has room for its knight and its name (D109).
+                Column(
                     modifier = Modifier.selectableGroup().padding(top = CtSpacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    PieceSet.entries.forEach { set ->
-                        PieceSetCard(set, selected = set == theme.pieceSet, onSelect = { actions.onPieceSet(set) }, modifier = Modifier.weight(1f))
+                    PieceSet.entries.chunked(PIECE_SETS_PER_ROW).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { set ->
+                                PieceSetCard(set, selected = set == theme.pieceSet, onSelect = { actions.onPieceSet(set) }, modifier = Modifier.weight(1f))
+                            }
+                            repeat(PIECE_SETS_PER_ROW - row.size) { Box(Modifier.weight(1f)) }
+                        }
                     }
                 }
 
@@ -142,6 +148,8 @@ fun BoardSettingsScreen(
         }
     }
 }
+
+private const val PIECE_SETS_PER_ROW = 4
 
 /** A white knight in the set's own art, with the set's name; the chosen one is raised and ringed. */
 @Composable

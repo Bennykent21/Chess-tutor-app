@@ -41,7 +41,7 @@ data class AppSettings(
     val showCoordinates: Boolean = true,
     val showLegalDots: Boolean = true,
     val reduceMotion: Boolean = false,
-    /** Frosted, see-through cards over a soft glow, across the app (D106). */
+    /** Frosted glass across the app (D106): parked in D109 and not offered; kept so a later frosted look can return. */
     val glass: Boolean = false,
     /** Review the five newest games in the background (D93, D107). */
     val autoReview: Boolean = true,

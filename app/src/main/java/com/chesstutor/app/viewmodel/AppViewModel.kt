@@ -276,7 +276,6 @@ class AppViewModel(
 
     fun setReduceMotion(enabled: Boolean) = updateSettings { it.copy(reduceMotion = enabled) }
 
-    fun setGlass(enabled: Boolean) = updateSettings { it.copy(glass = enabled) }
 
     fun setAutoReview(enabled: Boolean) = updateSettings { it.copy(autoReview = enabled) }
 

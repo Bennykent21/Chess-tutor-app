@@ -110,8 +110,6 @@ data class SettingsActions(
     val onHaptics: (Boolean) -> Unit = {},
     val onSoundPack: (SoundPack) -> Unit = {},
     val onReduceMotion: (Boolean) -> Unit = {},
-    /** Frosted glass across the app (D106). */
-    val onGlass: (Boolean) -> Unit = {},
     /** Reviewing the newest games in the background (D107). */
     val onAutoReview: (Boolean) -> Unit = {},
     val onAppTheme: (AppTheme) -> Unit = {},
@@ -255,7 +253,6 @@ fun SettingsScreen(
                                         label = { it.label },
                                         onSelect = actions.onAppearance,
                                     )
-                                    CtToggleRow(title = "Frosted glass", checked = state.appSettings.glass, onCheckedChange = actions.onGlass)
                                 }
                                 Spacer(Modifier.height(CtSpacing.md))
                                 val board = BoardColors.fromId(state.appSettings.boardThemeId)
