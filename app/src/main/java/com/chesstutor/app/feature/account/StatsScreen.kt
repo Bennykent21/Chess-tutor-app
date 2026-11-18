@@ -1,5 +1,16 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.width
+import com.chesstutor.app.domain.account.GameSummary
+import com.chesstutor.app.domain.account.DayPart
+import com.chesstutor.app.domain.account.RatingBand
+import com.chesstutor.app.domain.account.GraphPeriod
+import com.chesstutor.app.domain.account.GameInsights
+import com.chesstutor.app.domain.account.ReviewedGame
+import com.chesstutor.app.design.ctGlow
+import com.chesstutor.app.design.ctGlass
+import com.chesstutor.app.design.CtGlassCard
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -74,10 +85,10 @@ import com.chesstutor.app.viewmodel.AppUiState
 import kotlin.math.roundToInt
 
 /**
- * Stats for one clock (D60, D64, D104), opened from its rating on Account: the clock chips at the
- * top drive everything. The clock's rating over its graph, the results in a card, records as boxes
- * that open their games (best win opens that game), how games ended, insights from the reviewed
- * games (where losses turned, why they were lost, accuracy), and openings as White and as Black.
+ * Stats for one clock (D60, D64, D104, D106), opened from its rating on Account. The clock chips
+ * and the graph's period (1M, 3M, 1Y, All) both narrow every number on the page. Frosted cards sit
+ * over a glow in the clock's colour: the rating over its graph, results, records that open their
+ * games, how games ended, insights from the reviewed games, and openings as White and as Black.
  */
 @Composable
 fun StatsScreen(
@@ -90,50 +101,69 @@ fun StatsScreen(
     onShowGames: (GameFilter) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    insights: Map<TimeClass, ClockInsight> = emptyMap(),
+    insights: Map<TimeClass, List<ReviewedGame>> = emptyMap(),
     onOpenGame: (gameId: String) -> Unit = {},
 ) {
     val played = remember(games.games) { ClockStats.clocksPlayed(games.games) }
     val clocks = played.ifEmpty { listOf(initialClock) }
     var clockName by rememberSaveable { mutableStateOf(initialClock.name) }
     val clock = TimeClass.valueOf(clockName).takeIf { it in clocks } ?: clocks.first()
-    val report = remember(games.games, clock, state.linkedProfile) { ClockStats.report(games.games, clock, linkedRating(state, clock)) }
-    val accuracy = remember(games, clock) { averageAccuracy(games, clock) }
+    // The graph's period narrows every number (D106); All by default.
+    var periodName by rememberSaveable { mutableStateOf(GraphPeriod.ALL.name) }
+    val period = GraphPeriod.valueOf(periodName)
+    val since = period.days?.let { now - it * DAY_MS }
+    val inPeriod = remember(games.games, since) { games.games.filter { since == null || it.dateMillis >= since } }
+    val whole = remember(games.games, clock, state.linkedProfile) { ClockStats.report(games.games, clock, linkedRating(state, clock)) }
+    val report = remember(inPeriod, clock, state.linkedProfile) { ClockStats.report(inPeriod, clock, linkedRating(state, clock)) }
+    val clockGames = remember(inPeriod, clock) { inPeriod.filter { it.timeClass == clock } }
+    val accuracy = remember(clockGames, games.analysed) {
+        clockGames.mapNotNull { game -> games.analysed[game.id]?.accuracyFor(game.userColor) }.takeIf { it.isNotEmpty() }?.average()
+    }
+    val insight = remember(insights, clock, since) {
+        insights[clock]?.filter { since == null || it.dateMillis >= since }?.takeIf { it.isNotEmpty() }?.let(GameInsights::summarise)
+    }
+    // Every list of games opened from here keeps the period.
+    val show: (GameFilter) -> Unit = { filter -> onShowGames(if (filter.fromMillis == null && since != null) filter.copy(fromMillis = since) else filter) }
+    val hue = CtColors.metal(clockHue(clock))
     CtScreenBackground(modifier) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxSize().ctGlow(hue).verticalScroll(rememberScrollState())) {
             CtTopBar(title = "Stats", onBack = onBack)
             if (clocks.size > 1) ClockChips(clocks, clock, onSelect = { it?.let { picked -> clockName = picked.name } })
-            if (report.games > 0) {
-                // Keyed on the clock, so each clock's graph draws itself in and starts at three months.
+            if (whole.games > 0) {
+                // Keyed on the clock, so each clock's graph draws itself in.
                 androidx.compose.runtime.key(clock) {
-                    RatingHero(report.trend, report.records.current, now, clockIcon(clock), CtColors.metal(clockHue(clock)), Modifier.padding(top = CtSpacing.md).ctEnter(0))
+                    RatingHero(
+                        whole.trend, whole.records.current, now, clockIcon(clock), hue, Modifier.padding(top = CtSpacing.md).ctEnter(0),
+                        selected = period, onPeriod = { periodName = it.name },
+                    )
                 }
             }
             Column(
                 modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md, bottom = CtSpacing.xl),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.xl),
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.lg),
             ) {
                 if (report.games == 0) {
-                    CtEmptyState(icon = Icons.Rounded.Insights, title = "No ${clock.label.lowercase()} games yet", body = "Import your games or play a bot.")
-                } else {
-                    CtCard(Modifier.fillMaxWidth().ctEnter(1)) {
-                        ResultsBar(report.results, onShow = { onShowGames(GameFilter(timeClass = clock, outcome = it)) })
-                    }
-                    RecordBoxes(
-                        gameRecords(report, accuracy, clock, onOpenGame, onShowGames),
-                        Modifier.ctEnter(2),
+                    CtEmptyState(
+                        icon = Icons.Rounded.Insights,
+                        title = if (whole.games == 0) "No ${clock.label.lowercase()} games yet" else "No ${clock.label.lowercase()} games in this period",
+                        body = if (whole.games == 0) "Import your games or play a bot." else "Pick a longer period above.",
                     )
-                    Endings(report, onShow = { outcome, ending -> onShowGames(GameFilter(timeClass = clock, outcome = outcome, ending = ending)) })
-                    insights[clock]?.takeIf { it.reviewed > 0 }?.let { insight ->
-                        Insights(insight, clock, report, onShow = onShowGames)
+                } else {
+                    CtGlassCard(Modifier.fillMaxWidth().ctEnter(1)) {
+                        ResultsBar(report.results, onShow = { show(GameFilter(timeClass = clock, outcome = it)) })
                     }
-                    OpeningsAs(PieceColor.WHITE, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, onShowGames)
-                    OpeningsAs(PieceColor.BLACK, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, onShowGames)
+                    RecordBoxes(gameRecords(report, accuracy, clock, onOpenGame, show), Modifier.ctEnter(2))
+                    Endings(report, onShow = { outcome, ending -> show(GameFilter(timeClass = clock, outcome = outcome, ending = ending)) })
+                    MoreInsights(insight, clock, report, clockGames, onShow = show)
+                    OpeningsAs(PieceColor.WHITE, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, show)
+                    OpeningsAs(PieceColor.BLACK, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, show)
                 }
             }
         }
     }
 }
+
+private const val DAY_MS = 86_400_000L
 
 /** The linked site's own rating for [clock], which is fresher than the last imported game. */
 private fun linkedRating(state: AppUiState, clock: TimeClass): Int? {
@@ -177,8 +207,7 @@ private fun RecordBoxes(records: List<Record>, modifier: Modifier = Modifier) {
                         Modifier
                             .weight(1f)
                             .height(76.dp)
-                            .clip(CtShapes.CardSmall)
-                            .background(CtColors.Raised)
+                            .ctGlass(CtShapes.CardSmall)
                             .then(record.onOpen?.let { Modifier.ctPressable(onClickLabel = "Show the games", onClick = it) } ?: Modifier)
                             .semantics(mergeDescendants = true) {}
                             .padding(CtSpacing.sm),
@@ -217,7 +246,7 @@ internal fun Figures(records: List<Record>, modifier: Modifier = Modifier) {
 private fun Endings(report: ClockReport, onShow: (GameOutcome, GameEnding) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
         CtGroupLabel("How games end")
-        CtCard(Modifier.fillMaxWidth()) {
+        CtGlassCard(Modifier.fillMaxWidth()) {
             Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg)) {
                 Endings("Won by", report.wonBy, Modifier.weight(1f), onShow = { onShow(GameOutcome.WIN, it) })
                 Endings("Lost by", report.lostBy, Modifier.weight(1f), onShow = { onShow(GameOutcome.LOSS, it) })
@@ -248,32 +277,54 @@ private fun Endings(title: String, counts: Map<GameEnding, Int>, modifier: Modif
 }
 
 /**
- * Insights from the clock's reviewed games (D104): where the losses turned (the phase of the
- * player's costliest move), why they were lost, and the accuracy over the reviewed games.
+ * Insights (D104, D106): from the reviewed games, where losses turned, why they were lost,
+ * accuracy by phase and over time, positions converted and saved; from every game, results
+ * against lower, similar and higher rated players and by the part of the day.
  */
 @Composable
-private fun Insights(insight: ClockInsight, clock: TimeClass, report: ClockReport, onShow: (GameFilter) -> Unit) {
+private fun MoreInsights(insight: ClockInsight?, clock: TimeClass, report: ClockReport, games: List<GameSummary>, onShow: (GameFilter) -> Unit) {
+    val byRating = remember(games) { GameInsights.byRating(games) }
+    val byDay = remember(games) { GameInsights.byDayPart(games) }
     val losses = GameFilter(timeClass = clock, outcome = GameOutcome.LOSS)
+    if (insight == null && byRating.isEmpty() && byDay.values.sumOf { it.games } < MIN_DAY_GAMES) return
     Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        CtGroupLabel("Insights · ${insight.reviewed} reviewed game${if (insight.reviewed == 1) "" else "s"}")
-        if (insight.losses > 0) {
-            CtCard(Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    Text("Where your losses turned", style = CtType.TitleSmall)
-                    PhaseBars(insight.turned)
+        CtGroupLabel(insight?.let { "Insights · ${it.reviewed} reviewed game${if (it.reviewed == 1) "" else "s"}" } ?: "Insights")
+        if (insight != null) {
+            if (insight.phaseAccuracy.isNotEmpty()) {
+                CtGlassCard(Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        Text("Accuracy by phase", style = CtType.TitleSmall)
+                        val weakest = insight.phaseAccuracy.minByOrNull { it.value }?.key
+                        GamePhase.entries.forEach { phase ->
+                            insight.phaseAccuracy[phase]?.let { value ->
+                                LabelledBar(phase.label, (value / 100).toFloat(), accuracyText(value), if (phase == weakest && insight.phaseAccuracy.size > 1) CtColors.Error else CtColors.Success)
+                            }
+                        }
+                    }
                 }
             }
-            val reasons = listOf(
-                "A blunder decided it" to insight.blunders,
-                "A winning game let slip" to insight.slipped,
-                "Lost on time" to (report.lostBy[GameEnding.TIME] ?: 0),
-            ).filter { it.second > 0 }
-            if (reasons.isNotEmpty()) {
-                CtCard(Modifier.fillMaxWidth()) {
-                    Column {
+            if (insight.winning > 0 || insight.lost > 0) {
+                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    InsightBox("${insight.converted} / ${insight.winning}", "Winning positions converted", Modifier.weight(1f))
+                    InsightBox("${insight.saved} / ${insight.lost}", "Lost positions saved", Modifier.weight(1f))
+                }
+            }
+            if (insight.losses > 0) {
+                CtGlassCard(Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        Text("Where your losses turned", style = CtType.TitleSmall)
+                        PhaseBars(insight.turned)
+                    }
+                }
+                val reasons = listOf(
+                    Triple("A blunder decided it", insight.blunders, null),
+                    Triple("A winning game let slip", insight.slipped, null),
+                    Triple("Lost on time", report.lostBy[GameEnding.TIME] ?: 0, GameEnding.TIME),
+                ).filter { it.second > 0 }
+                if (reasons.isNotEmpty()) {
+                    CtGlassCard(Modifier.fillMaxWidth()) {
                         Text("Why you lose", style = CtType.TitleSmall, modifier = Modifier.padding(bottom = CtSpacing.xs))
-                        reasons.forEach { (label, n) ->
-                            val ending = if (label == "Lost on time") GameEnding.TIME else null
+                        reasons.forEach { (label, n, ending) ->
                             Row(
                                 Modifier
                                     .fillMaxWidth()
@@ -290,16 +341,97 @@ private fun Insights(insight: ClockInsight, clock: TimeClass, report: ClockRepor
                     }
                 }
             }
-        }
-        if (insight.accuracy.size >= 2) {
-            CtCard(Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Accuracy", style = CtType.TitleSmall, modifier = Modifier.weight(1f))
-                        Text("last ${minOf(10, insight.accuracy.size)}: ${accuracyText(insight.accuracy.takeLast(10).average())}", style = CtType.Caption)
+            if (insight.accuracy.size >= 2) {
+                CtGlassCard(Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Accuracy over time", style = CtType.TitleSmall, modifier = Modifier.weight(1f))
+                            Text("last ${minOf(10, insight.accuracy.size)}: ${accuracyText(insight.accuracy.takeLast(10).average())}", style = CtType.Caption)
+                        }
+                        AccuracyLine(insight.accuracy.takeLast(30))
                     }
-                    AccuracyLine(insight.accuracy.takeLast(30))
                 }
+            }
+        }
+        if (byRating.isNotEmpty()) {
+            CtGlassCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    Text("Against the rating", style = CtType.TitleSmall)
+                    RatingBand.entries.forEach { band ->
+                        byRating[band]?.let { wdl ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                                Text(band.label, style = CtType.BodySmall, modifier = Modifier.width(96.dp))
+                                WdlBar(wdl, Modifier.weight(1f), thickness = 8.dp)
+                                Text(percent(wdl.score), style = CtType.Label, modifier = Modifier.width(40.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (byDay.values.sumOf { it.games } >= MIN_DAY_GAMES) {
+            CtGlassCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    Text("When you play best", style = CtType.TitleSmall)
+                    DayBars(byDay)
+                }
+            }
+        }
+    }
+}
+
+private const val MIN_DAY_GAMES = 8
+
+/** A name, a bar filled to [share] in [color], and its value. */
+@Composable
+private fun LabelledBar(label: String, share: Float, value: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), modifier = Modifier.semantics(mergeDescendants = true) {}) {
+        Text(label, style = CtType.BodySmall, modifier = Modifier.width(96.dp))
+        Box(Modifier.weight(1f).height(8.dp).clip(CtShapes.Pill).background(CtColors.Track)) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(share.coerceIn(0f, 1f)).background(color))
+        }
+        Text(value, style = CtType.Label, modifier = Modifier.width(48.dp))
+    }
+}
+
+/** One number and what it counts, on glass. */
+@Composable
+private fun InsightBox(value: String, label: String, modifier: Modifier) {
+    Column(modifier.height(84.dp).ctGlass(CtShapes.CardSmall).padding(CtSpacing.sm).semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.SpaceBetween) {
+        Text(value, style = CtType.Number, maxLines = 1)
+        Text(label, style = CtType.Caption, maxLines = 2)
+    }
+}
+
+/** Morning, afternoon, evening and night as bars as tall as their score; the best green, the worst red. */
+@Composable
+private fun DayBars(byDay: Map<DayPart, Wdl>) {
+    val played = byDay.filterValues { it.games > 0 }
+    val best = played.maxByOrNull { it.value.score }?.key
+    val worst = played.minByOrNull { it.value.score }?.key
+    Row(Modifier.fillMaxWidth().height(96.dp), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), verticalAlignment = Alignment.Bottom) {
+        DayPart.entries.forEach { part ->
+            val wdl = byDay[part]
+            Column(
+                Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "${part.label}: ${wdl?.let { percent(it.score) } ?: "no games"}" },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(wdl?.let { percent(it.score) } ?: "–", style = CtType.Caption)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height((52f * (wdl?.score ?: 0f)).dp.coerceAtLeast(3.dp))
+                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                        .background(
+                            when {
+                                wdl == null -> CtColors.Track
+                                part == best && played.size > 1 -> CtColors.Success
+                                part == worst && played.size > 1 -> CtColors.Error
+                                else -> CtColors.Track
+                            },
+                        ),
+                )
+                Text(part.label, style = CtType.Caption, maxLines = 1)
             }
         }
     }

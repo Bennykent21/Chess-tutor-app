@@ -62,7 +62,7 @@ fun AppNavHost(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val settings = state.appSettings
-    CtTheme(theme = settings.appTheme, appearance = settings.appearance, reduceMotion = settings.reduceMotion) {
+    CtTheme(theme = settings.appTheme, appearance = settings.appearance, reduceMotion = settings.reduceMotion, glass = settings.glass) {
         when (StartScreen.of(state.profileLoaded)) {
             // A blank screen for the moment it takes to read the saved profile.
             StartScreen.LOADING -> Box(modifier.fillMaxSize().background(CtColors.Bg))

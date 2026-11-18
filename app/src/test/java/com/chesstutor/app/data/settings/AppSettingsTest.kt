@@ -23,6 +23,7 @@ class AppSettingsTest {
     @Test
     fun encodeThenDecodeRoundTrips() {
         val custom = AppSettings(
+            glass = true,
             soundEnabled = false,
             hapticsEnabled = false,
             showCoordinates = false,

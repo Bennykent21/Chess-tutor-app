@@ -68,4 +68,35 @@ class GameInsightsTest {
         assertEquals(filter, GameFilter.decode(filter.encode()))
         assertEquals(3, GameLibrary.filter(games, filter).size)
     }
+
+    private fun fact(outcome: GameOutcome, winning: Boolean = false, lost: Boolean = false, phases: Map<GamePhase, Double> = emptyMap()) =
+        ReviewedGame(0, outcome, 75.0, phases, turnedIn = null, decidedByBlunder = false, wasWinning = winning, wasLost = lost)
+
+    @Test
+    fun convertedSavedAndAccuracyByPhaseAreSummed() {
+        val insight = GameInsights.summarise(
+            listOf(
+                fact(GameOutcome.WIN, winning = true, phases = mapOf(GamePhase.OPENING to 90.0, GamePhase.MIDDLEGAME to 60.0)),
+                fact(GameOutcome.LOSS, winning = true, phases = mapOf(GamePhase.OPENING to 80.0)),
+                fact(GameOutcome.DRAW, lost = true),
+                fact(GameOutcome.LOSS, lost = true),
+            ),
+        )
+        assertEquals(2, insight.winning)
+        assertEquals(1, insight.converted)
+        assertEquals(2, insight.lost)
+        assertEquals("a draw from a lost position is saved", 1, insight.saved)
+        assertEquals(85.0, insight.phaseAccuracy.getValue(GamePhase.OPENING), 0.01)
+        assertEquals(60.0, insight.phaseAccuracy.getValue(GamePhase.MIDDLEGAME), 0.01)
+    }
+
+    @Test
+    fun resultsByThePartOfTheDay() {
+        val morning = game("1-0").let { it.copy(record = it.record.copy(dateMillis = 9 * 3_600_000L)) }
+        val night = game("0-1").let { it.copy(record = it.record.copy(dateMillis = 23 * 3_600_000L)) }
+        val parts = GameInsights.byDayPart(listOf(morning, night), java.time.ZoneOffset.UTC)
+        assertEquals(1, parts.getValue(DayPart.MORNING).wins)
+        assertEquals(1, parts.getValue(DayPart.NIGHT).losses)
+        assertEquals(DayPart.NIGHT, DayPart.of(3))
+    }
 }

@@ -276,6 +276,9 @@ object CtType {
 /** True when the player turned on "Reduce motion": animations snap instead of moving. */
 val LocalReduceMotion = compositionLocalOf { false }
 
+/** The frosted glass look across the app (D106): see-through cards over a soft glow. */
+val LocalGlass = compositionLocalOf { false }
+
 /**
  * The app's theme: colour roles for [theme] in light or dark ([appearance] follows the phone
  * by default), the type scale, Material components in the same colours, and status bar icons
@@ -286,6 +289,7 @@ fun CtTheme(
     theme: AppTheme = AppTheme.DEFAULT,
     appearance: Appearance = Appearance.DEFAULT,
     reduceMotion: Boolean = false,
+    glass: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val dark = appearance.isDark(isSystemInDarkTheme())
@@ -307,6 +311,7 @@ fun CtTheme(
             LocalCtColors provides colors,
             LocalCtType provides type,
             LocalReduceMotion provides reduceMotion,
+            LocalGlass provides glass,
             LocalContentColor provides colors.text,
         ) {
             ProvideTextStyle(TextStyle(fontFamily = InterFontFamily, fontFeatureSettings = TABULAR, color = colors.text), content)

@@ -80,9 +80,12 @@ fun RatingHero(
     @DrawableRes icon: Int,
     hue: Color,
     modifier: Modifier = Modifier,
+    /** The period, when the page owns it (Stats, D106): then it narrows every number, not only the graph. */
+    selected: GraphPeriod? = null,
+    onPeriod: ((GraphPeriod) -> Unit)? = null,
 ) {
     var periodName by rememberSaveable { mutableStateOf(GraphPeriod.QUARTER.name) }
-    val period = GraphPeriod.valueOf(periodName)
+    val period = selected ?: GraphPeriod.valueOf(periodName)
     // A period with too little in it shows the whole trend rather than an empty graph.
     val shown = remember(trend, period, now) { trend.within(now, period.days).takeIf { it.points.size >= 2 } ?: trend }
     val points = remember(shown) { shown.forGraph(MOST_POINTS) }
@@ -118,7 +121,7 @@ fun RatingHero(
                 Text(formatDate(points.first().dateMillis), style = CtType.Caption, modifier = Modifier.weight(1f))
                 Text(formatDate(points.last().dateMillis), style = CtType.Caption)
             }
-            Periods(period, onPick = { periodName = it.name })
+            Periods(period, onPick = { picked -> onPeriod?.invoke(picked) ?: run { periodName = picked.name } })
         }
     }
 }

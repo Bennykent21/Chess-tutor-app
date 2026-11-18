@@ -267,6 +267,8 @@ class AppViewModel(
 
     fun setReduceMotion(enabled: Boolean) = updateSettings { it.copy(reduceMotion = enabled) }
 
+    fun setGlass(enabled: Boolean) = updateSettings { it.copy(glass = enabled) }
+
     fun setChatLevel(level: ChatLevel) = updateSettings { it.copy(chatLevel = level) }
 
     fun setAutoQueen(enabled: Boolean) = updateSettings { it.copy(autoQueen = enabled) }

@@ -38,6 +38,8 @@ data class AppSettings(
     val showCoordinates: Boolean = true,
     val showLegalDots: Boolean = true,
     val reduceMotion: Boolean = false,
+    /** Frosted, see-through cards over a soft glow, across the app (D106). */
+    val glass: Boolean = false,
     val autoQueen: Boolean = false,
     val boardOrientation: BoardOrientation = BoardOrientation.FOLLOW_SIDE,
     /** Always a known [BoardColors.id] once decoded. */
@@ -92,6 +94,7 @@ object AppSettingsCodec {
     const val COORDINATES = "show_coordinates"
     const val LEGAL_DOTS = "show_legal_dots"
     const val REDUCE_MOTION = "reduce_motion"
+    const val GLASS = "glass_look"
     const val AUTO_QUEEN = "auto_queen"
     const val ORIENTATION = "board_orientation"
     const val BOARD_THEME = "board_theme_id"
@@ -121,6 +124,7 @@ object AppSettingsCodec {
             showCoordinates = bool(COORDINATES, defaults.showCoordinates),
             showLegalDots = bool(LEGAL_DOTS, defaults.showLegalDots),
             reduceMotion = bool(REDUCE_MOTION, defaults.reduceMotion),
+            glass = bool(GLASS, defaults.glass),
             autoQueen = bool(AUTO_QUEEN, defaults.autoQueen),
             boardOrientation = orientation,
             boardThemeId = BoardColors.fromId(values[BOARD_THEME] as? String).id,
@@ -147,6 +151,7 @@ object AppSettingsCodec {
         COORDINATES to settings.showCoordinates,
         LEGAL_DOTS to settings.showLegalDots,
         REDUCE_MOTION to settings.reduceMotion,
+        GLASS to settings.glass,
         AUTO_QUEEN to settings.autoQueen,
         ORIENTATION to settings.boardOrientation.name,
         BOARD_THEME to settings.boardThemeId,
