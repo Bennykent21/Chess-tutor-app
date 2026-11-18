@@ -1,5 +1,6 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.feature.learn.VideoScreen
 import com.chesstutor.app.feature.learn.rememberLessonVideos
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
@@ -196,6 +197,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 learn = lessons,
                 onOpenCourse = { id -> navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } },
                 onBack = { navController.popBackStack() },
+                videos = rememberLessonVideos(),
+                onOpenVideo = { video -> navController.navigate(AppRoutes.video(video.id)) { launchSingleTop = true } },
             )
         }
         composable(
@@ -222,6 +225,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     }
                 },
                 onBack = { navController.popBackStack() },
+                videos = rememberLessonVideos(),
+                onOpenVideo = { video -> navController.navigate(AppRoutes.video(video.id)) { launchSingleTop = true } },
                 onDrills = group.book?.let { book -> { navController.navigate(AppRoutes.repertoire(book.book.id)) { launchSingleTop = true } } },
                 theme = state.appSettings.boardTheme,
             )
@@ -238,9 +243,11 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val repertoires by repertoireViewModel().state.collectAsStateWithLifecycle()
             // The trainer's opening this course belongs to (Phase 12).
             val book = course?.opening?.let { repertoires.book(it) }
+            val videos = rememberLessonVideos()
             CourseScreen(
                 course = course,
                 progress = lessons.progress,
+                video = course?.let { videos.courseVideo(it.id) },
                 onOpenLesson = { id ->
                     learn.openLesson(id)
                     navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
@@ -274,6 +281,13 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     popUpTo(AppRoutes.LESSON_OPEN_PATTERN) { inclusive = true }
                 }
             }
+        }
+        composable(
+            route = AppRoutes.VIDEO_PATTERN,
+            arguments = listOf(navArgument(AppRoutes.VIDEO_ID_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            val videos = rememberLessonVideos()
+            VideoScreen(video = videos.byId(entry.arguments?.getString(AppRoutes.VIDEO_ID_ARG).orEmpty()), onBack = { navController.popBackStack() })
         }
         composable(AppRoutes.LESSON) { entry ->
             val learn = learnViewModel()

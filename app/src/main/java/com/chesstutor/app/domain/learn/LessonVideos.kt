@@ -27,20 +27,38 @@ data class LessonVideo(
     val thumbnail: String get() = "https://i.ytimg.com/vi/$id/mqdefault.jpg"
 }
 
-/** The videos, and which lesson each one opens (D99): every lesson has its own, no feed. */
+/**
+ * The videos and where each shows (D100): a topic's tier and an opening list theirs before a course
+ * is chosen, a course's general video heads its page, and each lesson opens on its own.
+ */
 class LessonVideos(val all: List<LessonVideo>) {
 
     fun forCourse(courseId: String): List<LessonVideo> = all.filter { it.course == courseId }
 
+    /** The course's general video, at the top of its page in place of the art. */
+    fun courseVideo(courseId: String): LessonVideo? = all.firstOrNull { it.course == courseId && it.lesson == null }
+
     /**
-     * The videos a lesson opens on: the ones made for it, or, for a course's first lesson, the
-     * course's videos not tied to a lesson. Other lessons go straight to the board.
+     * The videos a lesson opens on: the ones made for it; until those are set, the first lesson
+     * gets the course's other general videos. Other lessons go straight to the board.
      */
     fun forLesson(course: Course, lessonId: String): List<LessonVideo> {
         val own = all.filter { it.lesson == lessonId }
         if (own.isNotEmpty()) return own
-        return if (course.lessons.firstOrNull()?.id == lessonId) forCourse(course.id).filter { it.lesson == null } else emptyList()
+        if (course.lessons.firstOrNull()?.id != lessonId) return emptyList()
+        return forCourse(course.id).filter { it.lesson == null }.drop(1)
     }
+
+    /** A topic's videos at [level], one per video: its courses' general ones, then the topic's own, shortest first. */
+    fun forTopic(category: LessonCategory, level: LessonLevel, courseIds: Set<String>): List<LessonVideo> =
+        all.filter { it.level == level && it.lesson == null && (it.course in courseIds || it.course == "topic:${category.key}") }
+            .distinctBy { it.id }
+            .sortedWith(compareBy({ it.course.startsWith("topic:") }, { it.minutes }))
+
+    /** An opening's videos: every course's general one, its ideas first. */
+    fun forCourses(courseIds: List<String>): List<LessonVideo> = courseIds.flatMap { forCourse(it).filter { v -> v.lesson == null } }.distinctBy { it.id }
+
+    fun byId(id: String): LessonVideo? = all.firstOrNull { it.id == id }
 
     companion object {
         val EMPTY = LessonVideos(emptyList())

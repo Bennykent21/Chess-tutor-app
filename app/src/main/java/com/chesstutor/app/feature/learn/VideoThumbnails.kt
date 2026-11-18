@@ -60,6 +60,37 @@ fun openInYouTube(context: Context, video: LessonVideo) {
     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(video.url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
 
+/**
+ * "Watch" (D96, D100): a sideways row of free videos, on a topic's tier and an opening's page,
+ * before a course is chosen. A tap opens the video on its own page. Nothing when there are none.
+ */
+@Composable
+fun VideoRow(videos: List<LessonVideo>, onOpen: (LessonVideo) -> Unit, modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(0.dp)) {
+    if (videos.isEmpty()) return
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        CtGroupLabel("Watch", modifier = Modifier.padding(contentPadding))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = contentPadding) {
+            items(videos, key = { it.id }) { VideoCard(it, onClick = { onOpen(it) }) }
+        }
+    }
+}
+
+/** One video: YouTube's picture with its length, the title and the channel. */
+@Composable
+fun VideoCard(video: LessonVideo, onClick: () -> Unit, modifier: Modifier = Modifier.width(208.dp)) {
+    Column(
+        modifier = modifier
+            .clip(CtShapes.CardSmall)
+            .ctPressable(onClickLabel = "Watch", onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = "${video.title}, ${video.channel}, ${video.minutes} minutes" },
+        verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
+    ) {
+        VideoThumbnail(video, Modifier.fillMaxWidth())
+        Text(video.title, style = CtType.Label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(video.channel, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
 /** YouTube's picture of a video, with the play mark and its length in the corner. */
 @Composable
 fun VideoThumbnail(video: LessonVideo, modifier: Modifier = Modifier, playMark: Boolean = true) {

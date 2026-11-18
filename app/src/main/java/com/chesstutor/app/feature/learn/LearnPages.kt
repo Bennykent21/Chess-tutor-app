@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.domain.learn.LessonVideos
+import com.chesstutor.app.domain.learn.LessonVideo
 import com.chesstutor.app.domain.learn.PlainMoves
 import com.chesstutor.app.design.CtGroupLabel
 import com.chesstutor.app.design.CtSegmented
@@ -78,7 +80,7 @@ import com.chesstutor.app.domain.learn.PracticeSets
 /**
  * A topic page (plan 6.2, D96), for example Endgames: the topic's scene, then Beginner,
  * Intermediate and Advanced along the top, each course of the chosen tier as a ring that fills
- * (a tick once done) with its count under its name. Openings can also be
+ * (a tick once done) with its count under its name, and the tier's videos. Openings can also be
  * filtered by side; search hides behind its icon until wanted.
  */
 @Composable
@@ -88,6 +90,8 @@ fun LearnCategoryScreen(
     onOpenCourse: (courseId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    videos: LessonVideos = LessonVideos.EMPTY,
+    onOpenVideo: (LessonVideo) -> Unit = {},
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
@@ -165,6 +169,11 @@ fun LearnCategoryScreen(
                 shown.forEach { course ->
                     CourseRow(course, learn.progress, onClick = { onOpenCourse(course.id) })
                 }
+                VideoRow(
+                    videos = videos.forTopic(category, tier, all.map { it.id }.toSet()),
+                    onOpen = onOpenVideo,
+                    modifier = Modifier.padding(top = CtSpacing.lg),
+                )
                 Spacer(Modifier.height(CtSpacing.xl))
             }
         }
@@ -243,6 +252,8 @@ fun CourseScreen(
     practice: PracticeResult? = null,
     /** The course's drills in Train (Phase 12): open, or locked until the course is done; null hides the row. */
     drills: CourseDrills? = null,
+    /** The course's general video, shown at the top in place of the art (D100). */
+    video: LessonVideo? = null,
 ) {
     CtScreenBackground(modifier) {
         if (course == null) {
@@ -253,12 +264,21 @@ fun CourseScreen(
         // The lesson to do next: the first one not finished.
         val current = course.lessons.firstOrNull { progress[it.id]?.completed != true } ?: course.lessons.firstOrNull()
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Box(Modifier.fillMaxWidth().height(HERO_HEIGHT)) {
-                CtArt(categoryScene(course.category), Modifier.matchParentSize(), lift = 0.14f, alive = true)
+            if (video != null) {
                 CtBackBar(onBack = onBack)
-                Column(Modifier.align(Alignment.BottomStart).padding(horizontal = CtSpacing.gutter)) {
-                    Text(course.category.title, style = CtType.BodySmall)
+                Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
+                    VideoFrame(video, autoplay = false, modifier = Modifier.fillMaxWidth())
+                    Text(course.category.title, style = CtType.BodySmall, modifier = Modifier.padding(top = CtSpacing.sm))
                     Text(course.title, style = CtType.Display, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            } else {
+                Box(Modifier.fillMaxWidth().height(HERO_HEIGHT)) {
+                    CtArt(categoryScene(course.category), Modifier.matchParentSize(), lift = 0.14f, alive = true)
+                    CtBackBar(onBack = onBack)
+                    Column(Modifier.align(Alignment.BottomStart).padding(horizontal = CtSpacing.gutter)) {
+                        Text(course.category.title, style = CtType.BodySmall)
+                        Text(course.title, style = CtType.Display, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
             Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.xs), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {

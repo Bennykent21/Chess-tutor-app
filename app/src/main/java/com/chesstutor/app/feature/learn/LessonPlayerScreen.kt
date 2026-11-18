@@ -122,13 +122,23 @@ fun LessonPlayerScreen(
     }
     val state by player.state.collectAsState()
     // A lesson with its own videos opens on them first, even when its steps start on the board (D99).
+    // The lesson waits behind the page and starts from its first step on Next (D100).
     var watched by rememberSaveable(player.lesson.id) { mutableStateOf(false) }
-    if (videos.isNotEmpty() && !watched && state.stepIndex == 0 && state.phase != LessonPhase.DONE && state.step !is LessonStep.Watch) {
-        WatchPage(state, state.lessonTitle, videos, plain = PlainMoves.appliesTo(player.course), onStart = { watched = true }, onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier)
+    if (videos.isNotEmpty() && !watched && state.phase != LessonPhase.DONE && state.step !is LessonStep.Watch) {
+        LaunchedEffect(player) { player.holdForVideo() }
+        WatchPage(
+            state, state.lessonTitle, videos, plain = PlainMoves.appliesTo(player.course),
+            onStart = {
+                watched = true
+                player.startAfterVideo()
+            },
+            onBack = onBack, onPreviousLesson = onPreviousLesson, modifier = modifier,
+        )
         return
     }
     if (state.phase != LessonPhase.DONE && state.step !is LessonStep.Watch) {
-        BoardStep(player, state, settings, onFeedback, onBack, onPreviousLesson, modifier)
+        // On the first step, Back returns to the lesson's video when it has one (D100).
+        BoardStep(player, state, settings, onFeedback, onBack, onPreviousLesson, modifier, onVideo = { watched = false }.takeIf { videos.isNotEmpty() })
         return
     }
     if (state.phase == LessonPhase.DONE) {
@@ -179,6 +189,7 @@ private fun BoardStep(
     onBack: () -> Unit,
     onPreviousLesson: (String) -> Unit,
     modifier: Modifier,
+    onVideo: (() -> Unit)? = null,
 ) {
     val side = if (state.orientation == PieceColor.WHITE) "White" else "Black"
     val label = when {
@@ -232,6 +243,8 @@ private fun BoardStep(
         controls = {
             if (state.stepIndex > 0) {
                 CtControl(Icons.AutoMirrored.Rounded.ArrowBack, "Back", description = "Previous step", onClick = player::back)
+            } else if (onVideo != null) {
+                CtControl(Icons.AutoMirrored.Rounded.ArrowBack, "Back", description = "Back to the video", onClick = onVideo)
             } else {
                 PreviousLessonButton(state, onPreviousLesson)
             }
@@ -306,7 +319,7 @@ private fun WatchPage(
             CtButton(text = "Next", onClick = onStart, modifier = Modifier.weight(1f))
         },
     ) {
-        VideoFrame(video, autoplay = false, modifier = Modifier.fillMaxWidth().clip(CtShapes.Card))
+        VideoFrame(video, autoplay = false, modifier = Modifier.fillMaxWidth())
         Text(heading.let { if (plain) PlainMoves.soften(it) else it }, style = CtType.Headline, modifier = Modifier.padding(top = CtSpacing.lg))
         Text(video.why.ifBlank { "Watch the video, then try it on the board." }, style = CtType.Body.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.xs))
         videos.forEachIndexed { i, other ->

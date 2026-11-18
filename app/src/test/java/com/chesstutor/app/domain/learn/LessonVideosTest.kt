@@ -27,8 +27,13 @@ class LessonVideosTest {
     fun aCoursesVideosOpenItsFirstLessonAndALessonsOwnVideoOpensThatLesson() {
         val course = LessonParser.parseCourse(File("src/main/assets/lessons/openings-caro-kann-advance.json").readText())
         val (first, second) = course.lessons.take(2).map { it.id }
-        val list = LessonVideos(listOf(video("basics", course.id), video("plan", course.id, lesson = second, start = 95), video("other", "elsewhere")))
+        val list = LessonVideos(
+            listOf(video("general", course.id), video("basics", course.id), video("plan", course.id, lesson = second, start = 95), video("other", "elsewhere")),
+        )
+        // The general video heads the course page; the first lesson gets the others until it has its own (D100).
+        assertEquals("general", list.courseVideo(course.id)?.title)
         assertEquals(listOf("basics"), list.forLesson(course, first).map { it.title })
+        assertEquals(listOf("general", "basics"), list.forCourses(listOf(course.id, "nothing")).map { it.title })
         assertEquals(listOf("plan"), list.forLesson(course, second).map { it.title })
         assertEquals(95, list.forLesson(course, second).single().start)
         assertTrue(list.forLesson(course, course.lessons.last().id).isEmpty())

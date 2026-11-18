@@ -103,6 +103,7 @@ class LessonPlayer(
     private var paused = false
     private var evalCp: Int? = null
     private var evalMate: Int? = null
+    private var heldForVideo = false
 
     init {
         board.onResult = ::onResult
@@ -123,6 +124,21 @@ class LessonPlayer(
         if (judge.finished) finish() else enterStep()
     }
 
+    /** While the lesson's video page shows (D100): nothing moves on behind it. */
+    fun holdForVideo() {
+        heldForVideo = true
+        onward?.cancel()
+    }
+
+    /** After the video: the lesson starts from its first step. */
+    fun startAfterVideo() {
+        heldForVideo = false
+        onward?.cancel()
+        while (judge.stepBack()) Unit
+        judge.restartStep()
+        enterStep()
+    }
+
     /** Holds the lesson on this step, or lets it move on again. */
     fun togglePause() {
         paused = !paused
@@ -141,7 +157,7 @@ class LessonPlayer(
 
     private fun moveOnLater() {
         onward?.cancel()
-        if (!timing.autoAdvance || paused || !judge.canAdvance || judge.finished) return
+        if (!timing.autoAdvance || paused || heldForVideo || !judge.canAdvance || judge.finished) return
         val wait = when (val step = judge.step) {
             is LessonStep.Play -> timing.solvedMs
             is LessonStep.Watch -> return
