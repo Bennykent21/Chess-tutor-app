@@ -6,7 +6,7 @@ Each release's notes on GitHub come from its section here. Versions follow [Sema
 
 ### Openings
 
-- Thirty openings to learn and drill, for White and for Black against 1.e4, 1.d4 and the rest, built from millions of club games and checked by Stockfish.
+- Twenty-nine openings to learn and drill, for White and for Black against 1.e4, 1.d4 and the rest, built from millions of club games and checked by Stockfish.
 - Eight openings in the new look, each with its ideas course and its variations: London, Queen's Gambit, Ruy Lopez, English, Scandinavian, French, Sicilian and King's Indian.
 - Punish mistakes: the slips players at your level really make in each opening. Find the move that punishes them.
 - Tactics from each opening: real puzzles from games in that opening, solved by your side.
