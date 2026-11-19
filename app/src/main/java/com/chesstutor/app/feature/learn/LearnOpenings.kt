@@ -162,6 +162,7 @@ fun OpeningsScreen(
 @Composable
 private fun OpeningRow(group: OpeningGroup, done: Int, total: Int, theme: BoardTheme, onClick: () -> Unit) {
     val courses = group.courses.size
+    val book = group.book
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -174,9 +175,15 @@ private fun OpeningRow(group: OpeningGroup, done: Int, total: Int, theme: BoardT
         BoardThumbnail(group.picture, theme, flipped = group.side == PieceColor.BLACK)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(group.title, style = CtType.TitleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(if (courses == 1) "$total lesson${if (total == 1) "" else "s"}" else "$courses courses", style = CtType.Caption, maxLines = 1)
+            // An opening with drills but no course yet counts its lines, and its ring is how ready you are (D112).
+            val caption = when {
+                courses == 0 && book != null -> "${book.variations.size} lines"
+                courses == 1 -> "$total lesson${if (total == 1) "" else "s"}"
+                else -> "$courses courses"
+            }
+            Text(caption, style = CtType.Caption, maxLines = 1)
         }
-        ProgressRing(done, total)
+        if (courses == 0 && book != null) ProgressRing((book.readiness * 100).toInt(), 100) else ProgressRing(done, total)
     }
 }
 
