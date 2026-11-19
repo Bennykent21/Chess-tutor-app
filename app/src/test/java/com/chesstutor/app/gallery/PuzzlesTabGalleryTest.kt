@@ -102,7 +102,7 @@ class PuzzlesTabGalleryTest {
 
     private val state = PuzzlesHomeState(
         loading = false,
-        stats = PuzzleStats(rating = 1248, totalXp = 3420, playerLevel = PlayerLevel.fromXp(3420), dayStreak = 5, solved = 80, solvedToday = true),
+        stats = PuzzleStats(rating = 1248, totalXp = 3420, playerLevel = PlayerLevel.fromXp(3420), solved = 80, solvedToday = true),
         levels = (1..11).associateWith { LevelProgress(it, if (it % 3 == 0) 4 else 5, true, 1) } + (12 to LevelProgress(12, 3, false, 2)),
     )
 

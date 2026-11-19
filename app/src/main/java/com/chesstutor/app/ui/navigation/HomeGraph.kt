@@ -408,7 +408,7 @@ internal fun Shell.homeViewModel(): HomeViewModel {
             openings = { AppContainer.provideOpeningLoader(context).load() },
             games = AppContainer.provideGameRepository(context),
             bots = AppContainer.provideBotRepository(context),
-            puzzleStats = AppContainer.providePuzzleRepository(context).stats(),
+            activityDays = AppContainer.provideActivityDays(context),
             store = SharedPrefsActiveGameStore(context),
             maia = AppContainer.provideMaia(context),
             learning = HomeLearning(

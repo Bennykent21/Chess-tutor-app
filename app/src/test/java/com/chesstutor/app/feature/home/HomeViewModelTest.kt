@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.home
 
+import java.time.ZoneId
+import java.time.LocalDate
+import java.time.Instant
 import com.chesstutor.app.core.LegalMoveGenerator
 import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
@@ -21,7 +24,6 @@ import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.SideChoice
 import com.chesstutor.app.domain.opening.BattleMode
 import com.chesstutor.app.domain.opening.OpeningTree
-import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.engine.EngineEvaluation
 import com.chesstutor.app.engine.EngineHealthReport
 import com.chesstutor.app.engine.EngineLine
@@ -78,8 +80,11 @@ class HomeViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
+    /** Today (the test clock starts at 0) and the two days before it. */
+    private val threeDays: Set<LocalDate> = Instant.ofEpochMilli(0).atZone(ZoneId.systemDefault()).toLocalDate().let { setOf(it, it.minusDays(1), it.minusDays(2)) }
+
     private fun model() = HomeViewModel(
-        FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(PuzzleStats(dayStreak = 3)), store,
+        FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(threeDays), store,
         random = Random(1), clock = { test.testScheduler.currentTime }, worker = dispatcher,
     )
 
@@ -193,7 +198,7 @@ class HomeViewModelTest {
             ),
         )
         val vm = HomeViewModel(
-            FakeEngine(), { tree }, games, bots, flowOf(PuzzleStats()), store,
+            FakeEngine(), { tree }, games, bots, flowOf(emptySet()), store,
             random = Random(1), clock = { test.testScheduler.currentTime }, worker = dispatcher,
         )
         vm.presetBattle("Sicilian Defense", PieceColor.BLACK)
@@ -215,7 +220,7 @@ class HomeViewModelTest {
         val forks = ThemeScore("fork", attempts = 6, clean = 1)
         val report = TrainingReport(emptyList(), 6, 1, emptyList(), listOf(forks), 1, 2)
         val vm = HomeViewModel(
-            FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(PuzzleStats()), store,
+            FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(emptySet()), store,
             random = Random(1), clock = { test.testScheduler.currentTime }, worker = dispatcher,
             learning = HomeLearning(
                 training = flowOf(report),

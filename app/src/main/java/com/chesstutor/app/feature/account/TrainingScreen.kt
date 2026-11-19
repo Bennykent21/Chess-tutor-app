@@ -49,6 +49,8 @@ import com.chesstutor.app.domain.account.TrainingReport
 fun TrainingScreen(
     training: TrainingReport,
     stats: PuzzleStats,
+    /** Days in a row the player trained in the app (D110). */
+    dayStreak: Int,
     dueReviewCount: Int,
     now: Long,
     onReviewMistakes: () -> Unit,
@@ -57,7 +59,7 @@ fun TrainingScreen(
     modifier: Modifier = Modifier,
 ) {
     val trend = remember(training) { RatingTrend(timeClass = null, points = training.ratingHistory) }
-    val records = remember(stats, training, now) { PuzzleRecords.of(stats, training, now) }
+    val records = remember(stats, training, now, dayStreak) { PuzzleRecords.of(stats, training, now, dayStreak) }
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             CtTopBar(title = "Training", onBack = onBack)

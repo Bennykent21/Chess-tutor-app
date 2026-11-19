@@ -1,5 +1,6 @@
 package com.chesstutor.app.di
 
+import kotlinx.coroutines.flow.Flow
 import android.content.Context
 import android.util.Log
 import com.chesstutor.app.data.account.RoomGameAnalysisRepository
@@ -230,6 +231,21 @@ object AppContainer {
     fun provideRepertoireProgress(context: Context): RoomRepertoireProgressRepository {
         return repertoireProgressInstance ?: synchronized(this) {
             repertoireProgressInstance ?: RoomRepertoireProgressRepository(AppDatabase.getInstance(context)).also { repertoireProgressInstance = it }
+        }
+    }
+
+    @Volatile
+    private var activityDaysInstance: Flow<Set<java.time.LocalDate>>? = null
+
+    /** The days the player trained in the app, shared by the streak and Home's week (D110). */
+    fun provideActivityDays(context: Context): Flow<Set<java.time.LocalDate>> {
+        return activityDaysInstance ?: synchronized(this) {
+            activityDaysInstance ?: com.chesstutor.app.domain.activity.ActivityDays.observe(
+                puzzles = providePuzzleRepository(context).history(),
+                games = provideGameRepository(context).observeGames(),
+                lessons = provideLessonProgress(context).observe(),
+                drillTimes = provideRepertoireProgress(context).observeReviewTimes(),
+            ).also { activityDaysInstance = it }
         }
     }
 

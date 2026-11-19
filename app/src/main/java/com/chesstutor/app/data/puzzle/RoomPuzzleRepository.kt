@@ -10,7 +10,6 @@ import com.chesstutor.app.data.local.ReportIssueEntity
 import com.chesstutor.app.data.local.XpEventEntity
 import com.chesstutor.app.domain.puzzle.AttemptRecord
 import com.chesstutor.app.domain.puzzle.AttemptResult
-import com.chesstutor.app.domain.puzzle.DayStreak
 import com.chesstutor.app.domain.puzzle.LevelProgress
 import com.chesstutor.app.domain.puzzle.LevelRun
 import com.chesstutor.app.domain.puzzle.LevelRunResult
@@ -115,7 +114,6 @@ class RoomPuzzleRepository(
                 rating = profile?.rating ?: PuzzleStats().rating,
                 totalXp = total,
                 playerLevel = PlayerLevel.fromXp(total),
-                dayStreak = DayStreak.compute(days, today()),
                 solvedToday = today() in days,
                 cleanStreak = profile?.streak ?: 0,
                 bestStreak = profile?.bestStreak ?: 0,

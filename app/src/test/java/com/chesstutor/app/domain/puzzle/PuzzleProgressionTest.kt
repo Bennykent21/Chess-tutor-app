@@ -102,16 +102,6 @@ class PuzzleProgressionTest {
     }
 
     @Test
-    fun dayStreakCountsConsecutiveDaysAndSurvivesUntilMidnight() {
-        val today = LocalDate.of(2026, 10, 22)
-        val days = setOf(today.minusDays(1), today.minusDays(2), today.minusDays(3), today.minusDays(5))
-        assertEquals("not played yet today: yesterday's streak still stands", 3, DayStreak.compute(days, today))
-        assertEquals(4, DayStreak.compute(days + today, today))
-        assertEquals("a missed day breaks it", 0, DayStreak.compute(setOf(today.minusDays(2)), today))
-        assertEquals(0, DayStreak.compute(emptySet(), today))
-    }
-
-    @Test
     fun firstPassEarnsABonusAndTheLastLevelOfAWorldCompletesIt() {
         val first = PuzzleBookkeeping.afterLevelRun(LevelRun(3, 5, 5), emptyMap())
         assertEquals(LevelRunResult(newlyPassed = true, worldCompleted = null, bonusXp = XpRules.LEVEL_PASSED), first)

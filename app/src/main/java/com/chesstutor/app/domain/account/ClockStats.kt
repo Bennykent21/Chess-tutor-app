@@ -134,13 +134,13 @@ data class PuzzleRecords(
     companion object {
         private const val WEEK_MILLIS = 7 * 86_400_000L
 
-        fun of(stats: PuzzleStats, training: TrainingReport, now: Long): PuzzleRecords = PuzzleRecords(
+        fun of(stats: PuzzleStats, training: TrainingReport, now: Long, dayStreak: Int): PuzzleRecords = PuzzleRecords(
             current = stats.rating,
             peak = maxOf(stats.rating, training.ratingHistory.maxOfOrNull { it.rating } ?: stats.rating),
             solved = stats.solved,
             cleanRate = training.cleanSolves.toFloat().takeIf { training.puzzlesPlayed > 0 }?.div(training.puzzlesPlayed),
             bestCleanRun = stats.bestStreak,
-            dayStreak = stats.dayStreak,
+            dayStreak = dayStreak,
             thisWeek = training.ratingHistory.count { it.dateMillis > now - WEEK_MILLIS },
         )
     }

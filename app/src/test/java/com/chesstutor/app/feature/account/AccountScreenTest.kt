@@ -81,14 +81,14 @@ class AccountScreenTest {
         )
     }
 
-    private val stats = PuzzleStats(rating = 1310, totalXp = 640, playerLevel = PlayerLevel.fromXp(640), dayStreak = 5)
+    private val stats = PuzzleStats(rating = 1310, totalXp = 640, playerLevel = PlayerLevel.fromXp(640))
 
     @Test
     fun overviewShowsTheHeaderLinkFormAndRecentGames() {
         var opened: String? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = AppUiState(), games = games, stats = stats, actions = AccountActions(onOpenGame = { opened = it }))
+                AccountScreen(state = AppUiState(), games = games, stats = stats, dayStreak = 5, actions = AccountActions(onOpenGame = { opened = it }))
             }
         }
         compose.onNodeWithText("Puzzles").assertExists()
@@ -114,7 +114,7 @@ class AccountScreenTest {
         )
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = AppUiState(), games = games, stats = stats, actions = AccountActions(), overview = overview)
+                AccountScreen(state = AppUiState(), games = games, stats = stats, dayStreak = 5, actions = AccountActions(), overview = overview)
             }
         }
         val list = compose.onNode(androidx.compose.ui.test.hasScrollToNodeAction())
@@ -211,7 +211,7 @@ class AccountScreenTest {
         compose.setContent {
             CtTheme(reduceMotion = true) {
                 TrainingScreen(
-                    training = training, stats = stats, dueReviewCount = 2, now = 10,
+                    training = training, stats = stats, dayStreak = 5, dueReviewCount = 2, now = 10,
                     onReviewMistakes = { reviewed = true }, onPracticeTheme = { practised = it }, onBack = {},
                 )
             }
@@ -247,7 +247,7 @@ class AccountScreenTest {
                 if (page == "stats") {
                     StatsScreen(games = played, state = AppUiState(), initialClock = com.chesstutor.app.domain.account.TimeClass.BLITZ, now = now, courseIdFor = { null }, onOpenCourse = {}, onShowGames = { shown = it }, onBack = {})
                 } else {
-                    TrainingScreen(training = training, stats = stats, dueReviewCount = 0, now = now, onReviewMistakes = {}, onPracticeTheme = {}, onBack = {})
+                    TrainingScreen(training = training, stats = stats, dayStreak = 5, dueReviewCount = 0, now = now, onReviewMistakes = {}, onPracticeTheme = {}, onBack = {})
                 }
             }
         }
@@ -267,7 +267,7 @@ class AccountScreenTest {
         )
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = state, games = games, stats = stats, actions = AccountActions())
+                AccountScreen(state = state, games = games, stats = stats, dayStreak = 5, actions = AccountActions())
             }
         }
         compose.onNodeWithText("274 to Queen").assertDoesNotExist()
@@ -287,7 +287,7 @@ class AccountScreenTest {
         var all: GameFilter? = null
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                AccountScreen(state = state, games = games, stats = stats, actions = AccountActions(onOpenStats = { clock = it }, onOpenTraining = { training = true }, onOpenGames = { all = it }))
+                AccountScreen(state = state, games = games, stats = stats, dayStreak = 5, actions = AccountActions(onOpenStats = { clock = it }, onOpenTraining = { training = true }, onOpenGames = { all = it }))
             }
         }
         compose.onNodeWithText("Overview").assertDoesNotExist()
@@ -422,7 +422,7 @@ class AccountScreenTest {
             CtTheme(reduceMotion = true) {
                 val actions = AccountActions(onImportMore = { imported = true })
                 if (page == "account") {
-                    AccountScreen(state = state, games = games, stats = stats, actions = actions)
+                    AccountScreen(state = state, games = games, stats = stats, dayStreak = 5, actions = actions)
                 } else {
                     SettingsScreen(state = state, accountActions = actions, actions = SettingsActions(supportUrl = "https://example.org/support"))
                 }
@@ -525,7 +525,7 @@ class AccountScreenTest {
     @Config(qualifiers = GALLERY_PHONE)
     @Test
     fun galleryAccount() {
-        compose.shootBoth("account", "01_account") { AccountScreen(state = AppUiState(), games = games, stats = stats, actions = AccountActions()) }
+        compose.shootBoth("account", "01_account") { AccountScreen(state = AppUiState(), games = games, stats = stats, dayStreak = 5, actions = AccountActions()) }
     }
 
     @Config(qualifiers = GALLERY_PHONE)
@@ -564,7 +564,7 @@ class AccountScreenTest {
             history, { id -> if (id.removePrefix("p").toInt() % 2 == 0) setOf("fork") else setOf("pin") }, lessonsDone = 12, lessonsTotal = 48,
         )
         compose.shootBoth("account", "06_training") {
-            TrainingScreen(training = training, stats = stats, dueReviewCount = 2, now = 10, onReviewMistakes = {}, onPracticeTheme = {}, onBack = {})
+            TrainingScreen(training = training, stats = stats, dayStreak = 5, dueReviewCount = 2, now = 10, onReviewMistakes = {}, onPracticeTheme = {}, onBack = {})
         }
     }
 
@@ -585,7 +585,7 @@ class AccountScreenTest {
     @Config(qualifiers = GALLERY_PHONE)
     @Test
     fun galleryGlassAccount() {
-        compose.shootBoth("glass", "04_account", glass = true) { AccountScreen(state = AppUiState(), games = games, stats = stats, actions = AccountActions()) }
+        compose.shootBoth("glass", "04_account", glass = true) { AccountScreen(state = AppUiState(), games = games, stats = stats, dayStreak = 5, actions = AccountActions()) }
     }
 
     @Config(qualifiers = GALLERY_PHONE)

@@ -65,6 +65,8 @@ fun AccountScreen(
     state: AppUiState,
     games: GamesState,
     stats: PuzzleStats,
+    /** Days in a row the player trained in the app (D110). */
+    dayStreak: Int,
     actions: AccountActions,
     modifier: Modifier = Modifier,
     overview: OverviewState = OverviewState(),
@@ -82,7 +84,7 @@ fun AccountScreen(
             ) {
                 item(key = "top") {
                     CtScreenTitle(title = "Account") {
-                        CtStreak(stats.dayStreak)
+                        CtStreak(dayStreak)
                         Spacer(Modifier.width(CtSpacing.md))
                         SettingsButton(onClick = actions.onOpenSettings)
                     }

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -83,7 +84,7 @@ class RoomPuzzleRepositoryTest {
 
         val stats = repo.stats { day1.plusDays(2) }.first()
         assertEquals("15 (fast) + 11 (streak 2) + 0 (revealed)", 26, stats.totalXp)
-        assertEquals("a revealed puzzle does not keep the streak alive", 2, stats.dayStreak)
+        assertFalse("a revealed puzzle is not a solve today", stats.solvedToday)
         assertEquals(0, stats.cleanStreak)
         assertEquals(2, stats.solved)
     }

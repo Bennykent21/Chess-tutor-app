@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.account
 
+import java.time.ZoneId
+import java.time.LocalDate
+import com.chesstutor.app.domain.activity.ActivityDays
 import kotlinx.coroutines.flow.conflate
 import com.chesstutor.app.data.diagnostics.PerfLog
 import com.chesstutor.app.data.diagnostics.AnalysisTiming
@@ -136,6 +139,8 @@ class AccountViewModel(
     private val cloud: CloudEvals? = null,
     worker: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** The days the player trained in the app, for the day streak (D110). */
+    activityDays: Flow<Set<LocalDate>> = flowOf(emptySet()),
 ) : ViewModel() {
     private val tree = MutableStateFlow<OpeningTree?>(null)
 
@@ -151,6 +156,10 @@ class AccountViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, GamesState())
 
     val stats: StateFlow<PuzzleStats> = puzzleStats.stateIn(viewModelScope, SharingStarted.Eagerly, PuzzleStats())
+
+    val dayStreak: StateFlow<Int> = activityDays
+        .map { days -> ActivityDays.streak(days, Instant.ofEpochMilli(clock()).atZone(ZoneId.systemDefault()).toLocalDate()) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     private val mutableJobs = MutableStateFlow<Map<String, AnalysisJob>>(emptyMap())
     /** Analyses running or waiting, and ones that failed, by game id. */
@@ -359,9 +368,10 @@ class AccountViewModel(
         private val trainingSources: TrainingSources,
         private val reviewDepth: suspend () -> ReviewDepth = { ReviewDepth.NORMAL },
         private val cloud: CloudEvals? = null,
+        private val activityDays: Flow<Set<LocalDate>> = flowOf(emptySet()),
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources, reviewDepth = reviewDepth, cloud = cloud) as T
+            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources, reviewDepth = reviewDepth, cloud = cloud, activityDays = activityDays) as T
     }
 }

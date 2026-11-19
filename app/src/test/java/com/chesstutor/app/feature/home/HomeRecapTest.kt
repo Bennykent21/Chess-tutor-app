@@ -27,13 +27,4 @@ class HomeRecapTest {
         assertNull("no review yet", HomeRecap.lastGame(games.take(1), emptyMap())!!.accuracy)
         assertNull(HomeRecap.lastGame(emptyList(), emptyMap()))
     }
-
-    @Test
-    fun theWeekRunsMondayToSunday() {
-        val wednesday = LocalDate.of(2026, 11, 18)
-        fun at(day: Int) = LocalDate.of(2026, 11, day).atTime(12, 0).toInstant(ZoneOffset.UTC).toEpochMilli()
-        // Monday 16 and Wednesday 18; Sunday 15 belongs to last week.
-        val week = HomeRecap.week(wednesday, listOf(at(15), at(16), at(18), at(18)), ZoneOffset.UTC)
-        assertEquals(listOf(true, false, true, false, false, false, false), week)
-    }
 }

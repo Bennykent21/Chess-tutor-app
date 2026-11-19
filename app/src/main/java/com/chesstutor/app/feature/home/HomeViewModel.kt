@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.home
 
+import java.time.LocalDate
+import com.chesstutor.app.domain.activity.ActivityDays
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
@@ -49,7 +51,6 @@ import com.chesstutor.app.domain.opening.BattleMode
 import com.chesstutor.app.domain.opening.Opening
 import com.chesstutor.app.domain.opening.OpeningBattles
 import com.chesstutor.app.domain.opening.OpeningTree
-import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.engine.EngineService
 import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.feature.play.ActiveGameSnapshot
@@ -159,7 +160,8 @@ class HomeViewModel(
     private val openings: suspend () -> OpeningTree,
     private val games: GameRepository,
     private val bots: BotRepository,
-    puzzleStats: Flow<PuzzleStats>,
+    /** The days the player trained in the app: the day streak and the week both read them (D110). */
+    activityDays: Flow<Set<LocalDate>>,
     private val store: ActiveGameStore,
     private val random: Random = Random.Default,
     private val clock: () -> Long = System::currentTimeMillis,
@@ -188,23 +190,22 @@ class HomeViewModel(
     }.flowOn(worker)
     private val snapshot = MutableStateFlow(store.load())
 
-    /** The last game and every game's date, for Home's look back (D92). */
-    private val recap: Flow<Pair<LastGame?, List<Long>>> =
-        combine(games.observeGames(), learning.analysisSummaries) { list, summaries -> HomeRecap.lastGame(list, summaries) to list.map { it.dateMillis } }
-            .flatMapLatest { (last, dates) ->
-                if (last?.accuracy == null) flowOf(last to dates)
-                else learning.observeEvals(last.id).map { evals -> last.copy(graph = HomeRecap.graph(evals, last.userWhite)) to dates }
+    /** The last game, for Home's look back (D92). */
+    private val recap: Flow<LastGame?> =
+        combine(games.observeGames(), learning.analysisSummaries) { list, summaries -> HomeRecap.lastGame(list, summaries) }
+            .flatMapLatest { last ->
+                if (last?.accuracy == null) flowOf(last)
+                else learning.observeEvals(last.id).map { evals -> last.copy(graph = HomeRecap.graph(evals, last.userWhite)) }
             }
 
     /** Loaded eagerly, so a saved game against one of them can be resumed at once. */
     val myBots: StateFlow<List<CustomBot>> = bots.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val home: StateFlow<HomeUiState> =
-        combine(games.observeGames(), puzzleStats, snapshot, playerRating, myBots) { list, stats, saved, rating, mine ->
+        combine(games.observeGames(), snapshot, playerRating, myBots) { list, saved, rating, mine ->
             HomeUiState(
                 resume = saved?.let { s -> findBot(s.botId, mine)?.let { s.toResumeCard(it) } },
                 recommendation = PlayRecommender.recommend(list.botGamesNewestFirst(), rating),
-                dayStreak = stats.dayStreak,
                 gamesPlayed = list.count { it.id.startsWith("bot_") },
                 myBots = mine,
             )
@@ -214,13 +215,14 @@ class HomeViewModel(
                 nextLesson = lesson,
                 nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
             )
-        }.combine(combine(daily, learning.puzzleHistory, recap) { preview, history, look -> Triple(preview, history, look) }) { state, (preview, history, look) ->
+        }.combine(combine(daily, learning.puzzleHistory, recap, activityDays) { preview, history, look, days -> HomeLookBack(preview, history, look, days) }) { state, back ->
             val today = Instant.ofEpochMilli(clock()).atZone(ZoneId.systemDefault()).toLocalDate()
             state.copy(
-                daily = preview,
-                dailySolved = PuzzleModes.solvedOn(preview?.puzzleId, history, today),
-                lastGame = look.first,
-                week = HomeRecap.week(today, look.second + history.filter { it.solved }.map { it.finishedAt }),
+                daily = back.daily,
+                dailySolved = PuzzleModes.solvedOn(back.daily?.puzzleId, back.history, today),
+                lastGame = back.lastGame,
+                dayStreak = ActivityDays.streak(back.days, today),
+                week = ActivityDays.week(back.days, today),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
             BotRoster.byId(s.botId)?.let { s.toResumeCard(it) }
@@ -515,16 +517,19 @@ class HomeViewModel(
         private val openings: suspend () -> OpeningTree,
         private val games: GameRepository,
         private val bots: BotRepository,
-        private val puzzleStats: Flow<PuzzleStats>,
+        private val activityDays: Flow<Set<LocalDate>>,
         private val store: ActiveGameStore,
         private val maia: MaiaSource? = null,
         private val learning: HomeLearning = HomeLearning(),
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(engine, openings, games, bots, puzzleStats, store, maia = maia, learning = learning) as T
+            HomeViewModel(engine, openings, games, bots, activityDays, store, maia = maia, learning = learning) as T
     }
 }
+
+/** The parts of Home that look back, gathered before they join the rest. */
+private data class HomeLookBack(val daily: DailyPreview?, val history: List<PuzzleHistoryEntry>, val lastGame: LastGame?, val days: Set<LocalDate>)
 
 /** The Continue card's lesson: the one Learn's own Continue card picks (started first, else the next new one). */
 internal fun nextLessonOf(library: LessonLibrary, progress: Map<String, LessonProgress>): NextLesson? {
