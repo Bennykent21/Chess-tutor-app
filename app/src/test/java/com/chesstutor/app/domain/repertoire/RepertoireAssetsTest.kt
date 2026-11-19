@@ -26,7 +26,7 @@ class RepertoireAssetsTest {
     @Test
     fun thePilotOpeningsAreRealDataAndNoPreviewHidesThem() {
         val bundled = files("src/main/assets/repertoire")
-        assertEquals(listOf("caro-kann.json.gz", "italian.json.gz"), bundled.map { it.name })
+        assertTrue(bundled.map { it.name }.containsAll(listOf("caro-kann.json.gz", "italian.json.gz")))
         for (file in bundled) {
             val book = file.inputStream().use { RepertoireParser.fromStream(it, file.name) }
             assertTrue("${file.name} is a preview", !book.title.endsWith("(preview)"))

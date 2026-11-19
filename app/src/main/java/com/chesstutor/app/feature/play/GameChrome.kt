@@ -76,7 +76,8 @@ data class TalkLine(val id: Int, val text: String, val speaker: String? = null)
  * The last [MAX_TALK] lines said, newest last (D92): a new line joins at the bottom and the oldest
  * leaves once there are more. Each line stays the newest for at least [MIN_READ_MS] so it can be
  * read; lines that pile up meanwhile keep only each speaker's latest, and a line that repeats the
- * newest one is not said twice. Starts again when [key] changes (a new game).
+ * newest one is not said twice. A blank line is never said, so there is no empty bubble.
+ * Starts again when [key] changes (a new game).
  */
 @Composable
 fun rememberTalk(said: List<TalkLine>, key: Any?): List<TalkLine> {
@@ -84,7 +85,7 @@ fun rememberTalk(said: List<TalkLine>, key: Any?): List<TalkLine> {
     val heard = remember(key) { HashSet<Int>() }
     val waiting = remember(key) { Channel<TalkLine>(Channel.UNLIMITED) }
     LaunchedEffect(said.map { it.id }, key) {
-        said.filter { heard.add(it.id) }.sortedBy { it.id }.forEach { waiting.trySend(it) }
+        said.filter { it.text.isNotBlank() && heard.add(it.id) }.sortedBy { it.id }.forEach { waiting.trySend(it) }
     }
     LaunchedEffect(key) {
         while (true) {

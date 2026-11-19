@@ -81,4 +81,18 @@ class TalkTest {
         compose.mainClock.advanceTimeBy(MIN_READ_MS + 100)
         assertEquals(1, compose.onAllNodesWithText("Your move").fetchSemanticsNodes().size)
     }
+
+    @Test
+    fun aBlankLineIsNeverSaid() {
+        var talk = listOf<TalkLine>()
+        compose.setContent { CtTheme(reduceMotion = true) { talk = rememberTalk(said, key = Unit) } }
+        compose.waitForIdle()
+        said = listOf(TalkLine(1, "First"))
+        compose.mainClock.advanceTimeBy(MIN_READ_MS + 100)
+        compose.waitForIdle()
+        said = listOf(TalkLine(2, ""), TalkLine(3, "  "))
+        compose.mainClock.advanceTimeBy(MIN_READ_MS + 100)
+        compose.waitForIdle()
+        assertEquals(listOf("First"), talk.map { it.text })
+    }
 }
