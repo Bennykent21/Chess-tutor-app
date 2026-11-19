@@ -204,7 +204,12 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     progress = lessons.progress,
                     theme = state.appSettings.boardTheme,
                     onOpen = { group ->
-                        val route = if (group.courses.size == 1) AppRoutes.course(group.courses.single().id) else AppRoutes.learnOpening(group.id)
+                        // No course yet: its lines are taught without text on the drills page (watch, then play back), D112.
+                        val route = when {
+                            group.courses.isEmpty() -> AppRoutes.repertoire(group.id)
+                            group.courses.size == 1 -> AppRoutes.course(group.courses.single().id)
+                            else -> AppRoutes.learnOpening(group.id)
+                        }
                         navController.navigate(route) { launchSingleTop = true }
                     },
                     onBack = { navController.popBackStack() },
