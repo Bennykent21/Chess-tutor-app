@@ -78,6 +78,9 @@ data class OpeningGroup(
 ) {
     val courses: List<Course> get() = listOfNotNull(ideas) + variations
 
+    /** The first move of White's it answers or plays ("e2e4"), from its tree or its courses' lines (D112). */
+    val firstMove: String? get() = book?.book?.start?.firstOrNull() ?: courses.firstNotNullOfOrNull { it.variations.firstOrNull()?.firstOrNull() }
+
     /** Where the opening's own moves end, for its small board. */
     val picture: String? get() = book?.book?.startPosition?.toFen() ?: courses.firstNotNullOfOrNull { c -> c.lessons.firstOrNull()?.pictureFen }
 
@@ -95,8 +98,21 @@ data class OpeningGroup(
                     variations = group.filter { it.variations.isNotEmpty() },
                     book = book,
                 )
+            } + books.filter { b -> courses.none { (it.opening ?: it.id) == b.book.id } }.map { b ->
+                // An opening with drills but no course yet still has its page (D112).
+                OpeningGroup(id = b.book.id, title = b.book.title, side = b.book.side, ideas = null, variations = emptyList(), book = b)
             }
     }
+}
+
+private val OPENING_FILTERS = listOf("white" to "As White", "e4" to "vs 1.e4", "d4" to "vs 1.d4", "other" to "Other")
+
+/** Whether [group] belongs under the filter [key]: White's openings, or Black's by White's first move. */
+internal fun showsUnder(group: OpeningGroup, key: String): Boolean = when (key) {
+    "white" -> group.side != PieceColor.BLACK
+    "e4" -> group.side != PieceColor.WHITE && (group.side == null || group.firstMove == "e2e4")
+    "d4" -> group.side != PieceColor.WHITE && (group.side == null || group.firstMove == "d2d4")
+    else -> group.side == PieceColor.BLACK && group.firstMove != "e2e4" && group.firstMove != "d2d4"
 }
 
 /** How far the learner is in [courses]: lessons finished of all. */
@@ -119,20 +135,20 @@ fun OpeningsScreen(
     modifier: Modifier = Modifier,
 ) {
     var sideKey by rememberSaveable { mutableStateOf("white") }
-    val side = if (sideKey == "white") PieceColor.WHITE else PieceColor.BLACK
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             CtBackBar(onBack = onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                 Text("Openings", style = CtType.Display)
+                // Your White openings, or Black's answers to 1.e4, 1.d4 and the rest (D111, D112).
                 CtSegmented(
-                    options = listOf(PieceColor.WHITE, PieceColor.BLACK),
-                    selected = side,
-                    label = { if (it == PieceColor.WHITE) "As White" else "As Black" },
-                    onSelect = { sideKey = if (it == PieceColor.WHITE) "white" else "black" },
+                    options = OPENING_FILTERS.map { it.first },
+                    selected = sideKey,
+                    label = { key -> OPENING_FILTERS.first { it.first == key }.second },
+                    onSelect = { sideKey = it },
                 )
                 Column {
-                    groups.filter { it.side == null || it.side == side }.forEach { group ->
+                    groups.filter { group -> showsUnder(group, sideKey) }.forEach { group ->
                         val (done, total) = progressOf(group.courses, progress)
                         OpeningRow(group, done, total, theme, onClick = { onOpen(group) })
                     }

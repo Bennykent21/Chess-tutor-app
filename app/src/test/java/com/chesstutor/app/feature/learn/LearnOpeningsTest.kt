@@ -26,6 +26,7 @@ import com.chesstutor.app.domain.repertoire.TestRepertoire
 import com.chesstutor.app.domain.repertoire.TestRepertoire.P
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -79,9 +80,12 @@ class LearnOpeningsTest {
         compose.onNodeWithText("3 courses").assertExists()
         compose.onNodeWithText("Caro-Kann Defence").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/learn_openings.png")
-        compose.onNodeWithText("As Black").performClick()
+        // This Caro-Kann has no lines, so its first move is unknown: it shows under Other.
+        compose.onNodeWithText("Other").performClick()
         compose.onNodeWithText("Caro-Kann Defence").performClick()
         assertEquals("caro", opened)
+        val e4 = groups.last().copy(variations = groups.first().variations.map { it.copy(variations = listOf("e2e4 c7c6".split(' '))) })
+        assertTrue(showsUnder(e4, "e4") && !showsUnder(e4, "d4") && !showsUnder(e4, "other") && !showsUnder(e4, "white"))
     }
 
     @Test

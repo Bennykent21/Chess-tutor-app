@@ -56,7 +56,6 @@
     "d4 Nf6 Bf4": "g6",
     "d4 Nf6 Bg5": "Ne4",
     "d4 Nf6 Bg5 Ne4 Bf4": "d5",
-    "d4 Nf6 Bg5 Ne4 Bh4": "c5",
-    "d4 Nf6 Nc3": "g6"
+    "d4 Nf6 Bg5 Ne4 Bh4": "c5"
   }
 }

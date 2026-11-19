@@ -1,8 +1,0 @@
-{
-  "id": "kings-gambit",
-  "title": "King's Gambit",
-  "side": "white",
-  "start": "e4 e5 f4",
-  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
-  "choices": {}
-}
