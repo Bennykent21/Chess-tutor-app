@@ -2,6 +2,28 @@
 
 Each release's notes on GitHub come from its section here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [1.2.0] - 2026-11-19
+
+### Openings
+
+- Thirty openings to learn and drill, for White and for Black against 1.e4, 1.d4 and the rest, built from millions of club games and checked by Stockfish.
+- Eight openings in the new look, each with its ideas course and its variations: London, Queen's Gambit, Ruy Lopez, English, Scandinavian, French, Sicilian and King's Indian.
+- Punish mistakes: the slips players at your level really make in each opening. Find the move that punishes them.
+- Tactics from each opening: real puzzles from games in that opening, solved by your side.
+- One page per opening, from Learn and from Train, with its video at the top.
+
+### Train
+
+- Today: one session that mixes what is due with mistakes to punish, then tactics from your openings.
+- Your openings sit on Train's front page; drills go quicker and without the talking coach.
+
+### Everywhere
+
+- One day streak for the whole app: puzzles, games played here, lessons and drills all count.
+- Explore grades a move on a deeper search and calls out a bigger win let go.
+- New piece sets (Celtic, Spatial, Ink, Terracotta) and sound packs (Studio, Piano, Retro, Sci-fi).
+- The art is back to its earlier look; Learn's top card continues your last lesson; no empty coach bubbles.
+
 ## [1.1.2] - 2026-11-17
 
 ### Everywhere

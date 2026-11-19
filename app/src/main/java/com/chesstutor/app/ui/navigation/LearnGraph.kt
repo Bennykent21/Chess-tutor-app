@@ -254,11 +254,10 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                         navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
                     }
                 },
-                onTactics = group.book?.let { book ->
-                    {
-                        navController.navigateToTab(TopTab.PUZZLES)
-                        navController.navigate(AppRoutes.puzzleRelated(listOf(com.chesstutor.app.domain.puzzle.PuzzleParser.OPENING_THEME + book.book.id))) { launchSingleTop = true }
-                    }
+                // Every opening has its puzzles, with or without drills yet (D112).
+                onTactics = {
+                    navController.navigateToTab(TopTab.PUZZLES)
+                    navController.navigate(AppRoutes.puzzleRelated(listOf(com.chesstutor.app.domain.puzzle.PuzzleParser.OPENING_THEME + group.id))) { launchSingleTop = true }
                 },
             )
         }
