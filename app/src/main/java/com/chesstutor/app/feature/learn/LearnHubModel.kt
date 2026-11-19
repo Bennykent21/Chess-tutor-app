@@ -87,6 +87,12 @@ object LearnHubModel {
      */
     fun continueLesson(library: LessonLibrary, progress: Map<String, LessonProgress>): Pair<Course, Lesson>? {
         val all = library.courses.flatMap { course -> course.lessons.map { course to it } }
+        // Where the learner left off (D112): the lesson played last, or the next one of its course once it is done.
+        progress.values.filter { it.updatedAt != null }.maxByOrNull { it.updatedAt!! }?.let { last ->
+            val (course, lesson) = all.firstOrNull { it.second.id == last.lessonId } ?: return@let
+            if (status(lesson, progress) != LessonStatus.DONE) return course to lesson
+            course.lessons.dropWhile { it.id != lesson.id }.drop(1).firstOrNull { status(it, progress) != LessonStatus.DONE }?.let { return course to it }
+        }
         return all.firstOrNull { (_, lesson) -> status(lesson, progress) == LessonStatus.STARTED }
             ?: all.firstOrNull { (_, lesson) -> status(lesson, progress) != LessonStatus.DONE }
     }

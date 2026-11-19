@@ -212,23 +212,26 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
 
 /** The mistakes club players make in this opening (D112): the most common as small boards, the count, and a tap starts the run. */
 @Composable
-private fun PunishChapter(ui: RepertoireBookUi, actions: RepertoireActions) {
+private fun PunishChapter(ui: RepertoireBookUi, actions: RepertoireActions) =
+    PunishBoards(ui.punish, ui.punishFens, flipped = ui.book.side == PieceColor.BLACK, theme = actions.boardTheme, onClick = actions.onPunish)
+
+/** Punish mistakes as a chapter: its title, the count, the most common positions as boards; a tap starts the run (D112). */
+@Composable
+internal fun PunishBoards(count: Int, fens: List<String>, flipped: Boolean, theme: BoardTheme, onClick: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
             .clip(CtShapes.CardSmall)
-            .ctPressable(onClickLabel = "Punish the mistakes", onClick = actions.onPunish)
+            .ctPressable(onClickLabel = "Punish the mistakes", onClick = onClick)
             .padding(vertical = CtSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Punish mistakes", style = CtType.Title, modifier = Modifier.weight(1f))
-            Text("${ui.punish}", style = CtType.BodySmall.copy(color = CtColors.Text2))
+            Text("$count", style = CtType.BodySmall.copy(color = CtColors.Text2))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            ui.punishFens.forEach { fen ->
-                BoardThumbnail(fen, actions.boardTheme, flipped = ui.book.side == PieceColor.BLACK, size = 72.dp)
-            }
+            fens.forEach { fen -> BoardThumbnail(fen, theme, flipped = flipped, size = 72.dp) }
         }
     }
 }
@@ -409,6 +412,8 @@ private fun percent(share: Double): String = "${(share * 100).roundToInt()}%"
 @Composable
 fun RepertoireRunScreen(
     run: RunUi?,
+    /** After today's session: tactics from the openings begun (D112). */
+    onTactics: (() -> Unit)? = null,
     settings: AppSettings,
     onFeedback: (BoardFeedback) -> Unit,
     onHint: () -> Unit,
@@ -472,6 +477,10 @@ fun RepertoireRunScreen(
                 if (run.kind == RunKind.LEARN && run.moreToLearn) {
                     CtButton(text = "Done", onClick = onBack, style = CtButtonStyle.Ghost)
                     CtButton(text = "Next line", onClick = onLearnMore, modifier = Modifier.weight(1f))
+                } else if (run.today && onTactics != null) {
+                    // Today's lines are done; tactics from the same openings follow (D112).
+                    CtButton(text = "Done", onClick = onBack, style = CtButtonStyle.Ghost)
+                    CtButton(text = "Tactics", onClick = onTactics, modifier = Modifier.weight(1f))
                 } else {
                     CtButton(text = "Done", onClick = onBack, modifier = Modifier.weight(1f))
                 }
@@ -534,7 +543,8 @@ private fun coachWords(run: RunUi): String? {
 
 private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.moment) {
     RunMoment.YourMove -> if (run.punishShare != null) {
-        (run.against ?: "Your move") to (run.punishShare?.let { "$it% of players at your level play this. Punish it." } ?: "Punish it.")
+        // Plain words for what to do (D112): their move was a mistake; find the move that punishes it.
+        (run.against?.let { "$it is a mistake" } ?: "A mistake") to "${run.punishShare}% of players at your level play it. Find the move that punishes it."
     } else "Your move" to when {
         run.kind == RunKind.TEST -> "No hints. ${RepertoireViewModel.TEST_PASS} right opens the drills."
         run.tricky -> "A tricky line, from the start."

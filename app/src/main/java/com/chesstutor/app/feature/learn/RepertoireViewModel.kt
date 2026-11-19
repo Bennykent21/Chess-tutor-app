@@ -192,6 +192,8 @@ data class RunUi(
     val repeatPass: Boolean = false,
     /** In a punish run: how many players at the learner's level make the mistake on the board, in percent (D112). */
     val punishShare: Int? = null,
+    /** Today's session (D112): when it ends, tactics from the openings begun follow. */
+    val today: Boolean = false,
 ) {
     /** Drills, challenges and punish runs are practice: misses come back, nothing is scheduled. */
     val practice: Boolean get() = kind == RunKind.DRILL || kind == RunKind.CHALLENGE || kind == RunKind.PUNISH
@@ -540,6 +542,7 @@ class RepertoireViewModel(
         if (queue.isEmpty()) return
         punishShares = punish.associate { (card, share) -> card.node.key to share }
         startQueue(RunKind.REVIEW, "Today", queue)
+        mutableRun.value = mutableRun.value?.copy(today = true)
     }
 
     /** The mistakes club players make in [bookId], each to punish (D112); misses come back. */
@@ -549,6 +552,13 @@ class RepertoireViewModel(
         if (found.isEmpty()) return
         punishShares = found.associate { (card, share) -> card.node.key to share }
         startQueue(RunKind.PUNISH, index.book.title, found.map { it.first })
+    }
+
+    /** The square the mistake to punish moved to, while the learner has yet to answer it. */
+    private fun punishRing(session: ReviewSession?): String? {
+        val card = session?.current ?: return null
+        if (card.node.key !in punishShares || moment != RunMoment.YourMove) return null
+        return card.path.lastOrNull()?.substring(2, 4)
     }
 
     /** The share of each punish position's mistake, by the position's key. */
@@ -811,8 +821,9 @@ class RepertoireViewModel(
                 RepertoireLevel.entries.getOrNull(level.ordinal + 1)?.let { next -> masteredBook?.let { book -> book.nodes.values.count { book.isCard(it) && it.level == next } } }
             } ?: 0,
             moreToLearn = moreToLearn,
-            ringSquare = ring?.first,
-            ringRight = ring?.second ?: true,
+            // On a mistake to punish, the piece that made it is ringed red until the learner answers (D112).
+            ringSquare = ring?.first ?: punishRing(session),
+            ringRight = ring?.second ?: (punishRing(session) == null),
             why = lastNote?.text?.takeIf { whyOpen },
             canWhy = lastNote != null,
             missed = when {
@@ -875,7 +886,7 @@ class RepertoireViewModel(
 
     companion object {
         /** The opponent's move comes after this pause, so the learner sees it. */
-        const val REPLY_DELAY_MS = 500L
+        const val REPLY_DELAY_MS = 350L
 
         /** In the watch pass: how long the learner's move shows as an arrow, and the pause after each move. */
         const val WATCH_ARROW_MS = 800L
@@ -892,7 +903,7 @@ class RepertoireViewModel(
         fun testPassMark(size: Int): Int = (size * TEST_PASS + TEST_SIZE - 1) / TEST_SIZE
 
         /** How long a review card stays after a right answer, and after a miss. */
-        const val CARD_RIGHT_MS = 700L
+        const val CARD_RIGHT_MS = 350L
         const val CARD_MISSED_MS = 1_400L
 
         private fun legal(position: Position, uci: String): Move =

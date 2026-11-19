@@ -153,6 +153,15 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 onLearnMore = repertoire::learnMore,
                 onDismissMastered = repertoire::dismissMastered,
                 onBack = { leave() },
+                onTactics = {
+                    // Read when tapped, not while drawing: the openings begun, as opening themes.
+                    val themes = repertoire.state.value.begun.map { com.chesstutor.app.domain.puzzle.PuzzleParser.OPENING_THEME + it.book.id }
+                    navController.popBackStack()
+                    if (themes.isNotEmpty()) {
+                        navController.navigateToTab(TopTab.PUZZLES)
+                        navController.navigate(AppRoutes.puzzleRelated(themes)) { launchSingleTop = true }
+                    }
+                },
             )
         }
         composable(AppRoutes.TRAINER_DRILL) { entry ->
@@ -239,6 +248,18 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 onOpenVideo = { video -> navController.navigate(AppRoutes.video(video.id)) { launchSingleTop = true } },
                 onDrills = group.book?.let { book -> { navController.navigate(AppRoutes.repertoire(book.book.id)) { launchSingleTop = true } } },
                 theme = state.appSettings.boardTheme,
+                onPunish = group.book?.let { book ->
+                    {
+                        repertoire.startPunish(book.book.id)
+                        navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
+                    }
+                },
+                onTactics = group.book?.let { book ->
+                    {
+                        navController.navigateToTab(TopTab.PUZZLES)
+                        navController.navigate(AppRoutes.puzzleRelated(listOf(com.chesstutor.app.domain.puzzle.PuzzleParser.OPENING_THEME + book.book.id))) { launchSingleTop = true }
+                    }
+                },
             )
         }
         composable(

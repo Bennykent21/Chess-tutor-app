@@ -83,6 +83,17 @@ class LearnHubModelTest {
     }
 
     @Test
+    fun continueCardPicksUpWhereTheLearnerLeftOff() {
+        val last = mapOf(
+            "b1" to LessonProgress("b1", completed = true, updatedAt = 10),
+            "o1" to LessonProgress("o1", completed = true, updatedAt = 20),
+        )
+        assertEquals("the lesson after the one played last, in its own course", "o2", LearnHubModel.continueLesson(library, last)?.second?.id)
+        val unfinished = last + ("o3" to LessonProgress("o3", stepIndex = 2, updatedAt = 30))
+        assertEquals("o3", LearnHubModel.continueLesson(library, unfinished)?.second?.id)
+    }
+
+    @Test
     fun searchAndChipsFilterTheCategoryPage() {
         val openings = library.coursesIn(LessonCategory.OPENINGS)
         assertTrue(LearnHubModel.offersSideFilter(openings))

@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.material.icons.rounded.Extension
+import com.chesstutor.app.design.CtMetalIcon
+import com.chesstutor.app.design.CtListRow
 import com.chesstutor.app.domain.learn.LessonVideos
 import com.chesstutor.app.domain.learn.LessonVideo
 import androidx.compose.foundation.layout.aspectRatio
@@ -205,6 +208,10 @@ fun LearnOpeningScreen(
     /** The opening's drills in the trainer, when it has them. */
     onDrills: (() -> Unit)? = null,
     theme: BoardTheme = BoardTheme(),
+    /** The mistakes club players make in this opening, to punish (D112). */
+    onPunish: (() -> Unit)? = null,
+    /** Puzzles from games in this opening (D112). */
+    onTactics: (() -> Unit)? = null,
 ) {
     val side = when (group.side) {
         PieceColor.WHITE -> "As White"
@@ -219,7 +226,12 @@ fun LearnOpeningScreen(
             // A small centred title like every page, and the opening's position on top (D96); its art replaces the board once drawn.
             CtTopBar(title = group.title, onBack = onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
-                group.picture?.let { fen ->
+                // The opening's video takes the picture's place (D112); without one, its position.
+                val video = group.ideas?.let { videos.courseVideo(it.id) }
+                if (video != null) {
+                    VideoFrame(video, autoplay = false, modifier = Modifier.fillMaxWidth())
+                    Text(listOfNotNull(side, "${group.courses.size} courses", "$lessons lessons").joinToString(" · "), style = CtType.Caption.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.sm))
+                } else group.picture?.let { fen ->
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                         Box(Modifier.fillMaxWidth(0.56f).aspectRatio(1f).clip(CtShapes.Chip)) {
                             Position.tryFromFen(fen).getOrNull()?.let { BoardView(it, theme, whiteAtBottom = group.side != PieceColor.BLACK, showCoordinates = false, showLegalDots = false) }
@@ -239,7 +251,12 @@ fun LearnOpeningScreen(
                         CourseLine(course, course.title, detail.ifEmpty { null }, progress, drills = open, onClick = { onOpenCourse(course) })
                     }
                 }
-                VideoRow(videos.forCourses(group.courses.map { it.id }), onOpen = onOpenVideo, modifier = Modifier.padding(top = CtSpacing.lg))
+                group.book?.takeIf { it.punish > 0 && onPunish != null }?.let { book ->
+                    Spacer(Modifier.height(CtSpacing.lg))
+                    PunishBoards(book.punish, book.punishFens, flipped = book.book.side == PieceColor.BLACK, theme = theme, onClick = onPunish!!)
+                }
+                onTactics?.let { CtListRow(title = "Tactics", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Extension, size = 36.dp) }) }
+                VideoRow(videos.forCourses(group.courses.map { it.id }).filter { it.id != video?.id }, onOpen = onOpenVideo, modifier = Modifier.padding(top = CtSpacing.lg))
                 if (onDrills != null) {
                     CtGroupLabel("Practise", modifier = Modifier.padding(top = CtSpacing.lg, bottom = CtSpacing.sm))
                     CtButton(text = "Drills", style = CtButtonStyle.Secondary, onClick = onDrills, modifier = Modifier.fillMaxWidth())

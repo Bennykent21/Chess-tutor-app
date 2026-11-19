@@ -49,6 +49,7 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
             val repertoires by repertoire.state.collectAsStateWithLifecycle()
             val trainer by trainerViewModel().trainer.collectAsStateWithLifecycle()
             val findings by findingsViewModel().state.collectAsStateWithLifecycle()
+            val learnModel = learnViewModel()
             TrainScreen(
                 repertoires = repertoires,
                 trainer = trainer,
@@ -63,7 +64,11 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                     onEndgames = { navController.navigate(AppRoutes.trainPositions(endgames = true)) { launchSingleTop = true } },
                     onMiddlegames = { navController.navigate(AppRoutes.trainPositions(endgames = false)) { launchSingleTop = true } },
                     onFromGames = { navController.navigate(AppRoutes.TRAIN_FROM_GAMES) { launchSingleTop = true } },
-                    onOpening = { id -> navController.navigate(AppRoutes.repertoire(id)) { launchSingleTop = true } },
+                    onOpening = { id ->
+                        // One page per opening (D112): Learn's, when the opening has courses; else the drills page.
+                        val hasCourses = learnModel.learn.value.library.courses.any { it.opening == id }
+                        navController.navigate(if (hasCourses) AppRoutes.learnOpening(id) else AppRoutes.repertoire(id)) { launchSingleTop = true }
+                    },
                     onLibrary = {
                         navController.navigateToTab(com.chesstutor.app.navigation.TopTab.LEARN)
                         navController.navigate(AppRoutes.learnCategory(com.chesstutor.app.domain.learn.LessonCategory.OPENINGS.key)) { launchSingleTop = true }

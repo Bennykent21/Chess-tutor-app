@@ -46,7 +46,7 @@ class RoomLessonProgressRepository(
         fun LessonProgressEntity.toDomain() = LessonProgress(
             lessonId = lessonId, stepIndex = stepIndex, stepCount = stepCount, completed = completed, plays = plays,
             bestCleanChallenges = bestCleanChallenges, challengeCount = challengeCount, perfect = perfect,
-            xpEarned = xpEarned, completedAt = completedAt,
+            xpEarned = xpEarned, completedAt = completedAt, updatedAt = updatedAt,
         )
 
         fun LessonProgress.toEntity(updatedAt: Long) = LessonProgressEntity(
