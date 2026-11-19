@@ -55,7 +55,7 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                 theme = state.appSettings.boardTheme,
                 actions = TrainActions(
                     onToday = {
-                        repertoire.startReview()
+                        repertoire.startToday()
                         navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
                     },
                     onSide = { side -> navController.navigate(AppRoutes.trainSide(side == PieceColor.WHITE)) { launchSingleTop = true } },
@@ -63,6 +63,11 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                     onEndgames = { navController.navigate(AppRoutes.trainPositions(endgames = true)) { launchSingleTop = true } },
                     onMiddlegames = { navController.navigate(AppRoutes.trainPositions(endgames = false)) { launchSingleTop = true } },
                     onFromGames = { navController.navigate(AppRoutes.TRAIN_FROM_GAMES) { launchSingleTop = true } },
+                    onOpening = { id -> navController.navigate(AppRoutes.repertoire(id)) { launchSingleTop = true } },
+                    onLibrary = {
+                        navController.navigateToTab(com.chesstutor.app.navigation.TopTab.LEARN)
+                        navController.navigate(AppRoutes.learnCategory(com.chesstutor.app.domain.learn.LessonCategory.OPENINGS.key)) { launchSingleTop = true }
+                    },
                 ),
                 findings = findings.report.findings.size.takeIf { !findings.loading },
             )

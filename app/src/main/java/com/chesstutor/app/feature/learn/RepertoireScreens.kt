@@ -533,7 +533,7 @@ private fun coachWords(run: RunUi): String? {
 }
 
 private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.moment) {
-    RunMoment.YourMove -> if (run.kind == RunKind.PUNISH) {
+    RunMoment.YourMove -> if (run.punishShare != null) {
         (run.against ?: "Your move") to (run.punishShare?.let { "$it% of players at your level play this. Punish it." } ?: "Punish it.")
     } else "Your move" to when {
         run.kind == RunKind.TEST -> "No hints. ${RepertoireViewModel.TEST_PASS} right opens the drills."

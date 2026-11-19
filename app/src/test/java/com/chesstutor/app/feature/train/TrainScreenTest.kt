@@ -50,13 +50,13 @@ class TrainScreenTest {
     )
 
     @Test
-    fun trainLeadsWithTodayThenTheSidesAndOpensThem() {
+    fun trainLeadsWithTodayThenYourOpeningsAndOpensThem() {
         var today = false
-        var side: PieceColor? = null
+        var library = false
         var battle = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions(onToday = { today = true }, onSide = { side = it }, onVsStockfish = { battle = true }))
+                TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions(onToday = { today = true }, onSide = {}, onVsStockfish = { battle = true }, onLibrary = { library = true }))
             }
         }
         compose.onNodeWithText("12").assertExists()
@@ -64,8 +64,9 @@ class TrainScreenTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_home.png")
         compose.onNodeWithText("Start").performClick()
         assertEquals(true, today)
-        compose.onNodeWithText("As Black").performClick()
-        assertEquals(PieceColor.BLACK, side)
+        compose.onNodeWithText("Your openings").assertExists()
+        compose.onNodeWithText("All").performClick()
+        assertEquals(true, library)
         compose.onNodeWithText("Openings vs Stockfish").performClick()
         assertEquals(true, battle)
     }

@@ -99,6 +99,15 @@ data class RepertoireState(
 ) {
     val dueTotal: Int get() = books.sumOf { it.due }
 
+    /** The openings the learner has begun, for Train's "Your openings" (D112). */
+    val begun: List<RepertoireBookUi> get() = books.filter { it.introduced > 0 }
+
+    /** Mistakes to punish that join today's session from the openings begun (D112). */
+    val todayPunish: Int get() = minOf(TODAY_PUNISH, begun.sumOf { it.punish })
+
+    /** Everything in today's session. */
+    val todayTotal: Int get() = dueTotal + todayPunish
+
     fun book(id: String): RepertoireBookUi? = books.firstOrNull { it.book.id == id }
 }
 
@@ -110,6 +119,12 @@ data class ChartReply(val san: String, val share: Double, val error: Boolean)
 /** TEST is an opening's test-out (Phase 12): no hints, nothing saved, four of five right opens its drills. */
 /** Boards shown in the opening page's Punish mistakes chapter. */
 const val PUNISH_BOARDS = 3
+
+/** Mistakes to punish in one day's session, from the openings begun (D112). */
+const val TODAY_PUNISH = 3
+
+/** Due positions between two mistakes to punish in today's session. */
+private const val TODAY_SPACING = 4
 
 enum class RunKind { LEARN, REVIEW, TRICKY, TEST, DRILL, CHALLENGE, PUNISH }
 
@@ -460,6 +475,7 @@ class RepertoireViewModel(
 
     /** Every due card of [bookId], or of every opening when null, mixed. */
     fun startReview(bookId: String? = null) {
+        punishShares = emptyMap()
         val all = indexes.value ?: return
         val chosen = if (bookId == null) all else all.filter { it.book.id == bookId }
         val queue = ReviewQueue.build(chosen, cards.value.values, clock())
@@ -502,6 +518,28 @@ class RepertoireViewModel(
         val queue = Drills.challenge(ui.index, cards.value.values, ui.challenge, clock(), random)
         if (queue.isEmpty()) return
         startQueue(RunKind.CHALLENGE, "Challenge", queue)
+    }
+
+    /**
+     * Today's session (D112): what is due in every opening, with a few mistakes to punish from the
+     * openings begun spread through it. It is a review, so the punish positions join the schedule.
+     */
+    fun startToday() {
+        val all = indexes.value ?: return
+        val due = ReviewQueue.build(all, cards.value.values, clock())
+        val begun = state.value.begun.map { it.book.id }.toSet()
+        val dueKeys = due.map { it.node.key }.toSet()
+        val punish = all.filter { it.book.id in begun }
+            .flatMap { index -> Drills.punish(index, cards.value.values, clock(), band(index.book)) }
+            .filter { (card, _) -> card.node.key !in dueKeys }
+            .sortedByDescending { it.second }
+            .take(TODAY_PUNISH)
+        val queue = due.toMutableList()
+        // One mistake to punish after every few due positions, the rest at the end.
+        punish.forEachIndexed { i, (card, _) -> queue.add(minOf(queue.size, (i + 1) * TODAY_SPACING + i), card) }
+        if (queue.isEmpty()) return
+        punishShares = punish.associate { (card, share) -> card.node.key to share }
+        startQueue(RunKind.REVIEW, "Today", queue)
     }
 
     /** The mistakes club players make in [bookId], each to punish (D112); misses come back. */
@@ -782,7 +820,7 @@ class RepertoireViewModel(
                 session != null -> session.outcome.withIndex().filter { !it.value.second.firstTryRight }.map { it.index }.toSet()
                 else -> emptySet()
             },
-            punishShare = if (current.kind == RunKind.PUNISH) session?.current?.node?.key?.let(punishShares::get)?.let { (it * 100).roundToInt() } else null,
+            punishShare = session?.current?.node?.key?.let(punishShares::get)?.let { (it * 100).roundToInt() },
             repeatPass = (run?.restarts ?: 0) > 0,
         )
     }
