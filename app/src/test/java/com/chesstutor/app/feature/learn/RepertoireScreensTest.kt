@@ -129,6 +129,21 @@ class RepertoireScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_dark.png")
     }
 
+    /** Punish mistakes (D112): the most common club mistakes as small boards; a tap starts the run. */
+    @Test
+    fun thePunishChapterShowsItsBoardsAndStartsTheRun() {
+        var punished = false
+        val fens = List(3) { "r1bqkb1r/ppp2ppp/2n5/3np1N1/2B5/8/PPPP1PPP/RNBQK2R w KQkq - 0 6" }
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                RepertoirePage(pageUi().copy(punish = 9, punishFens = fens), RepertoireActions(onBack = {}, onReview = {}, onLearn = {}, onTricky = {}, onPunish = { punished = true }))
+            }
+        }
+        compose.onNodeWithText("Punish mistakes").performScrollTo().performClick()
+        assertEquals(true, punished)
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_punish.png")
+    }
+
     private fun runUi(moment: RunMoment, line: List<String>, mastered: RepertoireLevel? = null, ring: String? = null, why: String? = null): RunUi {
         val board = RepertoireBoard(line = { line to (moment == RunMoment.YourMove) }, submit = { MoveEffects.ILLEGAL })
         return RunUi(

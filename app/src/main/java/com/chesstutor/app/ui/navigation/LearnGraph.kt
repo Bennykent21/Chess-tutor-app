@@ -97,6 +97,7 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val homeModel = homeViewModel()
             val lessons by learnViewModel().learn.collectAsStateWithLifecycle()
             val ideas = OpeningCourses.courseFor(ui.book.title, lessons.library.courses)
+            val videos = rememberLessonVideos()
             val openRun: (() -> Unit) -> () -> Unit = { start ->
                 {
                     start()
@@ -113,6 +114,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     onIdeas = ideas?.let { course -> { navController.navigate(AppRoutes.course(course.id)) { launchSingleTop = true } } },
                     onTricky = openRun { repertoire.startTricky(id) },
                     onPunish = openRun { repertoire.startPunish(id) },
+                    video = ideas?.let { videos.courseVideo(it.id) },
+                    boardTheme = state.appSettings.boardTheme,
                     onTactics = {
                         navController.navigateToTab(TopTab.PUZZLES)
                         navController.navigate(AppRoutes.puzzleRelated(listOf(com.chesstutor.app.domain.puzzle.PuzzleParser.OPENING_THEME + id))) { launchSingleTop = true }

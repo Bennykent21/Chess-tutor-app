@@ -1,7 +1,9 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.design.CtBackBar
+import com.chesstutor.app.domain.learn.LessonVideo
+import com.chesstutor.app.board.BoardTheme
 import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.Gavel
 import com.chesstutor.app.design.ctPage
 import androidx.compose.ui.text.style.TextAlign
 import com.chesstutor.app.design.CtChip
@@ -103,6 +105,10 @@ data class RepertoireActions(
     val onPunish: () -> Unit = {},
     /** Puzzles from games in this opening (D112). */
     val onTactics: (() -> Unit)? = null,
+    /** The opening's video: it takes the art's place at the top (D112). */
+    val video: LessonVideo? = null,
+    /** The board colours and pieces, for the small boards. */
+    val boardTheme: BoardTheme = BoardTheme(),
     val onSparring: (() -> Unit)? = null,
     val onPlayOut: (() -> Unit)? = null,
     /** Learns the next new moves inside one variation (its moves from the start). */
@@ -128,19 +134,26 @@ data class RepertoireActions(
 @Composable
 fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().ctPage().verticalScroll(rememberScrollState())) {
-        Box(Modifier.fillMaxWidth().height(236.dp)) {
-            CtArt(CtScene.OPENINGS, Modifier.fillMaxSize(), fadeFrom = 0.45f)
-            CtIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = actions.onBack, modifier = Modifier.padding(CtSpacing.xs))
-            Row(
-                Modifier.align(Alignment.BottomStart).padding(horizontal = CtSpacing.gutter),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-            ) {
+        val heading: @Composable (Modifier) -> Unit = { mod ->
+            Row(mod.padding(horizontal = CtSpacing.gutter), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                 Column(Modifier.weight(1f)) {
                     Text(ui.book.title, style = CtType.Display)
                     Text(if (ui.book.side == PieceColor.WHITE) "As White" else "As Black", style = CtType.BodySmall.copy(color = CtColors.Text2))
                 }
                 ReadinessRing(ui.readiness)
+            }
+        }
+        val video = actions.video
+        if (video != null) {
+            // The opening's video sits where the art was and plays right there (D112).
+            CtBackBar(onBack = actions.onBack)
+            VideoFrame(video, autoplay = false, modifier = Modifier.fillMaxWidth().padding(horizontal = CtSpacing.gutter))
+            heading(Modifier.padding(top = CtSpacing.sm))
+        } else {
+            Box(Modifier.fillMaxWidth().height(236.dp)) {
+                CtArt(CtScene.OPENINGS, Modifier.fillMaxSize(), fadeFrom = 0.45f)
+                CtIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = actions.onBack, modifier = Modifier.padding(CtSpacing.xs))
+                heading(Modifier.align(Alignment.BottomStart))
             }
         }
         Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
@@ -179,13 +192,7 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
                     },
                 )
             }
-            if (ui.punish > 0) {
-                CtListRow(
-                    title = "Punish mistakes", icon = null, onClick = actions.onPunish,
-                    leading = { CtMetalIcon(Icons.Rounded.Gavel, size = 36.dp) },
-                    trailing = { Text("${ui.punish}", style = CtType.BodySmall.copy(color = CtColors.Text2)) },
-                )
-            }
+            if (ui.punish > 0) PunishChapter(ui, actions)
             actions.onTactics?.let {
                 CtListRow(title = "Tactics", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Extension, size = 36.dp) })
             }
@@ -199,6 +206,29 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
             actions.onIdeas?.let { CtListRow(title = "Ideas", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.AutoStories, size = 36.dp) }) }
             actions.onSparring?.let { CtListRow(title = "Sparring", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.SportsEsports, size = 36.dp) }) }
             actions.onPlayOut?.let { CtListRow(title = "Play it out", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Flag, size = 36.dp) }) }
+        }
+    }
+}
+
+/** The mistakes club players make in this opening (D112): the most common as small boards, the count, and a tap starts the run. */
+@Composable
+private fun PunishChapter(ui: RepertoireBookUi, actions: RepertoireActions) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(CtShapes.CardSmall)
+            .ctPressable(onClickLabel = "Punish the mistakes", onClick = actions.onPunish)
+            .padding(vertical = CtSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Punish mistakes", style = CtType.Title, modifier = Modifier.weight(1f))
+            Text("${ui.punish}", style = CtType.BodySmall.copy(color = CtColors.Text2))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            ui.punishFens.forEach { fen ->
+                BoardThumbnail(fen, actions.boardTheme, flipped = ui.book.side == PieceColor.BLACK, size = 72.dp)
+            }
         }
     }
 }

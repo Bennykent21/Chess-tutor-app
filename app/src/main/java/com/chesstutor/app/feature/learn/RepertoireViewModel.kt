@@ -63,6 +63,8 @@ data class RepertoireBookUi(
     val tricky: Int,
     /** Mistakes club players make in this opening, to punish (D112). */
     val punish: Int = 0,
+    /** The most common of them, as positions for the opening page's boards. */
+    val punishFens: List<String> = emptyList(),
     /** New cards waiting in the open levels. */
     val fresh: Int,
     val chart: ReplyChart?,
@@ -106,6 +108,9 @@ data class ReplyChart(val after: String, val replies: List<ChartReply>)
 data class ChartReply(val san: String, val share: Double, val error: Boolean)
 
 /** TEST is an opening's test-out (Phase 12): no hints, nothing saved, four of five right opens its drills. */
+/** Boards shown in the opening page's Punish mistakes chapter. */
+const val PUNISH_BOARDS = 3
+
 enum class RunKind { LEARN, REVIEW, TRICKY, TEST, DRILL, CHALLENGE, PUNISH }
 
 /** What the trainer is saying at this moment of a run. */
@@ -245,6 +250,7 @@ class RepertoireViewModel(
         val introduced = mine.map { it.key }.toSet()
         val variations = RepertoireVariations.of(index, band(book), progress.unlocked, mine.associateBy { it.key }, open)
         val learnt = book.cards().count { it.key in introduced }
+        val punishFound = Drills.punish(index, cardMap.values, now, band(book))
         return RepertoireBookUi(
             book = book,
             index = index,
@@ -252,7 +258,8 @@ class RepertoireViewModel(
             mastery = RepertoireLevel.entries.associateWith { Mastery.of(book, it, cardMap, log, zone) },
             due = mine.count { it.isDue(now) && book.nodes[it.key]?.own == true },
             tricky = mine.count { it.tricky },
-            punish = Drills.punish(index, cardMap.values, now, band(book)).size,
+            punish = punishFound.size,
+            punishFens = punishFound.take(PUNISH_BOARDS).map { (card, _) -> card.position.toFen() },
             fresh = book.cards(progress.unlocked).count { it.key !in introduced && CourseGate.isOpen(index.pathTo(it.key).orEmpty(), open) },
             chart = chartOf(index, band(book)),
             introduced = book.cards().count { it.key in introduced },
