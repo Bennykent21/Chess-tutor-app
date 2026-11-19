@@ -54,12 +54,12 @@ class BoardViewTest {
             assertEquals("${set.id} has 12 different drawables", 12, ids.toSet().size)
             ids.forEach { assertNotNull(ContextCompat.getDrawable(context, it)) }
         }
-        assertEquals(48, PieceSet.entries.flatMap { set -> PieceArt.allPieces.map { PieceArt.drawable(set, it) } }.toSet().size)
+        assertEquals(12 * PieceSet.entries.size, PieceSet.entries.flatMap { set -> PieceArt.allPieces.map { PieceArt.drawable(set, it) } }.toSet().size)
     }
 
     @Test
     fun everyPieceSetOnItsOwnTheme() {
-        val pairs = PieceSet.entries.zip(listOf(BoardColors.CLASSIC, BoardColors.MEADOW, BoardColors.LAGOON, BoardColors.WALNUT))
+        val pairs = PieceSet.entries.zip(listOf(BoardColors.CLASSIC, BoardColors.MEADOW, BoardColors.LAGOON, BoardColors.WALNUT, BoardColors.MAPLE, BoardColors.SLATE, BoardColors.PARCHMENT, BoardColors.TEAK))
         compose.setContent {
             CtTheme {
                 CtScreenBackground {
@@ -75,7 +75,7 @@ class BoardViewTest {
                 }
             }
         }
-        compose.onAllNodes(hasContentDescription("Chess board. White to move. White at the bottom.")).assertCountEquals(4)
+        compose.onAllNodes(hasContentDescription("Chess board. White to move. White at the bottom.")).assertCountEquals(PieceSet.entries.size)
         compose.onRoot().captureRoboImage()
     }
 

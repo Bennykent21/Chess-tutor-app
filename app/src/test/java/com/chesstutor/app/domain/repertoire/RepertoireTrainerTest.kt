@@ -1,5 +1,6 @@
 package com.chesstutor.app.domain.repertoire
 
+import com.chesstutor.app.core.LegalMoveGenerator
 import com.chesstutor.app.core.repetitionKey
 import com.chesstutor.app.domain.repertoire.RepertoireLevel.CORE
 import com.chesstutor.app.domain.repertoire.RepertoireLevel.DEEP
@@ -144,6 +145,12 @@ class RepertoireTrainerTest {
         assertTrue(run.isNewCard)
         assertEquals(LearnMoveResult.WRONG, run.submit("b1c3"))
         assertEquals("d2d3", run.shown)
+        assertEquals(LearnMoveResult.RIGHT, run.submit("d2d3"))
+        // It needed help, so the line is played once more from the top, from memory (D102).
+        assertEquals(LearnRun.Pass.RECALL, run.pass)
+        assertEquals(1, run.restarts)
+        assertTrue(run.missedNow.isEmpty())
+        assertTrue(run.playOpponent())
         assertEquals(LearnMoveResult.RIGHT, run.submit("d2d3"))
         assertEquals(LearnRun.Pass.DONE, run.pass)
         val (card, review) = run.outcome.single()
@@ -404,5 +411,74 @@ class RepertoireTrainerTest {
         val shut = List(10_000) { RepertoireGuide.sparringPick(node, band = 1, open = CORE, random = random) }
         assertEquals(0.1, shut.count { it == SparringPick.Leave } / 10_000.0, 0.02)
         assertNull(RepertoireGuide.sparringPick(book.nodes.getValue(key("$P g8f6")), null, DEEP))
+    }
+
+    // ---------------------------------------------------------------- drills (D101)
+
+    private fun practiceQueue(): List<DueCard> =
+        book.cards(CORE).take(3).mapIndexed { i, n -> RepertoireCards.introduce(book.id, n, day0.plusSeconds(i.toLong())) }
+            .mapNotNull { st -> index.pathTo(st.key)?.let { DueCard(index, book.nodes.getValue(st.key), st, it) } }
+
+    private fun wrongAt(session: ReviewSession): String {
+        val card = session.current!!
+        return LegalMoveGenerator.generateLegalMoves(session.position).map { it.uci }.first { RepertoireCards.judge(card.node, it) == CardAnswer.WRONG }
+    }
+
+    @Test
+    fun aPracticeMissIsNotShownComesBackLaterAndMustComeRightTwice() {
+        val session = ReviewSession(practiceQueue(), repeatMisses = true, random = Random(3)) { day(1) }
+        val first = session.current!!
+        assertEquals(CardAnswer.WRONG, session.submit(wrongAt(session)))
+        assertTrue("noted and moved on", session.done)
+        assertNull("the move is not shown on a first miss", session.shown)
+        assertTrue(session.returning)
+        assertEquals(4, session.cards.size)
+        assertTrue("it comes back later, not straight after", session.cards.indexOfLast { it.state.id == first.state.id } >= 2)
+        session.next()
+        var asked = 1
+        while (!session.finished) {
+            val card = session.current!!
+            if (card.state.id == first.state.id) asked++
+            session.submit(card.node.move!!)
+            session.next()
+        }
+        assertEquals("missed, a first pass, then once more", 3, asked)
+        assertEquals(2, session.rightFirstTry)
+        assertEquals(3, session.positions)
+    }
+
+    @Test
+    fun aSecondMissShowsTheMove() {
+        val session = ReviewSession(practiceQueue().take(1), repeatMisses = true, random = Random(1)) { day(1) }
+        val card = session.current!!
+        session.submit(wrongAt(session))
+        session.next()
+        assertEquals(card.state.id, session.current!!.state.id)
+        assertEquals(CardAnswer.WRONG, session.submit(wrongAt(session)))
+        assertFalse(session.done)
+        assertEquals(card.node.move, session.shown)
+    }
+
+    @Test
+    fun theChallengeOpensAfterTwoLinesAndGrowsWithTheCup() {
+        assertEquals(0, Drills.challengeSize(CORE, learnt = 30, linesLearnt = 1))
+        assertEquals(10, Drills.challengeSize(CORE, learnt = 30, linesLearnt = 2))
+        assertEquals(20, Drills.challengeSize(RepertoireLevel.STANDARD, learnt = 30, linesLearnt = 3))
+        assertEquals(24, Drills.challengeSize(DEEP, learnt = 24, linesLearnt = 3))
+        val states = introducedAll(CORE, day0).values
+        val challenge = Drills.challenge(index, states, 2, day(1), kotlin.random.Random(1))
+        assertEquals(2, challenge.size)
+        assertEquals(2, challenge.map { it.state.id }.distinct().size)
+    }
+
+    @Test
+    fun aVariationDrillKeepsToItsLinesInOrder() {
+        val states = introducedAll(DEEP, day0).values
+        val all = Drills.variation(index, emptyList(), states, day(1))
+        val first = all.first().path
+        val inside = Drills.variation(index, first, states, day(1))
+        assertTrue(inside.isNotEmpty())
+        assertTrue(inside.all { it.path.take(first.size) == first })
+        assertEquals(inside.map { it.path.joinToString(" ") }.sorted(), inside.map { it.path.joinToString(" ") })
     }
 }

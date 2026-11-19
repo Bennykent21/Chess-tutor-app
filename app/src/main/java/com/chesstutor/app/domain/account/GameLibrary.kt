@@ -92,16 +92,24 @@ data class GameFilter(
     val timeClass: TimeClass? = null,
     val openingFamily: String? = null,
     val query: String = "",
+    /** How the game ended (checkmate, resignation, time), from Stats (D104). */
+    val ending: GameEnding? = null,
+    /** Games played from [fromMillis] to [toMillis], both included, such as a win streak (D105). */
+    val fromMillis: Long? = null,
+    val toMillis: Long? = null,
 ) {
     val isEmpty: Boolean get() = this == GameFilter()
 
     /** The filter as one line, for opening the games page from another page. */
-    fun encode(): String = listOf(source?.name, outcome?.name, color?.name, timeClass?.name, openingFamily, query).joinToString("|") { it.orEmpty() }
+    // "2|" marks the form with the ending (D104); the query stays last, since it may hold "|".
+    fun encode(): String = "2|" + listOf(source?.name, outcome?.name, color?.name, timeClass?.name, openingFamily, ending?.name, fromMillis?.toString(), toMillis?.toString(), query)
+        .joinToString("|") { it.orEmpty() }
 
     companion object {
         fun decode(text: String): GameFilter {
-            val v = text.split("|", limit = 6)
-            if (v.size < 6) return GameFilter()
+            val marked = text.startsWith("2|")
+            val v = if (marked) text.removePrefix("2|").split("|", limit = 9) else text.split("|", limit = 6)
+            if (v.size < (if (marked) 9 else 6)) return GameFilter()
             return runCatching {
                 GameFilter(
                     source = v[0].takeIf { it.isNotEmpty() }?.let(GameSource::valueOf),
@@ -109,7 +117,11 @@ data class GameFilter(
                     color = v[2].takeIf { it.isNotEmpty() }?.let(PieceColor::valueOf),
                     timeClass = v[3].takeIf { it.isNotEmpty() }?.let(TimeClass::valueOf),
                     openingFamily = v[4].ifEmpty { null },
-                    query = v[5],
+                    // Filters written before the ending was added have six parts and no mark.
+                    ending = if (marked) v[5].takeIf { it.isNotEmpty() }?.let(GameEnding::valueOf) else null,
+                    fromMillis = if (marked) v[6].toLongOrNull() else null,
+                    toMillis = if (marked) v[7].toLongOrNull() else null,
+                    query = if (marked) v[8] else v[5],
                 )
             }.getOrDefault(GameFilter())
         }
@@ -174,6 +186,9 @@ object GameLibrary {
                 (filter.color == null || game.userColor == filter.color) &&
                 (filter.timeClass == null || game.timeClass == filter.timeClass) &&
                 (filter.openingFamily == null || game.openingFamily == filter.openingFamily) &&
+                (filter.ending == null || GameEnding.of(game.record.termination) == filter.ending) &&
+                (filter.fromMillis == null || game.dateMillis >= filter.fromMillis) &&
+                (filter.toMillis == null || game.dateMillis <= filter.toMillis) &&
                 (words.isEmpty() || searchText(game).let { text -> words.all(text::contains) })
         }
     }

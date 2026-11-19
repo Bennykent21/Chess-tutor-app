@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -48,13 +50,13 @@ class TrainScreenTest {
     )
 
     @Test
-    fun trainLeadsWithTodayThenTheSidesAndOpensThem() {
+    fun trainLeadsWithTodayThenYourOpeningsAndOpensThem() {
         var today = false
-        var side: PieceColor? = null
+        var library = false
         var battle = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions(onToday = { today = true }, onSide = { side = it }, onVsStockfish = { battle = true }))
+                TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions(onToday = { today = true }, onSide = {}, onVsStockfish = { battle = true }, onLibrary = { library = true }))
             }
         }
         compose.onNodeWithText("12").assertExists()
@@ -62,8 +64,9 @@ class TrainScreenTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_home.png")
         compose.onNodeWithText("Start").performClick()
         assertEquals(true, today)
-        compose.onNodeWithText("As Black").performClick()
-        assertEquals(PieceColor.BLACK, side)
+        compose.onNodeWithText("Your openings").assertExists()
+        compose.onNodeWithText("All").performClick()
+        assertEquals(true, library)
         compose.onNodeWithText("Openings vs Stockfish").performClick()
         assertEquals(true, battle)
     }
@@ -83,5 +86,18 @@ class TrainScreenTest {
     fun aboutThirtySecondsAPosition() {
         assertEquals(1, minutesFor(1))
         assertEquals(6, minutesFor(12))
+    }
+
+    /** The visual pass (Phase 14B): the Train tab at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun gallery() {
+        compose.shootBoth("train", "01_train") { TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions({}, {}, {})) }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlass() {
+        compose.shootBoth("glass", "03_train", glass = true) { TrainScreen(state, TrainerState(loading = false), BoardTheme(), TrainActions({}, {}, {})) }
     }
 }

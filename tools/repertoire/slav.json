@@ -1,0 +1,10 @@
+{
+  "id": "slav",
+  "title": "Slav Defence",
+  "side": "black",
+  "start": "d4 d5",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {
+    "d4 d5 c4": "c6"
+  }
+}

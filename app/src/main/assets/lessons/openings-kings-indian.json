@@ -6,12 +6,14 @@
   "level": "advanced",
   "order": 90,
   "side": "black",
+  "opening": "kings-indian",
   "battleLine": "King's Indian Defense",
   "lessons": [
     {
       "id": "openings-kings-indian-setup",
       "title": "The King's Indian set-up",
       "summary": "Fianchetto, castle, then strike at the centre.",
+      "orientation": "black",
       "steps": [
         {
           "type": "explain",
@@ -22,7 +24,9 @@
         {
           "type": "play",
           "text": "Develop your king's knight.",
-          "expect": ["g8f6"],
+          "expect": [
+            "g8f6"
+          ],
           "hint": "The knight goes to its best square, f6.",
           "ifWrong": "Start with 1...Nf6.",
           "ifRight": "Flexible and active.",
@@ -36,7 +40,9 @@
         {
           "type": "play",
           "text": "Prepare a fianchetto: make room for your bishop on g7.",
-          "expect": ["g7g6"],
+          "expect": [
+            "g7g6"
+          ],
           "hint": "The g-pawn, one square.",
           "ifWrong": "The King's Indian plays ...g6, then ...Bg7.",
           "ifRight": "The bishop's home is ready.",
@@ -50,7 +56,9 @@
         {
           "type": "play",
           "text": "Put the bishop on its long diagonal.",
-          "expect": ["f8g7"],
+          "expect": [
+            "f8g7"
+          ],
           "hint": "The bishop goes to g7.",
           "ifWrong": "Fianchetto the bishop to g7.",
           "ifRight": "From g7 the bishop aims through the centre.",
@@ -60,12 +68,16 @@
           "type": "explain",
           "text": "White builds a big centre with 4.e4.",
           "move": "e2e4",
-          "arrows": ["g7b2:idea"]
+          "arrows": [
+            "g7b2:idea"
+          ]
         },
         {
           "type": "play",
           "text": "Play d6: it stops e5 and prepares your own ...e5 later.",
-          "expect": ["d7d6"],
+          "expect": [
+            "d7d6"
+          ],
           "hint": "The d-pawn, one square.",
           "ifWrong": "The King's Indian plays ...d6 here.",
           "ifRight": "Black is ready to castle.",
@@ -75,10 +87,86 @@
           "type": "quiz",
           "text": "White played 5.Nf3. Get your king to safety before you fight.",
           "fen": "rnbqk2r/ppp1ppbp/3p1np1/8/2PPP3/2N2N2/PP3PPP/R1BQKB1R b KQkq - 1 5",
-          "expect": ["e8g8"],
+          "expect": [
+            "e8g8"
+          ],
           "hint": "The squares between your king and the h8 rook are empty.",
           "ifWrong": "Castle first; the counterattack with ...e5 comes next.",
           "ifRight": "Castled. Now Black hits the centre with ...e5 or ...c5.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-kings-indian-plans",
+      "title": "The kingside pawn storm",
+      "summary": "When White closes the centre with d5, reroute to e7 and strike with ...f5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/ppp2pbp/2np1np1/3Pp3/2P1P3/2N2N2/PP2BPPP/R1BQ1RK1 b - - 0 8",
+          "text": "When White locks the centre with 8.d5, the pawn chain points towards the kingside. Black attacks on the kingside while White pushes c5 on the queenside.",
+          "arrows": [
+            "f7f5:idea",
+            "g6g5:idea",
+            "c4c5:bad"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Move your c6 knight out of the way and towards the kingside.",
+          "expect": [
+            "c6e7"
+          ],
+          "hint": "Retreat the knight to e7.",
+          "ifWrong": "Play 8...Ne7 so your knight helps defend and supports ...f5.",
+          "ifRight": "From e7 the knight eyes g6 and leaves the f-file clear.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White starts rerouting the knight to d3 with 9.Ne1.",
+          "move": "f3e1"
+        },
+        {
+          "type": "play",
+          "text": "Clear the path for your f-pawn.",
+          "expect": [
+            "f6d7"
+          ],
+          "hint": "Step back with the f6 knight to d7.",
+          "ifWrong": "Play 9...Nd7 so ...f5 is ready next move.",
+          "ifRight": "The f-pawn is ready to storm forward.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White puts the knight on d3: 10.Nd3, preparing c5.",
+          "move": "e1d3"
+        },
+        {
+          "type": "play",
+          "text": "Launch your kingside counterattack.",
+          "expect": [
+            "f7f5"
+          ],
+          "hint": "Push the f-pawn two squares.",
+          "ifWrong": "Play 10...f5 to attack e4 and start the kingside pawn storm.",
+          "ifRight": "Black takes the initiative on the kingside, aiming for ...f4 and ...g5.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/pppnn1bp/3p2p1/3Ppp2/2P1P3/2NN1P2/PP2B1PP/R1BQ1RK1 b - - 0 11",
+          "text": "White reinforced e4 with 11.f3. Gain kingside space or bring the d7 knight back into the attack.",
+          "expect": [
+            "f5f4",
+            "d7f6"
+          ],
+          "hint": "Push ...f4 to gain kingside space, or put a knight back on f6.",
+          "ifWrong": "Play 11...f4 (or 11...Nf6) to build up the kingside pawn storm with ...g5 and ...h5.",
+          "ifRight": "Black's pawns roll forward with ...g5, ...h5 and ...Rf6-g6.",
           "rule": true
         }
       ]

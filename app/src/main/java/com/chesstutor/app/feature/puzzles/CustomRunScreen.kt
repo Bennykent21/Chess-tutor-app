@@ -1,5 +1,13 @@
 package com.chesstutor.app.feature.puzzles
 
+import kotlin.math.roundToInt
+import androidx.compose.ui.semantics.contentDescription
+import com.chesstutor.app.design.CtToggleRow
+import com.chesstutor.app.design.CtGroupLabel
+import com.chesstutor.app.design.CtActionPage
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.RangeSlider
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -70,106 +78,76 @@ internal fun patternGroups(patternsFor: (PuzzleGoal) -> List<String>): List<Pair
 }
 
 /**
- * Custom run (D64, from Puzzle modes): every pattern on one page, grouped under its goal's piece
- * and wrapped so nothing scrolls sideways; the rating as one track of five steps with the player's
- * own marked; how many, the timer and Start fixed at the bottom.
+ * Custom run (D64, D95): a rating range dragged from both ends, every pattern grouped under its
+ * goal, how many and whether a clock runs, with Start fixed at the bottom; the same parts as a
+ * goal's page.
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CustomRunScreen(
     patternsFor: (PuzzleGoal) -> List<String>,
     puzzleRating: Int,
-    onStart: (RatingBand, pattern: String?, count: Int, timed: Boolean) -> Unit,
+    onStart: (ratings: IntRange, pattern: String?, count: Int, timed: Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    pieceSet: PieceSet = PieceSet.DEFAULT,
+    @Suppress("UNUSED_PARAMETER") pieceSet: PieceSet = PieceSet.DEFAULT,
 ) {
-    val own = RatingBand.entries.firstOrNull { puzzleRating in it.range } ?: RatingBand.CASUAL
-    var bandName by rememberSaveable { mutableStateOf(own.name) }
+    val near = (puzzleRating / STEP) * STEP
+    var low by rememberSaveable { mutableIntStateOf((near - 200).coerceIn(MIN, MAX - STEP)) }
+    var high by rememberSaveable { mutableIntStateOf((near + 200).coerceIn(MIN + STEP, MAX)) }
     var pattern by rememberSaveable { mutableStateOf<String?>(null) }
     var count by rememberSaveable { mutableIntStateOf(10) }
     var timed by rememberSaveable { mutableStateOf(false) }
-    val band = RatingBand.valueOf(bandName)
     // Not remembered: the patterns arrive once the pack has loaded, and grouping a few dozen is cheap.
     val groups = patternGroups(patternsFor)
-    CtScreenBackground(modifier) {
-        Column(Modifier.fillMaxSize()) {
-            CtTopBar(title = "Custom run", onBack = onBack)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = CtSpacing.gutter, end = CtSpacing.gutter, bottom = CtSpacing.xl),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.xl),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                    Text(band.label, style = CtType.Headline)
-                    BandTrack(band, own, puzzleRating, onPick = { bandName = it.name })
+    CtActionPage(
+        title = "Custom run",
+        onBack = onBack,
+        modifier = modifier,
+        bottom = { CtButton("Start $count puzzles", onClick = { onStart(low..high, pattern, count, timed) }, modifier = Modifier.weight(1f)) },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.lg)) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Puzzle rating", style = CtType.Label.copy(color = CtColors.Text), modifier = Modifier.weight(1f))
+                    Text("$low to $high", style = CtType.Label.copy(color = CtColors.Accent))
                 }
+                RangeSlider(
+                    value = low.toFloat()..high.toFloat(),
+                    onValueChange = { range ->
+                        low = ((range.start / STEP).roundToInt() * STEP).coerceAtMost(high - STEP)
+                        high = ((range.endInclusive / STEP).roundToInt() * STEP).coerceAtLeast(low + STEP)
+                    },
+                    valueRange = MIN.toFloat()..MAX.toFloat(),
+                    colors = SliderDefaults.colors(thumbColor = CtColors.Text, activeTrackColor = CtColors.Text, inactiveTrackColor = CtColors.Track),
+                    modifier = Modifier.semantics { contentDescription = "Puzzle rating from $low to $high" },
+                )
+                Text("Yours: $puzzleRating", style = CtType.Caption.copy(color = CtColors.Text2))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                CtGroupLabel("Patterns")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                     CtChip("Any pattern", selected = pattern == null, onClick = { pattern = null })
                 }
-                groups.forEach { (goal, tags) ->
-                    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                            Image(painterResource(PieceArt.drawable(pieceSet, Piece(goalPiece(goal), PieceColor.WHITE))), contentDescription = null, modifier = Modifier.size(28.dp))
-                            Text(goal.title, style = CtType.TitleSmall)
-                        }
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                            tags.forEach { tag -> CtChip(PuzzleThemes.displayName(tag), selected = tag == pattern, onClick = { pattern = tag }) }
-                        }
+            }
+            groups.forEach { (goal, tags) ->
+                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    Text(goal.title, style = CtType.Caption.copy(color = CtColors.Text2))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        tags.forEach { tag -> CtChip(PuzzleThemes.displayName(tag), selected = tag == pattern, onClick = { pattern = tag }) }
                     }
                 }
             }
-            Column(
-                modifier = Modifier.fillMaxWidth().background(CtColors.Bg).padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.md),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                    CtSegmented(options = COUNTS, selected = count, label = { "$it" }, onSelect = { count = it }, modifier = Modifier.weight(1f))
-                    CtChip("Timer", icon = Icons.Rounded.Timer, selected = timed, onClick = { timed = !timed })
-                }
-                CtButton("Start $count puzzles", onClick = { onStart(band, pattern, count, timed) }, modifier = Modifier.fillMaxWidth())
+            Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                CtGroupLabel("How many")
+                CtSegmented(options = COUNTS, selected = count, label = { "$it" }, onSelect = { count = it })
             }
+            CtToggleRow(title = "Against the clock", checked = timed, onCheckedChange = { timed = it })
         }
     }
 }
 
-/** The five rating bands as one track, the chosen one filled, "You" over the player's own rating. */
-@Composable
-private fun BandTrack(selected: RatingBand, own: RatingBand, puzzleRating: Int, onPick: (RatingBand) -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val step = maxWidth / RatingBand.entries.size
-        val within = ((puzzleRating - own.range.first).toFloat() / (own.range.last + 1 - own.range.first)).coerceIn(0.1f, 0.9f)
-        Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-            Box(Modifier.fillMaxWidth().height(18.dp)) {
-                Text(
-                    "You",
-                    style = CtType.Caption.copy(color = CtColors.Accent),
-                    modifier = Modifier.offset(x = step * (own.ordinal + within) - 12.dp),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                RatingBand.entries.forEach { option ->
-                    val on = option == selected
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(CtShapes.Chip)
-                            .background(if (on) CtColors.Primary else CtColors.Surface)
-                            .ctPressable(role = Role.RadioButton, onClickLabel = "Choose ${option.label}") { onPick(option) }
-                            .semantics { this.selected = on },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            if (option == RatingBand.EXPERT) "${option.range.first}+" else "${option.range.first}",
-                            style = CtType.Label.copy(color = if (on) CtColors.OnPrimary else CtColors.Text2),
-                            maxLines = 1,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
+private const val MIN = 400
+private const val MAX = 3000
+private const val STEP = 50
+

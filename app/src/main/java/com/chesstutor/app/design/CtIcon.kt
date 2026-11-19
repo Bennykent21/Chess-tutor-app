@@ -37,6 +37,17 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.SmartToy
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Smartphone
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.IosShare
+import androidx.compose.material.icons.rounded.Replay
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -82,6 +93,18 @@ private val metal: Map<ImageVector, Int> by lazy {
         Icons.Rounded.Psychology to R.drawable.icon_psychology,
         Icons.Rounded.AutoStories to R.drawable.icon_auto_stories,
         Icons.Rounded.Shield to R.drawable.icon_shield,
+        Icons.Rounded.SmartToy to R.drawable.icon_smart_toy,
+        // Opening battle: crossed swords (Material Icons has no swords).
+        Icons.AutoMirrored.Rounded.MenuBook to R.drawable.icon_swords,
+        Icons.Rounded.Shuffle to R.drawable.icon_shuffle,
+        Icons.Rounded.Smartphone to R.drawable.icon_smartphone,
+        Icons.Rounded.Wifi to R.drawable.icon_wifi,
+        Icons.Rounded.Visibility to R.drawable.icon_visibility,
+        Icons.Rounded.Search to R.drawable.icon_search,
+        Icons.Rounded.LocalFireDepartment to R.drawable.icon_local_fire_department,
+        Icons.Rounded.SwapVert to R.drawable.icon_swap_vert,
+        Icons.Rounded.IosShare to R.drawable.icon_ios_share,
+        Icons.Rounded.Replay to R.drawable.icon_replay,
     )
 }
 

@@ -26,6 +26,9 @@ class RoomRepertoireProgressRepository(private val db: AppDatabase) : Repertoire
 
     override suspend fun reviews(bookId: String): List<CardReview> = dao.reviews(bookId).map { it.toDomain() }
 
+    /** When every drill answer was given, for the day streak (D110). */
+    fun observeReviewTimes(): Flow<List<Long>> = dao.observeReviewTimes()
+
     override suspend fun save(cards: List<CardState>, reviews: List<CardReview>) =
         dao.save(cards.map { it.toEntity() }, reviews.map { it.toEntity() })
 

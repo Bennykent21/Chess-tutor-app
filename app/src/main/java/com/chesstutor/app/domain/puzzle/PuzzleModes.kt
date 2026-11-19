@@ -81,9 +81,13 @@ object PuzzleModes {
     }
 
     /** [count] puzzles in [band], optionally with [pattern]. */
-    fun custom(pack: PuzzlePack, band: RatingBand, pattern: String?, count: Int, seed: Long, avoid: Set<String> = emptySet()): List<Puzzle> {
+    fun custom(pack: PuzzlePack, band: RatingBand, pattern: String?, count: Int, seed: Long, avoid: Set<String> = emptySet()): List<Puzzle> =
+        custom(pack, band.range, pattern, count, seed, avoid)
+
+    /** Custom run with any rating range (D95), as the two-ended slider picks it. */
+    fun custom(pack: PuzzlePack, ratings: IntRange, pattern: String?, count: Int, seed: Long, avoid: Set<String> = emptySet()): List<Puzzle> {
         val matching = pack.puzzles.filter { p ->
-            p.rating in band.range && (pattern == null || pattern in p.themes || p.primaryTheme == pattern)
+            p.rating in ratings && (pattern == null || pattern in p.themes || p.primaryTheme == pattern)
         }
         val fresh = matching.filter { it.id !in avoid }
         val pool = if (fresh.size >= count) fresh else matching

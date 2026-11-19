@@ -428,6 +428,9 @@ class BotGame(
         }
     }
 
+    /** The finished game as PGN, to share; null while it is still going. */
+    fun pgn(): String? = state.value.result?.let { record(it).pgn }
+
     private fun record(result: GameResult): GameRecord {
         val sans = moveListOf(session.start, session.moves).map { it.san }
         val playerWhite = setup.playerColor == PieceColor.WHITE

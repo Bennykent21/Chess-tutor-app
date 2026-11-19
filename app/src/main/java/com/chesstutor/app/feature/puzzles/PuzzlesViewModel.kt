@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.puzzles
 
+import com.chesstutor.app.domain.puzzle.GoalStats
 import com.chesstutor.app.domain.puzzle.DailyPreview
 import com.chesstutor.app.domain.puzzle.InMemoryRushRecords
 import com.chesstutor.app.domain.puzzle.RushKind
@@ -63,6 +64,10 @@ class PuzzlesViewModel(
     private val rushRecords: RushRecords = InMemoryRushRecords(),
 ) : ViewModel() {
     private val pack = MutableStateFlow<PuzzlePack?>(null)
+
+    /** How the player does at each goal (D95), for its tile and page on Puzzle modes. */
+    val goalStats: StateFlow<Map<PuzzleGoal, GoalStats>> = combine(pack, repository.history()) { p, history -> GoalStats.of(history, p) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     /** Each rush's best score, for its tile on Puzzle modes. */
     val rushBest: StateFlow<Map<RushKind, Int>> = rushRecords.best
@@ -144,12 +149,13 @@ class PuzzlesViewModel(
         PuzzleRunSpec(PuzzleMode.DAILY, "Daily puzzle", plannedCount = 1, nextPuzzle = { i, _ -> puzzle.takeIf { i == 0 } })
     }
 
-    fun startThemed(goal: PuzzleGoal, pattern: String?, difficulty: Difficulty) = startRun { pack ->
+    fun startThemed(goal: PuzzleGoal, pattern: String?, difficulty: Difficulty, count: Int = THEMED_COUNT, timed: Boolean = false) = startRun { pack ->
         val seen = repository.loadProgress(PuzzleLevels.FIRST_RATING).seenIds
         val rating = home.value.stats.rating + difficulty.offset
-        val puzzles = PuzzleModes.themed(pack, goal, pattern, rating, THEMED_COUNT, System.currentTimeMillis(), seen)
+        val puzzles = PuzzleModes.themed(pack, goal, pattern, rating, count, System.currentTimeMillis(), seen)
         val title = pattern?.let(PuzzleThemes::displayName) ?: goal.title
-        PuzzleRunSpec(PuzzleMode.THEME, title, plannedCount = puzzles.size, nextPuzzle = { i, _ -> puzzles.getOrNull(i) })
+        // Against the clock: a minute a puzzle for the whole run, as Custom run does.
+        PuzzleRunSpec(PuzzleMode.THEME, title, plannedCount = puzzles.size, timeLimitMs = if (timed) puzzles.size * 60_000L else null, nextPuzzle = { i, _ -> puzzles.getOrNull(i) })
     }
 
     /** A lesson's "Related puzzles": puzzles with any of [themes], near the player's rating. */
@@ -172,9 +178,9 @@ class PuzzlesViewModel(
         )
     }
 
-    fun startCustom(band: RatingBand, pattern: String?, count: Int, timed: Boolean) = startRun { pack ->
+    fun startCustom(ratings: IntRange, pattern: String?, count: Int, timed: Boolean) = startRun { pack ->
         val seen = repository.loadProgress(PuzzleLevels.FIRST_RATING).seenIds
-        val puzzles = PuzzleModes.custom(pack, band, pattern, count, System.currentTimeMillis(), seen)
+        val puzzles = PuzzleModes.custom(pack, ratings, pattern, count, System.currentTimeMillis(), seen)
         PuzzleRunSpec(
             mode = PuzzleMode.CUSTOM,
             title = "Custom",

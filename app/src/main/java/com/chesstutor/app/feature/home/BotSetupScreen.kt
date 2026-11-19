@@ -48,7 +48,8 @@ import com.chesstutor.app.design.CtType
 import com.chesstutor.app.domain.bot.RosterBot
 import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.SideChoice
-import com.chesstutor.app.domain.game.TimeControl
+import com.chesstutor.app.feature.play.TimeControlPicker
+import com.chesstutor.app.feature.play.TimeControlSaver
 
 /**
  * A bot's page (plan 6.1, mock-up round 16): the bot, its line in its own voice, the game's
@@ -69,7 +70,7 @@ fun BotSetupScreen(
 ) {
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var side by rememberSaveable { mutableStateOf(SideChoice.RANDOM) }
-    var time by rememberSaveable { mutableStateOf(initialRules.timeControl) }
+    var time by rememberSaveable(stateSaver = TimeControlSaver) { mutableStateOf(initialRules.timeControl) }
     var takebacks by rememberSaveable { mutableStateOf(initialRules.takebacks) }
     var hints by rememberSaveable { mutableStateOf(initialRules.hints) }
     var evalBar by rememberSaveable { mutableStateOf(initialRules.evalBar) }
@@ -95,23 +96,14 @@ fun BotSetupScreen(
         }
         CtGroupLabel("You play")
         CtSegmented(options = SideChoice.entries, selected = side, label = { it.label }, onSelect = { side = it })
-        CtGroupLabel("Clock")
-        CtSegmented(options = TimeControl.entries, selected = time, label = ::clockLabel, onSelect = { time = it })
+        TimeControlPicker(selected = time, onSelect = { time = it })
         Column(Modifier.padding(top = CtSpacing.sm)) {
             CtToggleRow(title = "Takebacks", checked = takebacks, onCheckedChange = { takebacks = it })
             CtToggleRow(title = "Hints", checked = hints, onCheckedChange = { hints = it })
             CtToggleRow(title = "Evaluation bar", checked = evalBar, onCheckedChange = { evalBar = it })
             CtToggleRow(title = "Chess960", checked = chess960 != null, onCheckedChange = { on -> chess960 = if (on) Chess960.random() else null })
         }
-        chess960?.let { number ->
-            CtListRow(
-                title = "Position $number",
-                subtitle = "Tap for another. Castling still ends on g or c.",
-                icon = null,
-                onClick = { chess960 = Chess960.random() },
-                leading = { BoardThumbnail(Chess960.startFen(number), theme, flipped = false, size = 44.dp) },
-            )
-        }
+        chess960?.let { number -> Chess960Picker(number, theme, onChange = { chess960 = it }) }
         Repertoire(bot)
     }
 
@@ -156,9 +148,6 @@ private fun BotPortrait(face: String) {
         }
     }
 }
-
-/** "None" fits a four-way control better than "No clock". */
-internal fun clockLabel(time: TimeControl): String = if (time == TimeControl.NONE) "None" else time.label
 
 /** The openings the bot plays, one short line a side; nothing when it plays without a book. */
 @Composable

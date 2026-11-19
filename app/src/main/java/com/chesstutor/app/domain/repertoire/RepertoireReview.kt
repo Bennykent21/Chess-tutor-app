@@ -69,7 +69,39 @@ object ReviewQueue {
  * costs nothing) and the opponent's come with [playOpponent]. Pure, so it is unit tested; the
  * screen saves [outcome].
  */
-class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = Instant::now) {
+class ReviewSession(
+    cards: List<DueCard>,
+    /**
+     * Drills and challenges (D101, D102): a first miss is not shown, only noted, and the card comes
+     * back at a random later point; from the second miss the move is shown. After a miss a card
+     * must come right twice (a first pass, then once more) before it leaves the run.
+     */
+    private val repeatMisses: Boolean = false,
+    private val random: kotlin.random.Random = kotlin.random.Random.Default,
+    private val now: () -> Instant = Instant::now,
+) {
+    private class Track {
+        var misses = 0
+        var confirming = false
+    }
+
+    private val tracks = HashMap<String, Track>()
+
+    /** The card just finished comes back later in the run: missed, or a first pass after a miss. */
+    var returning: Boolean = false
+        private set
+
+    private val queue = cards.toMutableList()
+
+    /** The run's cards, a missed one again at the end when [repeatMisses]. */
+    val cards: List<DueCard> get() = queue
+
+    /** How many different positions the run asks, however often a missed one comes back. */
+    val positions: Int = cards.map { it.state.id }.distinct().size
+
+    /** Positions answered right the first time they were asked. */
+    val rightFirstTry: Int get() = results.groupBy { it.first.id }.values.count { it.first().second.firstTryRight }
+
     var index: Int = 0
         private set
 
@@ -94,8 +126,8 @@ class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = I
         startCard()
     }
 
-    val current: DueCard? get() = cards.getOrNull(index)
-    val finished: Boolean get() = index >= cards.size
+    val current: DueCard? get() = queue.getOrNull(index)
+    val finished: Boolean get() = index >= queue.size
     val outcome: List<Pair<CardState, CardReview>> get() = results.toList()
     val rightFirstTime: Int get() = results.count { it.second.firstTryRight }
 
@@ -122,8 +154,14 @@ class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = I
             CardAnswer.ALSO -> answer
             CardAnswer.RIGHT -> answer.also { finish(card, right = !missed) }
             CardAnswer.WRONG -> answer.also {
-                missed = true
-                shown = card.node.move
+                val track = if (repeatMisses) tracks.getOrPut(card.state.id, ::Track).also { it.misses++ } else null
+                if (track != null && track.misses == 1) {
+                    // Noted, not shown: the learner moves on and meets it again later.
+                    finish(card, right = false)
+                } else {
+                    missed = true
+                    shown = card.node.move
+                }
             }
         }
     }
@@ -149,6 +187,7 @@ class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = I
         shown = expected
         if (atCard) {
             missed = true
+            if (repeatMisses) tracks.getOrPut(card.state.id, ::Track).misses++
             finish(card, right = false)
         }
         return shown
@@ -184,6 +223,77 @@ class ReviewSession(val cards: List<DueCard>, private val now: () -> Instant = I
 
     private fun finish(card: DueCard, right: Boolean) {
         results += RepertoireCards.afterRecall(card.state, right, hinted, now())
+        returning = false
+        if (repeatMisses) {
+            val track = tracks.getOrPut(card.state.id, ::Track)
+            if (!right) {
+                track.confirming = false
+                comeBack(card)
+            } else if (track.misses > 0 && !track.confirming) {
+                track.confirming = true
+                comeBack(card)
+            }
+        }
         done = true
+    }
+
+    /** Puts [card] back at a random point later in the run, not straight after itself when there is room. */
+    private fun comeBack(card: DueCard) {
+        returning = true
+        val from = minOf(index + 2, queue.size)
+        queue.add(random.nextInt(from, queue.size + 1), card.copy(fromStart = false))
+    }
+}
+
+/**
+ * Practice from memory, any time (D101): no teaching, nothing scheduled. A drill walks one
+ * variation's learnt positions in the order of its lines; a challenge mixes learnt positions from
+ * every variation of an opening, more of them the higher the learner's cup.
+ */
+object Drills {
+    /** Lines with something learnt before the challenge opens. */
+    const val CHALLENGE_LINES = 2
+
+    /** Positions per challenge at each level: Core, Standard, Deep. */
+    const val CHALLENGE_STEP = 10
+
+    fun challengeSize(level: RepertoireLevel, learnt: Int, linesLearnt: Int): Int =
+        if (linesLearnt < CHALLENGE_LINES) 0 else minOf(learnt, CHALLENGE_STEP * (level.ordinal + 1))
+
+    /** The learnt positions of the variation that starts with [path], in the order of its lines. */
+    fun variation(index: RepertoireIndex, path: List<String>, states: Collection<CardState>, now: Instant): List<DueCard> =
+        learnt(index, states, now).filter { it.path.take(path.size) == path }.sortedBy { it.path.joinToString(" ") }
+
+    /** [size] learnt positions of the opening, mixed. */
+    fun challenge(index: RepertoireIndex, states: Collection<CardState>, size: Int, now: Instant, random: kotlin.random.Random = kotlin.random.Random.Default): List<DueCard> =
+        learnt(index, states, now).shuffled(random).take(size)
+
+    /**
+     * The positions right after a mistake club players often make (D112): the replies the build
+     * marked "punish", each once, the most common at [band] first, with that share. They need
+     * nothing learnt first; a position not met yet gets a fresh state.
+     */
+    fun punish(index: RepertoireIndex, states: Collection<CardState>, now: Instant, band: Int? = null): List<Pair<DueCard, Double>> {
+        val mine = states.filter { it.bookId == index.book.id }.associateBy { it.key }
+        return index.book.nodes.values.filter { !it.own }
+            .flatMap { node -> node.replies.filter { it.punish }.map { node to it } }
+            .sortedByDescending { (_, reply) -> reply.shareFor(band) }
+            .mapNotNull { (node, reply) ->
+                val after = RepertoireIndex.play(index.positionOf(node.key), reply.uci) ?: return@mapNotNull null
+                val card = index.book.at(after)?.takeIf { it.own && it.move != null } ?: return@mapNotNull null
+                val path = index.pathTo(card.key) ?: return@mapNotNull null
+                val state = mine[card.key] ?: CardState(index.book.id, card.key, card.level, dueAt = now, introducedAt = now)
+                DueCard(index, card, state, path) to reply.shareFor(band)
+            }
+            .distinctBy { it.first.node.key }
+    }
+
+    private fun learnt(index: RepertoireIndex, states: Collection<CardState>, now: Instant): List<DueCard> {
+        val mine = states.filter { it.bookId == index.book.id }.associateBy { it.key }
+        return index.book.cards().mapNotNull { node ->
+            val state = mine[node.key] ?: return@mapNotNull null
+            val path = index.pathTo(node.key) ?: return@mapNotNull null
+            DueCard(index, node, state, path)
+        }
     }
 }

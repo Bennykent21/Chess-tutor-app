@@ -31,7 +31,6 @@ data class PuzzleStats(
     val rating: Int = 1000,
     val totalXp: Int = 0,
     val playerLevel: PlayerLevel = PlayerLevel.fromXp(0),
-    val dayStreak: Int = 0,
     val cleanStreak: Int = 0,
     val bestStreak: Int = 0,
     val solved: Int = 0,

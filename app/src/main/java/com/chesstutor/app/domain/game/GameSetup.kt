@@ -4,18 +4,86 @@ import com.chesstutor.app.core.PieceColor
 import com.chesstutor.app.core.Position
 import com.chesstutor.app.domain.bot.BotProfile
 
-/** The clock for a game against a bot. */
-enum class TimeControl(val label: String, val initialMs: Long?, val incrementMs: Long = 0) {
-    NONE("No clock", null),
-    BLITZ_5("5 min", 5 * 60_000L),
-    RAPID_10("10 min", 10 * 60_000L),
-    RAPID_15_10("15 | 10", 15 * 60_000L, 10_000L);
+/**
+ * A game's clock (D92): minutes to start with and seconds added after each move; a null
+ * [initialMs] is no clock. Presets cover bullet, blitz and rapid; any other value is a custom clock.
+ */
+data class TimeControl(val initialMs: Long?, val incrementMs: Long = 0) {
+    init {
+        require(initialMs == null || initialMs > 0) { "a clock needs time on it" }
+        require(incrementMs >= 0) { "the increment cannot be negative" }
+    }
 
-    /** "untimed", "blitz" or "rapid", as saved games record it (the games list filters on it). */
-    val timeClass: String get() = when (this) {
-        NONE -> "untimed"
-        BLITZ_5 -> "blitz"
-        else -> "rapid"
+    /** "No clock", "10 min", "3 | 2" or "0:30" for less than a minute. */
+    val label: String
+        get() {
+            val start = initialMs ?: return "No clock"
+            val seconds = start / 1000
+            val minutes = if (seconds % 60 == 0L) "${seconds / 60}" else "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
+            return when {
+                incrementMs > 0 -> "$minutes | ${incrementMs / 1000}"
+                seconds % 60 == 0L -> "$minutes min"
+                else -> minutes
+            }
+        }
+
+    /**
+     * "untimed", "bullet", "blitz" or "rapid", as saved games record it, from the game's expected
+     * length (the start plus 40 moves' increments, as Lichess counts): under 3 minutes is bullet,
+     * under 10 blitz.
+     */
+    val timeClass: String
+        get() {
+            val start = initialMs ?: return "untimed"
+            val expected = start + 40 * incrementMs
+            return when {
+                expected < 3 * MINUTE -> "bullet"
+                expected < 10 * MINUTE -> "blitz"
+                else -> "rapid"
+            }
+        }
+
+    /** How it is saved: "none", or the start and increment in milliseconds ("600000+5000"). */
+    fun encode(): String = initialMs?.let { "$it+$incrementMs" } ?: "none"
+
+    companion object {
+        private const val MINUTE = 60_000L
+
+        fun of(minutes: Int, addedSeconds: Int = 0) = TimeControl(minutes * MINUTE, addedSeconds * 1000L)
+
+        val NONE = TimeControl(null)
+        val BULLET_1 = of(1)
+        val BULLET_1_1 = of(1, 1)
+        val BULLET_2_1 = of(2, 1)
+        val BLITZ_3 = of(3)
+        val BLITZ_3_2 = of(3, 2)
+        val BLITZ_5 = of(5)
+        val RAPID_10 = of(10)
+        val RAPID_15_10 = of(15, 10)
+        val RAPID_30 = of(30)
+
+        /** The presets the picker offers, by kind. */
+        val GROUPS: List<Pair<String, List<TimeControl>>> = listOf(
+            "Bullet" to listOf(BULLET_1, BULLET_1_1, BULLET_2_1),
+            "Blitz" to listOf(BLITZ_3, BLITZ_3_2, BLITZ_5),
+            "Rapid" to listOf(RAPID_10, RAPID_15_10, RAPID_30),
+        )
+
+        val PRESETS: List<TimeControl> = GROUPS.flatMap { it.second }
+
+        /** Reads [encode]'s text, and the enum names saved before D92 (NONE, BLITZ_5, RAPID_10, RAPID_15_10). */
+        fun decode(text: String?): TimeControl = when (text) {
+            null, "none", "NONE" -> NONE
+            "BLITZ_5" -> BLITZ_5
+            "RAPID_10" -> RAPID_10
+            "RAPID_15_10" -> RAPID_15_10
+            else -> {
+                val parts = text.split('+')
+                val start = parts.getOrNull(0)?.toLongOrNull()
+                val added = parts.getOrNull(1)?.toLongOrNull() ?: 0L
+                if (start != null && start > 0 && added >= 0) TimeControl(start, added) else NONE
+            }
+        }
     }
 }
 

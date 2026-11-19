@@ -1,5 +1,9 @@
 package com.chesstutor.app.board
 
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.core.PieceColor
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -216,5 +220,83 @@ class BoardHostTest {
         assertEquals(null, checkedKing(Position.initial()))
         val mated = Position.fromFen("rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3")
         assertEquals(Square.fromAlgebraic("e1"), checkedKing(mated))
+    }
+
+    /** A session whose board is read-only until [open], as in a game while the bot thinks. */
+    private class WaitingSession : BoardSession {
+        val mutable = MutableStateFlow(BoardSessionState(Position.initial(), movable = null))
+        override val state: StateFlow<BoardSessionState> = mutable
+        val played = mutableListOf<Move>()
+        fun open() { mutable.value = mutable.value.copy(movable = PieceColor.WHITE, version = mutable.value.version + 1) }
+        override fun onMove(move: Move): BoardFeedback {
+            played += move
+            // The other side thinks again; the board shows the move.
+            val next = LegalMoveGenerator.makeMove(mutable.value.position, move)
+            mutable.value = BoardSessionState(next, movable = null, version = mutable.value.version + 1)
+            return MoveEffects.CORRECT
+        }
+        /** The other side has moved: it is White's turn on [fen]. */
+        fun reply(fen: String) {
+            mutable.value = BoardSessionState(Position.fromFen(fen), movable = PieceColor.WHITE, version = mutable.value.version + 1)
+        }
+    }
+
+    @Test
+    fun aPremoveQueuedWhileWaitingPlaysWhenItIsYourTurn() {
+        val session = WaitingSession()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BoardHost(session = session, theme = BoardTheme(), modifier = Modifier.width(320.dp), premoveColor = PieceColor.WHITE)
+            }
+        }
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        board.performTouchInput { click(centre("e2", width.toFloat())) }
+        board.performTouchInput { click(centre("e4", width.toFloat())) }
+        compose.waitForIdle()
+        assertTrue("nothing plays while the other side moves", session.played.isEmpty())
+        session.open()
+        compose.waitForIdle()
+        assertEquals(listOf(Move.fromUci("e2e4")), session.played)
+    }
+
+    @Test
+    fun anIllegalPremoveIsDroppedAndTheSamePieceTwiceCancels() {
+        val session = WaitingSession()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BoardHost(session = session, theme = BoardTheme(), modifier = Modifier.width(320.dp), premoveColor = PieceColor.WHITE)
+            }
+        }
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        board.performTouchInput { click(centre("e2", width.toFloat())) }
+        board.performTouchInput { click(centre("e2", width.toFloat())) }
+        // A pawn three squares forward is never legal.
+        board.performTouchInput { click(centre("a2", width.toFloat())) }
+        board.performTouchInput { click(centre("a5", width.toFloat())) }
+        session.open()
+        compose.waitForIdle()
+        assertTrue(session.played.isEmpty())
+    }
+
+    @Test
+    fun severalPremovesPlayOneATurnFromWherePiecesWillStand() {
+        val session = WaitingSession()
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                BoardHost(session = session, theme = BoardTheme(), modifier = Modifier.width(320.dp), premoveColor = PieceColor.WHITE)
+            }
+        }
+        val board = compose.onNodeWithContentDescription("Chess board", substring = true)
+        fun tap(square: String) = board.performTouchInput { click(centre(square, width.toFloat())) }
+        tap("e2"); tap("e4")
+        // The pawn is not on e4 yet, but the second premove moves it on from there.
+        tap("e4"); tap("e5")
+        session.open()
+        compose.waitForIdle()
+        assertEquals(listOf(Move.fromUci("e2e4")), session.played)
+        // Black replies a6; the next queued move plays on White's turn.
+        session.reply("rnbqkbnr/1ppppppp/p7/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+        compose.waitForIdle()
+        assertEquals(listOf(Move.fromUci("e2e4"), Move.fromUci("e4e5")), session.played)
     }
 }

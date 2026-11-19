@@ -1,5 +1,7 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.feature.learn.VideoScreen
+import com.chesstutor.app.feature.learn.rememberLessonVideos
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -95,6 +97,7 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val homeModel = homeViewModel()
             val lessons by learnViewModel().learn.collectAsStateWithLifecycle()
             val ideas = OpeningCourses.courseFor(ui.book.title, lessons.library.courses)
+            val videos = rememberLessonVideos()
             val openRun: (() -> Unit) -> () -> Unit = { start ->
                 {
                     start()
@@ -110,10 +113,19 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     onLearnVariation = { path -> openRun { repertoire.startLearn(id, path) }() },
                     onIdeas = ideas?.let { course -> { navController.navigate(AppRoutes.course(course.id)) { launchSingleTop = true } } },
                     onTricky = openRun { repertoire.startTricky(id) },
+                    onPunish = openRun { repertoire.startPunish(id) },
+                    video = ideas?.let { videos.courseVideo(it.id) },
+                    boardTheme = state.appSettings.boardTheme,
+                    onTactics = {
+                        navController.navigateToTab(TopTab.PUZZLES)
+                        navController.navigate(AppRoutes.puzzleRelated(listOf(com.chesstutor.app.domain.puzzle.PuzzleParser.OPENING_THEME + id))) { launchSingleTop = true }
+                    },
                     onCourse = lessons.library.courses.firstOrNull { it.opening == id }?.let {
                         { navController.navigate(AppRoutes.learnOpening(id)) { launchSingleTop = true } }
                     },
                     onTest = openRun { repertoire.startTest(id) },
+                    onDrillVariation = { path -> openRun { repertoire.startDrill(id, path) }() },
+                    onChallenge = openRun { repertoire.startChallenge(id) },
                     onPlayOut = {
                         homeModel.presetBattle(ui.battleLine, ui.book.side)
                         navController.navigateToTab(TopTab.HOME)
@@ -141,6 +153,15 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 onLearnMore = repertoire::learnMore,
                 onDismissMastered = repertoire::dismissMastered,
                 onBack = { leave() },
+                onTactics = {
+                    // Read when tapped, not while drawing: the openings begun, as opening themes.
+                    val themes = repertoire.state.value.begun.map { com.chesstutor.app.domain.puzzle.PuzzleParser.OPENING_THEME + it.book.id }
+                    navController.popBackStack()
+                    if (themes.isNotEmpty()) {
+                        navController.navigateToTab(TopTab.PUZZLES)
+                        navController.navigate(AppRoutes.puzzleRelated(themes)) { launchSingleTop = true }
+                    }
+                },
             )
         }
         composable(AppRoutes.TRAINER_DRILL) { entry ->
@@ -183,7 +204,12 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     progress = lessons.progress,
                     theme = state.appSettings.boardTheme,
                     onOpen = { group ->
-                        val route = if (group.courses.size == 1) AppRoutes.course(group.courses.single().id) else AppRoutes.learnOpening(group.id)
+                        // No course yet: its lines are taught without text on the drills page (watch, then play back), D112.
+                        val route = when {
+                            group.courses.isEmpty() -> AppRoutes.repertoire(group.id)
+                            group.courses.size == 1 -> AppRoutes.course(group.courses.single().id)
+                            else -> AppRoutes.learnOpening(group.id)
+                        }
                         navController.navigate(route) { launchSingleTop = true }
                     },
                     onBack = { navController.popBackStack() },
@@ -195,6 +221,8 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 learn = lessons,
                 onOpenCourse = { id -> navController.navigate(AppRoutes.course(id)) { launchSingleTop = true } },
                 onBack = { navController.popBackStack() },
+                videos = rememberLessonVideos(),
+                onOpenVideo = { video -> navController.navigate(AppRoutes.video(video.id)) { launchSingleTop = true } },
             )
         }
         composable(
@@ -221,6 +249,21 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                     }
                 },
                 onBack = { navController.popBackStack() },
+                videos = rememberLessonVideos(),
+                onOpenVideo = { video -> navController.navigate(AppRoutes.video(video.id)) { launchSingleTop = true } },
+                onDrills = group.book?.let { book -> { navController.navigate(AppRoutes.repertoire(book.book.id)) { launchSingleTop = true } } },
+                theme = state.appSettings.boardTheme,
+                onPunish = group.book?.let { book ->
+                    {
+                        repertoire.startPunish(book.book.id)
+                        navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
+                    }
+                },
+                // Every opening has its puzzles, with or without drills yet (D112).
+                onTactics = {
+                    navController.navigateToTab(TopTab.PUZZLES)
+                    navController.navigate(AppRoutes.puzzleRelated(listOf(com.chesstutor.app.domain.puzzle.PuzzleParser.OPENING_THEME + group.id))) { launchSingleTop = true }
+                },
             )
         }
         composable(
@@ -235,9 +278,11 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val repertoires by repertoireViewModel().state.collectAsStateWithLifecycle()
             // The trainer's opening this course belongs to (Phase 12).
             val book = course?.opening?.let { repertoires.book(it) }
+            val videos = rememberLessonVideos()
             CourseScreen(
                 course = course,
                 progress = lessons.progress,
+                video = course?.let { videos.courseVideo(it.id) },
                 onOpenLesson = { id ->
                     learn.openLesson(id)
                     navController.navigate(AppRoutes.LESSON) { launchSingleTop = true }
@@ -272,6 +317,13 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
                 }
             }
         }
+        composable(
+            route = AppRoutes.VIDEO_PATTERN,
+            arguments = listOf(navArgument(AppRoutes.VIDEO_ID_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            val videos = rememberLessonVideos()
+            VideoScreen(video = videos.byId(entry.arguments?.getString(AppRoutes.VIDEO_ID_ARG).orEmpty()), onBack = { navController.popBackStack() })
+        }
         composable(AppRoutes.LESSON) { entry ->
             val learn = learnViewModel()
             val homeModel = homeViewModel()
@@ -280,8 +332,11 @@ internal fun NavGraphBuilder.learnGraph(shell: Shell) = with(shell) {
             val course = player?.course
             // A finished variation course opens its drills: the last page offers them.
             val trainable = course?.takeIf { it.opening != null && CourseGate.isDone(it, lessons.progress) }
+            val videos = rememberLessonVideos()
             LessonPlayerScreen(
                 player = player,
+                // Each lesson opens on its own videos, when it has some (D99).
+                videos = player?.let { videos.forLesson(it.course, it.lesson.id) }.orEmpty(),
                 settings = state.appSettings,
                 onFeedback = viewModel::playBoardFeedback,
                 onNextLesson = { id -> learn.openLesson(id) },

@@ -1,0 +1,213 @@
+{
+  "id": "openings-queens-gambit-declined",
+  "category": "openings",
+  "title": "Queen's Gambit Declined (2...e6)",
+  "intro": "Black holds d5 with 2...e6. Pressure d5 with Nc3 and Bg5, avoid the Elephant Trap, and target the isolated pawn against the Tarrasch.",
+  "level": "intermediate",
+  "order": 41,
+  "side": "white",
+  "opening": "queens-gambit",
+  "variation": "d2d4 d7d5 c2c4 e7e6",
+  "battleLine": "Queen's Gambit Declined",
+  "lessons": [
+    {
+      "id": "openings-queens-gambit-declined-main",
+      "title": "The Classical QGD",
+      "summary": "Develop Nc3, Bg5, e3 and Rc1 against 2...e6.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
+          "text": "With 2...e6, Black keeps a pawn on d5. White develops pieces that add pressure to d5."
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight and attack d5.",
+          "expect": [
+            "b1c3"
+          ],
+          "hint": "Bring the b1 knight to c3.",
+          "ifWrong": "Play 3.Nc3 to pressure d5.",
+          "ifRight": "Now two white pieces attack d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black defends d5 with 3...Nf6.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Pin the knight that guards d5.",
+          "expect": [
+            "c1g5"
+          ],
+          "hint": "Put your dark-squared bishop on g5.",
+          "ifWrong": "Play 4.Bg5 to pin the f6 knight to the queen.",
+          "ifRight": "Black must unpin or reinforce d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black unpins calmly with 4...Be7.",
+          "move": "f8e7"
+        },
+        {
+          "type": "play",
+          "text": "Support d4 and open the diagonal for your light-squared bishop.",
+          "expect": [
+            "e2e3"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 5.e3 so your f1 bishop can develop to d3 or e2.",
+          "ifRight": "White is ready for Nf3, Rc1 and Bd3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/pppnbppp/4pn2/3p2B1/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 3 7",
+          "text": "After 5...O-O 6.Nf3 Nbd7, put your queenside rook on the key open file.",
+          "expect": [
+            "a1c1",
+            "d1c2",
+            "f1d3"
+          ],
+          "hint": "Move the a1 rook onto the c-file.",
+          "ifWrong": "Play 7.Rc1 (or 7.Qc2) to build pressure down the c-file.",
+          "ifRight": "Wait until Black moves the f8 bishop before playing Bxc4, saving a tempo.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-declined-elephant",
+      "title": "The Elephant Trap & Semi-Slav",
+      "summary": "Meet 4...Nbd7 with 5.e3 and handle the Semi-Slav calmly.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/ppp2ppp/4pn2/3p2B1/2PP4/2N5/PP2PPPP/R2QKBNR b KQkq - 3 4",
+          "text": "If Black plays 4...Nbd7 instead of 4...Be7, they set a famous trap if White tries to win the d5 pawn after cxd5 exd5.",
+          "move": "b8d7"
+        },
+        {
+          "type": "play",
+          "text": "Reinforce d4 calmly instead of rushing.",
+          "expect": [
+            "e2e3"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 5.e3 to protect d4 and stay completely safe.",
+          "ifRight": "White develops Nf3 and Bd3 next with zero danger.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkb1r/pppn1ppp/5n2/3p2B1/3P4/2N5/PP2PPPP/R2QKBNR w KQkq - 0 6",
+          "text": "Here White traded 5.cxd5 exd5. Do not fall for the Elephant Trap. Play a sound move.",
+          "expect": [
+            "e2e3",
+            "g1f3",
+            "d1c2",
+            "a1c1"
+          ],
+          "hint": "Support d4 with e3 or develop Nf3.",
+          "ifWrong": "Play 6.e3: taking on d5 loses a piece to 6...Nxd5 7.Bxd8 Bb4+.",
+          "ifRight": "Safe and solid, keeping White's edge.",
+          "feedback": {
+            "c3d5": "6.Nxd5 loses a piece after 6...Nxd5 7.Bxd8 Bb4+ 8.Qd2 Bxd2+ 9.Kxd2 Kxd8."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp3ppp/2p1p3/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 0 4",
+          "text": "If Black sets up the Semi-Slav triangle early with 3...c6, White stops ...e5 and prepares e3."
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Put the knight on f3.",
+          "ifWrong": "Play 4.Nf3.",
+          "ifRight": "Now White can meet 4...Nf6 calmly with 5.e3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/pp3ppp/2p1pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 2 5",
+          "text": "After 4...Nf6, support d4 calmly and avoid messy gambit lines.",
+          "expect": [
+            "e2e3",
+            "c1g5"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 5.e3: after 5...Nbd7, 6.Bd3 or 6.Qc2 gives a sound, pleasant game.",
+          "ifRight": "White develops Bd3 and castles cleanly.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-declined-tarrasch",
+      "title": "Meeting the Tarrasch (3...c5)",
+      "summary": "Isolate the d5 pawn with cxd5 and target it with g3 and Bg2.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 3",
+          "text": "In the Tarrasch Defence, Black hits your centre right away with 3...c5.",
+          "move": "c7c5"
+        },
+        {
+          "type": "play",
+          "text": "Create a target on d5 by trading pawns.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5.",
+          "ifWrong": "Play 4.cxd5 so Black is forced to take on d5 with an isolated pawn.",
+          "ifRight": "Black will recapture 4...exd5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black recaptures: 4...exd5.",
+          "move": "e6d5"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight and control e5 and d4.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Bring the knight to f3.",
+          "ifWrong": "Play 5.Nf3.",
+          "ifRight": "Next White targets d5 from the long diagonal.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops with 5...Nc6.",
+          "move": "b8c6"
+        },
+        {
+          "type": "play",
+          "text": "Prepare to fianchetto your light-squared bishop onto the h1-a8 diagonal to attack d5.",
+          "expect": [
+            "g2g3"
+          ],
+          "hint": "Push the g-pawn one square.",
+          "ifWrong": "Play 6.g3: Bg2 and O-O put lasting pressure on Black's isolated d5 pawn.",
+          "ifRight": "With Bg2 and O-O coming, d5 will be under fire for the whole game.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

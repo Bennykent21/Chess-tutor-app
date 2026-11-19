@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
+import com.chesstutor.app.design.CtMascotArt
 import androidx.compose.runtime.remember
 import androidx.compose.material.icons.rounded.Visibility
 import com.chesstutor.app.board.moveListOf
@@ -222,22 +226,14 @@ fun OpeningDrillScreen(
         result != null -> "Line done with ${session.slips} slip${if (session.slips == 1) "" else "s"}. It comes back today."
         answer != null -> "The book move is shown. Play it to carry on."
         session.replyDue -> "Book reply coming…"
-        else -> "Your move ($made of $total). You play ${if (drill.line.side == PieceColor.WHITE) "White" else "Black"}."
-    }
-    val mood = when {
-        result != null && session.isClean -> MascotMood.PROUD
-        result != null || answer != null -> MascotMood.KIND
-        else -> MascotMood.THINKING
+        else -> "Your move. You play ${if (drill.line.side == PieceColor.WHITE) "White" else "Black"}."
     }
     CtBoardScreen(
         title = drill.opening.title,
         onBack = onBack,
         modifier = modifier,
+        // The line picker on top, then the talking coach just above the board (D97).
         zone = {
-            CtTutor(settings.mascot, mood = mood, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-                Text(message, style = CtType.Chat)
-            }
-            CtProgressBar(progress = if (total == 0) 0f else made.toFloat() / total, height = 3.dp, modifier = Modifier.fillMaxWidth())
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
@@ -246,9 +242,14 @@ fun OpeningDrillScreen(
                     CtChip(text = line.variation, selected = line.id == drill.line.id, onClick = { onPickLine(line.id) })
                 }
             }
+            val talk = rememberTalk(listOf(TalkLine("${drill.line.id}:${result != null}:$message".hashCode(), message)), key = drill.line.id)
+            Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp) }, lines = talk)
         },
         under = {
-            BoardMoveList(entries = remember(board.version) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
+                CtProgressBar(progress = if (total == 0) 0f else made.toFloat() / total, height = 3.dp, modifier = Modifier.fillMaxWidth())
+                BoardMoveList(entries = remember(board.version) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
+            }
         },
         board = {
             BoardHost(

@@ -1,5 +1,14 @@
 package com.chesstutor.app.feature.home
 
+import androidx.compose.ui.text.style.TextAlign
+import com.chesstutor.app.design.LocalReduceMotion
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.layout.aspectRatio
+import com.chesstutor.app.core.LegalMoveGenerator
+import com.chesstutor.app.board.BoardView
+import com.chesstutor.app.board.BoardTheme
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import com.chesstutor.app.design.CtShapes
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
@@ -90,23 +99,28 @@ fun BattleSetupScreen(
     onPickOpening: () -> Unit,
     onStart: () -> Unit,
     onBack: () -> Unit,
+    theme: BoardTheme = BoardTheme(),
 ) {
     val line = draft.line
+    val several = draft.picked.size > 1
     CtActionPage(
         title = "Opening battle",
         onBack = onBack,
         bottom = { CtButton(text = "Start", enabled = line != null, onClick = onStart, modifier = Modifier.weight(1f)) },
     ) {
         CtListRow(
-            title = line?.family ?: "Choose an opening",
-            subtitle = line?.let { it.variation.ifEmpty { movesText(it) } },
-            icon = null,
-            onClick = onPickOpening,
-            leading = {
-                Box(Modifier.size(40.dp).clip(CtShapes.Pill).background(CtColors.Surface), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Flag, contentDescription = null, tint = CtColors.Accent, modifier = Modifier.size(22.dp))
-                }
+            title = when {
+                draft.picked.isNotEmpty() -> openingSummary(draft.picked)
+                line != null -> line.family
+                else -> "Choose openings"
             },
+            subtitle = when {
+                several -> "The bot picks one each game"
+                line != null -> line.variation.ifEmpty { movesText(line) }
+                else -> null
+            },
+            icon = Icons.AutoMirrored.Rounded.MenuBook,
+            onClick = onPickOpening,
         )
         CtGroupLabel("You play")
         CtSegmented(SideChoice.entries, draft.side, { it.label }, { choice -> onChange { it.copy(side = choice) } })
@@ -117,12 +131,37 @@ fun BattleSetupScreen(
             CtSegmented(
                 options = listOf(true, false),
                 selected = draft.exactReplies,
-                label = { exact -> if (exact) "This line" else "Any ${line?.family ?: "line"}" },
+                label = { exact -> if (exact) "This line" else if (several) "Any line" else "Any ${line?.family ?: "line"}" },
                 onSelect = { exact -> onChange { it.copy(exactReplies = exact) } },
             )
         }
         CtGroupLabel("Opponent")
         BotPickerRow(BattleDraft.OPPONENTS.mapNotNull(BotRoster::byId), draft.opponentId) { id -> onChange { it.copy(opponentId = id) } }
+        line?.let { LinePreview(it, theme, Modifier.padding(top = CtSpacing.md)) }
+    }
+}
+
+/**
+ * A small board playing through [line] and starting again (D93), so the page shows what is
+ * about to be played; with Reduce motion it shows where the line ends.
+ */
+@Composable
+private fun LinePreview(line: Opening, theme: BoardTheme, modifier: Modifier = Modifier) {
+    val reduceMotion = LocalReduceMotion.current
+    val positions = remember(line) { line.moves.map(Move::fromUci).runningFold(Position.initial(), LegalMoveGenerator::makeMove) }
+    var shown by remember(line) { mutableIntStateOf(if (reduceMotion) positions.lastIndex else 0) }
+    LaunchedEffect(line, reduceMotion) {
+        if (reduceMotion) return@LaunchedEffect
+        while (true) {
+            delay(if (shown == positions.lastIndex) 2_200L else 900L)
+            shown = if (shown >= positions.lastIndex) 0 else shown + 1
+        }
+    }
+    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        Box(Modifier.fillMaxWidth(0.64f).aspectRatio(1f).clip(CtShapes.Chip)) {
+            BoardView(positions[shown], theme, showCoordinates = false, showLegalDots = false)
+        }
+        Text(movesText(line), style = CtType.Caption.copy(color = CtColors.Text2), textAlign = TextAlign.Center)
     }
 }
 

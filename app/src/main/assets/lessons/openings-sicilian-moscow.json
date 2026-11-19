@@ -1,0 +1,224 @@
+{
+  "id": "openings-sicilian-moscow",
+  "category": "openings",
+  "title": "Moscow & Anti-Open Lines",
+  "intro": "Meet 3.Bb5+ cleanly with ...Bd7 and ...Qxd7, attack 3.c3 with ...Nf6, and punish 4.Qxd4 with ...Nc6.",
+  "level": "intermediate",
+  "order": 62,
+  "side": "black",
+  "opening": "sicilian",
+  "variation": "e2e4 c7c5 g1f3 d7d6 f1b5, e2e4 c7c5 g1f3 d7d6 c2c3, e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 d1d4",
+  "battleLine": "Sicilian Defense: Moscow Variation",
+  "lessons": [
+    {
+      "id": "openings-sicilian-moscow-bb5",
+      "title": "Meeting 3.Bb5+",
+      "summary": "Trade light-squared bishops with 3...Bd7 and 4...Qxd7.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/3p4/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3",
+          "text": "Instead of opening the centre with 3.d4, White often checks with 3.Bb5+, the Moscow Variation.",
+          "move": "f1b5"
+        },
+        {
+          "type": "play",
+          "text": "Block the check and offer to trade off your bad bishop.",
+          "expect": [
+            "c8d7"
+          ],
+          "hint": "Put your c8 bishop on d7.",
+          "ifWrong": "Play 3...Bd7 so you keep c6 free for your knight.",
+          "ifRight": "Trading light-squared bishops solves Black's main Sicilian problem.",
+          "feedback": {
+            "b8d7": "3...Nd7 blocks your c8 bishop and is a bit passive. 3...Bd7 is cleaner."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White trades bishops: 4.Bxd7+.",
+          "move": "b5d7"
+        },
+        {
+          "type": "play",
+          "text": "Recapture without blocking your knight or damaging your pawns.",
+          "expect": [
+            "d8d7"
+          ],
+          "hint": "Take back with your queen.",
+          "ifWrong": "Play 4...Qxd7 so your b8 knight can develop actively to c6.",
+          "ifRight": "Now ...Nc6 and ...Nf6 develop smoothly.",
+          "feedback": {
+            "b8d7": "4...Nbxd7 puts the knight on a passive square. Take with the queen."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White castles: 5.O-O.",
+          "move": "e1g1"
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight towards the centre.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Bring the knight to c6.",
+          "ifWrong": "Play 5...Nc6 to control d4 and e5.",
+          "ifRight": "Black follows with ...Nf6, ...e6 and ...Be7.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rn2kbnr/pp1qpppp/3p4/2p5/2P1P3/5N2/PP1P1PPP/RNBQK2R b KQkq - 0 5",
+          "text": "If White tries 5.c4 to set up a Maroczy Bind, fight for d4 at once.",
+          "expect": [
+            "b8c6",
+            "g8f6"
+          ],
+          "hint": "Develop your queen's knight to c6.",
+          "ifWrong": "Play 5...Nc6 (followed by ...g6 and ...Bg7) to target d4.",
+          "ifRight": "With the light-squared bishops gone, Black enjoys easy play on the dark squares.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-sicilian-moscow-c3",
+      "title": "Meeting 3.c3",
+      "summary": "Hit e4 with 3...Nf6 and avoid the Qa4+ trap.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/3p4/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3",
+          "text": "With 3.c3 (the Delayed Alapin), White prepares to push d4 and capture back with the c-pawn.",
+          "move": "c2c3"
+        },
+        {
+          "type": "play",
+          "text": "Attack the e4 pawn at once before White can play d4 comfortably.",
+          "expect": [
+            "g8f6"
+          ],
+          "hint": "Develop your king's knight to hit e4.",
+          "ifWrong": "Play 3...Nf6 so e4 is under immediate fire.",
+          "ifRight": "White must defend e4 instead of pushing d4 for free.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White defends e4 quietly with 4.Be2, setting a little trap.",
+          "move": "f1e2"
+        },
+        {
+          "type": "play",
+          "text": "Do not fall for 4...Nxe4 5.Qa4+. Develop cleanly instead.",
+          "expect": [
+            "b8c6",
+            "g7g6",
+            "e7e6"
+          ],
+          "hint": "Bring out your queen's knight to c6.",
+          "ifWrong": "Play 4...Nc6: taking on e4 walks into 5.Qa4+ winning the knight.",
+          "ifRight": "Solid and alert: now ...e6 or ...g6 follows.",
+          "feedback": {
+            "f6e4": "4...Nxe4 walks into 5.Qa4+, forking your king and knight."
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/pp2pppp/3p1n2/2p5/4P3/2P2N1P/PP1P1PP1/RNBQKB1R b KQkq - 0 4",
+          "text": "If White plays 4.h3, still watch out for Qa4+ and develop smoothly.",
+          "expect": [
+            "b8c6",
+            "g7g6",
+            "e7e6"
+          ],
+          "hint": "Develop your knight to c6 or prepare ...g6.",
+          "ifWrong": "Play 4...Nc6 (or 4...g6): 4...Nxe4 still loses to 5.Qa4+.",
+          "ifRight": "Black develops smoothly and controls the centre.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/pp2pppp/3p1n2/2p5/4P3/2PB1N2/PP1P1PPP/RNBQK2R b KQkq - 2 4",
+          "text": "Against 4.Bd3, challenge White's bishop and centre.",
+          "expect": [
+            "b8c6",
+            "g7g6",
+            "c8g4"
+          ],
+          "hint": "Develop your knight to c6 or fianchetto with ...g6.",
+          "ifWrong": "Play 4...Nc6 (or 4...g6) to keep pressure on d4.",
+          "ifRight": "Black follows with ...Bg4 or ...g6 and ...Bg7.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-sicilian-moscow-qxd4",
+      "title": "Meeting 4.Qxd4 (Chekhover)",
+      "summary": "Chase the queen with 4...Nc6 and win the bishop pair.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4",
+          "text": "In the Chekhover Variation, White recaptures with the queen (4.Qxd4) to avoid main-line theory.",
+          "move": "d1d4"
+        },
+        {
+          "type": "play",
+          "text": "Gain a free tempo by attacking White's queen.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Develop your queen's knight.",
+          "ifWrong": "Play 4...Nc6 to force the queen to move again.",
+          "ifRight": "White must spend another move on the queen or bishop.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White pins the knight with 5.Bb5.",
+          "move": "f1b5"
+        },
+        {
+          "type": "play",
+          "text": "Break the pin and chase or trade the bishop.",
+          "expect": [
+            "c8d7"
+          ],
+          "hint": "Put your c8 bishop on d7.",
+          "ifWrong": "Play 5...Bd7 so Black threatens ...Nxd4 and ...Bxb5.",
+          "ifRight": "White's bishop is forced to trade on c6.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White trades on c6: 6.Bxc6.",
+          "move": "b5c6"
+        },
+        {
+          "type": "play",
+          "text": "Recapture cleanly to keep your bishop pair and open lines.",
+          "expect": [
+            "d7c6"
+          ],
+          "hint": "Take back with the bishop.",
+          "ifWrong": "Play 6...Bxc6 so your pawn structure stays intact and the c6 bishop aims at e4.",
+          "ifRight": "Black has the bishop pair and fast development with ...Nf6.",
+          "feedback": {
+            "b7c6": "6...bxc6 is playable, though 6...Bxc6 activates your bishop and keeps your queenside healthy."
+          },
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

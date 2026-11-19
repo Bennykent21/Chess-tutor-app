@@ -138,19 +138,6 @@ data class PlayerLevel(val level: Int, val xpIntoLevel: Int, val xpForNext: Int)
     }
 }
 
-/** Days in a row with at least one solved puzzle. Today still counts as "kept" until midnight. */
-object DayStreak {
-    fun compute(activeDays: Set<LocalDate>, today: LocalDate): Int {
-        var day = if (today in activeDays) today else today.minusDays(1)
-        var count = 0
-        while (day in activeDays) {
-            count++
-            day = day.minusDays(1)
-        }
-        return count
-    }
-}
-
 /** One play of a level: how many puzzles were solved without revealing the answer. */
 data class LevelRun(val level: Int, val solvedWithoutReveal: Int, val played: Int) {
     val finished: Boolean get() = played >= PuzzleLevels.PUZZLES_PER_LEVEL

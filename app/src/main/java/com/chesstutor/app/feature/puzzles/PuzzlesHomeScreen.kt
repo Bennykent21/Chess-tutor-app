@@ -1,5 +1,13 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.border
+import com.chesstutor.app.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.lazy.LazyRow
 import com.chesstutor.app.board.BoardScenes
 import com.chesstutor.app.board.BoardPicture
 import com.chesstutor.app.design.ctEnter
@@ -68,9 +76,9 @@ import com.chesstutor.app.domain.puzzle.PuzzleLevels
 import com.chesstutor.app.domain.puzzle.PuzzleWorld
 
 /**
- * The Puzzles tab (plan 6.3.1, Phase 7D, canvas `Puzzles.dc.html`, D43): your rating, the level
- * you are on as one card, the daily puzzle and the mistakes from your games, then the modes
- * and every level. The world map has its own page ([PuzzleLevelsScreen]).
+ * The Puzzles tab (plan 6.3.1, D43, D95): your rating, the level you are on as one card with its
+ * world's levels in a strip under it (passed ones are metal medals, tap to replay), then the daily
+ * puzzle, the mistakes from your games and the puzzle modes as tiles.
  */
 @Composable
 fun PuzzlesHomeScreen(
@@ -80,7 +88,6 @@ fun PuzzlesHomeScreen(
     onOpenModes: () -> Unit,
     onReviewMistakes: () -> Unit,
     modifier: Modifier = Modifier,
-    onOpenLevels: () -> Unit = {},
     onDailyPuzzle: () -> Unit = {},
     /** The player's board colours, for the level card's picture. */
     boardTheme: BoardTheme = BoardTheme(),
@@ -112,6 +119,7 @@ fun PuzzlesHomeScreen(
                             onClick = { onPlayLevel(current) },
                             onClickLabel = "Play level $current",
                         ) { BoardPicture(BoardScenes.OPENING, boardTheme) }
+                        LevelStrip(state, onPlayLevel)
                         Row(Modifier.height(150.dp).ctEnter(1), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                             CtPictureTile(
                                 title = "Daily puzzle",
@@ -129,63 +137,45 @@ fun PuzzlesHomeScreen(
                                 onClickLabel = "Review the mistakes from your games",
                             ) { BoardPicture(BoardScenes.ATTACK, boardTheme) }
                         }
+                        CtPictureTile(
+                            title = "Puzzle modes",
+                            subtitle = "Rush, themes, your own runs",
+                            modifier = Modifier.fillMaxWidth().height(120.dp).ctEnter(2),
+                            onClick = onOpenModes,
+                            onClickLabel = "Open the puzzle modes",
+                        ) { ModesPicture() }
                     }
                 }
-                CtSectionHeader(title = "More")
-                Column {
-                    CtListRow(title = "Puzzle modes", subtitle = "Rush, by theme, custom", icon = Icons.Rounded.Tune, onClick = onOpenModes)
-                    CtListRow(
-                        title = "All levels",
-                        subtitle = "${state.passed.size} of ${PuzzleLevels.COUNT} passed",
-                        icon = Icons.Rounded.Map,
-                        onClick = onOpenLevels,
-                    )
-                }
             }
         }
     }
 }
 
-/** Every level of the five worlds, scrolling upward from the first (D43: its own page). */
+/**
+ * Every level in one sideways strip under the level card (D95, replacing the All levels page):
+ * each world starts with its name, passed levels are metal medals (gold for a perfect run,
+ * silver for a pass) that replay on a tap, the next level is ringed, and later ones wait.
+ */
 @Composable
-fun PuzzleLevelsScreen(
-    state: PuzzlesHomeState,
-    onPlayLevel: (Int) -> Unit,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    CtScreenBackground(modifier) {
-        Column(Modifier.fillMaxSize()) {
-            CtTopBar(title = "Levels", subtitle = "${state.passed.size} of ${PuzzleLevels.COUNT} passed", onBack = onBack)
-            Box(Modifier.weight(1f)) {
-                if (!state.loading && state.packAvailable) LevelPath(state, onPlayLevel)
-            }
-        }
-    }
-}
-
-@Composable
-private fun LevelPath(state: PuzzlesHomeState, onPlayLevel: (Int) -> Unit) {
-    val items = PuzzlesHomeModel.pathItems(state.levels)
+private fun LevelStrip(state: PuzzlesHomeState, onPlayLevel: (Int) -> Unit) {
+    val items = remember(state.levels) { PuzzlesHomeModel.pathItems(state.levels) }
     val listState = rememberLazyListState()
-    val reduceMotion = LocalReduceMotion.current
     LaunchedEffect(state.currentLevel) {
-        // Bring the current level into view (the list is drawn bottom-up).
         val index = items.indexOfFirst { it is PathItem.Level && it.level == state.currentLevel }
-        if (index >= 0) {
-            val target = (index - 2).coerceAtLeast(0)
-            if (reduceMotion) listState.scrollToItem(target) else listState.animateScrollToItem(target)
-        }
+        if (index >= 0) listState.scrollToItem((index - 2).coerceAtLeast(0))
     }
-    LazyColumn(
+    LazyRow(
         state = listState,
-        reverseLayout = true,
-        contentPadding = PaddingValues(vertical = CtSpacing.lg),
-        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().ctEnter(1),
     ) {
         items(items, key = { item -> if (item is PathItem.Level) "L${item.level}" else "W${(item as PathItem.WorldBanner).world.number}" }) { item ->
             when (item) {
-                is PathItem.WorldBanner -> WorldBanner(item)
+                is PathItem.WorldBanner -> Column(Modifier.padding(start = CtSpacing.sm, end = CtSpacing.xs).width(72.dp).semantics(mergeDescendants = true) {}) {
+                    Text("World ${item.world.number}", style = CtType.Caption.copy(color = CtColors.Text2))
+                    Text(item.world.title, style = CtType.Label, maxLines = 2)
+                }
                 is PathItem.Level -> LevelNode(item, onPlayLevel)
             }
         }
@@ -193,84 +183,58 @@ private fun LevelPath(state: PuzzlesHomeState, onPlayLevel: (Int) -> Unit) {
 }
 
 @Composable
-private fun WorldBanner(item: PathItem.WorldBanner) {
-    val complete = item.passedLevels == PuzzleLevels.PER_WORLD
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.md)
-            .clip(CtShapes.Card)
-            .background(CtColors.Surface)
-            .padding(CtSpacing.lg)
-            .semantics(mergeDescendants = true) {},
-    ) {
-        Text("World ${item.world.number}", style = CtType.Caption)
-        Text(item.world.title, style = CtType.Title)
-        Text(item.world.tagline, style = CtType.BodySmall)
-        Spacer(Modifier.height(CtSpacing.sm))
-        Text(
-            text = if (complete) "Complete! Badge earned: ${item.world.badge}" else "${item.passedLevels} of ${PuzzleLevels.PER_WORLD} levels passed",
-            style = CtType.Label.copy(color = if (complete) CtColors.Accent else CtColors.Text),
-        )
-    }
-}
-
-@Composable
 private fun LevelNode(item: PathItem.Level, onPlayLevel: (Int) -> Unit) {
     val playable = item.state != LevelNodeState.LOCKED
-    val reduceMotion = LocalReduceMotion.current
-    val pulse = if (item.state == LevelNodeState.CURRENT && !reduceMotion) {
-        val transition = rememberInfiniteTransition(label = "currentLevel")
-        transition.animateFloat(1f, 1.06f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "pulse").value
-    } else 1f
-    val fill = when (item.state) {
-        LevelNodeState.PASSED -> CtColors.Accent
-        LevelNodeState.CURRENT -> CtColors.Primary
-        LevelNodeState.OPEN -> CtColors.Surface
-        LevelNodeState.LOCKED -> CtColors.Track
-    }
-    val (icon, tint) = when (item.state) {
-        LevelNodeState.PASSED -> Icons.Rounded.Check to CtColors.OnAccent
-        LevelNodeState.CURRENT -> Icons.Rounded.PlayArrow to CtColors.OnPrimary
-        LevelNodeState.OPEN -> Icons.Rounded.PlayArrow to CtColors.Accent
-        LevelNodeState.LOCKED -> Icons.Rounded.Lock to CtColors.Text2
-    }
     val status = when (item.state) {
         LevelNodeState.PASSED -> "passed" + (item.bestScore?.let { ", best $it of ${PuzzleLevels.PUZZLES_PER_LEVEL}" } ?: "")
         LevelNodeState.CURRENT -> "next level"
         LevelNodeState.OPEN -> "open"
         LevelNodeState.LOCKED -> "locked: pass level ${item.level - 1} first"
     }
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = CtSpacing.sm)) {
-        val swing = (maxWidth - NODE_SIZE) / 2 * 0.8f
-        Row(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .offset(x = swing * PuzzlesHomeModel.sway(item.level)),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(NODE_SIZE)
-                    .scale(pulse)
-                    .clip(CtShapes.Pill)
-                    .background(fill)
-                    .ctPressable(enabled = playable, role = Role.Button, onClickLabel = "Play level ${item.level}") { onPlayLevel(item.level) }
-                    .semantics {
-                        contentDescription = "Level ${item.level}"
-                        stateDescription = status
-                    },
+    Box(
+        modifier = Modifier
+            .size(NODE_SIZE)
+            .clip(CtShapes.Pill)
+            .ctPressable(enabled = playable, role = Role.Button, onClickLabel = "Play level ${item.level}") { onPlayLevel(item.level) }
+            .semantics {
+                contentDescription = "Level ${item.level}"
+                stateDescription = status
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        when (item.state) {
+            LevelNodeState.PASSED -> Image(
+                painterResource(if (item.bestScore == PuzzleLevels.PUZZLES_PER_LEVEL) R.drawable.medal_puzzle_gold else R.drawable.medal_puzzle_silver),
+                contentDescription = null,
+                modifier = Modifier.size(NODE_SIZE),
+            )
+            LevelNodeState.CURRENT -> Box(
+                Modifier.size(NODE_SIZE - 6.dp).clip(CtShapes.Pill).background(CtColors.Primary).border(3.dp, CtColors.Accent, CtShapes.Pill),
                 contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(28.dp))
-            }
-            Column {
+            ) { Text("${item.level}", style = CtType.TitleSmall.copy(color = CtColors.OnPrimary)) }
+            LevelNodeState.OPEN -> Box(Modifier.size(NODE_SIZE - 12.dp).clip(CtShapes.Pill).background(CtColors.Surface), contentAlignment = Alignment.Center) {
                 Text("${item.level}", style = CtType.Label)
-                item.bestScore?.let { Text("$it/${PuzzleLevels.PUZZLES_PER_LEVEL}", style = CtType.Caption) }
+            }
+            LevelNodeState.LOCKED -> Box(Modifier.size(NODE_SIZE - 16.dp).clip(CtShapes.Pill).background(CtColors.Track), contentAlignment = Alignment.Center) {
+                Text("${item.level}", style = CtType.Caption.copy(color = CtColors.Text2))
             }
         }
     }
 }
 
-private val NODE_SIZE = 60.dp
+/** Puzzle modes' tile picture: the rush bolt and the survival heart in metal over a warm glow. */
+@Composable
+private fun ModesPicture() {
+    Box(
+        Modifier.fillMaxSize().background(Brush.radialGradient(listOf(CtColors.Accent.copy(alpha = 0.35f), CtColors.Surface))),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), modifier = Modifier.padding(bottom = CtSpacing.lg)) {
+            Image(painterResource(R.drawable.icon_bolt), contentDescription = null, modifier = Modifier.size(56.dp))
+            Image(painterResource(R.drawable.icon_favorite), contentDescription = null, modifier = Modifier.size(48.dp))
+            Image(painterResource(R.drawable.icon_tune), contentDescription = null, modifier = Modifier.size(48.dp))
+        }
+    }
+}
+
+private val NODE_SIZE = 52.dp

@@ -6,12 +6,14 @@
   "level": "intermediate",
   "order": 70,
   "side": "black",
+  "opening": "french",
   "battleLine": "French Defense",
   "lessons": [
     {
       "id": "openings-french-advance",
       "title": "The French and the Advance Variation",
       "summary": "Hit the base of the pawn chain.",
+      "orientation": "black",
       "steps": [
         {
           "type": "explain",
@@ -22,7 +24,9 @@
         {
           "type": "play",
           "text": "Play the French.",
-          "expect": ["e7e6"],
+          "expect": [
+            "e7e6"
+          ],
           "hint": "Push the king's pawn just one square.",
           "ifWrong": "The French starts 1...e6.",
           "ifRight": "The French Defence.",
@@ -36,7 +40,9 @@
         {
           "type": "play",
           "text": "Challenge the centre.",
-          "expect": ["d7d5"],
+          "expect": [
+            "d7d5"
+          ],
           "hint": "The d-pawn two squares, supported by e6.",
           "ifWrong": "Strike at e4 with the d-pawn.",
           "ifRight": "Now e4 is attacked.",
@@ -46,12 +52,17 @@
           "type": "explain",
           "text": "In the Advance Variation White pushes past with 3.e5 and grabs space. White's pawns now form a chain: d4 supports e5.",
           "move": "e4e5",
-          "highlights": ["d4:bad", "e5"]
+          "highlights": [
+            "d4:bad",
+            "e5"
+          ]
         },
         {
           "type": "play",
           "text": "Attack the base of the chain: hit d4 with a pawn.",
-          "expect": ["c7c5"],
+          "expect": [
+            "c7c5"
+          ],
           "hint": "Your c-pawn can reach a square that attacks d4.",
           "ifWrong": "Strike at d4, the base of White's chain.",
           "ifRight": "That is the key French idea.",
@@ -65,13 +76,90 @@
         {
           "type": "play",
           "text": "Add another attacker on d4.",
-          "expect": ["b8c6"],
+          "expect": [
+            "b8c6"
+          ],
           "hint": "Develop a piece that hits d4.",
           "ifWrong": "Bring the queen's knight to c6, adding pressure on d4.",
           "ifRight": "d4 is under fire. Next ...Qb6 adds even more.",
           "feedback": {
             "d8b6": "Excellent too: the queen hits d4 and b2. The usual order brings the knight out first."
           },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-plans",
+      "title": "Pressuring d4 and freeing the bishop",
+      "summary": "Trade on d4, reroute the knight via e7 to f5, and develop cleanly.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1b1kbnr/pp3ppp/1qn1p3/2ppP3/3P4/2P2N2/PP2BPPP/RNBQK2R b KQkq - 4 6",
+          "text": "In the French, Black's c8 bishop is blocked by e6. To pile up on d4 and activate your pieces, Black trades on d4 and routes the g8 knight to f5.",
+          "arrows": [
+            "g8e7:idea",
+            "e7f5:idea",
+            "c8d7:idea"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Trade pawns on d4 so your pieces get clear targets.",
+          "expect": [
+            "c5d4"
+          ],
+          "hint": "Capture on d4 with your c-pawn.",
+          "ifWrong": "Play 6...cxd4 to open the c-file and fix White's pawn on d4.",
+          "ifRight": "Now d4 has no c3 pawn to back it up after cxd4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White recaptures: 7.cxd4.",
+          "move": "c3d4"
+        },
+        {
+          "type": "play",
+          "text": "Start routing your king's knight towards f5 to attack d4.",
+          "expect": [
+            "g8e7"
+          ],
+          "hint": "Put the g8 knight on e7, heading for f5.",
+          "ifWrong": "Play 7...Nge7: from f5 the knight attacks d4 and frees your f8 bishop.",
+          "ifRight": "The knight heads to f5, adding a third attacker to d4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops the knight via a3: 8.Na3.",
+          "move": "b1a3"
+        },
+        {
+          "type": "play",
+          "text": "Plant your knight on f5 to hit d4.",
+          "expect": [
+            "e7f5"
+          ],
+          "hint": "Jump to f5.",
+          "ifWrong": "Play 8...Nf5 to attack d4.",
+          "ifRight": "White must defend d4 with Nc2, leaving Black with easy play.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1b1kb1r/pp3ppp/1qn1p3/3pPn2/3P4/5N2/PPN1BPPP/R1BQK2R b KQkq - 4 9",
+          "text": "White guarded d4 with 9.Nc2. Develop your dark-squared bishop or prepare ...Rc8.",
+          "expect": [
+            "f8e7",
+            "c8d7",
+            "f8b4"
+          ],
+          "hint": "Develop ...Be7 to castle, or ...Bd7 to prepare ...Rc8.",
+          "ifWrong": "Play 9...Be7 (or 9...Bd7) to finish development cleanly.",
+          "ifRight": "Black can castle, put a rook on c8, and later break with ...f6.",
           "rule": true
         }
       ]

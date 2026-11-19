@@ -1,5 +1,9 @@
 package com.chesstutor.app.design
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.border
+import androidx.compose.ui.composed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,7 +43,7 @@ fun CtScreenBackground(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(CtColors.Bg),
+            .ctPage(),
         content = content,
     )
 }
@@ -63,7 +67,8 @@ fun CtCard(
     contentPadding: PaddingValues = PaddingValues(CtSpacing.lg),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val base = modifier.raisedSurface(CtShapes.Card, background, CtColors.Text)
+    // With frosted glass on, cards are see-through (D106).
+    val base = if (LocalGlass.current) modifier.ctGlass() else modifier.raisedSurface(CtShapes.Card, background, CtColors.Text)
     val clickable = if (onClick != null) base.ctPressable(onClickLabel = onClickLabel, onClick = onClick) else base
     Column(modifier = clickable.padding(contentPadding), content = content)
 }
@@ -133,4 +138,49 @@ fun CtActionPage(
             )
         }
     }
+}
+
+/**
+ * A frosted, see-through surface (D106): the page's glow shows through it and a fine light edge
+ * holds its shape, instead of a solid box.
+ */
+fun Modifier.ctGlass(shape: Shape = CtShapes.Card): Modifier = composed {
+    val dark = CtColors.IsDark
+    clip(shape)
+        .background(CtColors.Raised.copy(alpha = if (dark) 0.5f else 0.58f))
+        .border(1.dp, Color.White.copy(alpha = if (dark) 0.08f else 0.7f), shape)
+}
+
+/** A card on [ctGlass]. Clickable when [onClick] is set. */
+@Composable
+fun CtGlassCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
+    contentPadding: PaddingValues = PaddingValues(CtSpacing.md),
+    shape: Shape = CtShapes.Card,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val base = modifier.ctGlass(shape)
+    val clickable = if (onClick != null) base.ctPressable(onClickLabel = onClickLabel, onClick = onClick) else base
+    Column(modifier = clickable.padding(contentPadding), content = content)
+}
+
+/** A soft glow of [hue] in the top corner and a warm one further down, behind a page (D106). */
+fun Modifier.ctGlow(hue: Color): Modifier = composed {
+    val warm = CtColors.Accent
+    val strength = if (CtColors.IsDark) 0.3f else 0.4f
+    drawBehind {
+        drawRect(Brush.radialGradient(listOf(hue.copy(alpha = strength), Color.Transparent), center = Offset(size.width * 0.15f, size.height * 0.05f), radius = size.width * 1.1f))
+        drawRect(Brush.radialGradient(listOf(warm.copy(alpha = strength * 0.5f), Color.Transparent), center = Offset(size.width, size.height * 0.45f), radius = size.width * 0.9f))
+    }
+}
+
+/** A page's own background: the theme's, or nothing in frosted glass, where the app's glow shows through (D107). */
+fun Modifier.ctPage(): Modifier = composed { if (LocalGlass.current) this else background(CtColors.Bg) }
+
+/** What sits behind every screen: the theme's background, with the glow in frosted glass (D107). */
+fun Modifier.ctAppBackground(): Modifier = composed {
+    val base = background(CtColors.Bg)
+    if (LocalGlass.current) base.ctGlow(CtColors.Accent) else base
 }

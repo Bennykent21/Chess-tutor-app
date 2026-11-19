@@ -1,5 +1,20 @@
 package com.chesstutor.app.board
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -20,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,13 +108,12 @@ fun BoardEvalBar(
     val share by animateFloatAsState(target, tween(if (reduceMotion) 0 else 450), label = "evalShare")
     val whiteLeads = target >= 0.5f
     val label = EvalMath.label(centipawns, mateIn)
+    // Square and flush with the board (D92); White's share in white, Black's in black, in every theme.
     Box(
         modifier = modifier
             .width(EVAL_BAR_WIDTH)
             .fillMaxHeight()
-            .clip(CtShapes.Chip)
-            .background(CtColors.BgDeep)
-            .border(1.dp, CtColors.Line, CtShapes.Chip)
+            .background(SideTones.Black)
             .semantics { contentDescription = EvalMath.spoken(centipawns, mateIn) },
     ) {
         Box(
@@ -106,13 +121,13 @@ fun BoardEvalBar(
                 .fillMaxWidth()
                 .fillMaxHeight(share)
                 .align(if (whiteAtBottom) Alignment.BottomCenter else Alignment.TopCenter)
-                .background(CtColors.Text),
+                .background(SideTones.White),
         )
         // The score sits on the leading side's colour, at that side's end of the bar.
         val atBottom = whiteLeads == whiteAtBottom
         Text(
             text = label.removePrefix("+").removePrefix("-"),
-            style = CtType.Caption.copy(color = if (whiteLeads) CtColors.BgDeep else CtColors.Text),
+            style = CtType.Caption.copy(color = if (whiteLeads) SideTones.OnWhite else SideTones.OnBlack),
             maxLines = 1,
             softWrap = false,
             modifier = Modifier
@@ -123,7 +138,18 @@ fun BoardEvalBar(
 }
 
 /** Eval bar width; [BoardWithEvalBar] leaves room for it. */
-val EVAL_BAR_WIDTH = 26.dp
+val EVAL_BAR_WIDTH = 22.dp
+
+/**
+ * White's and Black's own colours, the same in every theme (D92): the eval bar and the clocks
+ * show who is who by them, as the pieces do.
+ */
+object SideTones {
+    val White = Color(0xFFF7F4EE)
+    val OnWhite = Color(0xFF1E1B17)
+    val Black = Color(0xFF1E1B17)
+    val OnBlack = Color(0xFFF2EDE3)
+}
 
 /**
  * The board with an optional eval bar to its left, sized from the available width (the
@@ -137,12 +163,8 @@ fun BoardWithEvalBar(
     board: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val gap = CtSpacing.sm
-        val boardSize = if (evalBar != null) maxWidth - EVAL_BAR_WIDTH - gap else maxWidth
-        Row(
-            modifier = Modifier.height(boardSize),
-            horizontalArrangement = Arrangement.spacedBy(gap),
-        ) {
+        val boardSize = if (evalBar != null) maxWidth - EVAL_BAR_WIDTH else maxWidth
+        Row(modifier = Modifier.height(boardSize)) {
             evalBar?.invoke(Modifier.fillMaxHeight())
             board(Modifier.size(boardSize))
         }
@@ -217,8 +239,10 @@ fun moveListOf(start: Position, moves: List<Move>): List<MoveListEntry> {
 }
 
 /**
- * Horizontal move list (plan section 4.2). The current move is highlighted and kept in view.
- * With [onSelect] set, each move can be tapped to jump to it.
+ * Horizontal move list (plan section 4.2, D104): a strip that runs out to the screen's edges past
+ * the slot's [bleed], with no box around it, hairlines above and below and soft faded ends. The
+ * current move is held in the centre, earlier moves to its left; with [onSelect] set, each move can
+ * be tapped to jump to it.
  */
 @Composable
 fun BoardMoveList(
@@ -226,48 +250,83 @@ fun BoardMoveList(
     currentPly: Int,
     modifier: Modifier = Modifier,
     onSelect: ((Int) -> Unit)? = null,
+    bleed: Dp = CtSpacing.lg,
+    /** Something after a move, such as its grade in a review ("??"); told whether the move is the current one. */
+    after: (@Composable (ply: Int, current: Boolean) -> Unit)? = null,
 ) {
     val scroll = rememberScrollState()
     val reduceMotion = LocalReduceMotion.current
+    val placed = remember { HashMap<Int, LayoutCoordinates>() }
+    var viewport by remember { mutableStateOf<LayoutCoordinates?>(null) }
     LaunchedEffect(currentPly, entries.size) {
-        // Keep the current move in view, also while stepping back through the game.
-        if (entries.isNotEmpty()) {
-            val target = if (currentPly == entries.last().ply) scroll.maxValue else scroll.maxValue * currentPly / entries.size
-            if (reduceMotion) scroll.scrollTo(target) else scroll.animateScrollTo(target)
-        }
+        // Wait for the moves to be laid out, then bring the current one to the middle.
+        withFrameNanos { }
+        val port = viewport ?: return@LaunchedEffect
+        val move = placed[currentPly]?.takeIf { it.isAttached && port.isAttached } ?: return@LaunchedEffect
+        val centre = port.localPositionOf(move, Offset.Zero).x + move.size.width / 2f
+        val target = (scroll.value + centre - port.size.width / 2f).roundToInt().coerceIn(0, scroll.maxValue)
+        if (reduceMotion) scroll.scrollTo(target) else scroll.animateScrollTo(target)
     }
-    Row(
-        modifier = modifier
+    val line = CtColors.Line
+    BoxWithConstraints(
+        modifier
             .fillMaxWidth()
-            .clip(CtShapes.CardSmall)
-            .background(CtColors.Surface)
-            .horizontalScroll(scroll)
-            .padding(horizontal = CtSpacing.sm, vertical = CtSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.xxs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (entries.isEmpty()) {
-            Text("No moves yet", style = CtType.BodySmall, modifier = Modifier.padding(CtSpacing.sm))
-        }
-        entries.forEach { entry ->
-            entry.numberLabel?.let {
-                Text(it, style = CtType.Caption, modifier = Modifier.padding(start = CtSpacing.xs))
+            .layout { measurable, constraints ->
+                // Past the slot's side padding, out to the screen's edges.
+                val extra = (bleed * 2).roundToPx()
+                val width = constraints.maxWidth + extra
+                val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+                layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
             }
-            val current = entry.ply == currentPly
-            val side = if (entry.ply % 2 == 1) "White" else "Black"
-            Text(
-                text = entry.san,
-                style = CtType.Label.copy(color = if (current) CtColors.OnGold else CtColors.Text),
-                modifier = Modifier
-                    .clip(CtShapes.Chip)
-                    .background(if (current) CtColors.Gold else CtColors.Surface)
-                    .then(
-                        if (onSelect != null) Modifier.ctPressable(role = Role.Button, onClickLabel = "Go to this move") { onSelect(entry.ply) }
-                        else Modifier
-                    )
-                    .semantics { contentDescription = "$side, ${entry.san}" + if (current) ", current move" else "" }
-                    .padding(horizontal = CtSpacing.sm, vertical = CtSpacing.xs),
-            )
+            .drawBehind {
+                drawLine(line, Offset(0f, 0f), Offset(size.width, 0f), strokeWidth = 1.dp.toPx())
+                drawLine(line, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 1.dp.toPx())
+            }
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    Brush.horizontalGradient(0f to Color.Transparent, 0.14f to Color.Black, 0.86f to Color.Black, 1f to Color.Transparent),
+                    blendMode = BlendMode.DstIn,
+                )
+            },
+    ) {
+        val half = maxWidth / 2
+        Row(
+            modifier = Modifier
+                .onPlaced { viewport = it }
+                .horizontalScroll(scroll)
+                // Room either side so the first and the last move can sit in the middle too.
+                .padding(horizontal = half, vertical = CtSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(CtSpacing.xxs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (entries.isEmpty()) {
+                Text("No moves yet", style = CtType.BodySmall, modifier = Modifier.padding(CtSpacing.sm))
+            }
+            entries.forEach { entry ->
+                entry.numberLabel?.let {
+                    Text(it, style = CtType.Caption, modifier = Modifier.padding(start = CtSpacing.xs))
+                }
+                val current = entry.ply == currentPly
+                val side = if (entry.ply % 2 == 1) "White" else "Black"
+                Row(
+                    modifier = Modifier
+                        .onPlaced { placed[entry.ply] = it }
+                        .clip(CtShapes.Chip)
+                        .background(if (current) CtColors.Gold else Color.Transparent)
+                        .then(
+                            if (onSelect != null) Modifier.ctPressable(role = Role.Button, onClickLabel = "Go to this move") { onSelect(entry.ply) }
+                            else Modifier
+                        )
+                        .semantics(mergeDescendants = true) { contentDescription = "$side, ${entry.san}" + if (current) ", current move" else "" }
+                        .padding(horizontal = CtSpacing.sm, vertical = CtSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = entry.san, style = CtType.Label.copy(color = if (current) CtColors.OnGold else CtColors.Text))
+                    after?.invoke(entry.ply, current)
+                }
+            }
         }
     }
 }

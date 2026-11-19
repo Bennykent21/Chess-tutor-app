@@ -1,5 +1,6 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.design.ctAppBackground
 import android.os.SystemClock
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -120,7 +121,7 @@ private fun AppShell(
     shell.accountViewModel()
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().ctAppBackground(),
         containerColor = CtColors.BgDeep,
         bottomBar = {
             // The first run is a full screen of its own (D46).
@@ -171,6 +172,9 @@ private fun AppShell(
             ) { entry ->
                 val context = LocalContext.current
                 val engine = remember(context) { AppContainer.provideEngineService(context) }
+                // Explore needs the engine to itself: background reviews pause (D93).
+                val account = shell.accountViewModel()
+                LaunchedEffect(Unit) { account.pauseBackground() }
                 AnalysisScreen(
                     startFen = entry.arguments?.getString(AppRoutes.ANALYSIS_FEN_ARG) ?: Position.STARTING_FEN,
                     line = entry.arguments?.getString(AppRoutes.ANALYSIS_LINE_ARG).orEmpty().split(' ').filter { it.isNotBlank() },

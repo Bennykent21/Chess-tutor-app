@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.feature.play.MIN_READ_MS
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -126,6 +129,21 @@ class RepertoireScreensTest {
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_dark.png")
     }
 
+    /** Punish mistakes (D112): the most common club mistakes as small boards; a tap starts the run. */
+    @Test
+    fun thePunishChapterShowsItsBoardsAndStartsTheRun() {
+        var punished = false
+        val fens = List(3) { "r1bqkb1r/ppp2ppp/2n5/3np1N1/2B5/8/PPPP1PPP/RNBQK2R w KQkq - 0 6" }
+        compose.setContent {
+            CtTheme(reduceMotion = true) {
+                RepertoirePage(pageUi().copy(punish = 9, punishFens = fens), RepertoireActions(onBack = {}, onReview = {}, onLearn = {}, onTricky = {}, onPunish = { punished = true }))
+            }
+        }
+        compose.onNodeWithText("Punish mistakes").performScrollTo().performClick()
+        assertEquals(true, punished)
+        compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_punish.png")
+    }
+
     private fun runUi(moment: RunMoment, line: List<String>, mastered: RepertoireLevel? = null, ring: String? = null, why: String? = null): RunUi {
         val board = RepertoireBoard(line = { line to (moment == RunMoment.YourMove) }, submit = { MoveEffects.ILLEGAL })
         return RunUi(
@@ -156,6 +174,7 @@ class RepertoireScreensTest {
         // The watch: the learner's next move as an arrow, with its note's first sentence.
         shown = runUi(RunMoment.Watch("d2d3", "4.d3 protects e4, so the knight on f6 has nothing to take."), toNf6)
         compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(MIN_READ_MS) // the coach's last line stays readable first (D97)
         compose.onNodeWithText("4.d3 protects e4, so the knight on f6 has nothing to take.").assertExists()
         compose.onNodeWithText("Skip").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
@@ -165,20 +184,24 @@ class RepertoireScreensTest {
         val note = "4.d3 protects e4, so the knight on f6 has nothing to take. This is the quiet way."
         shown = runUi(RunMoment.YourMove, toNf6 + "d2d3" + "f8c5", ring = "d3", why = note)
         compose.waitForIdle()
-        compose.onNodeWithText(note).assertExists()
+        // The coach says it after "Your move", in one line (D96).
+        compose.mainClock.advanceTimeBy(MIN_READ_MS)
+        compose.onNodeWithText(note, substring = true).assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_why.png")
 
         // A slip: the right move is drawn and named, nothing to tap.
         shown = runUi(RunMoment.Shown("4.d3", "d2d3"), toNf6, ring = "a3")
         compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(MIN_READ_MS)
         compose.onNodeWithText("Play 4.d3").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_slip.png")
 
         shown = runUi(RunMoment.Finished(right = 5, total = 5), toNf6 + "d2d3")
         compose.waitForIdle()
-        compose.onNodeWithText("Line learnt").assertExists()
+        compose.mainClock.advanceTimeBy(MIN_READ_MS)
+        compose.onNodeWithText("Line learnt", substring = true).assertExists()
         compose.onNodeWithText("Next line").assertExists()
         assertEquals(board, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_done.png")
@@ -189,5 +212,18 @@ class RepertoireScreensTest {
         compose.onNodeWithText("Standard is open: 55 new positions.").assertExists()
         // The result opens in its own window, so the whole screen is captured.
         captureScreenRoboImage("build/outputs/roborazzi/repertoire_mastered.png")
+    }
+
+    /** The visual pass (Phase 14B): a repertoire's page and a drill at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryRepertoire() = compose.shootBoth("learn", "09_repertoire") {
+        RepertoirePage(pageUi(), RepertoireActions(onBack = {}, onReview = {}, onLearn = {}, onTricky = {}, onPlayOut = {}))
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryRepertoireRun() = compose.shootBoth("learn", "10_repertoire_run") {
+        RepertoireRunScreen(run = runUi(RunMoment.YourMove, "$P g8f6".split(' ')), settings = AppSettings(), onFeedback = {}, onHint = {}, onWhy = {}, onLearnMore = {}, onDismissMastered = {}, onBack = {})
     }
 }

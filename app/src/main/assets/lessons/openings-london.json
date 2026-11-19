@@ -6,24 +6,37 @@
   "level": "beginner",
   "order": 50,
   "side": "white",
+  "opening": "london",
   "battleLine": "Queen's Pawn Game: London System",
   "lessons": [
     {
       "id": "openings-london-setup",
       "title": "The London set-up",
       "summary": "Bishop out first, then a rock-solid pawn triangle.",
+      "orientation": "white",
       "steps": [
         {
           "type": "explain",
           "text": "The London System puts the dark-squared bishop on f4 early, before e3 locks it in. Then White builds a solid triangle of pawns on c3, d4 and e3.",
           "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          "highlights": ["f4:good", "c3", "d4", "e3"]
+          "highlights": [
+            "f4:good",
+            "c3",
+            "d4",
+            "e3"
+          ]
         },
         {
           "type": "play",
           "text": "Play the London: d4, Nf3, then the bishop to f4.",
           "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          "line": ["d2d4", "d7d5", "g1f3", "g8f6", "c1f4"],
+          "line": [
+            "d2d4",
+            "d7d5",
+            "g1f3",
+            "g8f6",
+            "c1f4"
+          ],
           "hint": "Queen's pawn, king's knight, then the bishop goes out before e3.",
           "ifWrong": "The London goes d4, Nf3, Bf4.",
           "ifRight": "The bishop is out before the pawns close it in.",
@@ -37,7 +50,9 @@
         {
           "type": "play",
           "text": "Support d4 and open a path for your other bishop.",
-          "expect": ["e2e3"],
+          "expect": [
+            "e2e3"
+          ],
           "hint": "A one-square pawn move in front of the king.",
           "ifWrong": "The London plays e3 here.",
           "ifRight": "d4 is supported and the f1 bishop can come out.",
@@ -51,7 +66,9 @@
         {
           "type": "play",
           "text": "Develop the queen's knight to d2, where it does not block the c-pawn.",
-          "expect": ["b1d2"],
+          "expect": [
+            "b1d2"
+          ],
           "hint": "On c3 the knight would stop your c-pawn moving.",
           "ifWrong": "In the London the knight goes to d2, keeping c3 free for a pawn.",
           "ifRight": "Now c3 can follow.",
@@ -65,7 +82,9 @@
         {
           "type": "play",
           "text": "Complete the pawn triangle.",
-          "expect": ["c2c3"],
+          "expect": [
+            "c2c3"
+          ],
           "hint": "Push the c-pawn one square.",
           "ifWrong": "The triangle needs a pawn on c3.",
           "ifRight": "c3, d4, e3: the London fortress. Next come Bd3 and castling.",
@@ -75,12 +94,91 @@
           "type": "quiz",
           "text": "Black offers to trade bishops with ...Bd6. London players usually keep their bishop. Where does it go?",
           "fen": "r1bqk2r/pp3ppp/2nbpn2/2pp4/3P1B2/2P1PN2/PP1N1PPP/R2QKB1R w KQkq - 1 7",
-          "expect": ["f4g3"],
+          "expect": [
+            "f4g3"
+          ],
           "hint": "Step back along the diagonal, still eyeing Black's queenside.",
           "ifWrong": "Keep the bishop by stepping back to g3.",
           "ifRight": "The bishop stays, and if Black takes on g3, your h-pawn takes back.",
           "feedback": {
             "f4d6": "Trading is fine too. Most London players keep the bishop with Bg3."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-london-plans",
+      "title": "Outposts and attacks",
+      "summary": "Use the e5 outpost, the open h-file, and the d3 bishop.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/pp3ppp/2nbpn2/2pp4/3P4/2PBPNB1/PP1N1PPP/R2QK2R b KQ - 2 8",
+          "text": "The London set-up is ready: the pawn triangle stands firm, and both bishops aim at the kingside. Two main plans give White strong play.",
+          "arrows": [
+            "f3e5:idea",
+            "d3h7:idea"
+          ]
+        },
+        {
+          "type": "explain",
+          "text": "Plan one: if Black trades on g3, do not fear doubled pawns. Taking back with the h-pawn opens the h-file for your rook.",
+          "move": "d6g3"
+        },
+        {
+          "type": "play",
+          "text": "Recapture on g3 to open the h-file.",
+          "expect": [
+            "h2g3"
+          ],
+          "hint": "Take with the edge pawn, not the f-pawn.",
+          "ifWrong": "Play hxg3 so your h1 rook gets an open file against Black's king.",
+          "ifRight": "The h-file is open, and your rook already eyes h7.",
+          "feedback": {
+            "f2g3": "Taking with the f-pawn leaves e3 weak and keeps your rook shut in. Play hxg3."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/pp2bppp/2n1pn2/2pp4/3P1B2/2PBPN2/PP1N1PPP/R2QK2R w KQ - 4 8",
+          "text": "Plan two: plant a knight on e5. Supported by d4 and f4, it dominates the centre and clears the way for Qf3 or f4.",
+          "arrows": [
+            "f3e5:good"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Place your knight on the e5 outpost.",
+          "expect": [
+            "f3e5"
+          ],
+          "hint": "Jump into the centre with the f3 knight.",
+          "ifWrong": "Play Ne5 to claim the key London outpost.",
+          "ifRight": "If Black trades knights, dxe5 gains space and drives away the f6 defender.",
+          "feedback": {
+            "e1g1": "Castling is good too, but Ne5 seizes the key outpost right away."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black trades off the outpost knight.",
+          "move": "c6e5"
+        },
+        {
+          "type": "play",
+          "text": "Take back on e5 to drive away Black's defender and gain space.",
+          "expect": [
+            "d4e5"
+          ],
+          "hint": "Recapture with the pawn, attacking the knight on f6.",
+          "ifWrong": "Take with dxe5: the knight on f6 is kicked away and h7 loses its main guard.",
+          "ifRight": "With the f6 knight forced back, White can build a direct attack on the kingside.",
+          "feedback": {
+            "f4e5": "Bxe5 is solid, yet dxe5 kicks the f6 knight away from defending the king."
           },
           "rule": true
         }

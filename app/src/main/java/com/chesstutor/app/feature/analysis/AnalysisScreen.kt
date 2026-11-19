@@ -1,10 +1,14 @@
 package com.chesstutor.app.feature.analysis
 
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
+import com.chesstutor.app.design.CtMascotArt
+import com.chesstutor.app.core.SanFormatter
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.chesstutor.app.domain.MascotMood
 import com.chesstutor.app.design.CtControl
-import com.chesstutor.app.design.CtTutor
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
@@ -48,7 +52,6 @@ import com.chesstutor.app.board.BoardFeedback
 import com.chesstutor.app.board.BoardHost
 import com.chesstutor.app.board.BoardSession
 import com.chesstutor.app.board.BoardWithEvalBar
-import com.chesstutor.app.board.EngineLinesPanel
 import com.chesstutor.app.board.MarkKind
 import com.chesstutor.app.board.MoveMark
 import com.chesstutor.app.board.SquareRing
@@ -78,11 +81,15 @@ import com.chesstutor.app.feature.account.qualityIcon
 import com.chesstutor.app.feature.account.qualityColor
 import com.chesstutor.app.feature.home.EXPLORE_STRENGTHS
 
-/** A quick first look, then a deeper one, so lines appear fast and then firm up. */
-private val ANALYSIS_STEPS_MS = listOf(300, 1500)
+/** A quick first look, so lines appear fast, before the search that grades the move. */
+private const val GLANCE_MS = 300
 
-/** A position skipped too fast to be analysed is looked at this long when its move is judged. */
-private const val CATCH_UP_MS = 1000
+/**
+ * The search a move is graded on (D108): deep enough to see the bigger win a short look misses,
+ * capped in time for slow phones. A position skipped too fast is looked at the same way.
+ */
+private const val SETTLE_DEPTH = 18
+private const val SETTLE_MS = 3000
 
 /** How long the engine thinks over its reply at full strength. */
 private const val REPLY_MS = 800
@@ -161,7 +168,7 @@ fun AnalysisScreen(
         val lite = { engine.status.value.isDegraded }
         // The position before the last move needs the engine's view too, to judge that move.
         if (parentId != null && previous != null && evals[parentId] == null) {
-            ExploreJudge.evalOf(previous, engine.analyse(previous.toFen(), lines = 3, movetimeMs = CATCH_UP_MS), lite())?.let {
+            ExploreJudge.evalOf(previous, engine.analyseWithin(previous.toFen(), lines = 3, depth = SETTLE_DEPTH, movetimeMs = SETTLE_MS), lite())?.let {
                 evals[parentId] = it
                 if (settled[parentId] == null) settled[parentId] = it
             }
@@ -174,13 +181,13 @@ fun AnalysisScreen(
             return@LaunchedEffect
         }
         val fen = position.toFen()
-        for ((step, movetime) in ANALYSIS_STEPS_MS.withIndex()) {
-            val result = engine.analyse(fen, lines = 3, movetimeMs = movetime)
+        for (settle in listOf(false, true)) {
+            val result = if (settle) engine.analyseWithin(fen, lines = 3, depth = SETTLE_DEPTH, movetimeMs = SETTLE_MS) else engine.analyse(fen, lines = 3, movetimeMs = GLANCE_MS)
             if (result.isNotEmpty()) {
                 lines = result
                 ExploreJudge.evalOf(position, result, lite())?.let {
                     evals[node] = it
-                    if (step == ANALYSIS_STEPS_MS.lastIndex) settled[node] = it
+                    if (settle) settled[node] = it
                 }
             }
         }
@@ -219,6 +226,17 @@ fun AnalysisScreen(
     }
     val marks = judged.mapValues { (_, j) -> MoveMark(j.move.quality.symbol, qualityColor(j.move.quality), j.move.quality.label, icon = qualityIcon(j.move.quality)) }
 
+    // The coach says what the engine sees, in the same sliding bubbles as a bot (D93).
+    val bestSan = best?.firstMove?.let { uci -> state.legalMoves.firstOrNull { it.uci == uci } }?.let { SanFormatter.format(state.position, it) }
+    val coachLine = when {
+        shown != null -> "${shown.comment.headline} ${shown.comment.detail}".trim()
+        thinking -> null
+        bestSan != null -> "${if (engineStatus.isDegraded) "The Lite engine" else "Stockfish"} likes $bestSan here${evalText(best?.centipawns, best?.mateInMoves)?.let { ", $it" } ?: ""}."
+        state.lastMove == null -> "Play a move and I'll tell you how good it was."
+        else -> null
+    }
+    val talk = rememberTalk(listOfNotNull(coachLine?.let { TalkLine("$current:$it".hashCode(), it) }), key = Unit)
+
     var engineOpen by remember { mutableStateOf(false) }
     val tryAgain: (() -> Unit)? = if (quality?.isError == true) session::back else null
     val menu = buildList {
@@ -241,21 +259,10 @@ fun AnalysisScreen(
             if (engineStatus.isDegraded) {
                 CtBadge(text = "Lite engine: Stockfish is not answering", icon = Icons.Rounded.Warning)
             }
-            CtTutor(settings.mascot, mood = if (quality?.isError == true) MascotMood.KIND else MascotMood.READY) {
-                Verdict(verdict = shown, hasMove = state.lastMove != null, thinking = thinking, evalCp = best?.centipawns, evalMate = best?.mateInMoves)
-            }
-            if (showLines) {
-                EngineLinesPanel(
-                    position = state.position,
-                    lines = lines,
-                    engineName = if (engineStatus.isDegraded) "Lite engine" else "Stockfish",
-                    onPlayLine = { line ->
-                        line.firstMove?.let { uci -> runCatching { Move.fromUci(uci) }.getOrNull() }
-                            ?.takeIf { move -> state.legalMoves.any { it.uci == move.uci } }
-                            ?.let { onFeedback(board.onMove(it)) }
-                    },
-                )
-            }
+            Talk(
+                avatar = { CtMascotArt(settings.mascot, height = 76.dp, mood = if (quality?.isError == true) MascotMood.KIND else MascotMood.READY) },
+                lines = talk,
+            )
         },
         under = { AnalysisMoveList(view = view, onSelect = session::goTo, marks = marks) },
         board = {
@@ -313,32 +320,6 @@ fun AnalysisScreen(
 }
 
 /** The verdict on the move just played (or what to do next), in the coach's bubble above the board. */
-@Composable
-private fun Verdict(verdict: JudgedMove?, hasMove: Boolean, thinking: Boolean, evalCp: Int?, evalMate: Int?) {
-    Row(
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-    ) {
-        if (verdict != null) QualityIcon(verdict.move.quality, size = 32)
-        Column(Modifier.weight(1f)) {
-            when {
-                thinking -> Text("The engine is thinking…", style = CtType.TitleSmall)
-                verdict != null -> {
-                    Text(verdict.comment.headline, style = CtType.TitleSmall)
-                    Text(verdict.comment.detail, style = CtType.Caption)
-                }
-                hasMove -> Text("Checking that move…", style = CtType.TitleSmall)
-                else -> Text("Play a move and I'll tell you how good it was.", style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 2)
-            }
-        }
-        val eval = evalText(evalCp, evalMate)
-        if (eval != null) {
-            Text(eval, style = CtType.Label, modifier = Modifier.clip(CtShapes.Chip).background(CtColors.Surface).padding(horizontal = 10.dp, vertical = CtSpacing.xs))
-        }
-    }
-}
-
 /** "+0.9", "−2.3" or "M3" from White's side; null before the engine answers. */
 internal fun evalText(cp: Int?, mate: Int?): String? = when {
     mate != null && mate != 0 -> "M${kotlin.math.abs(mate)}"

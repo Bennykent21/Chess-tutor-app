@@ -1,0 +1,217 @@
+{
+  "id": "openings-sicilian-closed",
+  "category": "openings",
+  "title": "Closed Sicilian & Grand Prix",
+  "intro": "Answer 2.Nc3 with 2...Nc6 and a kingside fianchetto (...g6, ...Bg7). Against 2.f4, strike in the centre immediately with 2...d5.",
+  "level": "intermediate",
+  "order": 64,
+  "side": "black",
+  "opening": "sicilian",
+  "variation": "e2e4 c7c5 b1c3, e2e4 c7c5 f2f4",
+  "battleLine": "Sicilian Defense: Closed",
+  "lessons": [
+    {
+      "id": "openings-sicilian-closed-main",
+      "title": "The Closed Sicilian (2.Nc3)",
+      "summary": "Meet 2.Nc3 with 2...Nc6, ...g6 and ...Bg7.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "In the Closed Sicilian, White develops 2.Nc3 instead of opening the centre with d4.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Reinforce your grip on d4.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Develop your queen's knight to c6.",
+          "ifWrong": "Play 2...Nc6 to control d4 and e5.",
+          "ifRight": "Both knights now control the key d4 square.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White prepares a kingside fianchetto with 3.g3.",
+          "move": "g2g3"
+        },
+        {
+          "type": "play",
+          "text": "Match White's fianchetto to fight for the dark squares.",
+          "expect": [
+            "g7g6"
+          ],
+          "hint": "Push the g-pawn one square.",
+          "ifWrong": "Play 3...g6 to put your bishop on g7.",
+          "ifRight": "From g7 the bishop aims straight through d4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White puts the bishop on g2: 4.Bg2.",
+          "move": "f1g2"
+        },
+        {
+          "type": "play",
+          "text": "Place your bishop on the long diagonal.",
+          "expect": [
+            "f8g7"
+          ],
+          "hint": "Move the f8 bishop to g7.",
+          "ifWrong": "Play 4...Bg7.",
+          "ifRight": "Now Black develops ...d6, ...e6 and ...Nge7.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk1nr/pp1pppbp/2n3p1/2p5/4P3/2NP2P1/PPP2PBP/R1BQK1NR b KQkq - 0 5",
+          "text": "White plays 5.d3, preparing Be3 and f4. Keep the g7 diagonal open.",
+          "expect": [
+            "d7d6",
+            "e7e6"
+          ],
+          "hint": "Play ...d6 (followed by ...e6 and ...Nge7).",
+          "ifWrong": "Play 5...d6 so your c8 bishop is free and you can follow with ...e6 and ...Nge7.",
+          "ifRight": "Next ...e6 and ...Nge7 keep f5 under control while preparing ...Rb8 and ...b5.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-sicilian-closed-grand-prix",
+      "title": "Meeting the Grand Prix (3.f4)",
+      "summary": "Fianchetto with ...g6 and ...Bg7, and jump to d4 against Bb5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pp1ppppp/2n5/2p5/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 3",
+          "text": "In the Grand Prix Attack, White pushes 3.f4 to aim for a direct attack on your kingside.",
+          "move": "f2f4"
+        },
+        {
+          "type": "play",
+          "text": "Use the same solid fianchetto set-up to blunt White's attack.",
+          "expect": [
+            "g7g6"
+          ],
+          "hint": "Push the g-pawn one square.",
+          "ifWrong": "Play 3...g6 to put your bishop on g7.",
+          "ifRight": "Your g7 bishop keeps e5 and d4 under pressure.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 4.Nf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Complete your fianchetto.",
+          "expect": [
+            "f8g7"
+          ],
+          "hint": "Put the bishop on g7.",
+          "ifWrong": "Play 4...Bg7.",
+          "ifRight": "Now Black is ready for ...e6 and ...Nge7 (or ...Nd4 against Bb5).",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk1nr/pp1pppbp/2n3p1/1Bp5/4PP2/2N2N2/PPPP2PP/R1BQK2R b KQkq - 3 5",
+          "text": "White plays 5.Bb5, threatening to double your c-pawns. Jump into the centre.",
+          "expect": [
+            "c6d4"
+          ],
+          "hint": "Hop to d4 with your c6 knight.",
+          "ifWrong": "Play 5...Nd4: it avoids doubled pawns and challenges White's strong f3 knight.",
+          "ifRight": "If White plays Nxd4, ...cxd4 gives Black great central control and queenside play.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk1nr/pp1pppbp/2n3p1/2p5/2B1PP2/2N2N2/PPPP2PP/R1BQK2R b KQkq - 3 5",
+          "text": "If White aims at f7 with 5.Bc4, shut down the diagonal at once.",
+          "expect": [
+            "e7e6"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 5...e6 so White's c4 bishop hits a solid pawn wall and ...Nge7 is ready.",
+          "ifRight": "Next ...Nge7, ...O-O and ...d5 strike back in the centre.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-sicilian-closed-2f4",
+      "title": "Meeting an early 2.f4",
+      "summary": "Counter in the centre at once with 2...d5 and 3...Nf6.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "If White plays 2.f4 immediately before Nc3, the d5 square is wide open.",
+          "move": "f2f4"
+        },
+        {
+          "type": "play",
+          "text": "Strike in the centre at once.",
+          "expect": [
+            "d7d5"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 2...d5 to challenge e4 before White can defend it with Nc3.",
+          "ifRight": "White is forced to deal with the central tension immediately.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White captures on d5: 3.exd5.",
+          "move": "e4d5"
+        },
+        {
+          "type": "play",
+          "text": "Develop with an attack on d5 instead of bringing the queen out early.",
+          "expect": [
+            "g8f6"
+          ],
+          "hint": "Develop your king's knight to f6.",
+          "ifWrong": "Play 3...Nf6 so you recapture on d5 with the knight and lead in development.",
+          "ifRight": "Black wins d5 back effortlessly with a great position.",
+          "feedback": {
+            "d8d5": "3...Qxd5 allows 4.Nc3, gaining time against your queen. Play 3...Nf6."
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/pp2pppp/5n2/2pP4/5P2/2N5/PPPP2PP/R1BQKBNR b KQkq - 1 4",
+          "text": "White develops 4.Nc3. Recapture the central pawn cleanly.",
+          "expect": [
+            "f6d5"
+          ],
+          "hint": "Take on d5 with your knight.",
+          "ifWrong": "Play 4...Nxd5: after 5.Nxd5 Qxd5, your queen sits nicely in the centre because Nc3 is gone.",
+          "ifRight": "Black equalizes easily and targets White's weakened kingside.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/pp2pppp/5n2/1BpP4/5P2/8/PPPP2PP/RNBQK1NR b KQkq - 2 4",
+          "text": "What if White checks with 4.Bb5+ to try to hold the d5 pawn?",
+          "expect": [
+            "c8d7"
+          ],
+          "hint": "Block the check with your c8 bishop.",
+          "ifWrong": "Play 4...Bd7 to challenge the bishop and win back d5 smoothly.",
+          "ifRight": "After 5.Bxd7+ Qxd7, Black recaptures on d5 next and stands very well.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

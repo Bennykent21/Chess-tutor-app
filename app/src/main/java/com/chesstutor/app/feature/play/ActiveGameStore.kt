@@ -42,7 +42,7 @@ class SharedPrefsActiveGameStore(context: Context) : ActiveGameStore {
             botId = botId,
             playerColor = PieceColor.valueOf(prefs.getString(COLOR, null)!!),
             rules = GameRules(
-                timeControl = TimeControl.valueOf(prefs.getString(TIME, TimeControl.NONE.name)!!),
+                timeControl = TimeControl.decode(prefs.getString(TIME, null)),
                 takebacks = prefs.getBoolean(TAKEBACKS, true),
                 hints = prefs.getBoolean(HINTS, true),
                 evalBar = prefs.getBoolean(EVAL, false),
@@ -59,7 +59,7 @@ class SharedPrefsActiveGameStore(context: Context) : ActiveGameStore {
         prefs.edit {
             putString(BOT, snapshot.botId)
             putString(COLOR, snapshot.playerColor.name)
-            putString(TIME, snapshot.rules.timeControl.name)
+            putString(TIME, snapshot.rules.timeControl.encode())
             putBoolean(TAKEBACKS, snapshot.rules.takebacks)
             putBoolean(HINTS, snapshot.rules.hints)
             putBoolean(EVAL, snapshot.rules.evalBar)

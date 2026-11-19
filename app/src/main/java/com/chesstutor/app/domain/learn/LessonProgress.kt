@@ -17,6 +17,8 @@ data class LessonProgress(
     val perfect: Boolean = false,
     val xpEarned: Int = 0,
     val completedAt: Long? = null,
+    /** When the lesson was last played, for Learn's Continue card (D112); null when not known. */
+    val updatedAt: Long? = null,
 ) {
     val started: Boolean get() = completed || stepIndex > 0
 }

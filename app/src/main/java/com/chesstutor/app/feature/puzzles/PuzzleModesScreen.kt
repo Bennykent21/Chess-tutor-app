@@ -1,5 +1,13 @@
 package com.chesstutor.app.feature.puzzles
 
+import androidx.compose.ui.Alignment
+import com.chesstutor.app.domain.puzzle.GoalStats
+import com.chesstutor.app.design.CtToggleRow
+import com.chesstutor.app.design.CtGroupLabel
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.annotation.DrawableRes
@@ -61,7 +69,8 @@ import com.chesstutor.app.domain.puzzle.RushKind
 /** What the modes page can start. Each call opens the puzzle player. */
 class PuzzleModeActions(
     val onRush: (minutes: Int?) -> Unit,
-    val onThemed: (PuzzleGoal, String?, Difficulty) -> Unit,
+    /** A goal's run: pattern (null for any), difficulty, how many, and whether a clock runs (D95). */
+    val onThemed: (PuzzleGoal, String?, Difficulty, Int, Boolean) -> Unit,
     /** Opens Custom run, a screen of its own (D64). */
     val onOpenCustom: () -> Unit,
     val onMistakes: () -> Unit,
@@ -82,6 +91,7 @@ fun PuzzleModesScreen(
     boardTheme: BoardTheme = BoardTheme(),
     rushBest: Map<RushKind, Int> = emptyMap(),
     missed: Int = 0,
+    goalStats: Map<PuzzleGoal, GoalStats> = emptyMap(),
 ) {
     var goalName by rememberSaveable { mutableStateOf<String?>(null) }
     CtScreenBackground(modifier) {
@@ -94,36 +104,54 @@ fun PuzzleModesScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(start = CtSpacing.gutter, end = CtSpacing.gutter, bottom = CtSpacing.xl),
                 ) {
-                    CtSectionHeader(title = "Rush", modifier = Modifier.padding(bottom = CtSpacing.sm))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        RUSHES.forEach { rush ->
-                            RushTile(rush, rushBest[rush.kind], Modifier.weight(1f), onStart = { actions.onRush(rush.kind.minutes) })
-                        }
-                    }
-
-                    CtSectionHeader(title = "Themes", modifier = Modifier.padding(bottom = CtSpacing.sm))
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        PuzzleGoal.entries.chunked(2).forEach { pair ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                pair.forEach { goal -> GoalTile(goal, boardTheme, Modifier.weight(1f), onClick = { goalName = goal.name }) }
+                    // One tile for every mode (D95): its picture or metal object on top, the name under it.
+                    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        CtGroupLabel("Rush")
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            RUSHES.forEach { rush ->
+                                ModeTile(
+                                    title = rush.name,
+                                    subtitle = rushBest[rush.kind]?.let { "Best $it" } ?: rush.fresh,
+                                    spoken = rush.spoken + (rushBest[rush.kind]?.let { ", best $it" } ?: ""),
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { actions.onRush(rush.kind.minutes) },
+                                ) { MetalArt(rush.icon) }
                             }
                         }
+                        CtGroupLabel("Themes")
+                        PuzzleGoal.entries.chunked(2).forEach { pair ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                pair.forEach { goal ->
+                                    ModeTile(
+                                        title = goal.title,
+                                        subtitle = goalStats[goal]?.firstTryPercent?.let { "$it% first try" } ?: "Choose a pattern",
+                                        spoken = goal.title,
+                                        modifier = Modifier.weight(1f),
+                                        onClick = { goalName = goal.name },
+                                    ) { BoardPicture(goalExample(goal), boardTheme, zoom = 1f) }
+                                }
+                            }
+                        }
+                        CtGroupLabel("Your own")
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            ModeTile(title = "Custom run", subtitle = "Rating, patterns, clock", spoken = "Custom run", modifier = Modifier.weight(1f), onClick = actions.onOpenCustom) {
+                                MetalArt(R.drawable.icon_tune)
+                            }
+                            ModeTile(
+                                title = "Missed",
+                                subtitle = if (missed > 0) "$missed to try again" else "None waiting",
+                                spoken = "Puzzles you missed, $missed",
+                                modifier = Modifier.weight(1f),
+                                onClick = actions.onMistakes,
+                            ) { MetalArt(R.drawable.icon_replay) }
+                        }
                     }
-
-                    CtSectionHeader(title = "More")
-                    CtListRow(title = "Custom run", icon = Icons.Rounded.Tune, onClick = actions.onOpenCustom)
-                    CtListRow(
-                        title = "Puzzles you missed",
-                        icon = Icons.Rounded.History,
-                        onClick = actions.onMistakes,
-                        trailing = if (missed > 0) { { Text("$missed", style = CtType.Label.copy(color = CtColors.Text2)) } } else null,
-                    )
                 }
             }
             val goal = goalName?.let(PuzzleGoal::valueOf)
-            GoalPage(goal, patternsFor, onDismiss = { goalName = null }) { g, pattern, difficulty ->
+            GoalPage(goal, patternsFor, goal?.let { goalStats[it] }, onDismiss = { goalName = null }) { g, pattern, difficulty, count, timed ->
                 goalName = null
-                actions.onThemed(g, pattern, difficulty)
+                actions.onThemed(g, pattern, difficulty, count, timed)
             }
         }
     }
@@ -138,28 +166,40 @@ private val RUSHES = listOf(
     Rush(RushKind.SURVIVAL, R.drawable.icon_favorite, "Survival", "Survival, three strikes", "3 lives"),
 )
 
-/** The metal icon, then the name and best score just under it; one tap starts the rush. */
+/** The one tile of Puzzle modes (D95): a picture over a soft glow, then the name and a short line. */
 @Composable
-private fun RushTile(rush: Rush, best: Int?, modifier: Modifier, onStart: () -> Unit) {
+private fun ModeTile(title: String, subtitle: String, spoken: String, modifier: Modifier, onClick: () -> Unit, art: @Composable BoxScope.() -> Unit) {
     Column(
         modifier = modifier
             .clip(CtShapes.Card)
             .background(CtColors.Surface)
-            .ctPressable(onClickLabel = "Start", onClick = onStart)
+            .ctPressable(onClickLabel = "Open", onClick = onClick)
             .clearAndSetSemantics {
-                contentDescription = rush.spoken + (best?.let { ", best $it" } ?: "")
+                contentDescription = spoken
                 role = Role.Button
-                onClick(label = "Start") { onStart(); true }
-            }
-            .padding(horizontal = 14.dp, vertical = CtSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+                onClick(label = "Open") { onClick(); true }
+            },
     ) {
-        Image(painterResource(rush.icon), contentDescription = null, modifier = Modifier.size(40.dp))
-        Column {
-            Text(rush.name, style = CtType.TitleSmall, maxLines = 1)
-            Text(best?.let { "Best $it" } ?: rush.fresh, style = CtType.Caption, maxLines = 1)
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1.4f)
+                .clip(CtShapes.Card)
+                .background(Brush.radialGradient(listOf(CtColors.Accent.copy(alpha = 0.22f), Color.Transparent))),
+            contentAlignment = Alignment.Center,
+            content = art,
+        )
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(title, style = CtType.TitleSmall, maxLines = 1)
+            Text(subtitle, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1)
         }
     }
+}
+
+/** A metal object in the middle of a tile's picture. */
+@Composable
+private fun MetalArt(@DrawableRes icon: Int) {
+    Image(painterResource(icon), contentDescription = null, modifier = Modifier.size(52.dp))
 }
 
 /** A real position of each goal's idea, for its tile. */
@@ -174,21 +214,6 @@ internal fun goalExample(goal: PuzzleGoal): String = when (goal) {
     PuzzleGoal.ENDGAME -> "8/8/8/4k3/8/4K3/4P3/8 w - - 0 1"
 }
 
-/** The goal's example on the player's own board, its name under it. */
-@Composable
-private fun GoalTile(goal: PuzzleGoal, boardTheme: BoardTheme, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier = modifier
-            .clip(CtShapes.Card)
-            .background(CtColors.Surface)
-            .ctPressable(onClickLabel = "Choose a pattern", onClick = onClick)
-            .semantics(mergeDescendants = true) {},
-    ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1f)) { BoardPicture(goalExample(goal), boardTheme, zoom = 1f) }
-        Text(goal.title, style = CtType.TitleSmall, maxLines = 1, modifier = Modifier.padding(horizontal = 14.dp, vertical = CtSpacing.md))
-    }
-}
-
 internal fun goalPiece(goal: PuzzleGoal): PieceType = when (goal) {
     PuzzleGoal.CHECKMATE -> PieceType.KING
     PuzzleGoal.WIN_MATERIAL -> PieceType.QUEEN
@@ -196,27 +221,39 @@ internal fun goalPiece(goal: PuzzleGoal): PieceType = when (goal) {
     PuzzleGoal.ENDGAME -> PieceType.PAWN
 }
 
-/** A goal's own page: its pattern and difficulty, then ten puzzles. */
+/**
+ * A goal's own page (D95): how the player does at it, then pattern, difficulty, how many and
+ * whether a clock runs.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GoalPage(
     goal: PuzzleGoal?,
     patternsFor: (PuzzleGoal) -> List<String>,
+    stats: GoalStats?,
     onDismiss: () -> Unit,
-    onStart: (PuzzleGoal, String?, Difficulty) -> Unit,
+    onStart: (PuzzleGoal, String?, Difficulty, Int, Boolean) -> Unit,
 ) {
     // Keep the last goal on the page while it slides away.
     var shown by remember { mutableStateOf(goal) }
     if (goal != null && goal != shown) shown = goal
     var pattern by remember(shown) { mutableStateOf<String?>(null) }
     var difficulty by remember(shown) { mutableStateOf(Difficulty.MATCHED) }
+    var count by remember(shown) { mutableIntStateOf(10) }
+    var timed by remember(shown) { mutableStateOf(false) }
     val g = shown ?: return
     CtFullPage(
         visible = goal != null,
         title = g.title,
         onBack = onDismiss,
-        bottom = { CtButton("Start 10 puzzles", onClick = { onStart(g, pattern, difficulty) }, modifier = Modifier.weight(1f)) },
+        bottom = { CtButton("Start $count puzzles", onClick = { onStart(g, pattern, difficulty, count, timed) }, modifier = Modifier.weight(1f)) },
     ) {
+        if (stats != null && stats.played > 0) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                StatBox("${stats.played}", "Played", Modifier.weight(1f))
+                StatBox("${stats.firstTryPercent}%", "First try", Modifier.weight(1f))
+            }
+        }
         Group("Pattern") {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                 CtChip("Any", selected = pattern == null, onClick = { pattern = null })
@@ -228,8 +265,27 @@ private fun GoalPage(
         Group("Difficulty") {
             CtSegmented(options = Difficulty.entries, selected = difficulty, label = { it.label }, onSelect = { difficulty = it })
         }
+        Group("How many") {
+            CtSegmented(options = RUN_SIZES, selected = count, label = { "$it" }, onSelect = { count = it })
+        }
+        CtToggleRow(title = "Against the clock", checked = timed, onCheckedChange = { timed = it })
     }
 }
+
+/** One number and what it counts. */
+@Composable
+private fun StatBox(value: String, label: String, modifier: Modifier) {
+    Column(
+        modifier.clip(CtShapes.Control).background(CtColors.Surface).padding(vertical = CtSpacing.md).semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(value, style = CtType.Title)
+        Text(label, style = CtType.Caption.copy(color = CtColors.Text2))
+    }
+}
+
+/** How many puzzles a goal's run can have. */
+private val RUN_SIZES = listOf(5, 10, 20)
 
 private const val MAX_PATTERNS = 12
 

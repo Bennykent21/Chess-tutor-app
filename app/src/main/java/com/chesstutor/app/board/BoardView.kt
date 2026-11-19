@@ -49,6 +49,8 @@ data class BoardMarks(
     val lastMoveColor: Long? = null,
     /** A small round label on a square's corner, such as a move's quality ("??"). */
     val badge: SquareBadge? = null,
+    /** Moves queued while the other side thinks (D93, D94): their squares tinted until they play. */
+    val premoves: List<Pair<Square, Square>> = emptyList(),
 )
 
 /** A round label drawn on the top-right corner of [square]: [text] on [color] (ARGB). */
@@ -130,6 +132,8 @@ internal fun BoardCanvas(
     val badgeIcon = marks.badge?.icon?.let { rememberVectorPainter(it) }
     val coordinateStyle = CtType.Caption
     val description = boardDescription(position, whiteAtBottom)
+    // In frosted glass the squares let a little of the glow through (D107).
+    val squareAlpha = if (com.chesstutor.app.design.LocalGlass.current) 0.86f else 1f
 
     Canvas(
         modifier = modifier
@@ -141,7 +145,7 @@ internal fun BoardCanvas(
             .semantics { contentDescription = description },
     ) {
         val cell = size.minDimension / 8f
-        drawSquares(theme.colors, marks, whiteAtBottom, cell)
+        drawSquares(theme.colors, marks, whiteAtBottom, cell, squareAlpha)
         if (theme.colors.sheen) drawSheen()
         if (showCoordinates) drawCoordinates(theme.colors, whiteAtBottom, cell, textMeasurer, coordinateStyle)
         if (showLegalDots) drawLegalTargets(position, marks.legalTargets, whiteAtBottom, cell)
@@ -187,9 +191,9 @@ private fun cellTopLeft(square: Square, whiteAtBottom: Boolean, cell: Float): Of
     return Offset(c.col * cell, c.row * cell)
 }
 
-private fun DrawScope.drawSquares(colors: BoardColors, marks: BoardMarks, whiteAtBottom: Boolean, cell: Float) {
-    val light = Color(colors.light)
-    val dark = Color(colors.dark)
+private fun DrawScope.drawSquares(colors: BoardColors, marks: BoardMarks, whiteAtBottom: Boolean, cell: Float, alpha: Float = 1f) {
+    val light = Color(colors.light).copy(alpha = alpha)
+    val dark = Color(colors.dark).copy(alpha = alpha)
     val cellSize = Size(cell, cell)
     for (index in 0 until 64) {
         val square = Square(index)
@@ -197,6 +201,9 @@ private fun DrawScope.drawSquares(colors: BoardColors, marks: BoardMarks, whiteA
         drawRect(if (square.isLightSquare) light else dark, topLeft, cellSize)
         if (marks.lastMove != null && (square == marks.lastMove.first || square == marks.lastMove.second)) {
             drawRect(Color(marks.lastMoveColor ?: BoardMarkColors.LAST_MOVE), topLeft, cellSize)
+        }
+        if (marks.premoves.any { (from, to) -> square == from || square == to }) {
+            drawRect(Color(BoardMarkColors.PREMOVE), topLeft, cellSize)
         }
         if (square == marks.selected) {
             drawRect(Color(BoardMarkColors.SELECTED), topLeft, cellSize)

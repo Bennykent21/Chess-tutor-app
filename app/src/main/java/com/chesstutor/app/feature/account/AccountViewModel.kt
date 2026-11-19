@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.account
 
+import java.time.ZoneId
+import java.time.LocalDate
+import com.chesstutor.app.domain.activity.ActivityDays
 import kotlinx.coroutines.flow.conflate
 import com.chesstutor.app.data.diagnostics.PerfLog
 import com.chesstutor.app.data.diagnostics.AnalysisTiming
@@ -136,6 +139,8 @@ class AccountViewModel(
     private val cloud: CloudEvals? = null,
     worker: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** The days the player trained in the app, for the day streak (D110). */
+    activityDays: Flow<Set<LocalDate>> = flowOf(emptySet()),
 ) : ViewModel() {
     private val tree = MutableStateFlow<OpeningTree?>(null)
 
@@ -151,6 +156,10 @@ class AccountViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, GamesState())
 
     val stats: StateFlow<PuzzleStats> = puzzleStats.stateIn(viewModelScope, SharingStarted.Eagerly, PuzzleStats())
+
+    val dayStreak: StateFlow<Int> = activityDays
+        .map { days -> ActivityDays.streak(days, Instant.ofEpochMilli(clock()).atZone(ZoneId.systemDefault()).toLocalDate()) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     private val mutableJobs = MutableStateFlow<Map<String, AnalysisJob>>(emptyMap())
     /** Analyses running or waiting, and ones that failed, by game id. */
@@ -266,6 +275,35 @@ class AccountViewModel(
         }
     }
 
+    /** Games this view model started reviewing by itself, so playing can pause them. */
+    private val background = HashSet<String>()
+
+    /**
+     * Reviews the [limit] newest games, those with no review yet, one after another (D93), so Home
+     * and Stats can show their graphs and accuracy without asking. Only the newest games: once they
+     * are reviewed nothing older is started, so it never works back through the whole history
+     * (D107). A half-done review resumes where it stopped.
+     */
+    fun reviewRecentInBackground(limit: Int = AUTO_REVIEW_GAMES) {
+        if (engine == null) return
+        viewModelScope.launch {
+            val state = games.first { !it.loading }
+            state.games.sortedByDescending { it.dateMillis }
+                .take(limit)
+                .filter { it.id !in state.analysed && it.id !in running }
+                .forEach { game ->
+                    background += game.id
+                    analyse(game.id)
+                }
+        }
+    }
+
+    /** A game or Explore needs the engine: background reviews stop and resume later. */
+    fun pauseBackground() {
+        background.toList().forEach(::stopAnalysis)
+        background.clear()
+    }
+
     /** Stops [gameId]'s analysis; what is done so far stays saved, so it resumes later. */
     fun stopAnalysis(gameId: String) {
         running.remove(gameId)?.cancel()
@@ -315,6 +353,9 @@ class AccountViewModel(
     companion object {
         /** How long an analysis waits for a just-saved game to appear in the list. */
         const val GAME_WAIT_MS = 10_000L
+
+        /** How many of the newest games are reviewed without asking (D93). */
+        const val AUTO_REVIEW_GAMES = 5
     }
 
     class Factory(
@@ -327,9 +368,10 @@ class AccountViewModel(
         private val trainingSources: TrainingSources,
         private val reviewDepth: suspend () -> ReviewDepth = { ReviewDepth.NORMAL },
         private val cloud: CloudEvals? = null,
+        private val activityDays: Flow<Set<LocalDate>> = flowOf(emptySet()),
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources, reviewDepth = reviewDepth, cloud = cloud) as T
+            AccountViewModel(repository, loadOpenings, puzzleStats, analysis, engine, reviews, trainingSources, reviewDepth = reviewDepth, cloud = cloud, activityDays = activityDays) as T
     }
 }

@@ -1,0 +1,221 @@
+{
+  "id": "openings-ruy-lopez-berlin",
+  "category": "openings",
+  "title": "Berlin Defence (3...Nf6)",
+  "intro": "Against the solid Berlin Defence, play 4.d3 to avoid forced endgame trades and enjoy a rich middlegame with c3 and O-O.",
+  "level": "intermediate",
+  "order": 33,
+  "side": "white",
+  "opening": "ruy-lopez",
+  "variation": "e2e4 e7e5 g1f3 b8c6 f1b5 g8f6",
+  "battleLine": "Ruy Lopez: Berlin Defense",
+  "lessons": [
+    {
+      "id": "openings-ruy-lopez-berlin-d3",
+      "title": "The Anti-Berlin with 4.d3",
+      "summary": "Keep queens on with 4.d3, then build c3 and O-O.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "With 3...Nf6, Black plays the Berlin Defence, attacking e4 and aiming to trade queens after 4.O-O Nxe4.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Keep the queens on the board and defend e4 solidly.",
+          "expect": [
+            "d2d3"
+          ],
+          "hint": "Support e4 with the d-pawn.",
+          "ifWrong": "Play 4.d3: it defends e4 and keeps a full middlegame ahead.",
+          "ifRight": "Now White threatens Bxc6 followed by Nxe5.",
+          "feedback": {
+            "e1g1": "4.O-O is the main line, leading to the sharp Berlin Endgame after 4...Nxe4 5.d4 Nd6. 4.d3 is simpler and very strong."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops actively with 4...Bc5.",
+          "move": "f8c5"
+        },
+        {
+          "type": "play",
+          "text": "Give your bishop a retreat square and prepare to push d4 later.",
+          "expect": [
+            "c2c3"
+          ],
+          "hint": "Push the c-pawn one square.",
+          "ifWrong": "Play 5.c3 to prepare d4 and Ba4-c2.",
+          "ifRight": "Your Spanish bishop is safe and White plans O-O and Nbd2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black castles: 5...O-O.",
+          "move": "e8g8"
+        },
+        {
+          "type": "play",
+          "text": "Tuck your king to safety.",
+          "expect": [
+            "e1g1"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 6.O-O.",
+          "ifRight": "White is castled with clear plans.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/ppp2ppp/2np1n2/1Bb1p3/4P3/2PP1N2/PP3PPP/RNBQ1RK1 w - - 0 7",
+          "text": "Black defends e5 with 6...d6. Continue developing.",
+          "expect": [
+            "b1d2",
+            "h2h3",
+            "c1g5"
+          ],
+          "hint": "Develop your queen's knight or stop ...Bg4 with h3.",
+          "ifWrong": "Play 7.Nbd2 (or 7.h3 or 7.Bg5) to bring your pieces into the game.",
+          "ifRight": "White plans Re1, Nf1 and Ng3, just like in the Closed Ruy Lopez.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-berlin-d6",
+      "title": "Meeting 4...d6",
+      "summary": "Play c3 and O-O, and avoid the ...c6 and ...Qa5+ trap.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/3P1N2/PPP2PPP/RNBQK2R b KQkq - 0 4",
+          "text": "Instead of 4...Bc5, Black may play solidly with 4...d6.",
+          "move": "d7d6"
+        },
+        {
+          "type": "play",
+          "text": "Prepare d4 and give your b5 bishop a square on c2.",
+          "expect": [
+            "c2c3"
+          ],
+          "hint": "Push the c-pawn one square.",
+          "ifWrong": "Play 5.c3.",
+          "ifRight": "White controls d4 and keeps the bishop safe.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black prepares a kingside fianchetto with 5...g6.",
+          "move": "g7g6"
+        },
+        {
+          "type": "play",
+          "text": "Get your king to safety.",
+          "expect": [
+            "e1g1"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 6.O-O.",
+          "ifRight": "Now White develops Nbd2 and Re1.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "r1bqkb1r/ppppnppp/5n2/1B2p3/4P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 1 5",
+          "text": "Careful if Black tries 4...Ne7, hoping you take on e5 and walk into ...c6 and ...Qa5+.",
+          "arrows": [
+            "c7c6:bad",
+            "d8a5:bad"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Do not fall for the ...c6 and ...Qa5+ fork. Keep developing.",
+          "expect": [
+            "e1g1",
+            "c2c3",
+            "b5c4"
+          ],
+          "hint": "Castle kingside or prepare c3.",
+          "ifWrong": "Play 5.O-O (or 5.c3): taking on e5 loses to 5...c6 6.Bc4 Qa5+.",
+          "ifRight": "Safe and strong: if Black plays ...c6 now, Ba4 keeps a great diagonal.",
+          "feedback": {
+            "f3e5": "5.Nxe5 walks into 5...c6 6.Bc4 Qa5+ and 7...Qxe5, losing a piece."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-berlin-tricks",
+      "title": "Tactics in the Anti-Berlin",
+      "summary": "Retreat Ba4-b3, answer ...Bg4 with h3, and punish premature ...d5 breaks.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/ppp2ppp/2np1n2/1Bb1p3/4P3/2PP1N2/PP1N1PPP/R1BQ1RK1 b - - 3 7",
+          "text": "Black often asks your bishop what it wants with 7...a6.",
+          "move": "a7a6"
+        },
+        {
+          "type": "play",
+          "text": "Keep your Spanish bishop on the active diagonal.",
+          "expect": [
+            "b5a4"
+          ],
+          "hint": "Step back to a4.",
+          "ifWrong": "Play 8.Ba4 so the bishop can later swing to c2.",
+          "ifRight": "If Black pushes ...b5, Bb3 keeps the bishop aiming at f7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black opens space on the queenside with 8...b5.",
+          "move": "b7b5"
+        },
+        {
+          "type": "play",
+          "text": "Retreat one more square to the b3 diagonal.",
+          "expect": [
+            "a4b3"
+          ],
+          "hint": "Move the bishop to b3.",
+          "ifWrong": "Play 9.Bb3.",
+          "ifRight": "White is ready for Re1, Nf1 and Ng3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r2q1rk1/2p2ppp/p1np1n2/1pb1p3/4P1b1/1BPP1N2/PP1N1PPP/R1BQ1RK1 w - - 2 10",
+          "text": "Black pins your knight with 9...Bg4. How should White break the pin and route the knight?",
+          "expect": [
+            "h2h3",
+            "f1e1"
+          ],
+          "hint": "Question the g4 bishop with h3 or prepare Nf1 with Re1.",
+          "ifWrong": "Play 10.h3 (or 10.Re1): after 10...Bh5, 11.Re1 Nf1 Ng3 puts pressure on h5.",
+          "ifRight": "If 10...Bh5, White follows with Re1, Nf1 and Ng3, winning time against the bishop.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/2p2ppp/p1n2n2/1pbpp3/4P3/1BPP1N2/PP3PPP/RNBQ1RK1 w - - 0 9",
+          "text": "Black pushes 8...d5 early. Take advantage of the open centre.",
+          "expect": [
+            "e4d5",
+            "c1g5"
+          ],
+          "hint": "Capture on d5 or pin the f6 knight.",
+          "ifWrong": "Play 9.exd5 (or 9.Bg5) to win space and pressure e5.",
+          "ifRight": "After 9.exd5 Nxd5 10.Re1, e5 is under strong pressure.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

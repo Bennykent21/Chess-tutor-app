@@ -1,5 +1,26 @@
 package com.chesstutor.app.feature.account
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.width
+import com.chesstutor.app.domain.account.GameSummary
+import com.chesstutor.app.domain.account.DayPart
+import com.chesstutor.app.domain.account.RatingBand
+import com.chesstutor.app.domain.account.GraphPeriod
+import com.chesstutor.app.domain.account.GameInsights
+import com.chesstutor.app.domain.account.ReviewedGame
+import com.chesstutor.app.design.ctGlow
+import com.chesstutor.app.design.CtGlassCard
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
+import com.chesstutor.app.board.SideTones
+import com.chesstutor.app.design.CtGroupLabel
+import com.chesstutor.app.design.CtCard
+import com.chesstutor.app.domain.account.GamePhase
+import com.chesstutor.app.domain.account.ClockInsight
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -62,10 +83,10 @@ import com.chesstutor.app.viewmodel.AppUiState
 import kotlin.math.roundToInt
 
 /**
- * Stats for one clock (D60, D64), opened from its rating on Account: the clock's metal and rating
- * over its graph in the metal's colour, its records as plain figures, its results, how its games
- * ended, and its openings as White and as Black. Every result and opening opens those games; an
- * opening with a course opens the course instead.
+ * Stats for one clock (D60, D64, D104, D106), opened from its rating on Account. The clock chips
+ * and the graph's period (1M, 3M, 1Y, All) both narrow every number on the page. Frosted cards sit
+ * over a glow in the clock's colour: the rating over its graph, results, records that open their
+ * games, how games ended, insights from the reviewed games, and openings as White and as Black.
  */
 @Composable
 fun StatsScreen(
@@ -78,40 +99,70 @@ fun StatsScreen(
     onShowGames: (GameFilter) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    insights: Map<TimeClass, List<ReviewedGame>> = emptyMap(),
+    onOpenGame: (gameId: String) -> Unit = {},
 ) {
     val played = remember(games.games) { ClockStats.clocksPlayed(games.games) }
     val clocks = played.ifEmpty { listOf(initialClock) }
     var clockName by rememberSaveable { mutableStateOf(initialClock.name) }
     val clock = TimeClass.valueOf(clockName).takeIf { it in clocks } ?: clocks.first()
-    val report = remember(games.games, clock, state.linkedProfile) { ClockStats.report(games.games, clock, linkedRating(state, clock)) }
-    val accuracy = remember(games, clock) { averageAccuracy(games, clock) }
+    // The graph's period narrows every number (D106); All by default.
+    var periodName by rememberSaveable { mutableStateOf(GraphPeriod.ALL.name) }
+    val period = GraphPeriod.valueOf(periodName)
+    val since = period.days?.let { now - it * DAY_MS }
+    val inPeriod = remember(games.games, since) { games.games.filter { since == null || it.dateMillis >= since } }
+    val whole = remember(games.games, clock, state.linkedProfile) { ClockStats.report(games.games, clock, linkedRating(state, clock)) }
+    val report = remember(inPeriod, clock, state.linkedProfile) { ClockStats.report(inPeriod, clock, linkedRating(state, clock)) }
+    val clockGames = remember(inPeriod, clock) { inPeriod.filter { it.timeClass == clock } }
+    val accuracy = remember(clockGames, games.analysed) {
+        clockGames.mapNotNull { game -> games.analysed[game.id]?.accuracyFor(game.userColor) }.takeIf { it.isNotEmpty() }?.average()
+    }
+    val insight = remember(insights, clock, since) {
+        insights[clock]?.filter { since == null || it.dateMillis >= since }?.takeIf { it.isNotEmpty() }?.let(GameInsights::summarise)
+    }
+    // Every list of games opened from here keeps the period.
+    val show: (GameFilter) -> Unit = { filter -> onShowGames(if (filter.fromMillis == null && since != null) filter.copy(fromMillis = since) else filter) }
+    val hue = CtColors.metal(clockHue(clock))
     CtScreenBackground(modifier) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxSize().ctGlow(hue).verticalScroll(rememberScrollState())) {
             CtTopBar(title = "Stats", onBack = onBack)
             if (clocks.size > 1) ClockChips(clocks, clock, onSelect = { it?.let { picked -> clockName = picked.name } })
-            if (report.games > 0) {
-                // Keyed on the clock, so each clock's graph draws itself in and starts at three months.
+            if (whole.games > 0) {
+                // Keyed on the clock, so each clock's graph draws itself in.
                 androidx.compose.runtime.key(clock) {
-                    RatingHero(report.trend, report.records.current, now, clockIcon(clock), CtColors.metal(clockHue(clock)), Modifier.padding(top = CtSpacing.md).ctEnter(0))
+                    RatingHero(
+                        whole.trend, whole.records.current, now, clockIcon(clock), hue, Modifier.padding(top = CtSpacing.md).ctEnter(0),
+                        selected = period, onPeriod = { periodName = it.name },
+                    )
                 }
             }
             Column(
                 modifier = Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md, bottom = CtSpacing.xl),
-                verticalArrangement = Arrangement.spacedBy(CtSpacing.xl),
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.lg),
             ) {
                 if (report.games == 0) {
-                    CtEmptyState(icon = Icons.Rounded.Insights, title = "No ${clock.label.lowercase()} games yet", body = "Import your games or play a bot.")
+                    CtEmptyState(
+                        icon = Icons.Rounded.Insights,
+                        title = if (whole.games == 0) "No ${clock.label.lowercase()} games yet" else "No ${clock.label.lowercase()} games in this period",
+                        body = if (whole.games == 0) "Import your games or play a bot." else "Pick a longer period above.",
+                    )
                 } else {
-                    Figures(gameRecords(report, accuracy), Modifier.ctEnter(1))
-                    ResultsBar(report.results, onShow = { onShowGames(GameFilter(timeClass = clock, outcome = it)) }, Modifier.ctEnter(2))
-                    Endings(report)
-                    OpeningsAs(PieceColor.WHITE, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, onShowGames)
-                    OpeningsAs(PieceColor.BLACK, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, onShowGames)
+                    // Results and records on one panel: figures on a sheet, not a box each (D108).
+                    CtGlassCard(Modifier.fillMaxWidth().ctEnter(1), shape = CtShapes.Panel) {
+                        ResultsBar(report.results, onShow = { show(GameFilter(timeClass = clock, outcome = it)) })
+                        RecordGrid(gameRecords(report, accuracy, clock, onOpenGame, show), Modifier.padding(top = CtSpacing.md))
+                    }
+                    Endings(report, onShow = { outcome, ending -> show(GameFilter(timeClass = clock, outcome = outcome, ending = ending)) })
+                    MoreInsights(insight, clock, report, clockGames, onShow = show)
+                    OpeningsAs(PieceColor.WHITE, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, show)
+                    OpeningsAs(PieceColor.BLACK, report, games, state.appSettings.boardTheme, courseIdFor, onOpenCourse, show)
                 }
             }
         }
     }
 }
+
+private const val DAY_MS = 86_400_000L
 
 /** The linked site's own rating for [clock], which is fresher than the last imported game. */
 private fun linkedRating(state: AppUiState, clock: TimeClass): Int? {
@@ -124,20 +175,49 @@ private fun linkedRating(state: AppUiState, clock: TimeClass): Int? {
     }
 }
 
-/** One record: a big number and what it is. */
-internal data class Record(val value: String, val label: String)
+/** One record: a big number and what it is, and what a tap opens. */
+internal data class Record(val value: String, val label: String, val onOpen: (() -> Unit)? = null)
 
-/** The records the hero and graph do not already show (rating and peak are there). */
-private fun gameRecords(report: ClockReport, accuracy: Double?): List<Record> {
+/** The records the hero and graph do not already show (rating and peak are there); each opens its games (D104). */
+private fun gameRecords(report: ClockReport, accuracy: Double?, clock: TimeClass, onOpenGame: (String) -> Unit, onShow: (GameFilter) -> Unit): List<Record> {
     val r = report.records
+    // Only numbers that stand for a set of games open them: the best win, the streak's own games, all games (D105).
+    val streak = if (r.winStreakFrom != null && r.longestWinStreak > 0) {
+        { onShow(GameFilter(timeClass = clock, fromMillis = r.winStreakFrom, toMillis = r.winStreakTo)) }
+    } else null
     return listOf(
-        Record(r.bestWin?.opponentRating?.toString() ?: "–", "Best win"),
-        Record("${r.longestWinStreak}", "Win streak"),
+        Record(r.bestWin?.opponentRating?.toString() ?: "–", "Best win", r.bestWin?.let { win -> { onOpenGame(win.id) } }),
+        Record("${r.longestWinStreak}", "Win streak", streak),
         Record(accuracy?.let(::accuracyText) ?: "–", "Accuracy"),
         Record(r.averageOpponent?.toString() ?: "–", "Avg opponent"),
-        Record(report.averageMoves?.toString() ?: "–", "Moves a game"),
-        Record("${report.games}", "Games"),
+        Record(report.averageMoves?.toString() ?: "–", "Avg moves"),
+        Record("${report.games}", "Games", { onShow(GameFilter(timeClass = clock)) }),
     )
+}
+
+/** Records three to a row, each a number over its name; a tap opens its games (D104, D108). */
+@Composable
+private fun RecordGrid(records: List<Record>, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        records.chunked(3).forEach { row ->
+            Row {
+                row.forEach { record ->
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .height(64.dp)
+                            .then(record.onOpen?.let { Modifier.ctPressable(onClickLabel = "Show the games", onClick = it) } ?: Modifier)
+                            .semantics(mergeDescendants = true) {},
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(record.value, style = CtType.Number, maxLines = 1)
+                        Text(record.label, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+                repeat(3 - row.size) { Box(Modifier.weight(1f)) }
+            }
+        }
+    }
 }
 
 /** Records three to a row, each a number over its name, straight on the page. */
@@ -158,25 +238,239 @@ internal fun Figures(records: List<Record>, modifier: Modifier = Modifier) {
     }
 }
 
-/** Wins and losses by how they ended. */
+/** Wins and losses by how they ended, in one card; a row opens those games (D104). */
 @Composable
-private fun Endings(report: ClockReport) {
-    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.xl)) {
-        Endings("Won by", report.wonBy, Modifier.weight(1f))
-        Endings("Lost by", report.lostBy, Modifier.weight(1f))
+private fun Endings(report: ClockReport, onShow: (GameOutcome, GameEnding) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        CtGroupLabel("How games end")
+        CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+            Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.lg)) {
+                Endings("Won by", report.wonBy, Modifier.weight(1f), onShow = { onShow(GameOutcome.WIN, it) })
+                Endings("Lost by", report.lostBy, Modifier.weight(1f), onShow = { onShow(GameOutcome.LOSS, it) })
+            }
+        }
     }
 }
 
 @Composable
-private fun Endings(title: String, counts: Map<GameEnding, Int>, modifier: Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun Endings(title: String, counts: Map<GameEnding, Int>, modifier: Modifier, onShow: (GameEnding) -> Unit) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(title, style = CtType.Label)
         GameEnding.entries.filter { it != GameEnding.OTHER || (counts[it] ?: 0) > 0 }.forEach { ending ->
-            Row(Modifier.semantics(mergeDescendants = true) {}) {
+            val n = counts[ending] ?: 0
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+                    .then(if (n > 0) Modifier.ctPressable(onClickLabel = "Show the games") { onShow(ending) } else Modifier)
+                    .semantics(mergeDescendants = true) {},
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(ending.label, style = CtType.BodySmall, modifier = Modifier.weight(1f))
-                Text("${counts[ending] ?: 0}", style = CtType.Label)
+                Text("$n", style = CtType.Label)
             }
         }
+    }
+}
+
+/**
+ * Insights (D104, D106): from the reviewed games, where losses turned, why they were lost,
+ * accuracy by phase and over time, positions converted and saved; from every game, results
+ * against lower, similar and higher rated players and by the part of the day.
+ */
+@Composable
+private fun MoreInsights(insight: ClockInsight?, clock: TimeClass, report: ClockReport, games: List<GameSummary>, onShow: (GameFilter) -> Unit) {
+    val byRating = remember(games) { GameInsights.byRating(games) }
+    val byDay = remember(games) { GameInsights.byDayPart(games) }
+    val losses = GameFilter(timeClass = clock, outcome = GameOutcome.LOSS)
+    if (insight == null && byRating.isEmpty() && byDay.values.sumOf { it.games } < MIN_DAY_GAMES) return
+    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+        CtGroupLabel(insight?.let { "Insights · ${it.reviewed} reviewed game${if (it.reviewed == 1) "" else "s"}" } ?: "Insights")
+        if (insight != null) {
+            if (insight.phaseAccuracy.isNotEmpty()) {
+                CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+                    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        Text("Accuracy by phase", style = CtType.TitleSmall)
+                        val weakest = insight.phaseAccuracy.minByOrNull { it.value }?.key
+                        GamePhase.entries.forEach { phase ->
+                            insight.phaseAccuracy[phase]?.let { value ->
+                                LabelledBar(phase.label, (value / 100).toFloat(), accuracyText(value), if (phase == weakest && insight.phaseAccuracy.size > 1) CtColors.Error else CtColors.Success)
+                            }
+                        }
+                    }
+                }
+            }
+            if (insight.winning > 0 || insight.lost > 0) {
+                CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+                        InsightFigure("${insight.converted} / ${insight.winning}", "Winning positions converted", Modifier.weight(1f))
+                        InsightFigure("${insight.saved} / ${insight.lost}", "Lost positions saved", Modifier.weight(1f))
+                    }
+                }
+            }
+            if (insight.losses > 0) {
+                CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+                    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        Text("Where your losses turned", style = CtType.TitleSmall)
+                        PhaseBars(insight.turned)
+                    }
+                }
+                val reasons = listOf(
+                    Triple("A blunder decided it", insight.blunders, null),
+                    Triple("A winning game let slip", insight.slipped, null),
+                    Triple("Lost on time", report.lostBy[GameEnding.TIME] ?: 0, GameEnding.TIME),
+                ).filter { it.second > 0 }
+                if (reasons.isNotEmpty()) {
+                    CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+                        Text("Why you lose", style = CtType.TitleSmall, modifier = Modifier.padding(bottom = CtSpacing.xs))
+                        reasons.forEach { (label, n, ending) ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .ctPressable(onClickLabel = "Show the games") { onShow(losses.copy(ending = ending)) }
+                                    .semantics(mergeDescendants = true) {},
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(label, style = CtType.BodySmall, modifier = Modifier.weight(1f))
+                                Text("$n", style = CtType.Label)
+                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
+            }
+            if (insight.accuracy.size >= 2) {
+                CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+                    Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Accuracy over time", style = CtType.TitleSmall, modifier = Modifier.weight(1f))
+                            Text("last ${minOf(10, insight.accuracy.size)}: ${accuracyText(insight.accuracy.takeLast(10).average())}", style = CtType.Caption)
+                        }
+                        AccuracyLine(insight.accuracy.takeLast(30))
+                    }
+                }
+            }
+        }
+        if (byRating.isNotEmpty()) {
+            CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    Text("Against the rating", style = CtType.TitleSmall)
+                    RatingBand.entries.forEach { band ->
+                        byRating[band]?.let { wdl ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                                Text(band.label, style = CtType.BodySmall, modifier = Modifier.width(96.dp))
+                                WdlBar(wdl, Modifier.weight(1f), thickness = 8.dp)
+                                Text(percent(wdl.score), style = CtType.Label, modifier = Modifier.width(40.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (byDay.values.sumOf { it.games } >= MIN_DAY_GAMES) {
+            CtGlassCard(Modifier.fillMaxWidth(), shape = CtShapes.Panel) {
+                Column(verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+                    Text("When you play best", style = CtType.TitleSmall)
+                    DayBars(byDay)
+                }
+            }
+        }
+    }
+}
+
+private const val MIN_DAY_GAMES = 8
+
+/** A name, a bar filled to [share] in [color], and its value. */
+@Composable
+private fun LabelledBar(label: String, share: Float, value: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), modifier = Modifier.semantics(mergeDescendants = true) {}) {
+        Text(label, style = CtType.BodySmall, modifier = Modifier.width(96.dp))
+        Box(Modifier.weight(1f).height(8.dp).background(CtColors.Track)) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(share.coerceIn(0f, 1f)).background(color))
+        }
+        Text(value, style = CtType.Label, modifier = Modifier.width(48.dp))
+    }
+}
+
+/** One number and what it counts. */
+@Composable
+private fun InsightFigure(value: String, label: String, modifier: Modifier) {
+    Column(modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(value, style = CtType.Number, maxLines = 1)
+        Text(label, style = CtType.Caption, maxLines = 2)
+    }
+}
+
+/** Morning, afternoon, evening and night as bars as tall as their score; the best green, the worst red. */
+@Composable
+private fun DayBars(byDay: Map<DayPart, Wdl>) {
+    val played = byDay.filterValues { it.games > 0 }
+    val best = played.maxByOrNull { it.value.score }?.key
+    val worst = played.minByOrNull { it.value.score }?.key
+    Row(Modifier.fillMaxWidth().height(96.dp), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), verticalAlignment = Alignment.Bottom) {
+        DayPart.entries.forEach { part ->
+            val wdl = byDay[part]
+            Column(
+                Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "${part.label}: ${wdl?.let { percent(it.score) } ?: "no games"}" },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(wdl?.let { percent(it.score) } ?: "–", style = CtType.Caption)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height((52f * (wdl?.score ?: 0f)).dp.coerceAtLeast(3.dp))
+                        .background(
+                            when {
+                                wdl == null -> CtColors.Track
+                                part == best && played.size > 1 -> CtColors.Success
+                                part == worst && played.size > 1 -> CtColors.Error
+                                else -> CtColors.Track
+                            },
+                        ),
+                )
+                Text(part.label, style = CtType.Caption, maxLines = 1)
+            }
+        }
+    }
+}
+
+/** Three bars, opening, middlegame and endgame, as tall as their share; the tallest in red. */
+@Composable
+private fun PhaseBars(turned: Map<GamePhase, Int>) {
+    val most = (turned.values.maxOrNull() ?: 0).coerceAtLeast(1)
+    val top = turned.maxByOrNull { it.value }?.key
+    Row(Modifier.fillMaxWidth().height(96.dp), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md), verticalAlignment = Alignment.Bottom) {
+        GamePhase.entries.forEach { phase ->
+            val n = turned[phase] ?: 0
+            Column(Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "${phase.label}: $n" }, horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("$n", style = CtType.Label)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height((52f * n / most).dp.coerceAtLeast(3.dp))
+                        .background(if (phase == top && n > 0) CtColors.Error else CtColors.Track),
+                )
+                Text(phase.label, style = CtType.Caption, maxLines = 1)
+            }
+        }
+    }
+}
+
+/** The player's accuracy over the reviewed games, oldest on the left. */
+@Composable
+private fun AccuracyLine(values: List<Double>) {
+    val color = CtColors.Accent
+    Canvas(Modifier.fillMaxWidth().height(52.dp).semantics { contentDescription = "Accuracy over your last ${values.size} reviewed games" }) {
+        val low = (values.minOrNull() ?: 0.0) - 5
+        val high = (values.maxOrNull() ?: 100.0) + 5
+        val path = Path()
+        values.forEachIndexed { i, v ->
+            val x = size.width * i / (values.size - 1).coerceAtLeast(1)
+            val y = size.height * (1f - ((v - low) / (high - low)).toFloat())
+            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        drawPath(path, color, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
     }
 }
 
@@ -207,7 +501,14 @@ private fun OpeningsAs(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
         ) {
-            Image(painterResource(PieceArt.drawable(boardTheme.pieceSet, Piece(PieceType.KING, color))), contentDescription = null, modifier = Modifier.size(28.dp))
+            // The side as a square in its own colour, like the clocks (D104).
+            Box(
+                Modifier
+                    .size(24.dp)
+                    .clip(CtShapes.Mark)
+                    .background(if (color == PieceColor.WHITE) SideTones.White else SideTones.Black)
+                    .then(if (color == PieceColor.WHITE) Modifier.border(1.dp, CtColors.Line, CtShapes.Mark) else Modifier),
+            )
             Text(side, style = CtType.Title, modifier = Modifier.weight(1f))
             Text(percent(total.score), style = CtType.Label)
         }
@@ -268,7 +569,7 @@ private fun ResultFigure(value: String, label: String) {
 /** Wins, draws and losses side by side, each as wide as its share. */
 @Composable
 private fun WdlBar(wdl: Wdl, modifier: Modifier = Modifier, thickness: Dp = 4.dp) {
-    Row(modifier.fillMaxWidth().height(thickness).clip(CtShapes.Pill), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(modifier.fillMaxWidth().height(thickness), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         counts(wdl).filter { (_, n) -> n > 0 }.forEach { (outcome, n) ->
             Box(Modifier.weight(n.toFloat()).fillMaxHeight().background(outcomeColor(outcome)))
         }
@@ -288,7 +589,7 @@ private fun OpeningRow(row: WdlRow, fen: String?, boardTheme: BoardTheme, weak: 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
     ) {
-        Box(Modifier.size(52.dp).clip(CtShapes.Chip)) { BoardPicture(fen, boardTheme, zoom = 1.8f) }
+        Box(Modifier.size(52.dp).clip(CtShapes.Mark)) { BoardPicture(fen, boardTheme, zoom = 1.8f) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
                 Text(row.label, style = CtType.TitleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))

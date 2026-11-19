@@ -1,5 +1,12 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.design.ctPressable
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +62,10 @@ data class TrainActions(
     val onMiddlegames: () -> Unit = {},
     /** The learner's repeated mistakes from their own games (step 4). */
     val onFromGames: () -> Unit = {},
+    /** Opens an opening's page, the same one as in Learn (D112). */
+    val onOpening: (String) -> Unit = {},
+    /** Opens the openings library in Learn. */
+    val onLibrary: () -> Unit = {},
 )
 
 /**
@@ -77,22 +88,7 @@ fun TrainScreen(
             CtScreenTitle(title = "Train")
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                 Today(repertoires, theme, actions.onToday)
-                Text("Openings", style = CtType.Label.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.xs))
-                Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                    PieceColor.entries.forEach { side ->
-                        val books = repertoires.books.filter { it.book.side == side }
-                        val others = trainer.openings.count { it.opening.side == side && it.opening.id !in books.map { b -> b.book.id } && it.lines.isNotEmpty() }
-                        CtArtTile(
-                            title = if (side == PieceColor.WHITE) "As White" else "As Black",
-                            scene = if (side == PieceColor.WHITE) CtScene.OPENINGS else CtScene.POSITION,
-                            modifier = Modifier.weight(1f).height(112.dp),
-                            subtitle = books.joinToString { it.book.title }.ifEmpty { "$others openings" },
-                            progress = books.takeIf { it.isNotEmpty() }?.map { it.readiness }?.average()?.toFloat(),
-                            onClick = { actions.onSide(side) },
-                            onClickLabel = "Openings as ${if (side == PieceColor.WHITE) "White" else "Black"}",
-                        )
-                    }
-                }
+                YourOpenings(repertoires, theme, actions)
                 Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                     CtArtTile(title = "Endgames", scene = CtScene.ENDGAMES, modifier = Modifier.weight(1f).height(112.dp), subtitle = "Win this", onClick = actions.onEndgames)
                     CtArtTile(title = "Middlegames", scene = CtScene.MIDDLEGAME, modifier = Modifier.weight(1f).height(112.dp), subtitle = "Convert this", onClick = actions.onMiddlegames)
@@ -115,10 +111,45 @@ fun TrainScreen(
     }
 }
 
+/**
+ * The openings begun, as round boards that open the same page as in Learn (D112), and a way to
+ * the library for the rest. Train lists no openings of its own.
+ */
+@Composable
+private fun YourOpenings(repertoires: RepertoireState, theme: BoardTheme, actions: TrainActions) {
+    Text("Your openings", style = CtType.Label.copy(color = CtColors.Text2), modifier = Modifier.padding(top = CtSpacing.xs))
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
+        repertoires.begun.forEach { ui ->
+            Column(
+                Modifier.width(72.dp).clip(CtShapes.Chip).ctPressable(onClickLabel = "Open ${ui.book.title}") { actions.onOpening(ui.book.id) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
+            ) {
+                val start = remember(ui.book.id) { ui.index.positionOf(ui.book.nodes.values.minBy { it.ply }.key) }
+                Box(Modifier.size(56.dp).clip(CircleShape)) {
+                    BoardView(start, theme, whiteAtBottom = ui.book.side == PieceColor.WHITE, showCoordinates = false, showLegalDots = false)
+                }
+                Text(ui.book.title, style = CtType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        Column(
+            Modifier.width(72.dp).clip(CtShapes.Chip).ctPressable(onClickLabel = "All openings", onClick = actions.onLibrary),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(CtSpacing.xs),
+        ) {
+            Box(Modifier.size(56.dp).clip(CircleShape).background(CtColors.Surface), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Add, contentDescription = null, tint = CtColors.Text)
+            }
+            Text("All", style = CtType.Caption, maxLines = 1)
+        }
+    }
+}
+
 /** What is due today in every opening: how many, three of the positions, and Start. */
 @Composable
 private fun Today(repertoires: RepertoireState, theme: BoardTheme, onStart: () -> Unit) {
-    val due = repertoires.dueTotal
+    // What is due, plus a few mistakes to punish from the openings begun (D112).
+    val due = repertoires.todayTotal
     Column(
         modifier = Modifier.fillMaxWidth().clip(CtShapes.Card).background(CtColors.Surface).padding(CtSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(CtSpacing.md),

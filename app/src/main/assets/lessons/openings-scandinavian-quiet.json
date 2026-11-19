@@ -1,0 +1,199 @@
+{
+  "id": "openings-scandinavian-quiet",
+  "category": "openings",
+  "title": "White Skips 3.Nc3 (3.Nf3, 3.d4, 3.c4)",
+  "intro": "If White skips 3.Nc3, take advantage of the extra time: pin with 3...Bg4 against 3.Nf3, hit d4 with 3...Nc6 against 3.d4, and meet 3.c4 with 3...Qa5.",
+  "level": "beginner",
+  "order": 87,
+  "side": "black",
+  "opening": "scandinavian",
+  "variation": "e2e4 d7d5 e4d5 d8d5 g1f3, e2e4 d7d5 e4d5 d8d5 d2d4, e2e4 d7d5 e4d5 d8d5 c2c4",
+  "battleLine": "Scandinavian Defense: Mieses-Kotroc Variation",
+  "lessons": [
+    {
+      "id": "openings-scandinavian-quiet-nf3",
+      "title": "Meeting 3.Nf3",
+      "summary": "Pin with 3...Bg4, develop ...Nc6, and castle queenside.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3",
+          "text": "Sometimes White skips 3.Nc3 and develops 3.Nf3 first.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "With your queen safe in the centre for now, pin the knight immediately.",
+          "expect": [
+            "c8g4"
+          ],
+          "hint": "Put your c8 bishop on g4.",
+          "ifWrong": "Play 3...Bg4 to pin the knight and prepare ...Nc6 and ...O-O-O.",
+          "ifRight": "Black gets rapid development and pressure on White's centre.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White unpins calmly with 4.Be2.",
+          "move": "f1e2"
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight and prepare queenside castling.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Bring the b8 knight to c6.",
+          "ifWrong": "Play 4...Nc6 to aim at d4 and e5 and clear the queenside.",
+          "ifRight": "Black is ready to castle long with ...O-O-O.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White pushes 5.d4, claiming the centre.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Get your king safe and line up a rook on the d-file against d4.",
+          "expect": [
+            "e8c8"
+          ],
+          "hint": "Castle queenside.",
+          "ifWrong": "Play 5...O-O-O: your rook immediately pressures d4.",
+          "ifRight": "Black gets an active game with ...Nf6 and ...e5 or ...Qh5.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-scandinavian-quiet-d4",
+      "title": "Meeting 3.d4 and 3.Be2",
+      "summary": "Pressure d4 at once with 3...Nc6 and 4...Bg4.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3",
+          "text": "If White plays 3.d4 right away, the d4 pawn is unprotected.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Attack the d4 pawn immediately.",
+          "expect": [
+            "b8c6",
+            "e7e5"
+          ],
+          "hint": "Develop your queen's knight to c6.",
+          "ifWrong": "Play 3...Nc6 (or 3...e5) to pressure d4 right away.",
+          "ifRight": "White must defend d4 instead of chasing your queen.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White guards d4 with 4.Nf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Pin the defender of d4.",
+          "expect": [
+            "c8g4"
+          ],
+          "hint": "Put your c8 bishop on g4.",
+          "ifWrong": "Play 4...Bg4 to renew the threat on d4.",
+          "ifRight": "Black follows with ...O-O-O and strong pressure on d4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPPBPPP/RNBQK1NR b KQkq - 1 3",
+          "text": "Against 3.Be2, White has left the g2 pawn without a guard. Punish it.",
+          "expect": [
+            "d5g2"
+          ],
+          "hint": "Your queen on d5 can reach g2.",
+          "ifWrong": "Play 3...Qxg2: the pawn is free, and if 4.Bf3 the queen simply steps back.",
+          "ifRight": "A clean extra pawn. Develop next with ...Nc6 and ...Bg4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1b1kbnr/ppp1pppp/2n5/3q4/3P4/4B3/PPP2PPP/RN1QKBNR b KQkq - 2 4",
+          "text": "If White defends d4 with 4.Be3, strike at the centre.",
+          "expect": [
+            "e7e5",
+            "g8f6",
+            "c8f5"
+          ],
+          "hint": "Push ...e5 to challenge d4 right away.",
+          "ifWrong": "Play 4...e5 (or 4...Nf6) to open lines while White is behind in development.",
+          "ifRight": "After 4...e5, Black gets easy piece play.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-scandinavian-quiet-c4",
+      "title": "Meeting 3.c4",
+      "summary": "Step back to a5 and target the weakened d4 square with ...c6 and ...Nf6.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3",
+          "text": "With 3.c4, White drives your queen away with a pawn move, yet weakens the d4 square forever.",
+          "move": "c2c4"
+        },
+        {
+          "type": "play",
+          "text": "Move your queen to its familiar Scandinavian square.",
+          "expect": [
+            "d5a5",
+            "d5d6",
+            "d5d8"
+          ],
+          "hint": "Step back to a5.",
+          "ifWrong": "Play 3...Qa5 (or 3...Qd6) to keep eyeing the centre.",
+          "ifRight": "Since White already pushed c4, the d4 square will be a lasting target.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 4.Nc3.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Prepare ...Bf5 or ...Nf6 and keep d5 guarded.",
+          "expect": [
+            "c7c6",
+            "g8f6"
+          ],
+          "hint": "Push the c-pawn one square.",
+          "ifWrong": "Play 4...c6 (or 4...Nf6) to keep your queen flexible and eye d5.",
+          "ifRight": "Black develops ...Nf6, ...Bf5 and ...e6 smoothly.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnb1kbnr/pp2pppp/2p5/q7/2PP4/2N5/PP3PPP/R1BQKBNR b KQkq - 0 5",
+          "text": "White builds a big centre with 5.d4."
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight and get ready to target d4.",
+          "expect": [
+            "g8f6"
+          ],
+          "hint": "Bring the g8 knight to f6.",
+          "ifWrong": "Play 5...Nf6, followed by ...Bf5 and ...e6.",
+          "ifRight": "Black gets a solid position and can challenge d4 with ...e5 or ...Bg4.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

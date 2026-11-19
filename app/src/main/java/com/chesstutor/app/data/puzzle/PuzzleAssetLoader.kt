@@ -28,7 +28,7 @@ class PuzzleAssetLoader(
                 context.assets.open(candidate).use { stream ->
                     val pack = PerfLog.timed("Puzzles") { PuzzlePack.fromStream(stream) }
                     if (!pack.isEmpty) {
-                        return@withContext pack
+                        return@withContext if (assetName == null) withOpenings(pack) else pack
                     }
                 }
             } catch (_: IOException) {
@@ -40,7 +40,20 @@ class PuzzleAssetLoader(
         PuzzlePack.EMPTY
     }
 
+    /** The pack with the opening tactics pack's puzzles added (D112); a puzzle in both keeps its openings. */
+    private fun withOpenings(pack: PuzzlePack): PuzzlePack {
+        val extra = try {
+            context.assets.open(OPENINGS_ASSET).use { PuzzlePack.fromStream(it) }
+        } catch (_: IOException) {
+            return pack
+        }
+        if (extra.isEmpty) return pack
+        val byId = pack.puzzles.associateBy { it.id } + extra.puzzles.associateBy { it.id }
+        return PuzzlePack(byId.values.toList(), pack.skippedLines + extra.skippedLines)
+    }
+
     companion object {
         const val DEFAULT_ASSET = "puzzles.tsv.gz"
+        const val OPENINGS_ASSET = "puzzles_openings.tsv.gz"
     }
 }

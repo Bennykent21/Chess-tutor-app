@@ -1,0 +1,10 @@
+{
+  "id": "e4-e5",
+  "title": "1...e5: the Open Games",
+  "side": "black",
+  "start": "e4 e5",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {
+    "e4 e5 Nf3": "Nc6"
+  }
+}

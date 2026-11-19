@@ -1,0 +1,210 @@
+{
+  "id": "openings-queens-gambit-accepted",
+  "category": "openings",
+  "title": "Queen's Gambit Accepted (2...dxc4)",
+  "intro": "Black takes on c4 and gives up the centre. Seize the middle with 3.e4, push e5 against ...Nf6, and break up ...b5 with a4.",
+  "level": "intermediate",
+  "order": 43,
+  "side": "white",
+  "opening": "queens-gambit",
+  "variation": "d2d4 d7d5 c2c4 d5c4",
+  "battleLine": "Queen's Gambit Accepted",
+  "lessons": [
+    {
+      "id": "openings-queens-gambit-accepted-e4",
+      "title": "Seizing the centre with 3.e4",
+      "summary": "Claim the centre with e4 and meet ...e5 with Nf3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/8/2pP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
+          "text": "In the Queen's Gambit Accepted, Black takes on c4 and leaves the centre wide open."
+        },
+        {
+          "type": "play",
+          "text": "Claim the full centre and open the way for your bishop to win c4 back.",
+          "expect": [
+            "e2e4"
+          ],
+          "hint": "Push the e-pawn two squares.",
+          "ifWrong": "Play 3.e4: you take the centre while threatening Bxc4.",
+          "ifRight": "White controls e4 and d4 side by side.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black attacks your centre at once with 3...e5.",
+          "move": "e7e5"
+        },
+        {
+          "type": "play",
+          "text": "Develop and defend d4 while attacking e5.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Put your king's knight on f3.",
+          "ifWrong": "Play 4.Nf3: dxe5 lets Black trade queens with ...Qxd1+.",
+          "ifRight": "You keep the queens on and build pressure against e5.",
+          "feedback": {
+            "d4e5": "4.dxe5 lets Black trade queens with 4...Qxd1+ 5.Kxd1."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black trades on d4: 4...exd4.",
+          "move": "e5d4"
+        },
+        {
+          "type": "play",
+          "text": "Win back the c4 pawn with tempo.",
+          "expect": [
+            "f1c4"
+          ],
+          "hint": "Capture on c4 with your bishop.",
+          "ifWrong": "Play 5.Bxc4: your pieces develop quickly and target f7.",
+          "ifRight": "Next White castles and plays Nxd4 or Qb3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/ppp1pppp/5n2/8/2pPP3/8/PP3PPP/RNBQKBNR w KQkq - 1 4",
+          "text": "Here Black played 3...Nf6 to attack e4. Gain space with tempo.",
+          "expect": [
+            "e4e5"
+          ],
+          "hint": "Push the e-pawn forward to attack the knight.",
+          "ifWrong": "Play 4.e5: after 4...Nd5 5.Bxc4, White keeps a strong centre and active pieces.",
+          "ifRight": "Black's knight must move again while White wins back c4.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-accepted-b5",
+      "title": "Stopping ...b5 with a4",
+      "summary": "Undermine 3...b5 immediately with 4.a4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/8/2pPP3/8/PP3PPP/RNBQKBNR b KQkq - 0 3",
+          "text": "Club players often try to hold onto the extra c4 pawn with 3...b5.",
+          "move": "b7b5"
+        },
+        {
+          "type": "play",
+          "text": "Undermine the b5 pawn right away.",
+          "expect": [
+            "a2a4"
+          ],
+          "hint": "Push the a-pawn two squares.",
+          "ifWrong": "Play 4.a4: Black cannot keep both pawns together.",
+          "ifRight": "If Black tries ...c6, axb5 breaks the chain open.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black tries to hold b5 with 4...c6.",
+          "move": "c7c6"
+        },
+        {
+          "type": "play",
+          "text": "Break up Black's queenside pawns.",
+          "expect": [
+            "a4b5"
+          ],
+          "hint": "Capture on b5.",
+          "ifWrong": "Play 5.axb5: after 5...cxb5, the rook on a8 is exposed and Nc3 hits b5.",
+          "ifRight": "Notice the rook on a8 behind the b5 pawn.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black recaptures: 5...cxb5.",
+          "move": "c6b5"
+        },
+        {
+          "type": "play",
+          "text": "Attack b5 and target the a8 rook.",
+          "expect": [
+            "b1c3"
+          ],
+          "hint": "Develop the queen's knight to c3.",
+          "ifWrong": "Play 6.Nc3: White wins back material with a big lead in development.",
+          "ifRight": "If Black defends b5 with ...a6, Nxb5 wins anyway because ...axb5 loses the a8 rook.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-accepted-c5",
+      "title": "Meeting 3...c5 and 3...Nc6",
+      "summary": "Push d5 against ...c5 and develop smoothly against ...Nc6.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/8/2pPP3/8/PP3PPP/RNBQKBNR b KQkq - 0 3",
+          "text": "Black may also strike at d4 from the flank with 3...c5.",
+          "move": "c7c5"
+        },
+        {
+          "type": "play",
+          "text": "Push past to gain central space and keep c4 cut off.",
+          "expect": [
+            "d4d5"
+          ],
+          "hint": "Advance the d-pawn one square.",
+          "ifWrong": "Play 4.d5: your central pawns cramp Black and c4 will fall soon.",
+          "ifRight": "White enjoys a huge space advantage.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops with 4...Nf6.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Defend e4 and develop a piece.",
+          "expect": [
+            "b1c3"
+          ],
+          "hint": "Bring the b1 knight to c3.",
+          "ifWrong": "Play 5.Nc3.",
+          "ifRight": "White will win c4 with Bxc4 and develop smoothly.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/ppp1pppp/2n5/8/2pPP3/8/PP3PPP/RNBQKBNR w KQkq - 1 4",
+          "text": "If Black attacks d4 with 3...Nc6, develop and protect d4.",
+          "expect": [
+            "g1f3",
+            "c1e3",
+            "d4d5"
+          ],
+          "hint": "Bring out the king's knight or push d5.",
+          "ifWrong": "Play 4.Nf3 (or 4.Be3): d4 is protected and White prepares Bxc4.",
+          "ifRight": "White keeps a commanding centre and wins c4 back effortlessly.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/ppp2ppp/4p3/8/2pPP3/8/PP3PPP/RNBQKBNR w KQkq - 0 4",
+          "text": "Against 3...e6, win back the pawn right away.",
+          "expect": [
+            "f1c4",
+            "g1f3"
+          ],
+          "hint": "Capture on c4 with your bishop.",
+          "ifWrong": "Play 4.Bxc4 to recover the pawn and take a big lead in development.",
+          "ifRight": "White has a dream centre and rapid development.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

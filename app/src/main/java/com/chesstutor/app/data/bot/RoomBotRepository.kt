@@ -31,7 +31,7 @@ class RoomBotRepository(private val dao: BotProfileDao, private val clock: () ->
                 aggression = p.aggression, trades = p.trades, mistakeLevel = p.mistakeLevel,
                 thinkSpeed = p.thinkSpeed.name, resign = p.resign.name,
                 whiteOpenings = p.whiteOpenings.joinToString(SEPARATOR), blackOpenings = p.blackOpenings.joinToString(SEPARATOR),
-                face = p.face, timeControl = bot.rules.timeControl.name,
+                face = p.face, timeControl = bot.rules.timeControl.encode(),
                 takebacks = bot.rules.takebacks, hints = bot.rules.hints, evalBar = bot.rules.evalBar,
                 createdAt = bot.createdAt, updatedAt = now,
             )
@@ -49,7 +49,7 @@ class RoomBotRepository(private val dao: BotProfileDao, private val clock: () ->
                     blackOpenings = row.blackOpenings.split(SEPARATOR).filter { it.isNotBlank() },
                     face = row.face,
                 ),
-                rules = GameRules(TimeControl.valueOf(row.timeControl), row.takebacks, row.hints, row.evalBar),
+                rules = GameRules(TimeControl.decode(row.timeControl), row.takebacks, row.hints, row.evalBar),
                 createdAt = row.createdAt,
             )
         }.getOrNull()

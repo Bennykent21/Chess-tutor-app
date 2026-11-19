@@ -60,6 +60,9 @@ interface RepertoireDao {
     @Query("SELECT * FROM opening_level")
     fun observeLevels(): Flow<List<OpeningLevelEntity>>
 
+    @Query("SELECT at FROM opening_review")
+    fun observeReviewTimes(): Flow<List<Long>>
+
     @Query("SELECT * FROM opening_review WHERE bookId = :bookId ORDER BY at")
     suspend fun reviews(bookId: String): List<OpeningReviewEntity>
 

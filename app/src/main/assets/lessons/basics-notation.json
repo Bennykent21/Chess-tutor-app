@@ -1,0 +1,136 @@
+{
+  "id": "basics-notation",
+  "category": "basics",
+  "title": "Reading chess moves",
+  "intro": "Every square has a name, and every move can be written in a few letters. Learn to read them, and the lessons, books and videos open up.",
+  "level": "beginner",
+  "order": 80,
+  "lessons": [
+    {
+      "id": "basics-notation-squares",
+      "title": "Names of the squares",
+      "summary": "A letter for the column, a number for the row.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "Every square has a name: a letter for its column, from a to h, then a number for its row, from 1 to 8. White's pieces start on rows 1 and 2.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "highlights": ["a1:idea", "h1:idea", "a8:idea", "h8:idea"]
+        },
+        {
+          "type": "explain",
+          "text": "This square is e4: column e, row 4. Find the column first, then count up the rows.",
+          "highlights": ["e4:good", "e1", "a4"]
+        },
+        {
+          "type": "quiz",
+          "text": "Move the knight to f3.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "expect": ["g1f3"],
+          "hint": "Column f, row 3.",
+          "ifWrong": "f3 is column f, row 3, just in front of the f-pawn.",
+          "ifRight": "That is f3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Move a pawn to d4.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "expect": ["d2d4"],
+          "hint": "The pawn on column d can go two squares, up to row 4.",
+          "ifWrong": "d4 is column d, row 4: the d-pawn goes two squares.",
+          "ifRight": "That is d4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Bring a knight to c3.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "expect": ["b1c3"],
+          "hint": "Column c, row 3. Which knight can reach it?",
+          "ifWrong": "c3 is column c, row 3. The knight on b1 can jump there.",
+          "ifRight": "That is c3.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "basics-notation-moves",
+      "title": "Writing moves down",
+      "summary": "The piece's letter, then where it goes.",
+      "steps": [
+        {
+          "type": "explain",
+          "text": "A move is written as the piece's letter and the square it goes to. K is the king, Q the queen, R a rook, B a bishop and N a knight. Pawns have no letter.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        },
+        {
+          "type": "quiz",
+          "text": "Play Nf3: N is a knight, f3 is where it goes.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "expect": ["g1f3"],
+          "hint": "N is the knight. Which knight can reach f3?",
+          "ifWrong": "Nf3 means the knight goes to f3.",
+          "ifRight": "Nf3: knight to f3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Play e4. There is no letter, so it is a pawn.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "expect": ["e2e4"],
+          "hint": "A pawn goes to e4.",
+          "ifWrong": "No letter means a pawn. Move the pawn to e4.",
+          "ifRight": "e4: a pawn to e4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "An x means a capture. exd5 is the pawn from column e taking on d5.",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "arrows": ["e4d5:idea"]
+        },
+        {
+          "type": "quiz",
+          "text": "Play exd5.",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "expect": ["e4d5"],
+          "hint": "The pawn on column e takes on d5.",
+          "ifWrong": "exd5: the e-pawn takes the pawn on d5.",
+          "ifRight": "exd5: pawn takes on d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Moves are numbered. 1.e4 is White's first move, and 1...e5, with three dots, is Black's answer to it.",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        },
+        {
+          "type": "explain",
+          "text": "A + after a move means check, and # means checkmate. O-O is castling on the king's side, and O-O-O on the queen's side.",
+          "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"
+        },
+        {
+          "type": "quiz",
+          "text": "Play O-O.",
+          "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "expect": ["e1g1"],
+          "hint": "Castle on the king's side: the king moves two squares towards the rook.",
+          "ifWrong": "O-O is castling on the king's side.",
+          "ifRight": "O-O: castling. Your king is safe.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "text": "Play Qxf7#.",
+          "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4",
+          "expect": ["h5f7"],
+          "hint": "Q is the queen, x is a capture, f7 is the square, # is checkmate.",
+          "ifWrong": "Qxf7#: the queen takes on f7, and it is checkmate.",
+          "ifRight": "Qxf7#: queen takes on f7, checkmate. Now you can read any move.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

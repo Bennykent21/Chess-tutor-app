@@ -1,5 +1,6 @@
 package com.chesstutor.app.ui.navigation
 
+import com.chesstutor.app.domain.account.GameInsights
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,13 +49,14 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
             val repertoires by repertoire.state.collectAsStateWithLifecycle()
             val trainer by trainerViewModel().trainer.collectAsStateWithLifecycle()
             val findings by findingsViewModel().state.collectAsStateWithLifecycle()
+            val learnModel = learnViewModel()
             TrainScreen(
                 repertoires = repertoires,
                 trainer = trainer,
                 theme = state.appSettings.boardTheme,
                 actions = TrainActions(
                     onToday = {
-                        repertoire.startReview()
+                        repertoire.startToday()
                         navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
                     },
                     onSide = { side -> navController.navigate(AppRoutes.trainSide(side == PieceColor.WHITE)) { launchSingleTop = true } },
@@ -62,6 +64,15 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
                     onEndgames = { navController.navigate(AppRoutes.trainPositions(endgames = true)) { launchSingleTop = true } },
                     onMiddlegames = { navController.navigate(AppRoutes.trainPositions(endgames = false)) { launchSingleTop = true } },
                     onFromGames = { navController.navigate(AppRoutes.TRAIN_FROM_GAMES) { launchSingleTop = true } },
+                    onOpening = { id ->
+                        // One page per opening (D112): Learn's, when the opening has courses; else the drills page.
+                        val hasCourses = learnModel.learn.value.library.courses.any { it.opening == id }
+                        navController.navigate(if (hasCourses) AppRoutes.learnOpening(id) else AppRoutes.repertoire(id)) { launchSingleTop = true }
+                    },
+                    onLibrary = {
+                        navController.navigateToTab(com.chesstutor.app.navigation.TopTab.LEARN)
+                        navController.navigate(AppRoutes.learnCategory(com.chesstutor.app.domain.learn.LessonCategory.OPENINGS.key)) { launchSingleTop = true }
+                    },
                 ),
                 findings = findings.report.findings.size.takeIf { !findings.loading },
             )
@@ -197,6 +208,11 @@ internal fun NavGraphBuilder.trainGraph(shell: Shell) = with(shell) {
             FromYourGamesScreen(
                 state = findings,
                 theme = state.appSettings.boardTheme,
+                // A repeated mistake's position against Stockfish, which plays the other side.
+                onTrainPosition = { fen ->
+                    val engine = if (fen.split(' ').getOrNull(1) == "b") "white" else "black"
+                    navController.navigate(AppRoutes.analysis(fen, engineSide = engine)) { launchSingleTop = true }
+                },
                 onTrainLine = { bookId, path ->
                     // Straight into the line when it can be learnt; else the opening's page says why not.
                     val book = repertoires.book(bookId)
@@ -264,7 +280,7 @@ internal fun Shell.findingsViewModel(): GameFindingsViewModel {
                 game.id to GameReviewer.review(game.startFen ?: Position.STARTING_FEN, game.moves, analysis.evals(game.id), game.bookPlies)
             }
             val books = AppContainer.provideRepertoireLoader(context).load()
-            FindingsReport(games.size, reviews.size, GameFindings.of(games, books, reviews))
+            FindingsReport(games.size, reviews.size, GameFindings.of(games, books, reviews), GameFindings.openings(games, books), GameInsights.of(games, reviews))
         },
     )
 }

@@ -1,5 +1,14 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.design.CtBackBar
+import com.chesstutor.app.domain.learn.LessonVideo
+import com.chesstutor.app.board.BoardTheme
+import androidx.compose.material.icons.rounded.Extension
+import com.chesstutor.app.design.ctPage
+import androidx.compose.ui.text.style.TextAlign
+import com.chesstutor.app.design.CtChip
+import androidx.compose.material.icons.rounded.Bolt
+import com.chesstutor.app.domain.repertoire.Drills
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -92,6 +101,14 @@ data class RepertoireActions(
     val onReview: () -> Unit,
     val onLearn: () -> Unit,
     val onTricky: () -> Unit,
+    /** The mistakes club players make in this opening, to punish (D112). */
+    val onPunish: () -> Unit = {},
+    /** Puzzles from games in this opening (D112). */
+    val onTactics: (() -> Unit)? = null,
+    /** The opening's video: it takes the art's place at the top (D112). */
+    val video: LessonVideo? = null,
+    /** The board colours and pieces, for the small boards. */
+    val boardTheme: BoardTheme = BoardTheme(),
     val onSparring: (() -> Unit)? = null,
     val onPlayOut: (() -> Unit)? = null,
     /** Learns the next new moves inside one variation (its moves from the start). */
@@ -102,6 +119,10 @@ data class RepertoireActions(
     val onCourse: (() -> Unit)? = null,
     /** The opening's test, which opens every line at once (Phase 12). */
     val onTest: (() -> Unit)? = null,
+    /** Drills one variation from memory, any time (D101). */
+    val onDrillVariation: (List<String>) -> Unit = {},
+    /** The opening's challenge: learnt positions from every variation, mixed (D101). */
+    val onChallenge: () -> Unit = {},
 )
 
 /**
@@ -112,20 +133,27 @@ data class RepertoireActions(
  */
 @Composable
 fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().background(CtColors.Bg).verticalScroll(rememberScrollState())) {
-        Box(Modifier.fillMaxWidth().height(236.dp)) {
-            CtArt(CtScene.OPENINGS, Modifier.fillMaxSize(), fadeFrom = 0.45f)
-            CtIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = actions.onBack, modifier = Modifier.padding(CtSpacing.xs))
-            Row(
-                Modifier.align(Alignment.BottomStart).padding(horizontal = CtSpacing.gutter),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
-            ) {
+    Column(modifier.fillMaxSize().ctPage().verticalScroll(rememberScrollState())) {
+        val heading: @Composable (Modifier) -> Unit = { mod ->
+            Row(mod.padding(horizontal = CtSpacing.gutter), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
                 Column(Modifier.weight(1f)) {
                     Text(ui.book.title, style = CtType.Display)
                     Text(if (ui.book.side == PieceColor.WHITE) "As White" else "As Black", style = CtType.BodySmall.copy(color = CtColors.Text2))
                 }
                 ReadinessRing(ui.readiness)
+            }
+        }
+        val video = actions.video
+        if (video != null) {
+            // The opening's video sits where the art was and plays right there (D112).
+            CtBackBar(onBack = actions.onBack)
+            VideoFrame(video, autoplay = false, modifier = Modifier.fillMaxWidth().padding(horizontal = CtSpacing.gutter))
+            heading(Modifier.padding(top = CtSpacing.sm))
+        } else {
+            Box(Modifier.fillMaxWidth().height(236.dp)) {
+                CtArt(CtScene.OPENINGS, Modifier.fillMaxSize(), fadeFrom = 0.45f)
+                CtIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = actions.onBack, modifier = Modifier.padding(CtSpacing.xs))
+                heading(Modifier.align(Alignment.BottomStart))
             }
         }
         Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
@@ -145,10 +173,29 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
         }
         if (ui.variations.isNotEmpty()) {
             Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg)) {
-                VariationList(ui.variations, actions.onLearnVariation)
+                VariationList(ui.variations, actions.onLearnVariation, actions.onDrillVariation)
             }
         }
         Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.xl)) {
+            // Mixed positions from every learnt line, more at each cup; closed until two lines are begun (D101).
+            if (ui.introduced > 0) {
+                val open = ui.challenge > 0
+                CtListRow(
+                    title = "Challenge",
+                    subtitle = if (open) null else "Learn ${Drills.CHALLENGE_LINES} lines to open it",
+                    icon = null,
+                    onClick = { if (open) actions.onChallenge() },
+                    leading = { CtMetalIcon(Icons.Rounded.Bolt, size = 36.dp) },
+                    trailing = {
+                        if (open) Text("${ui.challenge}", style = CtType.BodySmall.copy(color = CtColors.Text2))
+                        else Icon(Icons.Rounded.Lock, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(16.dp))
+                    },
+                )
+            }
+            if (ui.punish > 0) PunishChapter(ui, actions)
+            actions.onTactics?.let {
+                CtListRow(title = "Tactics", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Extension, size = 36.dp) })
+            }
             if (ui.tricky > 0) {
                 CtListRow(
                     title = "Tricky lines", icon = null, onClick = actions.onTricky,
@@ -159,6 +206,32 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
             actions.onIdeas?.let { CtListRow(title = "Ideas", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.AutoStories, size = 36.dp) }) }
             actions.onSparring?.let { CtListRow(title = "Sparring", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.SportsEsports, size = 36.dp) }) }
             actions.onPlayOut?.let { CtListRow(title = "Play it out", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Flag, size = 36.dp) }) }
+        }
+    }
+}
+
+/** The mistakes club players make in this opening (D112): the most common as small boards, the count, and a tap starts the run. */
+@Composable
+private fun PunishChapter(ui: RepertoireBookUi, actions: RepertoireActions) =
+    PunishBoards(ui.punish, ui.punishFens, flipped = ui.book.side == PieceColor.BLACK, theme = actions.boardTheme, onClick = actions.onPunish)
+
+/** Punish mistakes as a chapter: its title, the count, the most common positions as boards; a tap starts the run (D112). */
+@Composable
+internal fun PunishBoards(count: Int, fens: List<String>, flipped: Boolean, theme: BoardTheme, onClick: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(CtShapes.CardSmall)
+            .ctPressable(onClickLabel = "Punish the mistakes", onClick = onClick)
+            .padding(vertical = CtSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(CtSpacing.sm),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Punish mistakes", style = CtType.Title, modifier = Modifier.weight(1f))
+            Text("$count", style = CtType.BodySmall.copy(color = CtColors.Text2))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            fens.forEach { fen -> BoardThumbnail(fen, theme, flipped = flipped, size = 72.dp) }
         }
     }
 }
@@ -179,17 +252,19 @@ private fun ReadinessRing(readiness: Double) {
 
 /**
  * The opponent's choices (D77): each bar is as long as the choice is common, solid moves fill
- * it dark and moves met once fill it pale. A tap learns the next new moves of that variation;
- * one with nothing open yet is faint and locked.
+ * it dark and moves met once fill it pale. A tap learns the next new moves of that variation, or,
+ * when it has none left, drills it from memory (D101); one begun but not finished also has a
+ * Drill chip. One with nothing open yet is faint and locked.
  */
 @Composable
-private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -> Unit) {
+private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -> Unit, onDrill: (List<String>) -> Unit) {
     val longest = variations.maxOf { it.share }.coerceAtLeast(0.01)
     Text("Variations", style = CtType.TitleSmall)
     Spacer(Modifier.height(CtSpacing.xs))
     variations.forEach { v ->
         val open = v.cards > 0 && !v.locked
         val fresh = open && v.cards > v.introduced
+        val drillable = open && v.introduced > 0
         val spoken = buildString {
             append("${v.label}, ${percent(v.share)} of games")
             if (open) append(", ${v.solid} of ${v.cards} solid") else append(", locked")
@@ -198,7 +273,13 @@ private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = CtSpacing.touchTarget)
-                .then(if (fresh) Modifier.ctPressable(onClickLabel = "Learn ${v.label}") { onLearn(v.path) } else Modifier)
+                .then(
+                    when {
+                        fresh -> Modifier.ctPressable(onClickLabel = "Learn ${v.label}") { onLearn(v.path) }
+                        drillable -> Modifier.ctPressable(onClickLabel = "Drill ${v.label}") { onDrill(v.path) }
+                        else -> Modifier
+                    },
+                )
                 .semantics(mergeDescendants = true) { contentDescription = spoken }
                 .padding(vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -210,6 +291,7 @@ private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -
                     if (v.name != null) Text(v.move, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1)
                 }
                 if (!open) Icon(Icons.Rounded.Lock, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(13.dp))
+                if (fresh && drillable) CtChip(text = "Drill", onClick = { onDrill(v.path) })
                 Text(percent(v.share), style = CtType.Caption.copy(color = CtColors.Text2))
             }
             val track = CtColors.Track
@@ -330,6 +412,8 @@ private fun percent(share: Double): String = "${(share * 100).roundToInt()}%"
 @Composable
 fun RepertoireRunScreen(
     run: RunUi?,
+    /** After today's session: tactics from the openings begun (D112). */
+    onTactics: (() -> Unit)? = null,
     settings: AppSettings,
     onFeedback: (BoardFeedback) -> Unit,
     onHint: () -> Unit,
@@ -348,14 +432,18 @@ fun RepertoireRunScreen(
         title = run.title,
         onBack = onBack,
         modifier = modifier,
+        // Drills are for speed, so no coach talks here (D111): the board's rings and the dots
+        // say right or wrong, and only words that add something (Why, a note) sit above the board.
         zone = {
-            Column(Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                RunProgress(run)
-                RunWords(run)
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
+                coachWords(run)?.let { Text(it, style = CtType.Body, maxLines = 4, overflow = TextOverflow.Ellipsis) }
             }
         },
         under = {
-            BoardMoveList(entries = remember(board.version, board.moves.size) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
+                RunProgress(run)
+                BoardMoveList(entries = remember(board.version, board.moves.size) { moveListOf(board.start, board.moves) }, currentPly = board.moves.size)
+            }
         },
         board = {
             val arrow = when (moment) {
@@ -389,6 +477,10 @@ fun RepertoireRunScreen(
                 if (run.kind == RunKind.LEARN && run.moreToLearn) {
                     CtButton(text = "Done", onClick = onBack, style = CtButtonStyle.Ghost)
                     CtButton(text = "Next line", onClick = onLearnMore, modifier = Modifier.weight(1f))
+                } else if (run.today && onTactics != null) {
+                    // Today's lines are done; tactics from the same openings follow (D112).
+                    CtButton(text = "Done", onClick = onBack, style = CtButtonStyle.Ghost)
+                    CtButton(text = "Tactics", onClick = onTactics, modifier = Modifier.weight(1f))
                 } else {
                     CtButton(text = "Done", onClick = onBack, modifier = Modifier.weight(1f))
                 }
@@ -403,31 +495,34 @@ fun RepertoireRunScreen(
     )
 }
 
-/** A dot per new move of a line, or a thin bar with "3 / 12" for a review. */
+/**
+ * A dot per new move of a line, or per position of a review, drill or challenge, centred under the
+ * board (D102): green when right, red when missed, the current one darker. A long review gets a
+ * thin bar with "3 / 40" instead.
+ */
 @Composable
 private fun RunProgress(run: RunUi) {
     if (run.moment is RunMoment.Watch) {
         // While the line plays itself there is nothing to count yet.
-        Text("WATCH", style = CtType.Caption.copy(color = CtColors.Accent, letterSpacing = 1.2.sp))
+        Text("WATCH", style = CtType.Caption.copy(color = CtColors.Accent, letterSpacing = 1.2.sp), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         return
     }
     val dots = run.kind == RunKind.LEARN || run.steps <= MAX_DOTS
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        if (dots) {
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                repeat(run.steps) { i ->
-                    val color = when {
-                        i < run.step -> CtColors.Success
-                        i == run.step && run.moment !is RunMoment.Finished -> CtColors.Text2
-                        else -> CtColors.Track
-                    }
-                    Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
+    if (dots) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+            repeat(run.steps) { i ->
+                val color = when {
+                    i in run.missed -> CtColors.Error
+                    i < run.step -> CtColors.Success
+                    i == run.step && run.moment !is RunMoment.Finished -> CtColors.Text2
+                    else -> CtColors.Track
                 }
+                Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
             }
-        } else {
-            CtProgressBar(progress = if (run.steps == 0) 0f else run.step.toFloat() / run.steps, height = 3.dp, modifier = Modifier.weight(1f))
         }
-        if (run.kind != RunKind.LEARN) {
+    } else {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
+            CtProgressBar(progress = if (run.steps == 0) 0f else run.step.toFloat() / run.steps, height = 3.dp, modifier = Modifier.weight(1f))
             Text("${(run.step + 1).coerceAtMost(run.steps)} / ${run.steps}", style = CtType.Caption.copy(color = CtColors.Text2))
         }
     }
@@ -439,32 +534,44 @@ private const val MAX_DOTS = 12
  * The words above the board: a title-sized line, and under it a quiet one. Most moves say
  * nothing; a branch or trap note says its first sentence; "Why" shows the whole note.
  */
-@Composable
-private fun RunWords(run: RunUi) {
+/** What the coach says: the moment's words and, when asked, why; one line. */
+private fun coachWords(run: RunUi): String? {
     val (line, quiet) = wordsOf(run)
-    Column(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom)) {
-        if (line != null) Text(line, style = CtType.Title)
-        when {
-            run.why != null -> Text(run.why, style = CtType.BodySmall.copy(color = CtColors.Text), maxLines = 5, overflow = TextOverflow.Ellipsis)
-            quiet != null -> Text(quiet, style = CtType.Caption.copy(color = CtColors.Text2))
-        }
-    }
+    val more = run.why ?: quiet
+    return listOfNotNull(line, more).joinToString(" ") { part -> if (part == line && more != null && !part.endsWith(".")) "$part." else part }.ifBlank { null }
 }
 
 private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.moment) {
-    RunMoment.YourMove -> "Your move" to when {
+    RunMoment.YourMove -> if (run.punishShare != null) {
+        // Plain words for what to do (D112): their move was a mistake; find the move that punishes it.
+        (run.against?.let { "$it is a mistake" } ?: "A mistake") to "${run.punishShare}% of players at your level play it. Find the move that punishes it."
+    } else "Your move" to when {
         run.kind == RunKind.TEST -> "No hints. ${RepertoireViewModel.TEST_PASS} right opens the drills."
         run.tricky -> "A tricky line, from the start."
         else -> null
     }
-    RunMoment.FromTheTop -> "Your turn" to "Play the line back."
+    RunMoment.FromTheTop -> if (run.repeatPass) "Once more" to "Play it back without help." else "Your turn" to "Play the line back."
     is RunMoment.Watch -> (m.words ?: "Watch the line") to null
     is RunMoment.Also -> "Also good" to (m.san?.let { "Your move here is $it." } ?: "Not the move to remember here.")
-    is RunMoment.Shown -> "Play ${m.san}" to if (run.kind == RunKind.LEARN) null else "This position comes back sooner."
-    is RunMoment.CardDone -> (if (m.right) null else "Comes back today") to null
+    is RunMoment.Shown -> "Play ${m.san}" to when (run.kind) {
+        RunKind.LEARN -> null
+        RunKind.DRILL, RunKind.CHALLENGE, RunKind.PUNISH -> "It comes back at the end."
+        else -> "This position comes back sooner."
+    }
+    is RunMoment.CardDone -> when {
+        run.practice -> when {
+            !m.right -> "Missed. It comes back later."
+            m.again -> "First pass. Once more later to be sure."
+            else -> null
+        }
+        m.right -> null
+        else -> "Comes back today"
+    } to null
     is RunMoment.Finished -> if (run.kind == RunKind.TEST) {
         if (m.right >= RepertoireViewModel.testPassMark(m.total)) "Passed" to "${m.right} of ${m.total} right. The drills are open."
         else "Not yet" to "${m.right} of ${m.total} right. Take the course, or try again tomorrow."
+    } else if (run.practice) {
+        (if (m.right == m.total) "Every one first try" else "All solved") to "${m.right} of ${m.total} first try."
     } else if (run.kind == RunKind.LEARN) {
         "Line learnt" to "${m.right} of ${m.total} first try. Back tomorrow."
     } else {

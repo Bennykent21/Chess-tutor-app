@@ -62,6 +62,12 @@ data class PositionRunUi(
     /** The learner's move that let it slip ("12.Kd6"), and the move that kept it ("Kf6"). */
     val slip: String? = null,
     val better: String? = null,
+    /** How each position of this run went so far, in order: true won without help (D102). */
+    val results: List<Boolean> = emptyList(),
+    /** A hint was used on this position: winning it still sends it round again. */
+    val helped: Boolean = false,
+    /** This position comes back at the end of the run. */
+    val comesBack: Boolean = false,
 ) {
     val position: TrainPosition get() = queue[index]
     val side: PieceColor get() = position.side
@@ -113,13 +119,13 @@ class PositionTrainerViewModel(
 
     fun next() {
         val run = mutableRun.value ?: return
-        if (run.next != null) open(run.set, run.queue, run.index + 1)
+        if (run.next != null) open(run.set, run.queue, run.index + 1, run.results)
     }
 
-    /** The same position from its start ("Restart" while playing, "Again" at the end). */
+    /** The same position from its start ("Restart" while playing, "Again" at the end); a copy waiting at the end is dropped. */
     fun again() {
         val run = mutableRun.value ?: return
-        open(run.set, run.queue, run.index)
+        open(run.set, if (run.comesBack) run.queue.dropLast(1) else run.queue, run.index, run.results.take(run.index))
     }
 
     fun giveUp() {
@@ -134,7 +140,7 @@ class PositionTrainerViewModel(
         val run = mutableRun.value ?: return
         val move = best ?: return
         if (run.ended || run.thinking) return
-        mutableRun.value = if (run.hintFrom == null) run.copy(hintFrom = move.take(2)) else run.copy(hintTo = move.substring(2, 4))
+        mutableRun.value = if (run.hintFrom == null) run.copy(hintFrom = move.take(2), helped = true) else run.copy(hintTo = move.substring(2, 4), helped = true)
     }
 
     fun close() {
@@ -142,12 +148,12 @@ class PositionTrainerViewModel(
         mutableRun.value = null
     }
 
-    private fun open(set: PositionSet, queue: List<TrainPosition>, index: Int) {
+    private fun open(set: PositionSet, queue: List<TrainPosition>, index: Int, results: List<Boolean> = emptyList()) {
         job?.cancel()
         val position = queue[index]
         val board = PlaySession(Position.fromFen(position.fen), setOf(position.side), ::onLearnerMove)
         best = null
-        mutableRun.value = PositionRunUi(set, queue, index, board)
+        mutableRun.value = PositionRunUi(set, queue, index, board, results = results)
         job = viewModelScope.launch {
             best = runCatching { engine(position.fen) }.getOrNull()?.bestMoveUci?.takeIf { it.isNotBlank() }
             update { it.copy(thinking = false) }
@@ -195,7 +201,12 @@ class PositionTrainerViewModel(
         val run = mutableRun.value ?: return
         run.board.open = false
         val keep = outcome == PositionOutcome.SLIPPED
+        // Only a position won (or held) without a hint counts; any other comes back at the end of the run (D102).
+        val passed = !keep && !run.helped
         mutableRun.value = run.copy(
+            queue = if (passed) run.queue else run.queue + run.position,
+            results = run.results + passed,
+            comesBack = !passed,
             outcome = outcome,
             end = end,
             thinking = false,

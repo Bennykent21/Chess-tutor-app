@@ -471,7 +471,10 @@ class StockfishProcessEngineClient(
         val scored = info.centipawns != null || info.mateInMoves != null
         if (!scored) return
         synchronized(searchLock) {
-            if (activeRequest == null) return
+            // A search given up earlier still prints until its bestmove: its lines belong to another
+            // position (perhaps the other side to move) and must not score this one (D107).
+            if (activeRequest == null || staleBestMovesToIgnore > 0) return
+            if (info.multiPv > (activeRequest?.multiPv ?: 1).coerceAtLeast(1)) return
             val existing = latestInfoByPv[info.multiPv]
             // Prefer exact scores; accept a bound only when nothing better is known yet.
             if (!info.isBound || existing == null || existing.isBound) {

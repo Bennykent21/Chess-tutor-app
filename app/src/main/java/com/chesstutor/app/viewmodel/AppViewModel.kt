@@ -1,5 +1,6 @@
 package com.chesstutor.app.viewmodel
 
+import com.chesstutor.app.audio.SoundPack
 import com.chesstutor.app.data.settings.PlayerPicture
 import com.chesstutor.app.data.settings.AppSettingsCodec
 import androidx.lifecycle.ViewModel
@@ -102,6 +103,7 @@ class AppViewModel(
             // DataStore is the single source of truth for player settings.
             settingsStore.settings.collect { settings ->
                 soundManager?.hapticsEnabled = settings.hapticsEnabled
+                soundManager?.pack = settings.soundPack
                 _state.update { it.copy(appSettings = settings) }
             }
         }
@@ -265,7 +267,17 @@ class AppViewModel(
 
     fun setHapticsEnabled(enabled: Boolean) = updateSettings { it.copy(hapticsEnabled = enabled) }
 
+    /** Saves the pack and plays one of its moves straight away, so the choice can be heard (D108). */
+    fun setSoundPack(pack: SoundPack) {
+        soundManager?.pack = pack
+        if (_state.value.appSettings.soundEnabled) soundManager?.preview()
+        updateSettings { it.copy(soundPackId = pack.id) }
+    }
+
     fun setReduceMotion(enabled: Boolean) = updateSettings { it.copy(reduceMotion = enabled) }
+
+
+    fun setAutoReview(enabled: Boolean) = updateSettings { it.copy(autoReview = enabled) }
 
     fun setChatLevel(level: ChatLevel) = updateSettings { it.copy(chatLevel = level) }
 

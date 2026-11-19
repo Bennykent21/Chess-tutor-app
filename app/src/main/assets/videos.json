@@ -1,0 +1,758 @@
+[
+{
+"course": "basics-board",
+"level": "beginner",
+"id": "C59-9wSxTCg",
+"title": "How to Set Up a Chess Board: Chess Rules For Beginners | ChessKid",
+"channel": "ChessKid",
+"minutes": 3,
+"why": "Explains board orientation, files and ranks, and the starting square for every piece."
+},
+{
+"course": "basics-board",
+"level": "beginner",
+"id": "6Pqd7UFWr7M",
+"title": "How to Play Chess",
+"channel": "wikiHow",
+"minutes": 2,
+"why": "Gives a concise visual walkthrough of setting up the board and identifying each piece."
+},
+{
+"course": "basics-capturing",
+"level": "beginner",
+"id": "HE1r0rHkxG8",
+"title": "Learn to Count: Chess Rules for Beginners | ChessKid",
+"channel": "ChessKid",
+"minutes": 9,
+"why": "Teaches how to evaluate captures and protect pieces by counting attackers and defenders."
+},
+{
+"course": "basics-check-and-mate",
+"level": "beginner",
+"id": "RIYhgE1RJ0Y",
+"title": "How the King Moves in Chess ♚ | Check, Checkmate and Stalemate | Chess for Beginners",
+"channel": "Cheeky Chess with SIH",
+"minutes": 3,
+"why": "Clarifies the difference between check, getting out of check, and checkmate."
+},
+{
+"course": "basics-check-and-mate",
+"level": "beginner",
+"id": "SM2fcenx7KU",
+"title": "How to play chess (explained by a Master)",
+"channel": "ChessNetwork",
+"minutes": 13,
+"why": "Covers the objective of the game, check rules, and how checkmate ends the game."
+},
+{
+"course": "basics-draws-and-habits",
+"level": "beginner",
+"id": "rjHCE3UQY8w",
+"title": "♟ Draw and Stalemate in Chess Explained : Basic Chess Rules : How to Play Chess",
+"channel": "Mr.Animate",
+"minutes": 5,
+"why": "Explains all five draw conditions including stalemate, threefold repetition, and insufficient material."
+},
+{
+"course": "basics-draws-and-habits",
+"level": "beginner",
+"id": "DoGVxiU2VFI",
+"title": "Stalemate | How to Play Chess",
+"channel": "Chess.com",
+"minutes": 3,
+"why": "Shows how stalemate happens and how to avoid accidentally stalemating when ahead."
+},
+{
+"course": "basics-first-mates",
+"level": "beginner",
+"id": "ZXzE98529e8",
+"title": "The Most BASIC Checkmate: The Ladder Mate | ChessKid",
+"channel": "ChessKid",
+"minutes": 3,
+"why": "Demonstrates step by step how to execute a two-rook ladder checkmate without stalemating."
+},
+{
+"course": "basics-first-mates",
+"level": "beginner",
+"id": "iBZLU1FXhcI",
+"title": "6 Checkmate Patterns YOU MUST KNOW",
+"channel": "GothamChess",
+"minutes": 22,
+"why": "Introduces foundational checkmate patterns with rooks, queens, and minor pieces."
+},
+{
+"course": "basics-moves",
+"level": "beginner",
+"id": "YdnvlntAQH8",
+"title": "How to Play Chess: Chess Rules for Beginners | ChessKid",
+"channel": "ChessKid",
+"minutes": 19,
+"why": "Walks through how every chess piece moves and captures on the board."
+},
+{
+"course": "basics-moves",
+"level": "beginner",
+"id": "IU6k-4rKf-g",
+"title": "Learn How to Play Chess for Beginners in Less Than 8 Minutes",
+"channel": "Mr.Animate",
+"minutes": 7,
+"why": "Provides a clear visual overview of the movement rules for every piece."
+},
+{
+"course": "basics-special-moves",
+"level": "beginner",
+"id": "6y2FAKMsZog",
+"title": "Chess Beginner Lesson 08 - Promotion, Castling, En Passant",
+"channel": "Chess Oracle",
+"minutes": 3,
+"why": "Covers the exact rules and conditions for castling, en passant captures, and pawn promotion."
+},
+{
+"course": "basics-special-moves",
+"level": "beginner",
+"id": "W5vfIZiIpKI",
+"title": "Special Moves: Castling, En Passant, Promotion | Chess99 Academy L1.09",
+"channel": "Chess99",
+"minutes": 3,
+"why": "Breaks down the legality requirements for castling, en passant, and promoting a pawn."
+},
+{
+"course": "blunders-dont-miss-it",
+"level": "beginner",
+"id": "W1gWHIpQNVU",
+"title": "All The Chess Tactics You NEED To Know",
+"channel": "Chess.com",
+"minutes": 16,
+"why": "Trains tactical awareness so you spot hanging pieces, checkmate threats, and forcing moves."
+},
+{
+"course": "blunders-king-safety",
+"level": "beginner",
+"id": "XUTsWcWyYnw",
+"title": "Master Tips To Defend In Chess - 10 Ways To Defend - How To Defend Your King In Chess, Chess Defense",
+"channel": "Chess Vibes",
+"minutes": 16,
+"why": "Teaches practical habits for keeping your king safe and neutralizing attacks."
+},
+{
+"course": "blunders-loose-pieces",
+"level": "beginner",
+"id": "Ao9iOeK_jvU",
+"title": "Chess Fundamentals #1: Undefended Pieces",
+"channel": "John Bartholomew",
+"minutes": 55,
+"why": "Shows how to scan the board for loose, undefended pieces on both sides."
+},
+{
+"course": "blunders-opening-traps",
+"level": "beginner",
+"id": "TIqJKO71400",
+"title": "How to Defend Against Quick Mates & Traps | ChessKid",
+"channel": "ChessKid",
+"minutes": 9,
+"why": "Explains how to recognize and calmly refute early mating threats on f7 and h7."
+},
+{
+"course": "blunders-opening-traps",
+"level": "beginner",
+"id": "3xuSaODwiHk",
+"title": "How to Checkmate in 4 Moves (Scholar's Mate) - Beginner to Chess Master #6",
+"channel": "ChessNetwork",
+"minutes": 10,
+"why": "Shows how early queen and bishop traps work and how to punish them with sound development."
+},
+{
+"course": "topic:blunders",
+"level": "advanced",
+"id": "TWJ6751RRis",
+"title": "Chess Fundamentals #2: Coordination",
+"channel": "John Bartholomew",
+"minutes": 52,
+"why": "How harmonious piece coordination prevents tactical and subtle positional blunders."
+},
+{
+"course": "topic:blunders",
+"level": "advanced",
+"id": "RE5XutM9D7c",
+"title": "Advanced Game Analysis - GM Ben Finegold - 2014.01.29",
+"channel": "Saint Louis Chess Club",
+"minutes": 50,
+"why": "Dissects critical decision points and subtle mistakes in high-level tournament games."
+},
+{
+"course": "endgames-king-and-pawn",
+"level": "beginner",
+"id": "w3ig5za3c2M",
+"title": "2 Simple Rules To WIN King & Pawn Endgames Easily",
+"channel": "Remote Chess Academy",
+"minutes": 16,
+"why": "Key squares, king in front of the pawn, and avoiding stalemate in pawn endings."
+},
+{
+"course": "endgames-king-and-pawn",
+"level": "beginner",
+"id": "dr5sA-IzEmM",
+"title": "King & Pawn Endgames Crash Course",
+"channel": "Chess Vibes",
+"minutes": 20,
+"why": "The rule of the square, opposition, outflanking and pawn races."
+},
+{
+"course": "endgames-queen",
+"level": "advanced",
+"id": "9j3U6VG407c",
+"title": "Queen and Pawn vs. Queen Endgame - GM Yasser Seirawan - 2015.02.17",
+"channel": "Saint Louis Chess Club",
+"minutes": 53,
+"why": "Cross-checks, king shelter and passed-pawn conversion in queen endgames."
+},
+{
+"course": "endgames-queen",
+"level": "advanced",
+"id": "oWDPxirOPJk",
+"title": "12 Endgames That Every Player Should Know! | The Dynamic Dozen",
+"channel": "Saint Louis Chess Club",
+"minutes": 49,
+"why": "Must-know theoretical endgames, queen against a pawn on the seventh among them."
+},
+{
+"course": "endgames-rook-technique",
+"level": "intermediate",
+"id": "JMZJ9P2Hnq0",
+"title": "EASY CHESS ENDGAMES: Rook & Pawn",
+"channel": "GothamChess",
+"minutes": 23,
+"why": "The Lucena bridge, the Philidor defence and short-side against long-side defence."
+},
+{
+"course": "endgames-rook-technique",
+"level": "intermediate",
+"id": "_lvTNSQ_eL0",
+"title": "Stop Losing Rook Endgames & Start Gaining ELO | Lucena and Philidor Guide",
+"channel": "Critical Chess",
+"minutes": 22,
+"why": "Active rooks behind passed pawns and step-by-step Lucena and Philidor."
+},
+{
+"course": "endgames-rook",
+"level": "advanced",
+"id": "7EYY0JCuAlY",
+"title": "Rook Endgames - GM Josh Friedel",
+"channel": "Saint Louis Chess Club",
+"minutes": 49,
+"why": "A grandmaster lecture on building a bridge, cutting off the king and harder rook endings."
+},
+{
+"course": "endgames-rook",
+"level": "advanced",
+"id": "yrdgbB_dhg0",
+"title": "The Lucena & Philidor Positions - GM Yasser Seirawan - 2015.03.10",
+"channel": "Saint Louis Chess Club",
+"minutes": 38,
+"why": "Practical rook-and-pawn technique through classical and modern examples."
+},
+{
+"course": "endgames-technique",
+"level": "intermediate",
+"id": "B_pwkYeRrlU",
+"title": "Chess lesson # 29: King and pawn VS King endgame | Opposition",
+"channel": "NM Robert Ramirez",
+"minutes": 18,
+"why": "Direct, distant and diagonal opposition as conversion tools."
+},
+{
+"course": "endgames-technique",
+"level": "intermediate",
+"id": "mhUoe2JBxco",
+"title": "Principles of Chess Endgames | King Activity",
+"channel": "Daniel Naroditsky",
+"minutes": 29,
+"why": "Centralizing the king to convert advantages or save hard endgames."
+},
+{
+"course": "topic:endgames",
+"level": "advanced",
+"id": "iyl_vVXeFuI",
+"title": "Pawn Breakthroughs | Principles of Chess Endgames | GM Naroditsky",
+"channel": "Daniel Naroditsky",
+"minutes": 48,
+"why": "Pawn breakthroughs that create unstoppable passed pawns."
+},
+{
+"course": "topic:endgames",
+"level": "advanced",
+"id": "txSRxZyFRi8",
+"title": "The Opposite Color Bishops | Endgame Class - NM Caleb Denby",
+"channel": "Saint Louis Chess Club",
+"minutes": 59,
+"why": "Fortresses, passed pawns and winning plans with opposite-coloured bishops."
+},
+{
+"course": "middlegame-attack",
+"level": "intermediate",
+"id": "HWisEBfGx_k",
+"title": "Puzzles: Attacking the King - GM Varuzhan Akobian",
+"channel": "Saint Louis Chess Club",
+"minutes": 19,
+"why": "Coordinating pieces to break through the pawns in front of a castled king."
+},
+{
+"course": "middlegame-attack",
+"level": "intermediate",
+"id": "psUv-bgYB88",
+"title": "How to Master 🤔 the Greek Gift Sacrifice (Bxh7+) with Susan Polgar",
+"channel": "iChess Channel 2",
+"minutes": 30,
+"why": "When the Greek gift Bxh7+ works, the follow-up checks and the defences."
+},
+{
+"course": "middlegame-pawn-breaks",
+"level": "intermediate",
+"id": "lYX-VO1ut7U",
+"title": "5 Most Common Chess Pawn Structure MISTAKES",
+"channel": "Remote Chess Academy",
+"minutes": 21,
+"why": "Keeping pawn tension, timing pawn breaks and avoiding weaknesses."
+},
+{
+"course": "middlegame-pawn-breaks",
+"level": "intermediate",
+"id": "lEKwdDwnE90",
+"title": "Pawn Structure #2: French Defence | Strategy Session with Jonathan Schrantz",
+"channel": "Saint Louis Chess Club",
+"minutes": 25,
+"why": "Attacking the base of a locked chain with timely ...c5 and ...f6."
+},
+{
+"course": "middlegame-pawn-structure",
+"level": "intermediate",
+"id": "yAnNQY2Ac6w",
+"title": "Top 5 Pawn Structures You Should Know",
+"channel": "GothamChess",
+"minutes": 23,
+"why": "The big pawn structures: Carlsbad, Maroczy Bind, Caro-Kann and Slav."
+},
+{
+"course": "middlegame-pawn-structure",
+"level": "intermediate",
+"id": "LV0vbgeRVtY",
+"title": "Isolated Pawn Positions | Chess Middlegames",
+"channel": "Hanging Pawns",
+"minutes": 22,
+"why": "Playing with and against an isolated queen's pawn."
+},
+{
+"course": "middlegame-piece-activity",
+"level": "intermediate",
+"id": "vBTm511CXRM",
+"title": "Nimzowitsch Teaches Us about Open Files (Ch. 2)",
+"channel": "My Chess Notebook",
+"minutes": 23,
+"why": "Taking open files, doubling rooks and reaching the seventh rank."
+},
+{
+"course": "middlegame-piece-activity",
+"level": "intermediate",
+"id": "vE4z9j6GMnc",
+"title": "The Knight’s Advantage: Outposts and Dominance in the Middle Game – Chapters 3 & 4",
+"channel": "Chess Strategy",
+"minutes": 27,
+"why": "Finding, securing and anchoring knights on strong outposts."
+},
+{
+"course": "middlegame-trading",
+"level": "intermediate",
+"id": "IyCwrtM3BSk",
+"title": "When To Trade Pieces In Chess? [And When Not To]",
+"channel": "Remote Chess Academy",
+"minutes": 11,
+"why": "Judging trades by activity, pawn structure and attacking chances."
+},
+{
+"course": "topic:middlegame",
+"level": "advanced",
+"id": "NKBbyDDzzmw",
+"title": "Mastering Positional Chess | Grandmaster Daniel Naroditsky",
+"channel": "Daniel Naroditsky",
+"minutes": 43,
+"why": "Prophylaxis, weak squares and restricting pieces."
+},
+{
+"course": "topic:middlegame",
+"level": "advanced",
+"id": "XtyLL1dTrXY",
+"title": "Poke Holes in the Hedgehog! | Secret Life of Pawns - GM Mauricio Flores",
+"channel": "Saint Louis Chess Club",
+"minutes": 52,
+"why": "Deep manoeuvring and pawn-break timing in Hedgehog middlegames."
+},
+{
+"course": "openings-principles",
+"level": "beginner",
+"id": "8IlJ3v8I4Z8",
+"title": "Basic Chess Openings Explained",
+"channel": "GothamChess",
+"minutes": 9,
+"why": "The core opening ideas: the centre, developing pieces and castling early."
+},
+{
+"course": "openings-italian",
+"level": "beginner",
+"id": "dP4qtaUAhWM",
+"title": "Italian Game | Opening Basics and Common Variations",
+"channel": "Hanging Pawns",
+"minutes": 22,
+"why": "The ideas, key squares and main branches after 3.Bc4."
+},
+{
+"course": "openings-italian",
+"level": "beginner",
+"id": "qUews8fEGkc",
+"title": "Italian Game Chess Opening Explained in 20 Minutes [Crash Course]",
+"channel": "Remote Chess Academy",
+"minutes": 24,
+"why": "White's centre with c3 and d4 and the natural attacking plans against f7."
+},
+{
+"course": "openings-italian-giuoco",
+"level": "beginner",
+"id": "9vPtMI01LYA",
+"title": "Italian Game for Black [20-Minute Chess Opening Crash Course]",
+"channel": "Remote Chess Academy",
+"minutes": 23,
+"why": "Giuoco Piano and Pianissimo structures after 3...Bc5 and Black's counterplay."
+},
+{
+"course": "openings-italian-two-knights",
+"level": "intermediate",
+"id": "rKoZkrBWDbU",
+"title": "The Knight Attack (4.Ng5!) | Italian Game Theory",
+"channel": "Hanging Pawns",
+"minutes": 32,
+"why": "The sharp 4.Ng5 lines and Black's pawn sacrifice after 4...d5."
+},
+{
+"course": "openings-italian-two-knights",
+"level": "intermediate",
+"id": "KaC6JvbFiA0",
+"title": "Traxler Counterattack | Italian Game Theory",
+"channel": "Hanging Pawns",
+"minutes": 29,
+"why": "The complications and key defences of the Traxler, 4...Bc5."
+},
+{
+"course": "openings-italian-sidelines",
+"level": "beginner",
+"id": "6ACqk117Q7U",
+"title": "Learn The Italian Game, ALL Variations Explained [Traps, Ideas, And Plans]",
+"channel": "Remote Chess Academy",
+"minutes": 23,
+"why": "Third-move sidelines: 3...d6, the Rousseau Gambit and the Blackburne Shilling."
+},
+{
+"course": "openings-caro-kann",
+"level": "beginner",
+"id": "rmbU97iftC8",
+"title": "Learn the Caro-Kann Defense | 10-Minute Chess Openings",
+"channel": "GothamChess",
+"minutes": 9,
+"why": "Black's solid 1...c6, the light-squared bishop and the main replies."
+},
+{
+"course": "openings-caro-kann",
+"level": "beginner",
+"id": "HvER2idtW6M",
+"title": "Learn the Caro-Kann in 15 Minutes [Chess Openings Crash Course]",
+"channel": "Remote Chess Academy",
+"minutes": 17,
+"why": "Caro-Kann structures and middlegame plans across the main lines."
+},
+{
+"course": "openings-caro-kann-advance",
+"level": "beginner",
+"id": "m9uHKJ1WgbM",
+"title": "Caro-Kann Defense - Advance Variation in Depth ⎸Chess Openings",
+"channel": "Hanging Pawns",
+"minutes": 20,
+"why": "Black's ...Bf5 and ...c5 against 3.e5, with the Short, Van der Wiel and Tal systems."
+},
+{
+"course": "openings-caro-kann-exchange",
+"level": "beginner",
+"id": "SMIhNIXoMNk",
+"title": "Caro-Kann Defense – Exchange Variation (and how to punish it!) ⎸Chess Openings",
+"channel": "Hanging Pawns",
+"minutes": 17,
+"why": "The Carlsbad structure after 3.exd5 cxd5 and Black's active plans."
+},
+{
+"course": "openings-caro-kann-main",
+"level": "intermediate",
+"id": "3KvEdj_TcM4",
+"title": "Caro-Kann Main Line in depth ⎸Chess Openings",
+"channel": "Hanging Pawns",
+"minutes": 20,
+"why": "The Classical main lines, the bishop's retreats and castling plans."
+},
+{
+"course": "openings-caro-kann-others",
+"level": "beginner",
+"id": "S5OjT1K_s58",
+"title": "Two Knights Variation of the Caro-Kann (B11) ⎸Chess Openings",
+"channel": "Hanging Pawns",
+"minutes": 24,
+"why": "Handling the Two Knights set-up with 3...Bg4."
+},
+{
+"course": "openings-caro-kann-others",
+"level": "beginner",
+"id": "0yMkAJ6Pyig",
+"title": "Fantasy Variation of the Caro-Kann ⎸Chess Openings",
+"channel": "Hanging Pawns",
+"minutes": 17,
+"why": "Meeting the Fantasy 3.f3 with 3...dxe4 and active play."
+},
+{
+"course": "openings-london",
+"level": "beginner",
+"id": "ECMMct_jnEM",
+"title": "How to WIN with the London System!",
+"channel": "GothamChess",
+"minutes": 30,
+"why": "The d4, Bf4, e3, c3 set-up, the Ne5 outpost and kingside attacks."
+},
+{
+"course": "openings-scandinavian",
+"level": "beginner",
+"id": "sKoBj-kL0hg",
+"title": "Learn the Scandinavian Defense in 15 Minutes [Chess Opening Crash Course]",
+"channel": "Remote Chess Academy",
+"minutes": 17,
+"why": "2...Qxd5 3...Qa5 set-ups and Black's solid light-square chain."
+},
+{
+"course": "openings-scandinavian",
+"level": "beginner",
+"id": "mEwzUYJV17E",
+"title": "Scandinavian Defense Modern Variation",
+"channel": "Hanging Pawns",
+"minutes": 27,
+"why": "2...Nf6 lines that delay taking back on d5."
+},
+{
+"course": "openings-english",
+"level": "intermediate",
+"id": "va0s92praEM",
+"title": "How to play the English Opening | 10-Minute Chess Openings",
+"channel": "GothamChess",
+"minutes": 10,
+"why": "1.c4, the g3 and Bg2 fianchetto and queenside expansion."
+},
+{
+"course": "openings-french",
+"level": "intermediate",
+"id": "5pec-u6PSvA",
+"title": "Learn the French Defense | 10-Minute Chess Openings",
+"channel": "GothamChess",
+"minutes": 10,
+"why": "French pawn chains, the ...c5 break and the c8 bishop."
+},
+{
+"course": "openings-queens-gambit",
+"level": "intermediate",
+"id": "mtsabsZ4wG4",
+"title": "How To Play The Queen's Gambit",
+"channel": "GothamChess",
+"minutes": 15,
+"why": "Central pressure with 2.c4 and plans against the Declined and the Accepted."
+},
+{
+"course": "openings-ruy-lopez",
+"level": "intermediate",
+"id": "GFWI3gkizZg",
+"title": "Ruy Lopez - Ideas, Principles and Common Variations ⎸Chess Openings",
+"channel": "Hanging Pawns",
+"minutes": 18,
+"why": "3.Bb5, the Morphy Defence 3...a6 and the central tension."
+},
+{
+"course": "openings-ruy-lopez",
+"level": "intermediate",
+"id": "IQrtrPvU3bQ",
+"title": "Chess Openings: Ruy Lopez | Ideas, Theory, and Attacking Plans",
+"channel": "Remote Chess Academy",
+"minutes": 24,
+"why": "The c3 and d4 centre, the Nbd2-f1-g3 manoeuvre and closed Spanish plans."
+},
+{
+"course": "openings-sicilian",
+"level": "intermediate",
+"id": "2miolLK8DiI",
+"title": "Sicilian Defense ALL Variations Explained in 15 Minutes",
+"channel": "Remote Chess Academy",
+"minutes": 18,
+"why": "Black's counterattacking 1...c5 and the main Sicilian systems compared."
+},
+{
+"course": "openings-sicilian",
+"level": "intermediate",
+"id": "rd1eKLJ3DGQ",
+"title": "The Accelerated Dragon ⎸Sicilian Defense Theory",
+"channel": "Hanging Pawns",
+"minutes": 24,
+"why": "The fianchetto, the ...d5 break and handling the Maroczy Bind."
+},
+{
+"course": "openings-kings-indian",
+"level": "advanced",
+"id": "mND6TK5dSKQ",
+"title": "Introduction to the King’s Indian Defense",
+"channel": "Hanging Pawns",
+"minutes": 19,
+"why": "Dark-square control, ...f5 pawn storms and attacks on opposite wings."
+},
+{
+"course": "openings-kings-indian",
+"level": "advanced",
+"id": "MmF7dhysiAQ",
+"title": "Crushing The Four Pawns Attack!! | The King's Indian | The Sensei Speedrun | GM Naroditsky",
+"channel": "Daniel Naroditsky",
+"minutes": 28,
+"why": "Counterattacking the Four Pawns Attack."
+},
+{
+"course": "topic:openings",
+"level": "advanced",
+"id": "BPg1bSeJYNg",
+"title": "The Najdorf (part 1) ⎸Sicilian Defense Theory",
+"channel": "Hanging Pawns",
+"minutes": 36,
+"why": "The English Attack and 6.Bg5 in the Najdorf."
+},
+{
+"course": "topic:openings",
+"level": "advanced",
+"id": "tiGEerTU6ms",
+"title": "Introduction to the Spanish Opening (Ruy Lopez) · Complete Chess Openings",
+"channel": "Hanging Pawns",
+"minutes": 60,
+"why": "Spanish structures, prophylaxis and long manoeuvres."
+},
+{
+"course": "tactics-forks",
+"level": "beginner",
+"id": "MbMslp2WcI0",
+"title": "The Chess Tactics Guide For Beginners!  Learn the 3 most common chess tactics: forks, pins, skewers!",
+"channel": "Chess Vibes",
+"minutes": 7,
+"why": "Double attacks with knights, pawns and queens."
+},
+{
+"course": "tactics-forks",
+"level": "beginner",
+"id": "HNFR315mdxA",
+"title": "10 Levels of Tactics: Master the Fork",
+"channel": "the chess nerd",
+"minutes": 21,
+"why": "Fork patterns from simple double attacks to forcing combinations."
+},
+{
+"course": "tactics-pins-skewers",
+"level": "beginner",
+"id": "S1tOQRUH5Cc",
+"title": "Chess tactics - Chess puzzles - The pin",
+"channel": "Jozarov’s chess channel",
+"minutes": 5,
+"why": "Absolute and relative pins and piling up on a pinned piece."
+},
+{
+"course": "tactics-pins-skewers",
+"level": "beginner",
+"id": "2KlDixnZMhM",
+"title": "The Skewer | Chess Tactics | ChessKid",
+"channel": "ChessKid",
+"minutes": 5,
+"why": "Attacking a big piece on a line to win the one behind it."
+},
+{
+"course": "tactics-defenders",
+"level": "intermediate",
+"id": "BmsIQRC5LSI",
+"title": "Chess Lesson For Beginners: Deflection",
+"channel": "Chess Family",
+"minutes": 24,
+"why": "Luring a defender away from a key square."
+},
+{
+"course": "tactics-defenders",
+"level": "intermediate",
+"id": "7mZidsT5lBg",
+"title": "Chess Tactic UNDERMINING - Tutorial Quiz With 10 Positions",
+"channel": "SomeDumbTrucker",
+"minutes": 9,
+"why": "Taking or chasing away the piece that holds the defence together."
+},
+{
+"course": "tactics-discovered",
+"level": "intermediate",
+"id": "IsnSYnXumBg",
+"title": "Chess for Beginners with GM Ronen Har-Zvi (Discovered Attack!) - 2013.11.24",
+"channel": "Saint Louis Chess Club",
+"minutes": 30,
+"why": "Discovered attacks, discovered checks and double checks."
+},
+{
+"course": "tactics-smothered-mate",
+"level": "intermediate",
+"id": "Bo93mIhnDz4",
+"title": "The Top 23 Checkmate Patterns | Most Important Mating Patterns In Chess | Chess Tactics and Ideas",
+"channel": "Chess Vibes",
+"minutes": 23,
+"why": "Classic mates: smothered, Anastasia's, Boden's and the back rank."
+},
+{
+"course": "tactics-smothered-mate",
+"level": "intermediate",
+"id": "rjKGq1duYP0",
+"title": "Episode 2: MOST Important Mating Patterns 💯 Backrank, Blind Swine, Hook & Smothered | Chess Tactics",
+"channel": "michechess",
+"minutes": 14,
+"why": "The geometry of smothered, hook, blind swine and back-rank mates."
+},
+{
+"course": "tactics-surprises",
+"level": "intermediate",
+"id": "R1sPLpkroyI",
+"title": "Chess Lesson # 44: Zwischenzug | Learn & Master In-between Moves | Intermezzo | Intermediate Moves",
+"channel": "NM Robert Ramirez",
+"minutes": 15,
+"why": "Spotting in-between checks and threats instead of automatic recaptures."
+},
+{
+"course": "tactics-surprises",
+"level": "intermediate",
+"id": "DTen0pi5EoE",
+"title": "The Intermediate Move | Chess Tactics - Daily Lesson with a Grandmaster 154",
+"channel": "ChessMood",
+"minutes": 8,
+"why": "How an in-between move changes the outcome of an exchange."
+},
+{
+"course": "topic:tactics",
+"level": "advanced",
+"id": "pEsA1eB8RBI",
+"title": "How to Calculate Variations | Chess Middlegames",
+"channel": "Hanging Pawns",
+"minutes": 23,
+"why": "A step-by-step method for candidate moves and calculating variations."
+},
+{
+"course": "topic:tactics",
+"level": "advanced",
+"id": "PJIWbdoXLn8",
+"title": "How to Improve at Tactics | Chess Middlegames",
+"channel": "Hanging Pawns",
+"minutes": 29,
+"why": "The signs in a position that a combination is there."
+}
+]

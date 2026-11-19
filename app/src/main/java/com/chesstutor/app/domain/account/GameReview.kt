@@ -171,6 +171,13 @@ enum class MoveQuality(val label: String, val symbol: String) {
                     in MATERIAL_MISTAKE_CP until MATERIAL_BLUNDER_CP -> MISTAKE
                     else -> null
                 }
+                // A bigger win let go while still ahead: the chances hardly move once a game is won,
+                // but taking a pawn when the queen was hanging is still an error (D108).
+                wasMate == null && isMate == null && (after.cp ?: 0) < CRUSHING_CP -> when ((before.cp ?: 0) - (after.cp ?: 0)) {
+                    in MISSED_MISTAKE_CP..Int.MAX_VALUE -> MISTAKE
+                    in MISSED_INACCURACY_CP until MISSED_MISTAKE_CP -> INACCURACY
+                    else -> null
+                }
                 else -> null
             }
             return if (rule != null && rule.ordinal > base.ordinal) rule else base
@@ -184,6 +191,11 @@ enum class MoveQuality(val label: String, val symbol: String) {
         const val MATERIAL_MISTAKE_CP = 400
         const val MATERIAL_BLUNDER_CP = 700
         const val STILL_WINNING_CP = 300
+        /** A winning score let slip by this much: over two pawns an inaccuracy, five a mistake (D108). */
+        const val MISSED_INACCURACY_CP = 250
+        const val MISSED_MISTAKE_CP = 500
+        /** Above this the mover is winning so clearly that a smaller win costs nothing. */
+        const val CRUSHING_CP = 1000
     }
 }
 

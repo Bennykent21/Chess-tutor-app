@@ -1,5 +1,11 @@
 package com.chesstutor.app.feature.home
 
+import java.time.LocalDate
+import com.chesstutor.app.domain.activity.ActivityDays
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import com.chesstutor.app.domain.account.PlyEval
 import com.chesstutor.app.domain.puzzle.DailyPreview
 import java.time.ZoneId
 import java.time.Instant
@@ -23,6 +29,7 @@ import com.chesstutor.app.domain.bot.BotRepository
 import com.chesstutor.app.domain.bot.ChatLevel
 import com.chesstutor.app.domain.bot.MaiaSource
 import com.chesstutor.app.domain.bot.CustomBot
+import com.chesstutor.app.domain.account.AnalysisSummary
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.bot.RosterBot
 import com.chesstutor.app.domain.game.GameRules
@@ -44,7 +51,6 @@ import com.chesstutor.app.domain.opening.BattleMode
 import com.chesstutor.app.domain.opening.Opening
 import com.chesstutor.app.domain.opening.OpeningBattles
 import com.chesstutor.app.domain.opening.OpeningTree
-import com.chesstutor.app.domain.puzzle.PuzzleStats
 import com.chesstutor.app.engine.EngineService
 import com.chesstutor.app.domain.account.GameReviewer
 import com.chesstutor.app.feature.play.ActiveGameSnapshot
@@ -67,7 +73,10 @@ import kotlin.random.Random
 /** Opening Battle's setup page (plan 6.1): side, opening line, mode, replies and opponent. */
 data class BattleDraft(
     val side: SideChoice = SideChoice.RANDOM,
+    /** The line shown on the preview board, and played when nothing is ticked. */
     val line: Opening? = null,
+    /** Openings ticked in the picker (D93); the bot picks one of their lines at the start. */
+    val picked: Set<String> = emptySet(),
     val mode: BattleMode = BattleMode.PLAY,
     val exactReplies: Boolean = true,
     val opponentId: String = "ziggy",
@@ -122,6 +131,10 @@ data class HomeUiState(
     val nextStep: NextStep? = null,
     /** Today's puzzle for its tile; null until the pack has loaded. */
     val daily: DailyPreview? = null,
+    /** The newest game, with its accuracy once reviewed (D92). */
+    val lastGame: LastGame? = null,
+    /** Monday to Sunday: the days with a game or a solved puzzle (D92). */
+    val week: List<Boolean> = List(7) { false },
 )
 
 /** What Home reads from Learn, Puzzles and Account for its Continue and Recommended cards. */
@@ -131,18 +144,24 @@ class HomeLearning(
     val lessonProgress: Flow<Map<String, LessonProgress>> = flowOf(emptyMap()),
     val loadDaily: suspend () -> DailyPreview? = { null },
     val puzzleHistory: Flow<List<PuzzleHistoryEntry>> = flowOf(emptyList()),
+    /** Reviewed games' accuracies, for the last game on Home (D92). */
+    val analysisSummaries: Flow<Map<String, AnalysisSummary>> = flowOf(emptyMap()),
+    /** A game's saved engine view, for the last game's graph (D93). */
+    val observeEvals: (String) -> Flow<List<PlyEval>> = { flowOf(emptyList()) },
 )
 
 /**
  * The Home tab's view model: the roster, the resume and recommended cards, and the game being
  * played. Unfinished games are saved after every move ([ActiveGameStore]) and cleared at the end.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     private val engine: EngineService,
     private val openings: suspend () -> OpeningTree,
     private val games: GameRepository,
     private val bots: BotRepository,
-    puzzleStats: Flow<PuzzleStats>,
+    /** The days the player trained in the app: the day streak and the week both read them (D110). */
+    activityDays: Flow<Set<LocalDate>>,
     private val store: ActiveGameStore,
     private val random: Random = Random.Default,
     private val clock: () -> Long = System::currentTimeMillis,
@@ -171,15 +190,22 @@ class HomeViewModel(
     }.flowOn(worker)
     private val snapshot = MutableStateFlow(store.load())
 
+    /** The last game, for Home's look back (D92). */
+    private val recap: Flow<LastGame?> =
+        combine(games.observeGames(), learning.analysisSummaries) { list, summaries -> HomeRecap.lastGame(list, summaries) }
+            .flatMapLatest { last ->
+                if (last?.accuracy == null) flowOf(last)
+                else learning.observeEvals(last.id).map { evals -> last.copy(graph = HomeRecap.graph(evals, last.userWhite)) }
+            }
+
     /** Loaded eagerly, so a saved game against one of them can be resumed at once. */
     val myBots: StateFlow<List<CustomBot>> = bots.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val home: StateFlow<HomeUiState> =
-        combine(games.observeGames(), puzzleStats, snapshot, playerRating, myBots) { list, stats, saved, rating, mine ->
+        combine(games.observeGames(), snapshot, playerRating, myBots) { list, saved, rating, mine ->
             HomeUiState(
                 resume = saved?.let { s -> findBot(s.botId, mine)?.let { s.toResumeCard(it) } },
                 recommendation = PlayRecommender.recommend(list.botGamesNewestFirst(), rating),
-                dayStreak = stats.dayStreak,
                 gamesPlayed = list.count { it.id.startsWith("bot_") },
                 myBots = mine,
             )
@@ -189,9 +215,15 @@ class HomeViewModel(
                 nextLesson = lesson,
                 nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
             )
-        }.combine(daily.combine(learning.puzzleHistory) { preview, history -> preview to history }) { state, (preview, history) ->
+        }.combine(combine(daily, learning.puzzleHistory, recap, activityDays) { preview, history, look, days -> HomeLookBack(preview, history, look, days) }) { state, back ->
             val today = Instant.ofEpochMilli(clock()).atZone(ZoneId.systemDefault()).toLocalDate()
-            state.copy(daily = preview, dailySolved = PuzzleModes.solvedOn(preview?.puzzleId, history, today))
+            state.copy(
+                daily = back.daily,
+                dailySolved = PuzzleModes.solvedOn(back.daily?.puzzleId, back.history, today),
+                lastGame = back.lastGame,
+                dayStreak = ActivityDays.streak(back.days, today),
+                week = ActivityDays.week(back.days, today),
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(resume = snapshot.value?.let { s ->
             BotRoster.byId(s.botId)?.let { s.toResumeCard(it) }
         }))
@@ -389,7 +421,9 @@ class HomeViewModel(
     /** Starts the battle; false while no opening is picked. */
     fun startBattle(): Boolean {
         val draft = mutableBattle.value
-        val line = draft.line ?: return false
+        // One of the ticked openings' lines, at random (D93); a single picked line plays as it is.
+        val candidates = mutableTree.value?.openings.orEmpty().filter { o -> draft.picked.any(o::isWithin) }
+        val line = candidates.randomOrNull(random) ?: draft.line ?: return false
         val bot = BotRoster.byId(draft.opponentId) ?: return false
         val color = when (draft.side) {
             SideChoice.WHITE -> PieceColor.WHITE
@@ -483,16 +517,19 @@ class HomeViewModel(
         private val openings: suspend () -> OpeningTree,
         private val games: GameRepository,
         private val bots: BotRepository,
-        private val puzzleStats: Flow<PuzzleStats>,
+        private val activityDays: Flow<Set<LocalDate>>,
         private val store: ActiveGameStore,
         private val maia: MaiaSource? = null,
         private val learning: HomeLearning = HomeLearning(),
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            HomeViewModel(engine, openings, games, bots, puzzleStats, store, maia = maia, learning = learning) as T
+            HomeViewModel(engine, openings, games, bots, activityDays, store, maia = maia, learning = learning) as T
     }
 }
+
+/** The parts of Home that look back, gathered before they join the rest. */
+private data class HomeLookBack(val daily: DailyPreview?, val history: List<PuzzleHistoryEntry>, val lastGame: LastGame?, val days: Set<LocalDate>)
 
 /** The Continue card's lesson: the one Learn's own Continue card picks (started first, else the next new one). */
 internal fun nextLessonOf(library: LessonLibrary, progress: Map<String, LessonProgress>): NextLesson? {

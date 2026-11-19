@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -69,10 +71,8 @@ class PositionScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("Win").assertExists()
-        compose.onNodeWithText("White to move").assertExists()
-        compose.onNodeWithText("Promote the pawn").assertExists()
-        compose.onNodeWithText("1 of 5").assertExists()
+        compose.onNodeWithText("Win. Promote the pawn", substring = true).assertExists()
+        compose.onNodeWithText("White to move", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position.png")
         compose.onNodeWithText("Hint").performClick()
         assertEquals(true, hint)
@@ -87,9 +87,7 @@ class PositionScreensTest {
                 PositionRunScreen(slipped, AppSettings(), onFeedback = {}, onHint = {}, onRestart = {}, onGiveUp = {}, onNext = { next = true }, onBack = {})
             }
         }
-        compose.onNodeWithText("Only a draw").assertExists()
-        compose.onNodeWithText("3.Kd5 let it slip").assertExists()
-        compose.onNodeWithText("Back tomorrow. Kd6 was the move.").assertExists()
+        compose.onNodeWithText("Only a draw. 3.Kd5 let it slip. Kd6 was the move. It comes back at the end.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position_slipped_dark.png")
         compose.onNodeWithText("Next position").performClick()
         assertEquals(true, next)
@@ -103,8 +101,22 @@ class PositionScreensTest {
                 PositionRunScreen(won, AppSettings(), onFeedback = {}, onHint = {}, onRestart = {}, onGiveUp = {}, onNext = {}, onBack = {})
             }
         }
-        compose.onNodeWithText("Converted in 12 moves").assertExists()
-        compose.onNodeWithText("3 more to go").assertExists()
+        compose.onNodeWithText("Won. Converted in 12 moves. 3 more to go.").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/train_position_won.png")
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun gallerySets() {
+        val ui = sets.map { PositionSetUi(it, if (it.id == "king-pawn") 2 else 0) }
+        compose.shootBoth("train", "02_endgames") { PositionSetsScreen(PositionKind.ENDGAME, ui.filter { it.set.kind == PositionKind.ENDGAME }, BoardTheme(), onOpen = {}, onBack = {}) }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryRun() {
+        compose.shootBoth("train", "03_position", settle = { compose.mainClock.advanceTimeBy(com.chesstutor.app.feature.play.MIN_READ_MS) }) {
+            PositionRunScreen(runOf("king-pawn"), AppSettings(), onFeedback = {}, onHint = {}, onRestart = {}, onGiveUp = {}, onNext = {}, onBack = {})
+        }
     }
 }

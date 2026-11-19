@@ -61,15 +61,15 @@ class PuzzleModesScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("1200 to 1600").assertExists()
-        compose.onNodeWithText("You").assertExists()
+        // The range starts 200 either side of the player's rating (D95).
+        compose.onNodeWithText("1100 to 1500").assertExists()
+        compose.onNodeWithText("Yours: 1310").assertExists()
         compose.onNodeWithText("Pin").performScrollTo().performClick()
-        compose.onNodeWithText("1600").performClick()
-        compose.onNodeWithText("20").performClick()
-        compose.onNodeWithText("Timer").performClick()
+        compose.onNodeWithText("20").performScrollTo().performClick()
+        compose.onNodeWithText("Against the clock").performScrollTo().performClick()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_custom_run.png")
         compose.onNodeWithText("Start 20 puzzles").performClick()
-        assertEquals("${RatingBand.STRONG} pin 20 true", started)
+        assertEquals("1100..1500 pin 20 true", started)
     }
 
     @Test
@@ -87,7 +87,7 @@ class PuzzleModesScreenTest {
                     patternsFor = { patterns.getValue(it) },
                     actions = PuzzleModeActions(
                         onRush = { started += "rush $it" },
-                        onThemed = { goal, pattern, difficulty -> started += "theme $goal $pattern $difficulty" },
+                        onThemed = { goal, pattern, difficulty, _, _ -> started += "theme $goal $pattern $difficulty" },
                         onOpenCustom = { started += "custom" },
                         onMistakes = { started += "mistakes" },
                     ),
@@ -98,21 +98,21 @@ class PuzzleModesScreenTest {
             }
         }
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_modes.png")
-        compose.onNodeWithText("Best 24", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("12").assertExists()
+        // Each tile speaks as one: its name and its number (D95).
+        compose.onNodeWithContentDescription("Puzzles you missed, 12").assertExists()
 
         compose.onNodeWithContentDescription("3-minute rush, best 24").performClick()
         compose.onNodeWithContentDescription("Survival, three strikes").performClick()
 
-        compose.onNodeWithText("Checkmate").performClick()
+        compose.onNodeWithContentDescription("Checkmate").performClick()
         compose.onNodeWithText("Back-rank mate").performClick()
         compose.onNodeWithText("Harder").performClick()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/puzzle_modes_goal.png")
         compose.onNodeWithText("Start 10 puzzles").performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithText("Custom run").performScrollTo().performClick()
-        compose.onNodeWithText("Puzzles you missed").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Custom run").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Puzzles you missed, 12").performScrollTo().performClick()
 
         assertEquals(
             listOf(

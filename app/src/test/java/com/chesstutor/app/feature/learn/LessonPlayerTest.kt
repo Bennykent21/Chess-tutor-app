@@ -126,4 +126,20 @@ class LessonPlayerTest {
         settle()
         assertEquals("e2e4", p.board.state.value.lastMove?.uci)
     }
+
+    @Test
+    fun theLessonWaitsBehindItsVideoAndStartsFromTheTopAfter() = runTest {
+        // Auto-advance on, as in the app: the first step would move on by itself after reading time.
+        val p = LessonPlayer(course, lesson, InMemoryLessonProgressRepository(), backgroundScope, timing = timing.copy(autoAdvance = true))
+        p.start()
+        p.holdForVideo()
+        settle(20_000)
+        assertEquals("nothing moved on while the video showed", 0, p.state.value.stepIndex)
+        p.startAfterVideo()
+        settle()
+        assertEquals(0, p.state.value.stepIndex)
+        assertEquals("the first step plays again", "e2e4", p.board.state.value.lastMove?.uci)
+        settle(20_000)
+        assertTrue("after the video it moves on again", p.state.value.stepIndex > 0)
+    }
 }

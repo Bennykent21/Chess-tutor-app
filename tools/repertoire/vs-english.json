@@ -1,0 +1,10 @@
+{
+  "id": "vs-english",
+  "title": "Black against the English",
+  "side": "black",
+  "start": "c4",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {
+    "c4": "e5"
+  }
+}

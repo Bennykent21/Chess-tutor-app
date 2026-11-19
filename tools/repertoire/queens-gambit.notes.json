@@ -1,0 +1,333 @@
+{
+  "notes": [
+    {
+      "path": "d4 d5 c4",
+      "kind": "branch",
+      "text": "The Queen's Gambit offers the c4 pawn to pull Black's d5 pawn out of the centre. Black usually declines with 2...e6, and White adds pressure on d5 with 3.Nc3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "e6"
+          ],
+          "move": "Nc3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e6 Nc3",
+      "kind": "branch",
+      "text": "The Queen's Gambit Declined. White develops the knight to attack d5 and prepares Bg5 after 3...Nf6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nf6"
+          ],
+          "move": "Bg5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e6 Nc3 Nf6 Bg5",
+      "kind": "branch",
+      "text": "White pins the f6 knight that defends d5. After 4...Be7, White supports the centre with 5.e3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Be7"
+          ],
+          "move": "e3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 Nbd7",
+      "kind": "plan",
+      "text": "Black prepares ...c6 or ...dxc4. White activates the rook with 7.Rc1, eyeing the c-file.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Rc1",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e6 Nc3 Nf6 Bg5 Nbd7",
+      "kind": "plan",
+      "text": "Black unpins early and sets up the Elephant Trap if White grabs d5. White safely reinforces the centre with 5.e3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e6 Nc3 c6",
+      "kind": "plan",
+      "text": "Black steers towards the solid Semi-Slav triangle. White develops 4.Nf3 to guard d4 and prepare e3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e6 Nc3 c5",
+      "kind": "plan",
+      "text": "The Tarrasch Defence attacks d4 from the side. White captures 4.cxd5 so Black is left with an isolated d5 pawn.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "cxd5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e6 Nc3 c5 cxd5 exd5 Nf3 Nc6",
+      "kind": "plan",
+      "text": "Black's d5 pawn is isolated and has no neighbouring pawn to guard it. White fianchettoes with 6.g3 to target d5 along the long diagonal.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "g3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 c6",
+      "kind": "branch",
+      "text": "The Slav Defence supports d5 without blocking the c8 bishop. White develops 3.Nf3 first to stop ...e5 counterstrikes.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4",
+      "kind": "plan",
+      "text": "Black takes c4 and plans to hold it with ...b5. White plays 5.a4 to stop ...b5 completely.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "a4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5",
+      "kind": "plan",
+      "text": "Black gets the bishop out before closing the chain. White plays 6.e3 to recover the c4 pawn with Bxc4.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "e3",
+            "e6",
+            "Bxc4"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 c6 Nf3 Bf5",
+      "kind": "plan",
+      "text": "Bringing the bishop out too early leaves b7 undefended. White plays 4.cxd5 followed by Qb3 to attack both b7 and d5.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "cxd5",
+            "cxd5",
+            "Qb3"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 dxc4",
+      "kind": "branch",
+      "text": "The Queen's Gambit Accepted. Black gives up the centre, so White claims it immediately with 3.e4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 dxc4 e4 e5",
+      "kind": "plan",
+      "text": "Black tries to strike back in the centre before White settles. White develops 4.Nf3, eyeing e5 and preparing Bxc4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 dxc4 e4 Nf6",
+      "kind": "plan",
+      "text": "Black attacks e4 at once. White pushes 5.e5 to drive the knight away and win back c4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 dxc4 e4 b5",
+      "kind": "plan",
+      "text": "Trying to cling to the c4 pawn with ...b5 fails. White plays 4.a4 to break up Black's queenside pawns.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "a4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 dxc4 e4 c5",
+      "kind": "plan",
+      "text": "Black strikes at d4 from the flank. White pushes past with 4.d5 to gain space and keep c4 isolated.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 Nf6",
+      "kind": "plan",
+      "text": "The Marshall Defence lets White take over the centre. White trades 3.cxd5 and pushes 4.e4 after ...Nxd5.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "cxd5",
+            "Nxd5",
+            "e4"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 Nc6",
+      "kind": "plan",
+      "text": "The Chigorin Defence blocks Black's c-pawn. White develops 3.Nc3 to pressure d5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e5",
+      "kind": "plan",
+      "text": "The Albin Countergambit gives up a pawn for quick piece play. White takes 3.dxe5 and develops 4.Nf3 after 3...d4.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "dxe5",
+            "d4",
+            "Nf3"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 e5 dxe5 d4 Nf3 Nc6",
+      "kind": "plan",
+      "text": "White avoids tricks on the e-file and prepares to attack d4. Playing 6.g3 targets d4 with Bg2.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "g3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 c4 Bf5",
+      "kind": "plan",
+      "text": "The Baltic Defence brings the bishop out before ...e6. White trades 3.cxd5 and meets ...Bxb1 with Qa4+.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "cxd5",
+            "Bxb1",
+            "Qa4+"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    }
+  ]
+}

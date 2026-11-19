@@ -1,5 +1,6 @@
 package com.chesstutor.app.data.settings
 
+import com.chesstutor.app.audio.SoundPack
 import com.chesstutor.app.board.BoardColors
 import com.chesstutor.app.board.BoardTheme
 import com.chesstutor.app.board.PieceSet
@@ -34,10 +35,16 @@ enum class ReviewDepth(val label: String, val detail: String, val depth: Int, va
  */
 data class AppSettings(
     val soundEnabled: Boolean = true,
+    /** Always a known [SoundPack.id] once decoded (D108). */
+    val soundPackId: String = SoundPack.DEFAULT.id,
     val hapticsEnabled: Boolean = true,
     val showCoordinates: Boolean = true,
     val showLegalDots: Boolean = true,
     val reduceMotion: Boolean = false,
+    /** Frosted glass across the app (D106): parked in D109 and not offered; kept so a later frosted look can return. */
+    val glass: Boolean = false,
+    /** Review the five newest games in the background (D93, D107). */
+    val autoReview: Boolean = true,
     val autoQueen: Boolean = false,
     val boardOrientation: BoardOrientation = BoardOrientation.FOLLOW_SIDE,
     /** Always a known [BoardColors.id] once decoded. */
@@ -68,6 +75,8 @@ data class AppSettings(
 ) {
     val mascot: Mascot get() = Mascot.fromId(mascotId)
 
+    val soundPack: SoundPack get() = SoundPack.fromId(soundPackId)
+
     val picture: PlayerPicture get() = PlayerPicture.decode(playerPicture)
 
     /** Choosing an app theme brings its board; Board and pieces can then pick another. */
@@ -88,10 +97,13 @@ data class AppSettings(
  */
 object AppSettingsCodec {
     const val SOUND = "sound_enabled"
+    const val SOUND_PACK = "sound_pack"
     const val HAPTICS = "haptics_enabled"
     const val COORDINATES = "show_coordinates"
     const val LEGAL_DOTS = "show_legal_dots"
     const val REDUCE_MOTION = "reduce_motion"
+    const val GLASS = "glass_look"
+    const val AUTO_REVIEW = "auto_review"
     const val AUTO_QUEEN = "auto_queen"
     const val ORIENTATION = "board_orientation"
     const val BOARD_THEME = "board_theme_id"
@@ -117,10 +129,13 @@ object AppSettingsCodec {
             ?: defaults.boardOrientation
         return AppSettings(
             soundEnabled = bool(SOUND, defaults.soundEnabled),
+            soundPackId = SoundPack.fromId(values[SOUND_PACK] as? String).id,
             hapticsEnabled = bool(HAPTICS, defaults.hapticsEnabled),
             showCoordinates = bool(COORDINATES, defaults.showCoordinates),
             showLegalDots = bool(LEGAL_DOTS, defaults.showLegalDots),
             reduceMotion = bool(REDUCE_MOTION, defaults.reduceMotion),
+            glass = bool(GLASS, defaults.glass),
+            autoReview = bool(AUTO_REVIEW, defaults.autoReview),
             autoQueen = bool(AUTO_QUEEN, defaults.autoQueen),
             boardOrientation = orientation,
             boardThemeId = BoardColors.fromId(values[BOARD_THEME] as? String).id,
@@ -143,10 +158,13 @@ object AppSettingsCodec {
     /** Booleans and strings only, so every value maps onto a DataStore key type. */
     fun encode(settings: AppSettings): Map<String, Any> = linkedMapOf(
         SOUND to settings.soundEnabled,
+        SOUND_PACK to settings.soundPackId,
         HAPTICS to settings.hapticsEnabled,
         COORDINATES to settings.showCoordinates,
         LEGAL_DOTS to settings.showLegalDots,
         REDUCE_MOTION to settings.reduceMotion,
+        GLASS to settings.glass,
+        AUTO_REVIEW to settings.autoReview,
         AUTO_QUEEN to settings.autoQueen,
         ORIENTATION to settings.boardOrientation.name,
         BOARD_THEME to settings.boardThemeId,

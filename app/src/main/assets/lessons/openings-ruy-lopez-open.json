@@ -1,0 +1,222 @@
+{
+  "id": "openings-ruy-lopez-open",
+  "category": "openings",
+  "title": "Open Ruy Lopez",
+  "intro": "Black takes on e4 with 5...Nxe4. Strike in the centre with 6.d4, push 8.dxe5 against ...d5, and answer 6...exd4 with Re1.",
+  "level": "intermediate",
+  "order": 32,
+  "side": "white",
+  "opening": "ruy-lopez",
+  "variation": "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f6e4",
+  "battleLine": "Ruy Lopez: Open",
+  "lessons": [
+    {
+      "id": "openings-ruy-lopez-open-main",
+      "title": "The Open main line",
+      "summary": "Open the centre with 6.d4 and drive Black back with 8.dxe5.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkb1r/1ppp1ppp/p1n5/4p3/B3n3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 6",
+          "text": "In the Open Variation, Black captures the e4 pawn with 5...Nxe4. Black's king is still in the middle, so White opens the centre at once."
+        },
+        {
+          "type": "play",
+          "text": "Strike in the centre.",
+          "expect": [
+            "d2d4"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 6.d4 to open lines against Black's uncastled king.",
+          "ifRight": "White threatens Re1 and dxe5.",
+          "feedback": {
+            "f1e1": "6.Re1 lets Black reply 6...Nc5 7.Bxc6 dxc6 and trade off your bishop."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black drives the bishop away with 6...b5.",
+          "move": "b7b5"
+        },
+        {
+          "type": "play",
+          "text": "Keep the bishop on the a2-g8 diagonal.",
+          "expect": [
+            "a4b3"
+          ],
+          "hint": "Retreat to b3.",
+          "ifWrong": "Play 7.Bb3.",
+          "ifRight": "From b3 the bishop eyes d5 and f7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black supports the e4 knight with 7...d5.",
+          "move": "d7d5"
+        },
+        {
+          "type": "play",
+          "text": "Open the e-file and drive Black's pieces back.",
+          "expect": [
+            "d4e5"
+          ],
+          "hint": "Capture on e5 with your d-pawn.",
+          "ifWrong": "Play 8.dxe5 to claim the d4 square and attack d5.",
+          "ifRight": "Notice how d5 is now vulnerable and your pieces have open lines.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r2qkb1r/2p2ppp/p1n1b3/1p1pP3/4n3/1B3N2/PPP2PPP/RNBQ1RK1 w kq - 1 9",
+          "text": "Black defends d5 with 8...Be6. Play the main move to reinforce d4 and keep the queenside flexible.",
+          "expect": [
+            "c2c3",
+            "b1d2",
+            "c1e3"
+          ],
+          "hint": "Push the c-pawn one square to prepare Bc2 and Nbd2.",
+          "ifWrong": "Play 9.c3 (or 9.Nbd2 or 9.Be3): c3 prepares Bc2 and guards d4.",
+          "ifRight": "Next come Nbd2, Bc2 and Re1, pressuring Black's centre.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-open-exd4",
+      "title": "Punishing 6...exd4",
+      "summary": "Pin the knight along the e-file with 7.Re1.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkb1r/1ppp1ppp/p1n5/4p3/B2Pn3/5N2/PPP2PPP/RNBQ1RK1 b kq - 0 6",
+          "text": "A common club mistake is 6...exd4, opening the e-file while Black's king is still on e8.",
+          "move": "e5d4"
+        },
+        {
+          "type": "play",
+          "text": "Pin the e4 knight to the king at once.",
+          "expect": [
+            "f1e1"
+          ],
+          "hint": "Put your rook on e1.",
+          "ifWrong": "Play 7.Re1 to pin the knight and win material or the initiative.",
+          "ifRight": "Black must protect the pinned knight immediately.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black defends the knight with 7...d5.",
+          "move": "d7d5"
+        },
+        {
+          "type": "play",
+          "text": "Win back the d4 pawn and attack the pinned c6 knight.",
+          "expect": [
+            "f3d4"
+          ],
+          "hint": "Capture on d4 with your knight.",
+          "ifWrong": "Play 8.Nxd4: now c6 is attacked twice and pinned to the king.",
+          "ifRight": "White has a crushing attack down the e-file and along the a4-e8 diagonal.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r2qkb1r/1ppb1ppp/p1n5/3p4/B2Nn3/8/PPP2PPP/RNBQR1K1 w kq - 1 9",
+          "text": "Black unpins with 8...Bd7. Win a piece or pile up pressure with a sharp capture.",
+          "expect": [
+            "a4c6",
+            "d4c6",
+            "f2f3",
+            "b1c3"
+          ],
+          "hint": "The c6 knight and the e4 knight are both pinned. Take on c6 or hit e4 with f3.",
+          "ifWrong": "Play 9.Bxc6 (or 9.Nxc6 or 9.f3): Black's pinned pieces cannot hold everything.",
+          "ifRight": "White wins material while Black's king is stuck on e8.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkb1r/1ppp2pp/p1n5/5p2/B2pn3/5N2/PPP2PPP/RNBQR1K1 w kq - 0 8",
+          "text": "What if Black tries 7...f5 to hold the knight on e4?",
+          "expect": [
+            "f3d4",
+            "c1g5"
+          ],
+          "hint": "Capture on d4 with the knight, piling up on c6 and f5.",
+          "ifWrong": "Play 8.Nxd4 to attack c6 and f5 while Black's king is stuck on e8.",
+          "ifRight": "White's pieces swarm in after 8.Nxd4.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-open-plans",
+      "title": "Pressing the Open Ruy Lopez",
+      "summary": "Challenge e4 with Nbd2 and tuck the bishop on c2.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r2qk2r/2p1bppp/p1n1b3/1p1pP3/4n3/1BP2N2/PP3PPP/RNBQ1RK1 w kq - 1 10",
+          "text": "In the Open Ruy Lopez, Black's queenside pawns on a6 and b5 are pushed forward and can be weak, while the e4 knight can be challenged."
+        },
+        {
+          "type": "play",
+          "text": "Finish developing your queenside and prepare to challenge e4.",
+          "expect": [
+            "b1d2"
+          ],
+          "hint": "Develop the b1 knight to d2.",
+          "ifWrong": "Play 10.Nbd2 to challenge the active e4 knight and connect your rooks.",
+          "ifRight": "If Black trades on d2, Bxd2 keeps your pieces active.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black castles: 10...O-O.",
+          "move": "e8g8"
+        },
+        {
+          "type": "play",
+          "text": "Step the Spanish bishop out of the way of ...Nc5 and ...Na5.",
+          "expect": [
+            "b3c2"
+          ],
+          "hint": "Tuck the bishop back to c2.",
+          "ifWrong": "Play 11.Bc2 so the bishop eyes e4 and h7 and stays safe from ...Nc5.",
+          "ifRight": "White pressures e4 and prepares Qe2 or Nb3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r2q1rk1/2p1bppp/p1n1b3/1pnpP3/8/2P2N2/PPBN1PPP/R1BQ1RK1 w - - 5 12",
+          "text": "Black steps back with 11...Nc5 to avoid trades. Fight for the strong d4 outpost.",
+          "expect": [
+            "d2b3",
+            "f3d4"
+          ],
+          "hint": "Move one of your knights to b3 or d4.",
+          "ifWrong": "Play 12.Nb3 (or 12.Nd4) to control the dark squares in front of Black's pawns.",
+          "ifRight": "White controls c5 and d4 with a strong positional bind.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r2q1rk1/2p1bppp/p1n1b3/1p1pP3/8/2P2N2/PPBn1PPP/R1BQ1RK1 w - - 0 12",
+          "text": "What if Black trades knights with 11...Nxd2?",
+          "expect": [
+            "c1d2",
+            "d1d2"
+          ],
+          "hint": "Recapture with the bishop or queen, aiming towards h7.",
+          "ifWrong": "Play 12.Bxd2 (or 12.Qxd2): both keep your attack on the kingside alive.",
+          "ifRight": "White prepares Qd3, threatening kingside pressure.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

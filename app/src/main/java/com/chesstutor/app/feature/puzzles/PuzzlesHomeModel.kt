@@ -41,14 +41,4 @@ object PuzzlesHomeModel {
     fun sway(level: Int): Float = SWAY[(level - 1) % SWAY.size]
 
     private val SWAY = floatArrayOf(0f, 0.55f, 0.85f, 0.55f, 0f, -0.55f, -0.85f, -0.55f)
-
-    /** The coach's line on the home screen: short and encouraging (plan section 6.3.1). */
-    fun coachLine(stats: PuzzleStats, currentLevel: Int, solvedToday: Boolean): String = when {
-        stats.solved == 0 -> "Welcome! Let's start with level 1. Five puzzles, and you only need four."
-        stats.dayStreak >= 2 && !solvedToday -> "Your ${stats.dayStreak}-day streak is waiting. One puzzle keeps it going!"
-        stats.dayStreak >= 2 -> "Day ${stats.dayStreak} in a row. You're on fire!"
-        stats.cleanStreak >= 3 -> "${stats.cleanStreak} clean solves in a row. Keep that focus!"
-        currentLevel % PuzzleLevels.PER_WORLD == 0 -> "Level $currentLevel finishes the ${PuzzleWorld.of(currentLevel).title}. You can do it!"
-        else -> "Ready for level $currentLevel?"
-    }
 }

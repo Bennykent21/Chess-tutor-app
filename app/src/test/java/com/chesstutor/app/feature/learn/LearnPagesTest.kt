@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -103,6 +105,9 @@ class LearnPagesTest {
         compose.onNodeWithText("Both sides").performClick()
         compose.onNodeWithText("Black").performClick()
         compose.onNodeWithText("Italian Game").assertDoesNotExist()
+        // The Caro-Kann is an intermediate course: it waits on its tier (D96).
+        compose.onNodeWithText("Caro-Kann").assertDoesNotExist()
+        compose.onNodeWithText("Intermediate").performClick()
         compose.onNodeWithText("Caro-Kann").assertExists()
         compose.onNodeWithText("Black").performClick()
         compose.onNodeWithText("Both sides").performClick()
@@ -149,5 +154,30 @@ class LearnPagesTest {
         }
         compose.onNodeWithText("Play again").performClick()
         assertEquals(checkAndMate.lessons.first().id, opened)
+    }
+
+    /** The visual pass (Phase 14B): the hub, a category and a course at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryHub() = compose.shootBoth("learn", "01_learn") { LearnScreen(learn = learn, actions = LearnHubActions(onOpenCategory = {}, onOpenLesson = {})) }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryCategory() = compose.shootBoth("learn", "02_category") { LearnCategoryScreen(LessonCategory.OPENINGS, learn, onOpenCourse = {}, onBack = {}) }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryCourse() = compose.shootBoth("learn", "05_course") {
+        CourseScreen(course = checkAndMate, progress = learn.progress, onOpenLesson = {}, onBack = {}, onRelatedPuzzles = {}, onPracticeSet = {})
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlassHub() = compose.shootBoth("glass", "01_learn", glass = true) { LearnScreen(learn = learn, actions = LearnHubActions(onOpenCategory = {}, onOpenLesson = {})) }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlassCourse() = compose.shootBoth("glass", "02_course", glass = true) {
+        CourseScreen(course = checkAndMate, progress = learn.progress, onOpenLesson = {}, onBack = {}, onRelatedPuzzles = {}, onPracticeSet = {})
     }
 }

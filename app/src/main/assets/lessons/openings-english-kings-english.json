@@ -1,0 +1,215 @@
+{
+  "id": "openings-english-kings-english",
+  "category": "openings",
+  "title": "King's English (1...e5)",
+  "intro": "1...e5 creates a Reversed Sicilian. Fianchetto with g3 and Bg2, trade off ...d5, or expand on the queenside against ...Nc6.",
+  "level": "intermediate",
+  "order": 56,
+  "side": "white",
+  "opening": "english",
+  "variation": "c2c4 e7e5",
+  "battleLine": "English Opening: King's English Variation",
+  "lessons": [
+    {
+      "id": "openings-english-kings-english-d5",
+      "title": "Meeting 3...d5",
+      "summary": "Trade on d5 and hit Black's knight with Bg2.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "Against 1...e5, White meets Black's central control with 2.Nc3 and 3.g3."
+        },
+        {
+          "type": "play",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "Play the King's English opening moves against 1...e5 and 2...Nf6.",
+          "line": [
+            "c2c4",
+            "e7e5",
+            "b1c3",
+            "g8f6",
+            "g2g3"
+          ],
+          "hint": "c4, Nc3, then prepare Bg2 with g3.",
+          "ifWrong": "Play c4, Nc3 and g3.",
+          "ifRight": "The bishop is ready for g2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black strikes in the centre at once with 3...d5.",
+          "move": "d7d5"
+        },
+        {
+          "type": "play",
+          "text": "Swap your flank pawn for Black's central d-pawn.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5 with the c-pawn.",
+          "ifWrong": "Play 4.cxd5 so you keep two central pawns to Black's one.",
+          "ifRight": "Black will recapture with the knight.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black takes back with 4...Nxd5.",
+          "move": "f6d5"
+        },
+        {
+          "type": "play",
+          "text": "Put your bishop on the long diagonal, hitting the knight on d5.",
+          "expect": [
+            "f1g2"
+          ],
+          "hint": "Fianchetto the light-squared bishop.",
+          "ifWrong": "Play 5.Bg2 to pressure d5 and the queenside.",
+          "ifRight": "Now White develops Nf3, O-O and d3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/ppp2ppp/1n6/4p3/8/2N3P1/PP1PPPBP/R1BQK1NR w KQkq - 2 6",
+          "text": "Black retreats with 5...Nb6. Continue developing.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Develop the king's knight and attack e5.",
+          "ifWrong": "Play 6.Nf3 to develop and pressure e5.",
+          "ifRight": "Next come O-O and d3, with a smooth position.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-kings-english-nc6",
+      "title": "Meeting 2...Nc6",
+      "summary": "Build a solid Botvinnik-style structure with g3, Bg2 and d3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppp1ppp/8/4p3/2P5/2N5/PP1PPPPP/R1BQKBNR b KQkq - 1 2",
+          "text": "Black often develops the queen's knight with 2...Nc6 to guard e5 and stop d4.",
+          "move": "b8c6"
+        },
+        {
+          "type": "play",
+          "text": "Prepare your kingside fianchetto.",
+          "expect": [
+            "g2g3"
+          ],
+          "hint": "Push the g-pawn one square.",
+          "ifWrong": "Play 3.g3.",
+          "ifRight": "White will put the bishop on g2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black mirrors your plan with 3...g6.",
+          "move": "g7g6"
+        },
+        {
+          "type": "play",
+          "text": "Place your bishop on the long diagonal.",
+          "expect": [
+            "f1g2"
+          ],
+          "hint": "Move the f1 bishop to g2.",
+          "ifWrong": "Play 4.Bg2.",
+          "ifRight": "The bishop controls d5 and the long diagonal.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black completes the fianchetto with 4...Bg7.",
+          "move": "f8g7"
+        },
+        {
+          "type": "play",
+          "text": "Control e4 and open a diagonal for your dark-squared bishop.",
+          "expect": [
+            "d2d3"
+          ],
+          "hint": "Push the d-pawn one square.",
+          "ifWrong": "Play 5.d3 to stop ...e4 and support your dark squares.",
+          "ifRight": "White is ready for Nf3, O-O and Rb1.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk1nr/ppp2pbp/2np2p1/4p3/2P5/2NP2P1/PP2PPBP/R1BQK1NR w KQkq - 0 6",
+          "text": "Black plays 5...d6. Choose a flexible developing move.",
+          "expect": [
+            "g1f3",
+            "e2e4",
+            "a1b1"
+          ],
+          "hint": "Develop the king's knight to f3.",
+          "ifWrong": "Play 6.Nf3 (or 6.e4 or 6.Rb1) to prepare castling and queenside play.",
+          "ifRight": "Then O-O, Rb1 and b4 give White strong queenside play.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-kings-english-bb4",
+      "title": "Meeting 3...Bb4",
+      "summary": "Develop Bg2 and Nf3 calmly, and meet ...e4 with Nd4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/pppp1ppp/5n2/4p3/2P5/2N3P1/PP1PPP1P/R1BQKBNR b KQkq - 0 3",
+          "text": "Instead of 3...d5, Black can pin the c3 knight with 3...Bb4.",
+          "move": "f8b4"
+        },
+        {
+          "type": "play",
+          "text": "Keep developing and protect your queenside.",
+          "expect": [
+            "f1g2"
+          ],
+          "hint": "Finish the fianchetto.",
+          "ifWrong": "Play 4.Bg2: if Black takes on c3, bxc3 strengthens your centre.",
+          "ifRight": "The bishop sits safely on g2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black castles: 4...O-O.",
+          "move": "e8g8"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight and attack e5.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Put the knight on f3.",
+          "ifWrong": "Play 5.Nf3.",
+          "ifRight": "White is ready to castle and play d4 or Nd5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black pushes 5...e4 to chase your knight.",
+          "move": "e5e4"
+        },
+        {
+          "type": "play",
+          "text": "Jump forward to an active central square.",
+          "expect": [
+            "f3d4"
+          ],
+          "hint": "Put the knight on d4.",
+          "ifWrong": "Play 6.Nd4: the knight is well placed and e4 can be attacked later.",
+          "ifRight": "Next come O-O and d3 or Nc2, with a pleasant edge.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

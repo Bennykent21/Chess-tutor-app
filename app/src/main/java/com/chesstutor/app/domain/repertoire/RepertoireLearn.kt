@@ -107,6 +107,17 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
         private set
     private var hinted = false
     private val missed = HashSet<String>()
+
+    /** A slip, "Show me" or a hint in this play-back pass: the line is played again from the top (D102). */
+    private var helpedThisPass = false
+    private val missedThisPass = HashSet<String>()
+
+    /** How often the play-back pass started again because the last one needed help. */
+    var restarts: Int = 0
+        private set
+
+    /** The new cards missed in this pass, for the red dots. */
+    val missedNow: Set<String> get() = missedThisPass
     private val results = LinkedHashMap<String, Pair<CardState, CardReview>>()
 
     val book: RepertoireBook get() = index.book
@@ -154,6 +165,8 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
             CardAnswer.ALSO -> LearnMoveResult.ALSO
             CardAnswer.WRONG -> {
                 if (isNewCard) missed += card.key
+                missedThisPass += card.key
+                helpedThisPass = true
                 shown = expected
                 LearnMoveResult.WRONG
             }
@@ -164,6 +177,8 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
     fun showAnswer(): String? {
         if (!isOwnTurn) return null
         if (isNewCard) missed += node!!.key
+        missedThisPass += node!!.key
+        helpedThisPass = true
         return segment.moves[ply].also { shown = it }
     }
 
@@ -171,6 +186,7 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
     fun hint(): String? {
         if (!isOwnTurn) return null
         if (isNewCard) hinted = true
+        helpedThisPass = true
         return segment.moves[ply].substring(0, 2)
     }
 
@@ -182,6 +198,8 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
     }
 
     private fun record(card: RepertoireNode, right: Boolean) {
+        // Only the first play-back counts for the schedule; later passes are practice.
+        if (card.key in results) return
         val fresh = RepertoireCards.introduce(book.id, card, now())
         results[card.key] = RepertoireCards.afterRecall(fresh, right, hinted, now())
         hinted = false
@@ -199,7 +217,17 @@ class LearnRun(val index: RepertoireIndex, val segment: LearnSegment, private va
         ply++
         shown = null
         if (ply >= segment.moves.size) {
-            if (pass == Pass.WATCH) startRecall() else pass = Pass.DONE
+            when {
+                pass == Pass.WATCH -> startRecall()
+                helpedThisPass -> {
+                    // Played with help: once more from the top, from memory alone.
+                    restarts++
+                    helpedThisPass = false
+                    missedThisPass.clear()
+                    startRecall()
+                }
+                else -> pass = Pass.DONE
+            }
         }
     }
 }

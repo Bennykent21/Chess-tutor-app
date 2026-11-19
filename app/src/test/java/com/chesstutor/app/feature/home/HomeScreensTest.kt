@@ -163,32 +163,18 @@ class HomeScreensTest {
     }
 
     @Test
-    fun theBotsPageListsEveryBotYourOwnAndBuildAndWatch() {
+    fun theBotsPageListsEveryBotAndBuildABot() {
         var opened: String? = null
         var built = false
-        var watched = false
-        var friend = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
-                BotsScreen(
-                    roster = BotRoster.bots,
-                    myBots = emptyList(),
-                    onOpenBot = { opened = it },
-                    onNewBot = { built = true },
-                    onWatch = { watched = true },
-                    onPlayFriend = { friend = true },
-                    onBack = {},
-                )
+                BotsScreen(roster = BotRoster.bots, myBots = emptyList(), onOpenBot = { opened = it }, onNewBot = { built = true }, onBack = {})
             }
         }
         compose.onNodeWithText("My bots").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/Bots.png")
         compose.onNodeWithText("Build a bot").performClick()
         assertTrue(built)
-        compose.onNodeWithText("Watch two").performClick()
-        assertTrue(watched)
-        compose.onNodeWithText("Play a friend").performClick()
-        assertTrue(friend)
         compose.onNodeWithText("Pebble").performScrollTo().performClick()
         assertEquals("pebble", opened)
     }
@@ -204,6 +190,7 @@ class HomeScreensTest {
         compose.onNodeWithText("Have a pawn, on me. It gets wild from here.").assertExists()
         // The first "Black" is the side to play; the second labels its openings as Black.
         compose.onAllNodesWithText("Black")[0].performClick()
+        compose.onNodeWithText("Time control").performClick()
         compose.onNodeWithText("10 min").performClick()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/BotSetup.png")
         compose.onNode(hasText("Play")).performClick()
@@ -231,7 +218,7 @@ class HomeScreensTest {
         game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e2e4" })
         step(5_000)
         compose.onNodeWithText("Scandinavian Defense, in book").assertExists()
-        compose.onNodeWithText("vs Wayne").assertExists()
+        compose.onNodeWithText("vs Wayne · 600").assertExists()
         // Take the pawn: the captured pieces and the lead appear by the players.
         game.session.onMove(LegalMoveGenerator.generateLegalMoves(game.session.game.position).first { it.uci == "e4d5" })
         compose.waitForIdle()
@@ -342,7 +329,7 @@ class HomeScreensTest {
                 BattleSetupScreen(draft = draft, onChange = { draft = it(draft) }, onPickOpening = {}, onStart = { started = true }, onBack = {})
             }
         }
-        compose.onNodeWithText("Choose an opening").assertExists()
+        compose.onNodeWithText("Choose openings").assertExists()
         compose.onNodeWithText("Start").assertIsNotEnabled()
         draft = draft.copy(line = tree.openings.first { it.name == "Sicilian Defense: Najdorf Variation" })
         compose.onNodeWithText("Drill it").performClick()

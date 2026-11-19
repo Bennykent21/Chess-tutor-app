@@ -40,26 +40,15 @@ fun BotsScreen(
     myBots: List<CustomBot>,
     onOpenBot: (String) -> Unit,
     onNewBot: () -> Unit,
-    onWatch: () -> Unit,
-    onPlayFriend: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtTopBar(title = "Play", onBack = onBack)
+            CtTopBar(title = "Bots", onBack = onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    CtButton(text = "Build a bot", icon = Icons.Rounded.Add, onClick = onNewBot, modifier = Modifier.weight(1f))
-                    CtButton(text = "Watch two", icon = Icons.Rounded.Visibility, style = CtButtonStyle.Secondary, onClick = onWatch, modifier = Modifier.weight(1f))
-                }
-                CtArtTile(
-                    title = "Play a friend",
-                    scene = CtScene.FRIEND,
-                    subtitle = "This phone or nearby",
-                    onClick = onPlayFriend,
-                    modifier = Modifier.fillMaxWidth().height(112.dp).padding(top = 10.dp),
-                )
+                // Watching and friends moved to the Play page (D92); here, only bots.
+                CtButton(text = "Build a bot", icon = Icons.Rounded.Add, style = CtButtonStyle.Secondary, onClick = onNewBot, modifier = Modifier.fillMaxWidth())
                 if (myBots.isNotEmpty()) {
                     CtSectionHeader(title = "My bots")
                     BotGrid(myBots.map { it.asRosterBot() }, onOpenBot)

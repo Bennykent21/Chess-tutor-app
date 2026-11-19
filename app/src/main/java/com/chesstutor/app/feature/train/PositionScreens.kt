@@ -1,5 +1,10 @@
 package com.chesstutor.app.feature.train
 
+import com.chesstutor.app.design.CtTopBar
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
+import com.chesstutor.app.design.CtMascotArt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -69,9 +74,8 @@ fun PositionSetsScreen(
 ) {
     CtScreenBackground(modifier) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            CtBackBar(onBack = onBack)
+            CtTopBar(title = if (kind == PositionKind.ENDGAME) "Endgames" else "Middlegames", onBack = onBack)
             Column(Modifier.padding(horizontal = CtSpacing.gutter), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-                Text(if (kind == PositionKind.ENDGAME) "Endgames" else "Middlegames", style = CtType.Display)
                 Column {
                     sets.forEach { ui -> SetRow(ui, theme, onClick = { onOpen(ui.set.id) }) }
                 }
@@ -124,11 +128,11 @@ fun PositionRunScreen(
         title = run.set.title,
         onBack = onBack,
         modifier = modifier,
+        // The talking coach, as in games, puzzles and Learn drills (D97); the run's dots go under the board.
         zone = {
-            Column(Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-                QueueDots(run)
-                RunWords(run)
-            }
+            val line = coachLine(run)
+            val talk = rememberTalk(listOf(TalkLine("${run.index}:${run.end}:$line".hashCode(), line)), key = run.set.title)
+            Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp) }, lines = talk)
         },
         board = {
             BoardHost(
@@ -147,13 +151,16 @@ fun PositionRunScreen(
             )
         },
         under = {
-            Text(
-                underOf(run),
-                style = CtType.Caption.copy(color = CtColors.Text2),
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter).padding(top = CtSpacing.sm),
-            )
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly, horizontalAlignment = Alignment.CenterHorizontally) {
+                QueueDots(run)
+                if (!run.ended) {
+                    Text(
+                        (if (run.side == PieceColor.WHITE) "White to move" else "Black to move") + if (run.thinking && run.learnerMoves > 0) " · Stockfish is thinking" else "",
+                        style = CtType.Caption.copy(color = CtColors.Text2),
+                        maxLines = 1,
+                    )
+                }
+            }
         },
         controls = {
             if (run.ended) {
@@ -169,39 +176,26 @@ fun PositionRunScreen(
     )
 }
 
-/** A dot per position of this run, and "3 of 12". */
+/** A dot per position of this run, centred (D102): green won without help, red slipped or helped, the current one darker. */
 @Composable
 private fun QueueDots(run: PositionRunUi) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            run.queue.indices.take(MAX_DOTS).forEach { i ->
-                val color = when {
-                    i < run.index -> CtColors.Success
-                    i == run.index -> CtColors.Text2
-                    else -> CtColors.Track
-                }
-                Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+        run.queue.indices.take(MAX_DOTS).forEach { i ->
+            val color = when {
+                i < run.results.size -> if (run.results[i]) CtColors.Success else CtColors.Error
+                i == run.index -> CtColors.Text2
+                else -> CtColors.Track
             }
+            Box(Modifier.size(8.dp).clip(CtShapes.Pill).background(color))
         }
-        Text("${run.index + 1} of ${run.queue.size}", style = CtType.Caption.copy(color = CtColors.Text2))
     }
 }
 
-/** The goal in one word while playing; how it ended, with a chip, once over. */
-@Composable
-private fun RunWords(run: PositionRunUi) {
-    Column(Modifier.fillMaxWidth().heightIn(min = 88.dp), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm, Alignment.Bottom)) {
-        val (word, chip, good) = wordsOf(run)
-        Text(word, style = CtType.Display)
-        Row(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-            if (run.ended) {
-                chip?.let { CtChip(it, color = if (good) CtColors.Success else CtColors.Error) }
-            } else {
-                CtChip(if (run.side == PieceColor.WHITE) "White to move" else "Black to move")
-                CtChip(if (run.thinking && run.learnerMoves > 0) "Stockfish is thinking" else "Stockfish defends")
-            }
-        }
-    }
+/** What the coach says (D97): the goal and the aim while playing; how it went once over. */
+private fun coachLine(run: PositionRunUi): String {
+    val (word, chip, _) = wordsOf(run)
+    val rest = if (run.ended) listOfNotNull(chip, underOf(run)) else listOf(run.position.aim)
+    return (listOf(word) + rest).filter { it.isNotBlank() }.joinToString(". ") { it.trimEnd('.') } + "."
 }
 
 private fun wordsOf(run: PositionRunUi): Triple<String, String?, Boolean> {
@@ -228,7 +222,8 @@ private fun wordsOf(run: PositionRunUi): Triple<String, String?, Boolean> {
 private fun underOf(run: PositionRunUi): String = when {
     !run.ended -> run.position.aim
     run.outcome == PositionOutcome.SLIPPED ->
-        "Back tomorrow." + (run.better?.let { " $it was the move." } ?: "")
+        (run.better?.let { "$it was the move. " } ?: "") + "It comes back at the end."
+    run.comesBack -> "With a hint, so it comes back at the end, without one."
     run.next != null -> "${run.queue.size - run.index - 1} more to go"
     else -> "Set done"
 }

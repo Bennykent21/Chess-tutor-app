@@ -44,11 +44,12 @@ fun CapturedPieces(
 ) {
     if (taken.isEmpty() && lead == null) return
     val groups = taken.groupBy { it }.toList()
-    // A light pill, so black pieces stay visible on the dark screen (and white ones keep their outline).
+    // The taker's own colour (D92): black pieces on white, white pieces on black, as the clocks are, in every theme.
+    val takerIsWhite = color == PieceColor.BLACK
     Row(
         modifier = modifier
             .clip(CtShapes.Pill)
-            .background(CtColors.Text)
+            .background(if (takerIsWhite) SideTones.White else SideTones.Black)
             .padding(horizontal = CtSpacing.sm, vertical = 1.dp)
             .height(size)
             .semantics { contentDescription = describe(taken, lead) },
@@ -68,7 +69,7 @@ fun CapturedPieces(
                 }
             }
         }
-        if (lead != null) Text("+$lead", style = CtType.Label.copy(color = CtColors.BgDeep))
+        if (lead != null) Text("+$lead", style = CtType.Label.copy(color = if (takerIsWhite) SideTones.OnWhite else SideTones.OnBlack))
     }
 }
 

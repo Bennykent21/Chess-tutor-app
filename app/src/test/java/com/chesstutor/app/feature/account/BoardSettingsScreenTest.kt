@@ -1,5 +1,7 @@
 package com.chesstutor.app.feature.account
 
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -82,5 +84,11 @@ class BoardSettingsScreenTest {
         compose.onNode(hasText("Coordinates") and isSwitch).assertIsOff()
         // Sound, vibration and reduce motion are in Settings only.
         compose.onNode(hasText("Reduce motion")).assertDoesNotExist()
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun gallery() {
+        compose.shootBoth("account", "08_board") { BoardSettingsScreen(settings = AppSettings(), actions = BoardSettingsActions({}, {}, {}, {}, {}, {}), onBack = {}) }
     }
 }

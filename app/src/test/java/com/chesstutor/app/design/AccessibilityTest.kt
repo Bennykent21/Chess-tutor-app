@@ -120,10 +120,10 @@ class AccessibilityTest {
         PuzzlesHomeScreen(PuzzlesHomeState(loading = false, stats = PuzzleStats()), 0, onPlayLevel = {}, onOpenModes = {}, onReviewMistakes = {})
     }
 
-    @Test fun puzzleModes() = check("Puzzle modes") { PuzzleModesScreen(patternsFor = { emptyList() }, actions = PuzzleModeActions({}, { _, _, _ -> }, {}, {}), onBack = {}) }
+    @Test fun puzzleModes() = check("Puzzle modes") { PuzzleModesScreen(patternsFor = { emptyList() }, actions = PuzzleModeActions({}, { _, _, _, _, _ -> }, {}, {}), onBack = {}) }
 
     @Test fun account() = check("Account") {
-        AccountScreen(state = AppUiState(), games = GamesState(loading = false), stats = PuzzleStats(), actions = AccountActions())
+        AccountScreen(state = AppUiState(), games = GamesState(loading = false), stats = PuzzleStats(), dayStreak = 0, actions = AccountActions())
     }
 
     @Test fun settings() = check("Settings") { SettingsScreen(state = AppUiState(), accountActions = AccountActions(), actions = SettingsActions(supportUrl = "")) }

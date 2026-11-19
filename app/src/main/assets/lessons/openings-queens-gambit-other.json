@@ -1,0 +1,207 @@
+{
+  "id": "openings-queens-gambit-other",
+  "category": "openings",
+  "title": "Marshall, Chigorin, Albin & Baltic",
+  "intro": "Refute 2...Nf6 with cxd5 and e4, meet 2...Nc6 with Nc3, avoid traps against 2...e5 with Nf3, and punish 2...Bf5 with cxd5 and Qa4+.",
+  "level": "intermediate",
+  "order": 44,
+  "side": "white",
+  "opening": "queens-gambit",
+  "variation": "d2d4 d7d5 c2c4 g8f6, d2d4 d7d5 c2c4 b8c6, d2d4 d7d5 c2c4 e7e5, d2d4 d7d5 c2c4 c8f5",
+  "battleLine": "Queen's Gambit",
+  "lessons": [
+    {
+      "id": "openings-queens-gambit-other-marshall",
+      "title": "Marshall (2...Nf6) & Chigorin (2...Nc6)",
+      "summary": "Claim the centre with cxd5 and e4 against passive knight moves.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2",
+          "text": "The Marshall Defence (2...Nf6) neglects to support d5 with a pawn.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Trade off Black's d-pawn so you can build a huge centre.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5.",
+          "ifWrong": "Play 3.cxd5: Black loses their central pawn.",
+          "ifRight": "After 3...Nxd5, White gains time.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black recaptures: 3...Nxd5.",
+          "move": "f6d5"
+        },
+        {
+          "type": "play",
+          "text": "Seize the centre and chase the d5 knight.",
+          "expect": [
+            "e2e4"
+          ],
+          "hint": "Push the e-pawn two squares.",
+          "ifWrong": "Play 4.e4 to drive the knight back and take full control of the centre.",
+          "ifRight": "White gets an ideal centre and fast development.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/ppp1pppp/2n5/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 1 3",
+          "text": "In the Chigorin Defence (2...Nc6), Black puts the knight in front of the c-pawn."
+        },
+        {
+          "type": "play",
+          "text": "Add pressure to d5 right away.",
+          "expect": [
+            "b1c3",
+            "g1f3"
+          ],
+          "hint": "Develop your queen's knight to c3.",
+          "ifWrong": "Play 3.Nc3 to pressure d5 and prepare e4.",
+          "ifRight": "If Black plays 3...Nf6, 4.cxd5 Nxd5 5.e4 takes over the centre.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkb1r/ppp1pppp/2n2n2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 3 4",
+          "text": "After 3.Nc3 Nf6, claim the centre.",
+          "expect": [
+            "c4d5",
+            "g1f3"
+          ],
+          "hint": "Take on d5 so 4...Nxd5 5.e4 wins space.",
+          "ifWrong": "Play 4.cxd5 (followed by 5.e4) to dominate the centre.",
+          "ifRight": "After 4...Nxd5 5.e4 Nxc3 6.bxc3, White has a massive pawn centre.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-other-albin",
+      "title": "Albin Countergambit (2...e5)",
+      "summary": "Accept the pawn and meet 3...d4 cleanly with 4.Nf3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2",
+          "text": "The Albin Countergambit (2...e5) sacrifices a pawn to push ...d4 and create tactical traps.",
+          "move": "e7e5"
+        },
+        {
+          "type": "play",
+          "text": "Accept the gambit pawn cleanly.",
+          "expect": [
+            "d4e5"
+          ],
+          "hint": "Capture on e5 with your d-pawn.",
+          "ifWrong": "Play 3.dxe5: taking with the d-pawn avoids ...exd4 tricks.",
+          "ifRight": "Black will push 3...d4 to cramp your queenside.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black advances 3...d4.",
+          "move": "d5d4"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight and avoid the Lasker Trap.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Put the knight on f3, attacking d4.",
+          "ifWrong": "Play 4.Nf3: playing 4.e3 walks into 4...Bb4+ 5.Bd2 dxe3.",
+          "ifRight": "You stay a healthy pawn up and avoid every trap.",
+          "feedback": {
+            "e2e3": "4.e3 walks into the Lasker Trap: 4...Bb4+ 5.Bd2 dxe3 6.Bxb4 exf2+."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black defends d4 with 4...Nc6.",
+          "move": "b8c6"
+        },
+        {
+          "type": "play",
+          "text": "Fianchetto your bishop to target d4 and castle quickly.",
+          "expect": [
+            "g2g3",
+            "a2a3",
+            "b1d2"
+          ],
+          "hint": "Push the g-pawn one square to prepare Bg2.",
+          "ifWrong": "Play 5.g3 (or 5.a3 or 5.Nbd2): Bg2 puts immediate pressure on d4.",
+          "ifRight": "White keeps the extra pawn and enjoys a clear advantage.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-other-baltic",
+      "title": "Baltic Defence (2...Bf5)",
+      "summary": "Meet 2...Bf5 with cxd5 and answer ...Bxb1 with Qa4+.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2",
+          "text": "In the Baltic Defence, Black plays 2...Bf5 right away, leaving b7 behind.",
+          "move": "c8f5"
+        },
+        {
+          "type": "play",
+          "text": "Open the c-file and win a central pawn if Black grabs on b1.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5.",
+          "ifWrong": "Play 3.cxd5: if 3...Qxd5, 4.Nc3 gains a tempo; if 3...Bxb1, White has a sharp check.",
+          "ifRight": "Let us see how White answers 3...Bxb1.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black tries to win material with 3...Bxb1.",
+          "move": "f5b1"
+        },
+        {
+          "type": "play",
+          "text": "Deliver a queen check before taking on b1 so ...Qxd5 is impossible.",
+          "expect": [
+            "d1a4"
+          ],
+          "hint": "Check the king from a4.",
+          "ifWrong": "Play 4.Qa4+: after Black blocks on c6 or d7, Rxb1 wins the bishop back while keeping the extra pawn.",
+          "ifRight": "A neat intermediate check that keeps White a full pawn up.",
+          "feedback": {
+            "a1b1": "4.Rxb1 lets Black recapture 4...Qxd5, winning back the pawn cleanly."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black blocks the check with 4...c6.",
+          "move": "c7c6"
+        },
+        {
+          "type": "play",
+          "text": "Now recapture on b1.",
+          "expect": [
+            "a1b1"
+          ],
+          "hint": "Take the bishop on b1 with your rook.",
+          "ifWrong": "Play 5.Rxb1: White keeps the extra central pawn.",
+          "ifRight": "After 5...Qxd5 6.Nf3, White is a sound pawn up with a strong centre.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

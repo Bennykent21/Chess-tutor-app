@@ -33,14 +33,13 @@ class PuzzlesHomeScreenTest {
 
     private val state = PuzzlesHomeState(
         loading = false,
-        stats = PuzzleStats(rating = 1248, totalXp = 3420, playerLevel = PlayerLevel.fromXp(3420), dayStreak = 5, solved = 80, solvedToday = true),
+        stats = PuzzleStats(rating = 1248, totalXp = 3420, playerLevel = PlayerLevel.fromXp(3420), solved = 80, solvedToday = true),
         levels = (1..11).associateWith { LevelProgress(it, if (it % 3 == 0) 4 else 5, true, 1) } + (12 to LevelProgress(12, 3, false, 2)),
     )
 
     @Test
     fun homeShowsTheRatingTheCurrentLevelAndItsTiles() {
         var played = -1
-        var levels = false
         var mistakes = false
         compose.setContent {
             CtTheme(reduceMotion = true) {
@@ -50,7 +49,6 @@ class PuzzlesHomeScreenTest {
                     onPlayLevel = { played = it },
                     onOpenModes = {},
                     onReviewMistakes = { mistakes = true },
-                    onOpenLevels = { levels = true },
                 )
             }
         }
@@ -62,20 +60,9 @@ class PuzzlesHomeScreenTest {
         assertEquals(12, played)
         compose.onNodeWithText("Mistakes to fix").performClick()
         assertEquals(true, mistakes)
-        compose.onNodeWithText("All levels").performScrollTo().performClick()
-        assertEquals(true, levels)
-    }
-
-    @Test
-    fun theLevelsPageShowsEveryWorldAndPlaysALevel() {
-        var played = -1
-        // Reduce motion: the current level's endless pulse would keep the test from ever going idle.
-        compose.setContent {
-            CtTheme(reduceMotion = true) {
-                PuzzleLevelsScreen(state = state, onPlayLevel = { played = it }, onBack = {})
-            }
-        }
-        compose.onNodeWithText("11 of 50 passed").assertExists()
+        // The levels sit in a strip under the card (D95): a passed one replays, the next one plays.
+        compose.onNode(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Level 11"))).performClick()
+        assertEquals(11, played)
         compose.onNode(
             SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Level 12")) and
                 SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "next level")

@@ -13,7 +13,11 @@ enum class PieceSet(val id: String, val displayName: String, val credit: String)
     CBURNETT("cburnett", "Classic", "Colin M.L. Burnett, GPLv2+"),
     MERIDA("merida", "Merida", "Armando Hernandez Marroquin, GPLv2+"),
     CHESSNUT("chessnut", "Chessnut", "Alexis Luengas, Apache 2.0"),
-    FANTASY("fantasy", "Fantasy", "Maurizio Monge, MIT");
+    FANTASY("fantasy", "Fantasy", "Maurizio Monge, MIT"),
+    CELTIC("celtic", "Celtic", "Maurizio Monge, MIT"),
+    SPATIAL("spatial", "Spatial", "Maurizio Monge, MIT"),
+    MPCHESS("mpchess", "Ink", "Maxime Chupin, GPLv3+"),
+    RHOSGFX("rhosgfx", "Terracotta", "RhosGFX, CC0");
 
     companion object {
         val DEFAULT = CBURNETT
@@ -47,6 +51,18 @@ enum class BoardColors(
     NEON("neon", "Neon", 0xFFC9F7F2L, 0xFF7B6CF0L, 0xFF3A2F96L, 0xFF0E0838L),
     MARBLE("marble", "Marble", 0xFFECEAE6L, 0xFFA7A39CL, 0xFF55514BL, 0xFF1F1D1AL, sheen = true),
 
+    // More colours (D104).
+    LILAC("lilac", "Lilac", 0xFFE8E0F2L, 0xFF7E6BA6L, 0xFF2A1A10L, 0xFFFFFFFFL),
+    CORAL("coral", "Coral", 0xFFF4DFCCL, 0xFFB5655AL, 0xFF2A1A10L, 0xFF0D0D10L),
+    HARBOUR("harbour", "Harbour", 0xFFDAE3ECL, 0xFF43617FL, 0xFF2A1A10L, 0xFFFFFFFFL),
+    GRAPHITE("graphite", "Graphite", 0xFFD4D4D2L, 0xFF626262L, 0xFF2A1A10L, 0xFFFFFFFFL),
+    MAPLE("maple", "Maple", 0xFFF2E4C6L, 0xFFAA8156L, 0xFF2A1A10L, 0xFF0D0D10L, sheen = true),
+    SAGE("sage", "Sage", 0xFFE4EBDFL, 0xFF4E7767L, 0xFF2A1A10L, 0xFFFFFFFFL),
+    TEAK("teak", "Teak", 0xFFDDB98FL, 0xFF8C5C3DL, 0xFF2A1A10L, 0xFFFFFFFFL, sheen = true),
+    NIGHT("night", "Night", 0xFF9C9CAAL, 0xFF40404CL, 0xFF2A1A10L, 0xFFFFFFFFL),
+    HONEY("honey", "Honey", 0xFFF7E8C3L, 0xFFC38D42L, 0xFF2A1A10L, 0xFF0D0D10L),
+    ROSE("rose", "Rose", 0xFFF5E1E4L, 0xFFB9737FL, 0xFF2A1A10L, 0xFF0D0D10L),
+
     // The boards of the app themes, the ones each theme's card shows.
     PARCHMENT("parchment", "Parchment", 0xFFECDDC2L, 0xFFB8956AL, 0xFF5A3418L, 0xFF2A1708L),
     BAIZE("baize", "Baize", 0xFFE6EBDDL, 0xFF7C9D84L, 0xFF3C5A2AL, 0xFF0F2209L),
@@ -79,6 +95,8 @@ object BoardMarkColors {
     const val LAST_MOVE = 0x7AD6AA4AL
     /** Brass at 66%. */
     const val SELECTED = 0xA8D6AA4AL
+    /** A queued premove: a cool red at 55%, unlike any move already played. */
+    const val PREMOVE = 0x8CC8504AL
     /** Dark ink at 26%: dots on empty squares, rings on captures. */
     const val LEGAL_DOT = 0x42281C0AL
     const val CHECK = 0xD9D9473BL

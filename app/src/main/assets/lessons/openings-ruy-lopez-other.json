@@ -1,0 +1,221 @@
+{
+  "id": "openings-ruy-lopez-other",
+  "category": "openings",
+  "title": "Classical, Steinitz & Gambits",
+  "intro": "Answer 3...Bc5 with 4.c3 and d4, meet 3...d6 with 4.d4, avoid the Noah's Ark trap against 4...d6, and counter 3...f5 with 4.Nc3.",
+  "level": "intermediate",
+  "order": 34,
+  "side": "white",
+  "opening": "ruy-lopez",
+  "variation": "e2e4 e7e5 g1f3 b8c6 f1b5 f8c5, e2e4 e7e5 g1f3 b8c6 f1b5 d7d6, e2e4 e7e5 g1f3 b8c6 f1b5 f7f5",
+  "battleLine": "Ruy Lopez: Classical Variation",
+  "lessons": [
+    {
+      "id": "openings-ruy-lopez-other-classical",
+      "title": "Meeting 3...Bc5",
+      "summary": "Build a commanding centre with 4.c3 and 5.d4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "In the Classical Defence, Black develops 3...Bc5 before playing ...a6 or ...Nf6.",
+          "move": "f8c5"
+        },
+        {
+          "type": "play",
+          "text": "Prepare to build a strong pawn centre with d4.",
+          "expect": [
+            "c2c3"
+          ],
+          "hint": "Push the c-pawn one square.",
+          "ifWrong": "Play 4.c3 so d4 comes with tempo against the c5 bishop.",
+          "ifRight": "Now White threatens to take over the centre.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops and attacks e4 with 4...Nf6.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Strike in the centre at once.",
+          "expect": [
+            "d2d4"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 5.d4 to hit the c5 bishop and claim the centre.",
+          "ifRight": "Black must capture on d4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black captures: 5...exd4.",
+          "move": "e5d4"
+        },
+        {
+          "type": "play",
+          "text": "Recapture to keep two central pawns side by side.",
+          "expect": [
+            "c3d4"
+          ],
+          "hint": "Take back with the c-pawn.",
+          "ifWrong": "Play 6.cxd4: the bishop on c5 is attacked and White owns the centre.",
+          "ifRight": "White has a commanding centre with e4 and d4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk2r/pppp1ppp/2n2n2/1B6/1b1PP3/5N2/PP3PPP/RNBQK2R w KQkq - 2 7",
+          "text": "Black checks with 6...Bb4+. Block cleanly while developing a piece.",
+          "expect": [
+            "c1d2"
+          ],
+          "hint": "Interpose with your dark-squared bishop.",
+          "ifWrong": "Play 7.Bd2: after 7...Bxd2+ 8.Nbxd2, your pieces develop smoothly.",
+          "ifRight": "If Black trades bishops, Nbxd2 leaves White with a big centre and fast development.",
+          "feedback": {
+            "b1c3": "7.Nc3 allows 7...Nxe4, attacking the pinned knight."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-other-steinitz",
+      "title": "Steinitz & Noah's Ark Trap",
+      "summary": "Push 4.d4 against 3...d6, and play c3 first against 4...d6.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "In the Steinitz Defence, Black defends e5 passively with 3...d6.",
+          "move": "d7d6"
+        },
+        {
+          "type": "play",
+          "text": "Take over the centre immediately.",
+          "expect": [
+            "d2d4"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 4.d4 to pressure e5 and gain central space.",
+          "ifRight": "With ...a6 not played, d4 is completely safe and strong.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black breaks the pin with 4...Bd7.",
+          "move": "c8d7"
+        },
+        {
+          "type": "play",
+          "text": "Protect e4 and finish queenside development.",
+          "expect": [
+            "b1c3"
+          ],
+          "hint": "Develop the queen's knight.",
+          "ifWrong": "Play 5.Nc3, then O-O and Re1.",
+          "ifRight": "White enjoys a big space advantage and easy development.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/1pp2ppp/p1np4/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 5",
+          "text": "Watch out when Black plays 4...d6 after 3...a6 4.Ba4. Playing 5.d4 straight away walks into the Noah's Ark trap after 5...b5 6.Bb3 Nxd4.",
+          "arrows": [
+            "b7b5:bad",
+            "c6d4:bad"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Avoid the trap by giving your bishop an escape square on c2 first.",
+          "expect": [
+            "c2c3",
+            "e1g1"
+          ],
+          "hint": "Play c3 or castle before pushing d4.",
+          "ifWrong": "Play 5.c3 (or 5.O-O) so ...b5 can be met with Bc2.",
+          "ifRight": "Now your bishop can drop back to c2 and d4 is safe next move.",
+          "feedback": {
+            "d2d4": "5.d4 lets Black play 5...b5 6.Bb3 Nxd4 7.Nxd4 exd4 8.Qxd4 c5, trapping your bishop after ...c4."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-other-gambits",
+      "title": "Schliemann (3...f5) & Bird (3...Nd4)",
+      "summary": "Meet 3...f5 with 4.Nc3 and trade off 3...Nd4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+          "text": "The Schliemann Gambit (3...f5) tries to attack e4 and open the f-file.",
+          "move": "f7f5"
+        },
+        {
+          "type": "play",
+          "text": "Defend e4 and develop a piece at the same time.",
+          "expect": [
+            "b1c3"
+          ],
+          "hint": "Develop your queen's knight.",
+          "ifWrong": "Play 4.Nc3: taking on f5 lets Black gain central space with ...e4.",
+          "ifRight": "This is the cleanest and strongest answer to 3...f5.",
+          "feedback": {
+            "e4f5": "4.exf5 allows 4...e4, chasing your f3 knight."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black trades on e4: 4...fxe4.",
+          "move": "f5e4"
+        },
+        {
+          "type": "play",
+          "text": "Recapture with the knight.",
+          "expect": [
+            "c3e4"
+          ],
+          "hint": "Take back on e4 with the c3 knight.",
+          "ifWrong": "Play 5.Nxe4: if Black pushes 5...d5, 6.Nxe5 hits hard.",
+          "ifRight": "White stands clearly better against Black's weakened kingside.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/pppp1ppp/8/1B2p3/3nP3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+          "text": "Here Black played the Bird Defence with 3...Nd4. Answer the double attack.",
+          "expect": [
+            "f3d4"
+          ],
+          "hint": "Capture the knight on d4.",
+          "ifWrong": "Play 4.Nxd4: after 4...exd4 5.O-O, Black's pawns are weak and White leads in development.",
+          "ifRight": "White castles next and attacks d4 with c3 or d3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/pppp1ppp/8/1B6/3pP3/8/PPPP1PPP/RNBQK2R w KQkq - 0 5",
+          "text": "After 4.Nxd4 exd4, continue developing smoothly.",
+          "expect": [
+            "e1g1",
+            "b5c4",
+            "d2d3"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 5.O-O to get your king safe before challenging d4.",
+          "ifRight": "White follows with d3, Bc4 or c3 with a strong position.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,332 @@
+{
+  "notes": [
+    {
+      "path": "e4 e6",
+      "kind": "plan",
+      "text": "The French Defence. Black prepares 2...d5 to challenge White's centre with pawn support, even though the c8 bishop starts behind the pawn chain.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "d4"
+          ],
+          "move": "d5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5",
+      "kind": "branch",
+      "text": "The e4 pawn is attacked. White must choose between pushing 3.e5, defending with 3.Nc3 or 3.Nd2, or trading on d5.",
+      "claims": [
+        {
+          "type": "threat",
+          "move": "dxe4",
+          "atLeast": 50,
+          "sentence": 0
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 e5",
+      "kind": "plan",
+      "text": "The Advance Variation gains space and fixes the centre. Black strikes at the base of White's pawn chain immediately with 3...c5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 e5 c5 c3",
+      "kind": "plan",
+      "text": "White reinforces d4 with a pawn. Black piles more pressure onto d4 with 4...Nc6 and ...Qb6.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nc6",
+            "Nf3",
+            "Qb6"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6 Be2",
+      "kind": "plan",
+      "text": "White prepares to castle calmly. Black trades 6...cxd4 and reroutes the g8 knight to f5 via e7 to attack d4 again.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "cxd4",
+            "cxd4",
+            "Nge7"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6 Bd3 cxd4 cxd4",
+      "kind": "plan",
+      "text": "White wants to leave d4 as a decoy. Black plays 7...Bd7 first so 8...Nxd4 does not walk into Bb5+.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bd7",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6 a3",
+      "kind": "plan",
+      "text": "White prevents ...Qb4 ideas and prepares b4. Black closes the queenside with 6...c4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 Nc3",
+      "kind": "branch",
+      "text": "White defends e4 actively with the knight. Black plays 3...Nf6 to attack e4 and keep the position solid and flexible.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 Nc3 Nf6 Bg5",
+      "kind": "plan",
+      "text": "White pins the knight and threatens e5. Black breaks the pin cleanly with 4...Be7.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Be7",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 Nc3 Nf6 Bg5 Be7 e5",
+      "kind": "plan",
+      "text": "White pushes past to gain kingside space. Black steps back to d7 and prepares ...c5 to hit White's centre.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nfd7",
+            "Bxe7",
+            "Qxe7"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 Nc3 Nf6 e5",
+      "kind": "plan",
+      "text": "The Steinitz Variation closes the centre at once. Black retreats 4...Nfd7 and hits back immediately with ...c5.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nfd7",
+            "f4",
+            "c5"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 Nd2",
+      "kind": "branch",
+      "text": "The Tarrasch Variation avoids the Winawer pin. Black strikes at the centre at once with 3...c5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 Nd2 c5 exd5 exd5",
+      "kind": "plan",
+      "text": "Black accepts an isolated d5 pawn in return for open lines and active piece play. Black develops ...Nc6 and ...Bd6.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Ngf3",
+            "Nc6",
+            "Bb5",
+            "Bd6"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 Nd2 c5 Ngf3",
+      "kind": "plan",
+      "text": "White develops instead of taking on d5. Black trades 4...cxd4 and meets 5.exd5 with 5...Qxd5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "cxd4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 exd5",
+      "kind": "branch",
+      "text": "The Exchange Variation opens the e-file early. Black recaptures 3...exd5, freeing the c8 bishop.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "exd5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 exd5 exd5 Nf3",
+      "kind": "plan",
+      "text": "Black develops actively to fight for equal central control. Playing 4...Bd6 eyes the kingside and prepares ...Nf6 and ...O-O.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bd6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d4 d5 exd5 exd5 c4",
+      "kind": "plan",
+      "text": "White tries to attack d5 on the c-file. Black develops 4...Nf6 and pins with ...Bb4 after Nc3.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nf6",
+            "Nc3",
+            "Bb4"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d3",
+      "kind": "branch",
+      "text": "White aims for a King's Indian Attack with Nd2, Ngf3 and g3. Black claims central space with 2...d5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 d3 d5 Nd2",
+      "kind": "plan",
+      "text": "Black grabs more central space before White finishes fianchettoing. Playing 3...c5 prepares ...Nc6 and easy piece play.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 Nf3",
+      "kind": "branch",
+      "text": "White delays d4 with 2.Nf3. Black still stakes a claim in the centre with 2...d5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 Nf3 d5 Nc3",
+      "kind": "plan",
+      "text": "The Two Knights Attack. Black develops 3...Nf6, transposing into sound Classical lines after 4.Bg5 or 4.e5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e6 c4",
+      "kind": "plan",
+      "text": "White tries to stop ...d5 with 2.c4. Black plays 2...d5 anyway because ...exd5 opens lines for Black's pieces.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    }
+  ]
+}

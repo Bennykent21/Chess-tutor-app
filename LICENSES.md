@@ -12,17 +12,19 @@ known before release (plan.md, section 9). Add a row whenever an asset is added.
 | Inter (Regular, Medium, SemiBold) | `app/src/main/res/font/inter_*.ttf` | Google Fonts release, Inter 4.001 (The Inter Project Authors) | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
 | JetBrains Mono | `app/src/main/res/font/jetbrains_mono.ttf` | JetBrains Mono 2.211 | SIL Open Font License 1.1 (`licenses/OFL-1.1.txt`) |
 | Puzzle pack v2 (13,485 puzzles, with accepted alternative moves) | `app/src/main/assets/puzzles.tsv.gz` | Lichess open puzzle database (download of 2 Oct 2026), selected and checked by `tools/build_puzzle_pack.py`; the alternatives were found with Stockfish 19 on the developer's PC at build time (the engine is not part of this file) | CC0 1.0 (public domain dedication) |
+| Opening tactics pack (1,794 puzzles, 60 for each of 30 openings, D112) | `app/src/main/assets/puzzles_openings.tsv.gz` | Lichess open puzzle database, chosen by its OpeningTags and the side that solves with `tools/build_puzzle_pack.py --openings`; alternatives found with Stockfish 19 at build time | CC0 1.0 (public domain dedication) |
 | Opening database (3,865 named lines with ECO codes) | `app/src/main/assets/openings.tsv.gz` | `lichess-org/chess-openings` (a.tsv to e.tsv, download of 22 Oct 2026), moves converted from SAN to UCI by `tools/build_openings.py` with python-chess (GPL-3.0, used only at build time, not part of this file) | CC0 1.0 (public domain dedication) |
 | Opening repertoires (Italian Game, Caro-Kann Defence: positions, how often each move is played by rating band, Stockfish verdicts) | `app/src/main/assets/repertoire/*.json.gz` | Move counts from the Lichess opening explorer (explorer.lichess.ovh, games from November 2025 on, fetched 12 Nov 2026), which is built from the Lichess game database; trees built and every move checked with Stockfish 19 at build time by `tools/build_repertoire.py` (the engine is not part of these files) | CC0 1.0 (the game data); the selection and any notes are original, GPL-3.0 with the app |
 | Maia networks 1100 to 1900 (human-like move prediction, policy part only) | `app/src/main/assets/maia/maia-1100.bin` to `maia-1900.bin` | CSSLab/maia-chess (`maia_weights/maia-XXXX.pb.gz`, download of 23 Oct 2026), converted by `tools/maia_net.py` (batch norm folded in, 16-bit values); checked against lc0 v0.32.1 | GPL-3.0 (maia-chess repository) |
 | Maia policy move table | `app/src/main/assets/maia/maia_moves.tsv` | Built by `tools/maia_net.py` from lc0's 1858-move policy list (`lczero-training/tf/policy_index.py`) and convolution policy map (`lc0/src/neural/tables/policy_map.h`) | GPL-3.0 (LeelaChessZero) |
 | Lessons (text, positions and exercises) | `app/src/main/assets/lessons/*.json` | Original, written for this project. From Phase 6C, many exercise positions and solutions in the newer courses are puzzles from the Lichess puzzle database (CC0, the same source as the puzzle pack) | GPL-3.0, with the app (the puzzle positions themselves are CC0) |
+| Lesson videos (links only) | `app/src/main/assets/videos.json` | A list of public YouTube videos per course (video id, title, channel, length and a one-line note), picked with Gemini and each one checked against YouTube's oEmbed on 17 Nov 2026. No video is bundled: the app shows YouTube's own thumbnail and plays the video in YouTube's embedded player inside the app (D98) | The list and notes are GPL-3.0 with the app; the videos belong to their channels and play under YouTube's terms |
 | Train positions (endgames to win or hold, middlegames to convert) | `app/src/main/assets/positions/positions.json` | Original selection for this project: textbook endings set up by hand or found by search, and middlegames made from common opening lines with one pawn or the exchange taken off; every goal checked with Stockfish 19 at build time by `tools/check_positions.py` (the engine is not part of this file) | GPL-3.0, with the app |
 | Coaches (Pip, Rookie, Sage) in four moods (ready, thinking, kind, proud) | Sources: `design/mascot/<coach>_<mood>.svg` (12 files). In the app: `app/src/main/res/drawable/mascot_<coach>_<mood>.xml`, generated from the SVGs by `tools/mascot_svg_to_vector.py` | Original artwork made for this project (drawn with Claude, Phase 7) | GPL-3.0, with the app |
 | Streak flame, lit and off | `app/src/main/res/drawable/ic_flame_lit.xml`, `ic_flame_off.xml` | Original art for Chess Tutor, GPL-3.0 with the app |
 | Update arrow | `app/src/main/res/drawable/ic_update.xml` | Original art for Chess Tutor, GPL-3.0 with the app |
 | Result icons, crown and toppled king | `app/src/main/res/drawable/ic_result_win.xml`, `ic_result_loss.xml` | Original art for Chess Tutor, GPL-3.0 with the app |
-| Metal icons and medals | `app/src/main/res/drawable-nodpi/icon_*.webp`, `medal_*.webp` | Made for Chess Tutor by `tools/art/metal.html` from Material Symbols shapes (Google, Apache-2.0), lit with the HDRI "Brown Photostudio 02" from Poly Haven (CC0) |
+| Metal icons and medals | `app/src/main/res/drawable-nodpi/icon_*.webp`, `medal_*.webp` | Made for Chess Tutor by `tools/art/metal.html` from Material Symbols shapes (Google, Apache-2.0) and our own crown and toppled king (`icon_result_*`), lit with the HDRI "Brown Photostudio 02" from Poly Haven (CC0) |
 | Scene and piece pictures | `app/src/main/res/drawable-nodpi/art_*.webp` | Rendered for Chess Tutor from the Poly Haven model "Chess Set" by Riley Queen (CC0) lit with the HDRI "Studio Small 09" (CC0). The renders are GPL-3.0 with the app; `tools/art` makes them |
 | Bot faces (12 animal characters: Pebble, Wayne, Juno, Bramble, Ziggy, Marlo, Tessa, Kofi, Ingrid, Nova, Titan, Bolt) | Sources: `design/bots/*.svg`, drawn by `tools/make_bot_faces.py`. In the app: `app/src/main/res/drawable/bot_*.xml`, converted by `tools/mascot_svg_to_vector.py` | Original artwork made for this project | GPL-3.0, with the app |
 | Design system colours and components | `app/src/main/java/com/chesstutor/app/design/` | Original, made for this project | GPL-3.0, with the app |
@@ -31,6 +33,9 @@ known before release (plan.md, section 9). Add a row whenever an asset is added.
 | Piece set "merida" | `design/pieces/merida/*.svg`; `piece_merida_*.xml` | Armando Hernandez Marroquin, via `lichess-org/lila` `public/piece/merida` | GPLv2 or later, used here under GPL-3.0 (`LICENSE`) |
 | Piece set "chessnut" | `design/pieces/chessnut/*.svg`; `piece_chessnut_*.xml` | Alexis Luengas, `LexLuengas/chessnut-pieces` ("Copyright 2015 Alexis Luengas"), via `lichess-org/lila` | Apache License 2.0 (`licenses/Apache-2.0.txt`). Converted from SVG to VectorDrawable; shapes unchanged |
 | Piece set "fantasy" | `design/pieces/fantasy/*.svg`; `piece_fantasy_*.xml` | Maurizio Monge, `maurimo/chess-art`, via `lichess-org/lila` | MIT (`licenses/MIT-fantasy-pieces.txt`) |
+| Piece sets "celtic" and "spatial" (D108) | `design/pieces/celtic/*.svg`, `design/pieces/spatial/*.svg`; `piece_celtic_*.xml`, `piece_spatial_*.xml` | Maurizio Monge, `maurimo/chess-art`, via `lichess-org/lila` | MIT (`licenses/MIT-fantasy-pieces.txt`, the same repository's licence) |
+| Piece set "mpchess" (shown as "Ink", D108) | `design/pieces/mpchess/*.svg`; `piece_mpchess_*.xml` | Maxime Chupin (`chupinmaxime`), via `lichess-org/lila` | GPLv3 or later, used here under GPL-3.0 (`LICENSE`) |
+| Piece set "rhosgfx" (shown as "Terracotta", D108) | `design/pieces/rhosgfx/*.svg`; `piece_rhosgfx_*.xml` | RhosGFX (rhosgfx.itch.io), via `lichess-org/lila` | CC0 1.0 |
 | Board colour themes | `app/src/main/java/com/chesstutor/app/board/BoardTheme.kt` | Original, made for this project | GPL-3.0, with the app |
 | Launcher icon for Android 7 | `app/src/main/res/mipmap-*/ic_launcher*.webp` | Rendered from the vector launcher icon above (the Classic knight) by `tools/render_launcher_icons.py` | GPLv2 or later, used here under GPL-3.0 (`LICENSE`) |
 
@@ -49,15 +54,25 @@ Sound effects (`app/src/main/res/raw/sfx_*.ogg`), played by `audio/ChessSoundMan
 | `sfx_wrong.ogg` | `error_008.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
 | `sfx_tap.ogg` | `click_002.ogg` | Kenney "Interface Sounds" 1.0 | CC0 1.0 |
 
+Sound packs Studio, Piano, Retro and Sci-fi (D108; `app/src/main/res/raw/sfx_studio_*`, `sfx_piano_*`,
+`sfx_retro_*`, `sfx_scifi_*`), chosen in Settings > Sound and play:
+
+| Files | Original files | Pack | Licence |
+|---|---|---|---|
+| `sfx_<pack>_move`, `_capture`, `_check`, `_promote`, `_win`, `_lose` (`.ogg`) | `Move`, `Capture`, `Check`, `GenericNotify`, `Victory`, `Defeat` (`.ogg`) from `public/sound/sfx` (Studio), `piano`, `nes` (Retro) and `futuristic` (Sci-fi) | Enigmahack, via `lichess-org/lila` (listed in its `COPYING.md`) | AGPLv3 or later (`licenses/AGPL-3.0.txt`), combined with the GPL-3.0 app as GPL-3.0 section 13 allows |
+
+Castling uses each pack's move sound; right, wrong and tap use the Kenney sounds above in every pack.
+Lichess's own standard sounds are not free and are not used.
+
 The files are unchanged copies. CC0 needs no credit; Kenney asks for an optional one, which the
 in-app licences page gives (kenney.nl).
 
 **In the app:** Settings > About > Open-source licences lists every part above with its author
 and licence (`feature/account/LicencesScreen.kt`, `CREDITS`), and shows the full licence texts
 bundled in `app/src/main/assets/licenses/`: `GPL-3.0.txt` (the official text from gnu.org, also
-the repository's `LICENSE`), `Apache-2.0.txt`, `MIT-fantasy-pieces.txt` and `OFL-1.1.txt`
+the repository's `LICENSE`), `Apache-2.0.txt`, `MIT-fantasy-pieces.txt`, `OFL-1.1.txt` and `AGPL-3.0.txt`
 (copies of `licenses/`). Libraries compiled into the app: AndroidX and Jetpack Compose (Apache
-2.0), Kotlin and kotlinx.coroutines (Apache 2.0), OkHttp and Moshi (Apache 2.0),
+2.0), Kotlin and kotlinx.coroutines (Apache 2.0), OkHttp and Moshi (Apache 2.0), android-youtube-player by Pierfrancesco Soffritti (Apache 2.0, wraps YouTube's own IFrame player),
 desugar_jdk_libs (GPL v2 with the Classpath Exception).
 
 This is a record, not legal advice.

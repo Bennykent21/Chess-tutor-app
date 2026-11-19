@@ -46,7 +46,7 @@ import com.chesstutor.app.domain.bot.BotStyle
 import com.chesstutor.app.domain.bot.MistakeLevel
 import com.chesstutor.app.domain.bot.ResignPolicy
 import com.chesstutor.app.domain.bot.ThinkSpeed
-import com.chesstutor.app.domain.game.TimeControl
+import com.chesstutor.app.feature.play.TimeControlPicker
 import kotlin.math.roundToInt
 
 /**
@@ -75,9 +75,9 @@ fun BotBuilderScreen(
         CtGroupLabel("Face")
         FacePicker(draft.face, draft.rating) { face -> onChange { it.copy(face = face) } }
 
-        CtSectionHeader(title = "Strength")
+        // One look for every setting (D93): a small label, a thin slider or a row of choices, no boxes.
         CtSliderRow(
-            title = "Rating",
+            title = "Strength",
             value = draft.rating.toFloat(),
             onValueChange = { v -> onChange { it.copy(rating = (v / 50).roundToInt() * 50) } },
             valueRange = 250f..3000f,
@@ -86,12 +86,30 @@ fun BotBuilderScreen(
             startLabel = "Beginner",
             endLabel = "Full strength",
         )
-        CtGroupLabel("Thinking time")
-        CtSegmented(ThinkSpeed.entries, draft.thinkSpeed, { it.name.lowercase().replaceFirstChar(Char::uppercase) }, { s -> onChange { it.copy(thinkSpeed = s) } })
-        CtGroupLabel("Mistakes")
-        CtSegmented(MistakeLevel.entries, draft.mistakes, { it.label }, { m -> onChange { it.copy(mistakes = m) } })
+        CtSliderRow(
+            title = "Thinking time",
+            value = draft.thinkSpeed.ordinal.toFloat(),
+            onValueChange = { v -> onChange { it.copy(thinkSpeed = ThinkSpeed.entries[v.roundToInt()]) } },
+            valueRange = 0f..(ThinkSpeed.entries.size - 1).toFloat(),
+            steps = ThinkSpeed.entries.size - 2,
+            valueLabel = draft.thinkSpeed.name.lowercase().replaceFirstChar(Char::uppercase),
+            startLabel = "Fast",
+            endLabel = "Slow",
+            modifier = Modifier.padding(top = CtSpacing.md),
+        )
+        CtSliderRow(
+            title = "Mistakes",
+            value = draft.mistakes.ordinal.toFloat(),
+            onValueChange = { v -> onChange { it.copy(mistakes = MistakeLevel.entries[v.roundToInt()]) } },
+            valueRange = 0f..(MistakeLevel.entries.size - 1).toFloat(),
+            steps = MistakeLevel.entries.size - 2,
+            valueLabel = draft.mistakes.label,
+            startLabel = "Never",
+            endLabel = "Often",
+            modifier = Modifier.padding(top = CtSpacing.md),
+        )
 
-        CtSectionHeader(title = "Style")
+        CtGroupLabel("Style")
         FlowRow(horizontalArrangement = Arrangement.spacedBy(CtSpacing.sm), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
             BotStyle.entries.forEach { style ->
                 CtChip(text = style.label, selected = draft.style == style, onClick = { onChange { it.withStyle(style) } })
@@ -118,13 +136,12 @@ fun BotBuilderScreen(
             modifier = Modifier.padding(top = CtSpacing.sm),
         )
 
-        CtSectionHeader(title = "Openings")
+        CtGroupLabel("Openings")
         CtListRow(title = "White", icon = null, subtitle = openingSummary(draft.white), onClick = { onChooseOpenings(PieceColor.WHITE) })
         CtListRow(title = "Black", icon = null, subtitle = openingSummary(draft.black), onClick = { onChooseOpenings(PieceColor.BLACK) })
 
-        CtSectionHeader(title = "Rules")
-        CtGroupLabel("Clock")
-        CtSegmented(TimeControl.entries, draft.rules.timeControl, ::clockLabel, { t -> onChange { it.copy(rules = it.rules.copy(timeControl = t)) } })
+        CtGroupLabel("Rules")
+        TimeControlPicker(selected = draft.rules.timeControl, onSelect = { t -> onChange { it.copy(rules = it.rules.copy(timeControl = t)) } })
         Column(Modifier.padding(top = CtSpacing.sm)) {
             CtToggleRow(title = "Takebacks", checked = draft.rules.takebacks, onCheckedChange = { v -> onChange { it.copy(rules = it.rules.copy(takebacks = v)) } })
             CtToggleRow(title = "Hints", checked = draft.rules.hints, onCheckedChange = { v -> onChange { it.copy(rules = it.rules.copy(hints = v)) } })

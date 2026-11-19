@@ -1,5 +1,9 @@
 package com.chesstutor.app.feature.puzzles
 
+import com.chesstutor.app.feature.play.rememberTalk
+import com.chesstutor.app.feature.play.TalkLine
+import com.chesstutor.app.feature.play.Talk
+import com.chesstutor.app.design.CtMascotArt
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import com.chesstutor.app.board.moveListOf
@@ -142,11 +146,13 @@ private fun Playing(
 ) {
     val board = state.board ?: return
     val after = state.phase == PlayerPhase.SOLVED || state.phase == PlayerPhase.REVEALED
+    val side = if (state.solverColor == PieceColor.WHITE) "White" else "Black"
+    // Who moves and what to find, in the coach's one line (D95: no status row above the board).
     val coachText = when (state.phase) {
         PlayerPhase.SOLVED -> if (state.solvedWithAlternative) "Solved: a great alternative! That move wins too." else "Correct! Well found."
         PlayerPhase.REVEALED -> if (state.showingLine) "Here is the solution." else "Not this time. Have a look at the solution."
         PlayerPhase.SETUP -> "Watch your opponent's move…"
-        else -> state.prompt
+        else -> "$side to move. ${state.prompt}"
     }
     val mood = when {
         state.phase == PlayerPhase.SOLVED -> MascotMood.PROUD
@@ -156,6 +162,7 @@ private fun Playing(
     }
     val shown by board.state.collectAsState()
     val look = rememberLookBack(shown, key = board)
+    val talk = rememberTalk(listOf(TalkLine("${state.phase}:$coachText".hashCode(), coachText)), key = board)
     CtBoardScreen(
         title = state.title,
         onBack = onBack,
@@ -169,16 +176,18 @@ private fun Playing(
             )
         },
         zone = {
-            CtTutor(settings.mascot, mood = mood) { Text(coachText, style = CtType.Chat) }
             if (after) AfterPuzzle(player, state)
-            PuzzleStatus(state, settings)
+            Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp, mood = mood) }, lines = talk)
         },
         under = {
-            BoardMoveList(
-                entries = remember(board, shown.version) { moveListOf(shown.start, shown.moves) },
-                currentPly = look.ply,
-                onSelect = look::show,
-            )
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {
+                RunProgress(state)
+                BoardMoveList(
+                    entries = remember(board, shown.version) { moveListOf(shown.start, shown.moves) },
+                    currentPly = look.ply,
+                    onSelect = look::show,
+                )
+            }
         },
         board = {
             val towardSolver = whiteAtBottom(settings.boardOrientation, state.solverColor)
@@ -204,8 +213,9 @@ private fun Playing(
         controls = {
             // Back and Next only look: Next wakes up once you have gone back, and nothing is undone.
             if (after) {
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Back one move", enabled = look.canGoBack, onClick = look::back)
-                CtIconButton(icon = Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = "Next move", enabled = look.shownPly != null, onClick = look::forward)
+                // Plain step arrows, as on every board (D95).
+                PlainStep(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Back one move", look.canGoBack, look::back)
+                PlainStep(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next move", look.shownPly != null, look::forward)
                 CtButton(
                     text = if (state.isLastOfRun) "See your result" else "Next puzzle",
                     onClick = player::next,
@@ -223,66 +233,51 @@ private fun Playing(
 }
 
 /**
- * The row right above the board: a small king of the side to move (or a tick once solved), what
- * is happening, the clock and, in a run, which puzzle this is and how the run is going.
+ * Under the board (D95): a dot per puzzle of the run (green solved cleanly, accent solved with
+ * help, red missed, the current one dark), then strikes in Survival and the clock only when the
+ * run is timed. Nothing for a single puzzle without a clock.
  */
 @Composable
-private fun PuzzleStatus(state: PuzzlePlayerState, settings: AppSettings) {
-    val side = if (state.solverColor == PieceColor.WHITE) "White" else "Black"
-    val headline = when (state.phase) {
-        PlayerPhase.SOLVED -> if (state.solvedWithAlternative) "Solved another way" else "Solved"
-        PlayerPhase.REVEALED -> "Solution"
-        else -> "$side to move"
-    }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(CtSpacing.sm)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
-            when (state.phase) {
-                PlayerPhase.SOLVED -> Box(
-                    modifier = Modifier.size(28.dp).clip(CtShapes.Pill).background(CtColors.Success),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Rounded.Check, contentDescription = null, tint = CtColors.OnSuccess, modifier = Modifier.size(18.dp)) }
-                PlayerPhase.REVEALED -> Box(
-                    modifier = Modifier.size(28.dp).clip(CtShapes.Pill).background(CtColors.Surface),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Rounded.Visibility, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(16.dp)) }
-                else -> Image(
-                    painter = painterResource(PieceArt.drawable(settings.boardTheme.pieceSet, Piece(PieceType.KING, state.solverColor))),
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp),
-                )
+private fun RunProgress(state: PuzzlePlayerState) {
+    val planned = state.plannedCount
+    val remaining = state.remainingMs
+    if (planned == null && remaining == null && state.maxStrikes == null) return
+    val solved = state.results.count { it.solved }
+    Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f))
+        if (planned != null) {
+            Row(
+                modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "Puzzle ${state.index + 1} of $planned, $solved solved" },
+                horizontalArrangement = Arrangement.spacedBy(if (planned > 12) 4.dp else 8.dp),
+            ) {
+                repeat(planned) { i ->
+                    val mark = state.results.getOrNull(i)
+                    val color = when {
+                        mark == null && i == state.index -> CtColors.Text
+                        mark == null -> CtColors.Track
+                        mark.clean -> CtColors.Success
+                        mark.solved -> CtColors.Accent
+                        else -> CtColors.Error
+                    }
+                    Box(Modifier.size(if (planned > 12) 6.dp else 10.dp).clip(CtShapes.Pill).background(color))
+                }
             }
-            Text(headline, style = CtType.TitleSmall, maxLines = 1, modifier = Modifier.weight(1f))
-            state.maxStrikes?.let { max -> Text("Strikes ${state.strikes}/$max", style = CtType.Label.copy(color = CtColors.Error)) }
-            state.plannedCount?.let { planned -> Text("${state.index + 1} of $planned", style = CtType.Caption) }
-            // A countdown shows tenths when time is short; time taken always reads like "0:07".
-            Text(state.remainingMs?.let { formatClock(it) } ?: formatElapsed(state.elapsedMs), style = CtType.Label.copy(color = CtColors.Text2))
         }
-        RunProgress(state)
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(CtSpacing.md, Alignment.End)) {
+            state.maxStrikes?.let { max -> Text("Strikes ${state.strikes}/$max", style = CtType.Label.copy(color = CtColors.Error)) }
+            // A countdown shows tenths when time is short.
+            remaining?.let { Text(formatClock(it), style = CtType.Label.copy(color = CtColors.Text)) }
+        }
     }
 }
 
-/** A thin bar per puzzle of the run: success solved cleanly, accent solved with help, error missed. */
 @Composable
-private fun RunProgress(state: PuzzlePlayerState) {
-    val planned = state.plannedCount ?: return
-    val solved = state.results.count { it.solved }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) { contentDescription = "Puzzle ${state.index + 1} of $planned, $solved solved" },
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+private fun PlainStep(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.size(CtSpacing.touchTarget).clip(CtShapes.Pill).ctPressable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        repeat(planned) { i ->
-            val mark = state.results.getOrNull(i)
-            val color = when {
-                mark == null && i == state.index -> CtColors.Text2
-                mark == null -> CtColors.Track
-                mark.clean -> CtColors.Success
-                mark.solved -> CtColors.Accent
-                else -> CtColors.Error
-            }
-            Box(Modifier.weight(1f).height(4.dp).clip(CtShapes.Pill).background(color))
-        }
+        Icon(icon, contentDescription = label, tint = if (enabled) CtColors.Text else CtColors.Text2.copy(alpha = 0.4f))
     }
 }
 

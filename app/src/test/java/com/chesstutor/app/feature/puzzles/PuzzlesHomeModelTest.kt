@@ -66,15 +66,6 @@ class PuzzlesHomeModelTest {
     }
 
     @Test
-    fun theCoachSpeaksToWhereThePlayerIs() {
-        assertTrue(PuzzlesHomeModel.coachLine(PuzzleStats(), 1, false).startsWith("Welcome"))
-        assertTrue(PuzzlesHomeModel.coachLine(PuzzleStats(solved = 9, dayStreak = 4), 3, solvedToday = false).contains("4-day streak is waiting"))
-        assertTrue(PuzzlesHomeModel.coachLine(PuzzleStats(solved = 9, dayStreak = 4), 3, solvedToday = true).contains("Day 4"))
-        assertTrue(PuzzlesHomeModel.coachLine(PuzzleStats(solved = 9), 10, false).contains("Sunrise Meadow"))
-        assertEquals("Ready for level 7?", PuzzlesHomeModel.coachLine(PuzzleStats(solved = 9), 7, false))
-    }
-
-    @Test
     fun theViewModelLoadsThePackAndFollowsTheRepository() = runTest {
         val repository = InMemoryPuzzleRepository()
         val puzzle = Puzzle("p", "8/8/8/8/8/8/8/K6k w - - 0 1", listOf("a1a2", "h1h2"), 500, "fork", emptySet())

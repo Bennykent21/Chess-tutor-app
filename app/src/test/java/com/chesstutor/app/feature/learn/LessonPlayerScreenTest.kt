@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.feature.play.MIN_READ_MS
+import com.chesstutor.app.gallery.shootBoth
+import com.chesstutor.app.gallery.GALLERY_PHONE
 import org.junit.Assert.assertEquals
 import com.chesstutor.app.design.CtBoardScreenTags
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -54,6 +57,8 @@ class LessonPlayerScreenTest {
         scheduler.advanceTimeBy(ms)
         scheduler.runCurrent()
         compose.waitForIdle()
+        // The coach's previous line stays readable before the next one comes (D97).
+        compose.mainClock.advanceTimeBy(MIN_READ_MS)
     }
 
     private fun show(player: LessonPlayer, onRelatedPuzzles: (() -> Unit)? = null) {
@@ -65,22 +70,28 @@ class LessonPlayerScreenTest {
     }
 
     @Test
+    fun theCoachLeadsWithTheVerdictOnlyWhenTheSentenceDoesNot() {
+        assertEquals("Correct! Well played.", lessonLine("Correct!", "Well played."))
+        assertEquals("Your turn: give check.", lessonLine("Your turn", "Your turn: give check."))
+        assertEquals("Challenge 1/2. Mate in one.", lessonLine("Challenge 1/2", "Mate in one."))
+        assertEquals("The rook checks.", lessonLine(null, "The rook checks."))
+    }
+
+    @Test
     fun watchThenLearnThenTry() {
         val player = LessonPlayer(course, course.lessons[0], InMemoryLessonProgressRepository(), scope, nextLesson = course.lessons[1])
         player.start()
         show(player)
         step()
-        compose.onNodeWithText("Video coming soon").assertExists()
-        compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_watch.png")
-
-        compose.onNodeWithText("Start").performClick()
+        // No video for the lesson: no placeholder page, straight to the board (D96).
+        compose.onNodeWithText("Video coming soon").assertDoesNotExist()
         step()
         compose.onNodeWithText("When a piece attacks the king", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_learn.png")
 
-        compose.onNodeWithText("Skip").performClick()
+        compose.onNodeWithText("Next").performClick()
         step()
-        compose.onNodeWithText("Skip").performClick()
+        compose.onNodeWithText("Next").performClick()
         step()
         compose.onNodeWithText("Your turn: give check with the rook.").assertExists()
         val boardBefore = compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot()
@@ -91,7 +102,7 @@ class LessonPlayerScreenTest {
 
         player.board.onMove(Move.fromUci("a1a8"))
         step()
-        compose.onNodeWithText("Correct!").assertExists()
+        compose.onNodeWithText("Correct!", substring = true).assertExists()
         // D39: the hint, the longer coach text and the new buttons never move the board.
         assertEquals(boardBefore, compose.onNodeWithTag(CtBoardScreenTags.BOARD).getBoundsInRoot())
     }
@@ -122,7 +133,7 @@ class LessonPlayerScreenTest {
         player.start()
         show(player, onRelatedPuzzles = { related = true })
         step()
-        compose.onNodeWithText("Challenge 1/2").assertExists()
+        compose.onNodeWithText("Challenge 1/2", substring = true).assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/lesson_quiz.png")
 
         player.board.onMove(Move.fromUci("b1b8"))
@@ -141,5 +152,26 @@ class LessonPlayerScreenTest {
         compose.onNodeWithText("Practise in Opening Battle").assertDoesNotExist()
         compose.onNodeWithText("Related puzzles").performScrollTo().performClick()
         assertTrue("Related puzzles opens the puzzles", related)
+    }
+
+    /** The visual pass (Phase 14B): a lesson at phone size, light and dark. */
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryLesson() {
+        val player = LessonPlayer(course, course.lessons[0], InMemoryLessonProgressRepository(), scope, nextLesson = course.lessons[1])
+        player.start()
+        compose.shootBoth("learn", "06_lesson", settle = { step() }) {
+            LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {})
+        }
+    }
+
+    @Config(qualifiers = GALLERY_PHONE)
+    @Test
+    fun galleryGlassLesson() {
+        val player = LessonPlayer(course, course.lessons[0], InMemoryLessonProgressRepository(), scope, nextLesson = course.lessons[1])
+        player.start()
+        compose.shootBoth("glass", "06_lesson", settle = { step() }, glass = true) {
+            LessonPlayerScreen(player, AppSettings(), onFeedback = {}, onNextLesson = {}, onReplay = {}, onBack = {})
+        }
     }
 }

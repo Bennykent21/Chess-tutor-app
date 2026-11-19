@@ -1,0 +1,204 @@
+{
+  "id": "openings-french-classical",
+  "category": "openings",
+  "title": "Classical Variation (3.Nc3)",
+  "intro": "White defends e4 with 3.Nc3. Counter with 3...Nf6, break the 4.Bg5 pin with ...Be7, and strike White's centre with ...c5.",
+  "level": "intermediate",
+  "order": 72,
+  "side": "black",
+  "opening": "french",
+  "variation": "e2e4 e7e6 d2d4 d7d5 b1c3",
+  "battleLine": "French Defense: Classical Variation",
+  "lessons": [
+    {
+      "id": "openings-french-classical-main",
+      "title": "The Classical 3...Nf6 4.Bg5",
+      "summary": "Unpin with 4...Be7, retreat ...Nfd7, and trade bishops cleanly.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR b KQkq - 1 3",
+          "text": "Against 3.Nc3, 3...Nf6 is a solid, classical choice that attacks e4 immediately."
+        },
+        {
+          "type": "play",
+          "text": "Attack the e4 pawn with your king's knight.",
+          "expect": [
+            "g8f6"
+          ],
+          "hint": "Bring the g8 knight to f6.",
+          "ifWrong": "Play 3...Nf6.",
+          "ifRight": "White must deal with the attack on e4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White pins the knight with 4.Bg5, threatening e5.",
+          "move": "c1g5"
+        },
+        {
+          "type": "play",
+          "text": "Break the pin solidly.",
+          "expect": [
+            "f8e7"
+          ],
+          "hint": "Put your dark-squared bishop on e7.",
+          "ifWrong": "Play 4...Be7 to unpin and prepare castling.",
+          "ifRight": "Now e5 is met smoothly.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White grabs space with 5.e5.",
+          "move": "e4e5"
+        },
+        {
+          "type": "play",
+          "text": "Step back to d7, ready to attack White's centre with ...c5.",
+          "expect": [
+            "f6d7"
+          ],
+          "hint": "Retreat the knight to d7.",
+          "ifWrong": "Play 5...Nfd7: on d7 the knight supports ...c5 and ...f6.",
+          "ifRight": "Notice how ...c5 comes next.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqk2r/pppnBppp/4p3/3pP3/3P4/2N5/PPP2PPP/R2QKBNR b KQkq - 0 6",
+          "text": "White trades bishops with 6.Bxe7. Recapture cleanly.",
+          "expect": [
+            "d8e7"
+          ],
+          "hint": "Take back with your queen.",
+          "ifWrong": "Play 6...Qxe7 so you can castle and break with ...c5.",
+          "ifRight": "Black castles and pushes ...c5 with a comfortable game.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-classical-steinitz",
+      "title": "Meeting 4.e5 (Steinitz)",
+      "summary": "Step back with 4...Nfd7 and hit d4 immediately with 5...c5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/ppp2ppp/4pn2/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR w KQkq - 2 4",
+          "text": "Instead of 4.Bg5, White often closes the centre right away with 4.e5.",
+          "move": "e4e5"
+        },
+        {
+          "type": "play",
+          "text": "Retreat your knight to a useful square where it supports central breaks.",
+          "expect": [
+            "f6d7"
+          ],
+          "hint": "Step back to d7.",
+          "ifWrong": "Play 4...Nfd7 so ...c5 can hit d4 right away.",
+          "ifRight": "In the Steinitz, Black attacks d4 with ...c5 and ...Nc6.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White reinforces e5 and claims kingside space with 5.f4.",
+          "move": "f2f4"
+        },
+        {
+          "type": "play",
+          "text": "Attack the base of White's pawn chain immediately.",
+          "expect": [
+            "c7c5"
+          ],
+          "hint": "Push the c-pawn two squares.",
+          "ifWrong": "Play 5...c5 to put pressure on d4.",
+          "ifRight": "Black hits d4 before White can consolidate.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White defends d4 with 6.Nf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Add another attacker on d4.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Develop your queen's knight to c6.",
+          "ifWrong": "Play 6...Nc6: next come ...Qb6 or ...cxd4 and ...Bc5.",
+          "ifRight": "White's d4 pawn is under heavy pressure.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-classical-exd5",
+      "title": "Meeting 4.exd5 and 7.f4",
+      "summary": "Free the c8 bishop against 4.exd5 and push ...c5 after castling.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/ppp2ppp/4pn2/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR w KQkq - 2 4",
+          "text": "Sometimes White relieves the central tension with 4.exd5.",
+          "move": "e4d5"
+        },
+        {
+          "type": "play",
+          "text": "Recapture to free your light-squared bishop.",
+          "expect": [
+            "e6d5"
+          ],
+          "hint": "Take back with the e-pawn.",
+          "ifWrong": "Play 4...exd5: your c8 bishop is now completely open.",
+          "ifRight": "Black develops ...Bd6 or ...Bb4, ...c6 and ...O-O smoothly.",
+          "feedback": {
+            "f6d5": "4...Nxd5 lets White gain central space after 5.Nxd5 exd5 6.Bd3."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnb1k2r/pppnqppp/4p3/3pP3/3P4/2N5/PPP2PPP/R2QKBNR w KQkq - 1 7",
+          "text": "Back in the 4.Bg5 Be7 5.e5 Nfd7 6.Bxe7 Qxe7 main line, White often supports e5 with 7.f4.",
+          "move": "f2f4"
+        },
+        {
+          "type": "play",
+          "text": "Get your king to safety first, or strike at d4 right away.",
+          "expect": [
+            "e8g8",
+            "a7a6"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 7...O-O (or 7...a6): ...c5 follows once White's knight cannot jump to b5.",
+          "ifRight": "Black is castled and ready for ...c5 and ...Nc6.",
+          "rule": true,
+          "feedback": {
+            "c7c5": "7...c5 at once allows 8.Nb5, aiming at c7 and d6. Castle first, then ...c5."
+          }
+        },
+        {
+          "type": "explain",
+          "fen": "rnb2rk1/pppnqppp/4p3/3pP3/3P1P2/2N2N2/PPP3PP/R2QKB1R b KQ - 2 8",
+          "text": "After 8.Nf3, White is ready to develop Bd3 or Qd2."
+        },
+        {
+          "type": "play",
+          "text": "Strike at White's pawn chain with your c-pawn.",
+          "expect": [
+            "c7c5"
+          ],
+          "hint": "Push the c-pawn two squares.",
+          "ifWrong": "Play 8...c5 to challenge d4 and activate your pieces.",
+          "ifRight": "Next ...Nc6 and ...f6 undermine White's whole centre.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

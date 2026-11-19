@@ -7,15 +7,14 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import com.chesstutor.app.R
 import com.chesstutor.app.board.BoardFeedback
 import com.chesstutor.app.board.BoardSound
 import com.chesstutor.app.board.HapticPattern
 import com.chesstutor.app.board.MoveEffects
 
 /**
- * Plays the sound pack (Kenney, CC0; see LICENSES.md) and the vibration patterns of plan
- * section 4.3. Sounds and haptics each follow their own setting.
+ * Plays the chosen [SoundPack] (see LICENSES.md) and the vibration patterns of plan section 4.3.
+ * Sounds and haptics each follow their own setting.
  */
 class ChessSoundManager(context: Context) {
 
@@ -45,10 +44,18 @@ class ChessSoundManager(context: Context) {
         null
     }
 
-    /** Sound ids inside [soundPool]. Loading is asynchronous; a sound not loaded yet is skipped. */
-    private val soundIds: Map<BoardSound, Int> = soundPool?.let { pool ->
-        BoardSound.entries.associateWith { sound -> runCatching { pool.load(context, rawFor(sound), 1) }.getOrDefault(0) }
+    /**
+     * Sound ids inside [soundPool] by raw resource, every pack's at once (they are small), so a
+     * new pack plays straight away. Loading is asynchronous; a sound not loaded yet is skipped.
+     */
+    private val soundIds: Map<Int, Int> = soundPool?.let { pool ->
+        SoundPack.entries.flatMap { pack -> BoardSound.entries.map(pack::rawFor) }.distinct()
+            .associateWith { raw -> runCatching { pool.load(context, raw, 1) }.getOrDefault(0) }
     } ?: emptyMap()
+
+    /** Follows the Sound pack setting (D108). */
+    @Volatile
+    var pack: SoundPack = SoundPack.DEFAULT
 
     /** Follows the Haptics setting. When false, no vibration at all. */
     @Volatile
@@ -60,8 +67,11 @@ class ChessSoundManager(context: Context) {
         if (soundEnabled) feedback.sound?.let(::playSound)
     }
 
+    /** A move in the current pack, so a newly chosen pack can be heard. */
+    fun preview() = playSound(BoardSound.MOVE)
+
     private fun playSound(sound: BoardSound) {
-        val id = soundIds[sound] ?: return
+        val id = soundIds[pack.rawFor(sound)] ?: return
         if (id == 0) return
         runCatching { soundPool?.play(id, 1f, 1f, 1, 0, 1f) }
     }
@@ -79,18 +89,5 @@ class ChessSoundManager(context: Context) {
                 vib.vibrate(pattern.timingsMs, -1)
             }
         } catch (_: Throwable) {}
-    }
-
-    private fun rawFor(sound: BoardSound): Int = when (sound) {
-        BoardSound.MOVE -> R.raw.sfx_move
-        BoardSound.CAPTURE -> R.raw.sfx_capture
-        BoardSound.CASTLE -> R.raw.sfx_castle
-        BoardSound.CHECK -> R.raw.sfx_check
-        BoardSound.PROMOTE -> R.raw.sfx_promote
-        BoardSound.WIN -> R.raw.sfx_win
-        BoardSound.LOSE -> R.raw.sfx_lose
-        BoardSound.CORRECT -> R.raw.sfx_correct
-        BoardSound.WRONG -> R.raw.sfx_wrong
-        BoardSound.TAP -> R.raw.sfx_tap
     }
 }

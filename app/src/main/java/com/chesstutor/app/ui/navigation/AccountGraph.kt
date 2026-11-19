@@ -55,11 +55,13 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
             val account = accountViewModel()
             val games by account.games.collectAsStateWithLifecycle()
             val stats by account.stats.collectAsStateWithLifecycle()
+            val dayStreak by account.dayStreak.collectAsStateWithLifecycle()
             val overview by account.overview.collectAsStateWithLifecycle()
             AccountScreen(
                 state = state,
                 games = games,
                 stats = stats,
+                dayStreak = dayStreak,
                 overview = overview,
                 actions = linkActions.copy(
                     onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
@@ -104,9 +106,12 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
             val games by account.games.collectAsStateWithLifecycle()
             val openingCourses by account.openingCourses.collectAsStateWithLifecycle()
             val clock = entry.arguments?.getString(AppRoutes.CLOCK_ARG)?.let { name -> TimeClass.entries.firstOrNull { it.name == name } } ?: TimeClass.RAPID
+            val findings by findingsViewModel().state.collectAsStateWithLifecycle()
             StatsScreen(
                 games = games,
                 state = state,
+                insights = findings.report.insights,
+                onOpenGame = { id -> navController.navigate(AppRoutes.game(id)) { launchSingleTop = true } },
                 initialClock = clock,
                 now = remember { System.currentTimeMillis() },
                 courseIdFor = { family -> OpeningCourses.courseFor(family, openingCourses)?.id },
@@ -122,9 +127,11 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
             val account = accountViewModel()
             val stats by account.stats.collectAsStateWithLifecycle()
             val training by account.training.collectAsStateWithLifecycle()
+            val dayStreak by account.dayStreak.collectAsStateWithLifecycle()
             TrainingScreen(
                 training = training,
                 stats = stats,
+                dayStreak = dayStreak,
                 dueReviewCount = dueReviews,
                 now = remember { System.currentTimeMillis() },
                 onReviewMistakes = {
@@ -164,7 +171,9 @@ internal fun NavGraphBuilder.accountGraph(shell: Shell) = with(shell) {
                     onAppearance = viewModel::setAppearance,
                     onSound = viewModel::setSoundEnabled,
                     onHaptics = viewModel::setHapticsEnabled,
+                    onSoundPack = viewModel::setSoundPack,
                     onReduceMotion = viewModel::setReduceMotion,
+                    onAutoReview = viewModel::setAutoReview,
                     exportPgn = {
                         AppContainer.provideGameRepository(context).getRecentGames(Int.MAX_VALUE)
                             .joinToString("\n\n") { PgnFormatter.reconstructPgnFromGameRecord(it).trim() }
@@ -310,6 +319,7 @@ internal fun Shell.accountViewModel(): AccountViewModel {
             trainingSources = trainingSources(context),
             reviewDepth = { AppContainer.provideSettingsStore(context).settings.first().reviewDepth },
             cloud = com.chesstutor.app.data.network.LichessCloudEvals(),
+            activityDays = AppContainer.provideActivityDays(context),
         ),
     )
 }

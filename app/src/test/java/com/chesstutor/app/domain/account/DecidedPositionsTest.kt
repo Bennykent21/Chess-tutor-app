@@ -43,6 +43,14 @@ class DecidedPositionsTest {
     }
 
     @Test
+    fun aBiggerWinLetGoWhileAheadIsAnError() {
+        assertEquals("a queen left hanging, a rook up", MoveQuality.MISTAKE, judge(cp(1400), cp(600)))
+        assertEquals("a smaller edge kept", MoveQuality.INACCURACY, judge(cp(700), cp(400)))
+        assertEquals("a pawn's difference is not an error", MoveQuality.BEST, judge(cp(700), cp(550)))
+        assertEquals("crushing either way", MoveQuality.BEST, judge(cp(1800), cp(1200)))
+    }
+
+    @Test
     fun theEnginesOwnMoveIsNeverPunished() {
         assertEquals(MoveQuality.BEST, judge(cp(-959), mate(-4), playedBest = true))
         assertEquals(MoveQuality.BEST, judge(mate(-10), mate(-4), playedBest = true))

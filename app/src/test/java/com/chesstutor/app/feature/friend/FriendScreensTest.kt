@@ -78,10 +78,12 @@ class FriendScreensTest {
                 )
             }
         }
-        compose.onNodeWithText("Play a friend").assertExists()
+        compose.onNodeWithText("Play on this phone").assertExists()
         compose.onNodeWithText("Sam").assertExists()
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/friend_setup.png")
 
+        // The clocks open from the one time-control row (D92).
+        compose.onNodeWithText("Time control").performClick()
         compose.onNodeWithText("3 | 2").performClick()
         assertEquals(PlayerClock.of(3, 2), draft.clock)
         compose.onNodeWithText("Opening").performClick()

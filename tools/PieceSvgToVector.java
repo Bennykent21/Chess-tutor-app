@@ -15,7 +15,7 @@ import java.nio.file.Path;
  *     tools\PieceSvgToVector.java design\pieces app\src\main\res\drawable
  */
 public class PieceSvgToVector {
-    private static final String[] SETS = {"cburnett", "merida", "chessnut", "fantasy"};
+    private static final String[] SETS = {"cburnett", "merida", "chessnut", "fantasy", "celtic", "spatial", "mpchess", "rhosgfx"};
     private static final String[] PIECES = {"K", "Q", "R", "B", "N", "P"};
 
     public static void main(String[] args) throws Exception {

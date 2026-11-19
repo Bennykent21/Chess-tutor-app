@@ -1,0 +1,8 @@
+{
+  "id": "scotch",
+  "title": "Scotch Game",
+  "side": "white",
+  "start": "e4 e5 Nf3 Nc6 d4",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {}
+}

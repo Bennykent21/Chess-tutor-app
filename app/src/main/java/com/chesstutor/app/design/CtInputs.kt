@@ -1,5 +1,6 @@
 package com.chesstutor.app.design
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,13 +18,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -99,7 +101,11 @@ fun CtTextField(
     }
 }
 
-/** A labelled slider with its current value on the right and optional end labels below. */
+/**
+ * A labelled slider with its current value on the right and optional end labels below (D92):
+ * a thin line and a small ring, nothing behind it, so a page of settings stays light.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CtSliderRow(
     title: String,
@@ -112,35 +118,36 @@ fun CtSliderRow(
     startLabel: String? = null,
     endLabel: String? = null,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(CtShapes.CardSmall)
-            .background(CtColors.Surface)
-            .padding(horizontal = CtSpacing.lg, vertical = CtSpacing.md),
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = title, style = CtType.TitleSmall, modifier = Modifier.weight(1f))
+            Text(text = title, style = CtType.Label.copy(color = CtColors.Text), modifier = Modifier.weight(1f))
             Text(text = valueLabel, style = CtType.Label.copy(color = CtColors.Accent))
         }
+        val line = CtColors.Text
+        val track = CtColors.Track
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
             steps = steps,
-            colors = SliderDefaults.colors(
-                thumbColor = CtColors.Primary,
-                activeTrackColor = CtColors.Primary,
-                inactiveTrackColor = CtColors.Track,
-                activeTickColor = Color.Transparent,
-                inactiveTickColor = Color.Transparent,
-            ),
+            thumb = {
+                Box(Modifier.size(20.dp).clip(CtShapes.Pill).background(CtColors.Raised).border(2.dp, line, CtShapes.Pill))
+            },
+            track = { state ->
+                val span = state.valueRange.endInclusive - state.valueRange.start
+                val fraction = if (span <= 0f) 0f else ((state.value - state.valueRange.start) / span).coerceIn(0f, 1f)
+                Canvas(Modifier.fillMaxWidth().height(4.dp)) {
+                    val y = size.height / 2
+                    drawLine(track, Offset(0f, y), Offset(size.width, y), strokeWidth = size.height, cap = StrokeCap.Round)
+                    drawLine(line, Offset(0f, y), Offset(size.width * fraction, y), strokeWidth = size.height, cap = StrokeCap.Round)
+                }
+            },
             modifier = Modifier.semantics { contentDescription = title; stateDescription = valueLabel },
         )
         if (startLabel != null || endLabel != null) {
             Row {
-                Text(text = startLabel.orEmpty(), style = CtType.Caption, modifier = Modifier.weight(1f))
-                Text(text = endLabel.orEmpty(), style = CtType.Caption)
+                Text(text = startLabel.orEmpty(), style = CtType.Caption.copy(color = CtColors.Text2), modifier = Modifier.weight(1f))
+                Text(text = endLabel.orEmpty(), style = CtType.Caption.copy(color = CtColors.Text2))
             }
         }
     }

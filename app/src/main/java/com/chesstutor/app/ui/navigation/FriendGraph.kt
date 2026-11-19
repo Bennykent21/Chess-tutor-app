@@ -115,6 +115,8 @@ internal fun NavGraphBuilder.friendPages(shell: Shell) = with(shell) {
     }
     composable(AppRoutes.FRIEND_PLAY) {
         val friendModel = friendViewModel()
+        val account = accountViewModel()
+        LaunchedEffect(Unit) { account.pauseBackground() }
         val game by friendModel.game.collectAsStateWithLifecycle()
         val current = game
         if (current == null) {

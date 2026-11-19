@@ -1,0 +1,326 @@
+{
+  "notes": [
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5",
+      "kind": "branch",
+      "text": "The Ruy Lopez. The bishop pressures the c6 knight that defends e5, and after 3...a6 White keeps the bishop with 4.Ba4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "a6"
+          ],
+          "move": "Ba4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4",
+      "kind": "branch",
+      "text": "The Morphy Defence. Black's main move is 4...Nf6, attacking e4, and White simply answers with 5.O-O.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nf6"
+          ],
+          "move": "O-O",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O",
+      "kind": "branch",
+      "text": "White leaves e4 undefended because Re1 will control the open e-file. After 5...Be7, White protects e4 with 6.Re1.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Be7"
+          ],
+          "move": "Re1",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1",
+      "kind": "plan",
+      "text": "Now Bxc6 followed by Nxe5 is a real threat. Black usually drives the bishop back with 6...b5, and White retreats to b3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "b5"
+          ],
+          "move": "Bb3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6",
+      "kind": "plan",
+      "text": "Black reinforces e5 with ...d6. White plays 8.c3 to prepare d4 and give the b3 bishop a safe home on c2.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O",
+      "kind": "plan",
+      "text": "The Closed Ruy Lopez tabiya. White plays 9.h3 to stop ...Bg4 before pushing d4 and routing the knight via Nbd2-f1-g3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "h3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 O-O",
+      "kind": "plan",
+      "text": "Black castles before playing ...d6, keeping the Marshall Attack in mind. White prevents ...Bg4 and avoids the Marshall with 8.h3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "h3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Nxe4",
+      "kind": "branch",
+      "text": "The Open Variation. Black grabs the e4 pawn, and White strikes at the centre at once with 6.d4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Nxe4 d4 b5 Bb3 d5",
+      "kind": "plan",
+      "text": "Black locks in the knight on e4. White takes on e5 and supports the centre with c3.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "dxe5",
+            "Be6",
+            "c3"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Nxe4 d4 exd4",
+      "kind": "plan",
+      "text": "Opening the e-file while Black's king is still in the centre is dangerous. White plays 7.Re1 to pin the knight.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Re1",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 d6",
+      "kind": "plan",
+      "text": "The Modern Steinitz Defence. White plays 5.c3 first to avoid the Noah's Ark trap and prepare d4 safely.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 a6 Ba4 b5 Bb3 Na5",
+      "kind": "plan",
+      "text": "Black tries to hunt down the Spanish bishop at once. White calmly castles with 6.O-O and meets ...Nxb3 with axb3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "O-O",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 Nf6",
+      "kind": "branch",
+      "text": "The Berlin Defence. White keeps the game simple and rich with 4.d3, avoiding the sharp Berlin Endgame.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 Nf6 d3 Bc5",
+      "kind": "plan",
+      "text": "Black develops the bishop actively. White prepares d4 and a retreat square for the bishop with 5.c3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 Nf6 d3 d6",
+      "kind": "plan",
+      "text": "Black plays solidly. White prepares d4 with 5.c3 and keeps the Spanish bishop ready to drop back to c2.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 Bc5",
+      "kind": "branch",
+      "text": "The Classical Defence. White prepares a quick central strike with 4.c3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 Bc5 c3 Nf6",
+      "kind": "plan",
+      "text": "Black attacks e4, and White pushes 5.d4 straight into the centre.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d4",
+          "top": 3,
+          "sentence": 0
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 d6",
+      "kind": "plan",
+      "text": "The Old Steinitz Defence is passive. White takes space in the centre immediately with 4.d4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 f5",
+      "kind": "branch",
+      "text": "The Schliemann Gambit attacks e4 from the flank. White develops solidly and defends e4 with 4.Nc3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 f5 Nc3 fxe4 Nxe4 d5",
+      "kind": "plan",
+      "text": "Black tries to grab the whole centre. White hits back tactically with 6.Nxe5, eyeing Qh5+ and Nxc6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nxe5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 Nd4",
+      "kind": "plan",
+      "text": "The Bird Defence moves the same knight twice. White trades with 4.Nxd4 and castles into a lead in development.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nxd4",
+            "exd4",
+            "O-O"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 e5 Nf3 Nc6 Bb5 Nge7",
+      "kind": "plan",
+      "text": "Black avoids doubled pawns with the Cozio Defence. White develops cleanly with 4.Nc3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    }
+  ]
+}

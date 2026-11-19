@@ -50,7 +50,6 @@ object AppRoutes {
     /** Custom run: rating, pattern, how many and a timer (D64). */
     const val PUZZLE_CUSTOM = "puzzles/custom"
     /** Every level of the five worlds (D43). */
-    const val PUZZLE_LEVELS = "puzzles/levels"
     /** Starts the daily puzzle (from Home's daily challenge card) and opens the player. */
     const val PUZZLE_DAILY = "puzzles/daily"
     /** Mistakes review: due positions from the player's own games, full screen on the board. */
@@ -89,6 +88,10 @@ object AppRoutes {
     const val LEARN_OPENING_PATTERN = "learn/opening/{$OPENING_ID_ARG}"
     fun learnOpening(id: String): String = "learn/opening/$id"
     fun course(id: String): String = "learn/course/$id"
+    /** One video from a Watch row, on its own page (D100). */
+    const val VIDEO_ID_ARG = "videoId"
+    const val VIDEO_PATTERN = "learn/video/{$VIDEO_ID_ARG}"
+    fun video(id: String): String = "learn/video/$id"
     /** A bot's page (pick colour, clock and rules), then the game itself, full screen in Home. */
     const val BOT_ID_ARG = "botId"
     const val BOT_PATTERN = "home/bot/{$BOT_ID_ARG}"
@@ -155,6 +158,12 @@ object AppRoutes {
 
     /** Every bot, your own bots, "Build a bot" and "Watch two" (D42). */
     const val BOTS = "home/bots"
+    /** Every way to play, as a list (D92); Home's Play button. */
+    const val PLAY_MENU = "home/play-menu"
+    /** The computer at any strength, side and clock (D92). */
+    const val CUSTOM_GAME = "home/custom-game"
+    /** A custom game with a chosen Chess960 start (D92). */
+    const val CHESS960 = "home/chess960"
     /** What's new in the version waiting to be installed (D90): from the Home icon, the prompt and Settings. */
     const val WHATS_NEW = "home/whats-new"
     /** Explore's start page on Home: choose the position and who the engine plays. */
@@ -163,9 +172,9 @@ object AppRoutes {
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 
     private val accountPages = setOf(ENGINE_HEALTH, BOARD_SETTINGS, SETTINGS, LICENCES, GAME_PATTERN, GAMES_PATTERN, STATS_PATTERN, TRAINING)
-    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN)
-    private val homePages = setOf(BOTS, WHATS_NEW)
-    private val puzzlePages = setOf(PUZZLE_LEVELS)
+    private val learnPages = setOf(LEARN_CATEGORY_PATTERN, COURSE_PATTERN, TRAINER, REPERTOIRE_PATTERN, LEARN_OPENING_PATTERN, VIDEO_PATTERN)
+    private val homePages = setOf(BOTS, WHATS_NEW, PLAY_MENU, CUSTOM_GAME, CHESS960)
+    private val puzzlePages = emptySet<String>()
     private val trainPages = setOf(TRAIN_SIDE_PATTERN, TRAIN_POSITIONS_PATTERN, TRAIN_FROM_GAMES, TRAIN_LINES, TRAIN_LINE_PATTERN)
 
     /** The bottom bar shows on the four main tabs only: every other page and board gets the room. */

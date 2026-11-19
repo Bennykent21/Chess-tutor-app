@@ -1,0 +1,343 @@
+{
+  "notes": [
+    {
+      "path": "c4",
+      "kind": "plan",
+      "text": "The English Opening starts with 1.c4. White controls the d5 square from the flank and meets 1...e5 with 2.Nc3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "e5"
+          ],
+          "move": "Nc3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 e5 Nc3",
+      "kind": "branch",
+      "text": "The King's English. With 1...e5, Black plays a Sicilian Defence with colours reversed, and White gets ready to fianchetto with g3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nf6"
+          ],
+          "move": "g3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 e5 Nc3 Nf6 g3",
+      "kind": "branch",
+      "text": "White prepares Bg2 to control d5 and the long light diagonal. If Black strikes with 3...d5, White swaps off the centre pawn with cxd5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "d5"
+          ],
+          "move": "cxd5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 e5 Nc3 Nf6 g3 d5 cxd5 Nxd5 Bg2",
+      "kind": "plan",
+      "text": "The bishop on g2 immediately hits the d5 knight and aims down the diagonal towards b7. After 5...Nb6, White develops Nf3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nb6"
+          ],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 e5 Nc3 Nf6 g3 Bb4",
+      "kind": "plan",
+      "text": "Black pins the c3 knight to fight for e4. White simply finishes development with 4.Bg2.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bg2",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 e5 Nc3 Nf6 g3 Bb4 Bg2 O-O Nf3",
+      "kind": "plan",
+      "text": "White develops the king's knight and attacks e5. If Black pushes 5...e4, the knight hops actively to d4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "e4"
+          ],
+          "move": "Nd4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 e5 Nc3 Nc6 g3",
+      "kind": "plan",
+      "text": "Black guards d5 and e5 with the knight. Against 3...g6, White puts the bishop on g2 and builds a flexible queenside attack.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "g6",
+            "Bg2",
+            "Bg7",
+            "d3"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 e5 Nc3 Nc6 g3 g6 Bg2 Bg7 d3 d6",
+      "kind": "plan",
+      "text": "With d3 holding e4 and the g2 bishop unblocked, White develops 6.Nf3 and prepares O-O, Rb1 and b4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 0
+        }
+      ]
+    },
+    {
+      "path": "c4 c5",
+      "kind": "branch",
+      "text": "The Symmetrical Variation. White plays 2.Nc3 to control d5 before choosing where the pawns go.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 c5 Nc3 Nc6 g3 g6 Bg2 Bg7",
+      "kind": "plan",
+      "text": "Both sides mirror each other on the long diagonal. White develops 5.Nf3 and stays ready to castle and play d3 or d4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 c5 Nc3 Nf6 g3 d5 cxd5 Nxd5 Bg2",
+      "kind": "plan",
+      "text": "Black takes space in the centre early. After 5...Nc7, White plays Nf3 and castles before expanding on the queenside.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nc7",
+            "Nf3",
+            "Nc6",
+            "O-O"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 Nf6",
+      "kind": "branch",
+      "text": "Against 1...Nf6, White develops 2.Nc3 to fight for d5 and keep the option of g3 or Nf3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc3",
+          "top": 3,
+          "sentence": 0
+        }
+      ]
+    },
+    {
+      "path": "c4 Nf6 Nc3 g6 g3 Bg7 Bg2",
+      "kind": "plan",
+      "text": "Against Black's King's Indian set-up, White develops calmly with Nf3 and castles short.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "O-O",
+            "Nf3",
+            "d6",
+            "O-O"
+          ],
+          "side": "white",
+          "sentence": 0
+        }
+      ]
+    },
+    {
+      "path": "c4 Nf6 Nc3 d5 cxd5 Nxd5 g3",
+      "kind": "plan",
+      "text": "White trades off Black's d-pawn and fianchettoes the bishop. If Black takes on c3, White recaptures bxc3 to strengthen the centre.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nxc3"
+          ],
+          "move": "bxc3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 Nf6 Nc3 e6",
+      "kind": "branch",
+      "text": "Black prepares ...d5 or ...Bb4. White develops 3.Nf3 so the knight on c3 cannot be pinned cleanly after ...d5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 Nf6 Nc3 e6 Nf3 Bb4",
+      "kind": "plan",
+      "text": "Black pins the c3 knight like a Nimzo-Indian. White plays 4.Qc2 to protect c3 and avoid doubled pawns.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qc2",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 e6",
+      "kind": "plan",
+      "text": "Against 1...e6, White plays 2.Nf3 first to stay in Catalan and English waters without committing d4 early.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 0
+        }
+      ]
+    },
+    {
+      "path": "c4 e6 Nf3 d5 g3 Nf6 Bg2 Be7 O-O O-O",
+      "kind": "plan",
+      "text": "Both kings are safe. Now 6.d4 opens a favourable Catalan where the g2 bishop pressures Black's queenside.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 c6",
+      "kind": "plan",
+      "text": "Black prepares a Slav-style pawn wall with ...d5. White develops 2.Nf3 and fianchettoes with g3 and Bg2.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nf3",
+            "d5",
+            "g3",
+            "Nf6",
+            "Bg2"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 c6 Nf3 d5 g3 Nf6 Bg2 Bf5 cxd5 cxd5",
+      "kind": "plan",
+      "text": "Black has left the b7 pawn behind. White plays 6.Qb3 to attack both b7 and d5 at once.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qb3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 d5",
+      "kind": "plan",
+      "text": "Black challenges c4 at once without support. White trades 2.cxd5 so Black must lose time with the queen or knight.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "cxd5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "c4 d5 cxd5 Qxd5 Nc3",
+      "kind": "plan",
+      "text": "White develops with tempo against Black's queen. After 3...Qa5, White continues with Nf3 and g3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Qa5"
+          ],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    }
+  ]
+}

@@ -6,12 +6,14 @@
   "level": "intermediate",
   "order": 60,
   "side": "black",
+  "opening": "sicilian",
   "battleLine": "Sicilian Defense",
   "lessons": [
     {
       "id": "openings-sicilian-open",
       "title": "The Open Sicilian and the Najdorf",
       "summary": "Trade a side pawn for a centre pawn, then a6.",
+      "orientation": "black",
       "steps": [
         {
           "type": "explain",
@@ -22,7 +24,9 @@
         {
           "type": "play",
           "text": "Play the Sicilian.",
-          "expect": ["c7c5"],
+          "expect": [
+            "c7c5"
+          ],
           "hint": "Push the c-pawn two squares.",
           "ifWrong": "The Sicilian is 1...c5.",
           "ifRight": "The Sicilian Defence.",
@@ -36,7 +40,9 @@
         {
           "type": "play",
           "text": "Play d6: it guards e5 and prepares ...Nf6.",
-          "expect": ["d7d6"],
+          "expect": [
+            "d7d6"
+          ],
           "hint": "A one-square pawn move in the centre.",
           "ifWrong": "This lesson follows the main line with 2...d6.",
           "ifRight": "Solid and flexible.",
@@ -54,7 +60,9 @@
         {
           "type": "play",
           "text": "Take on d4. You swap your side pawn for White's centre pawn.",
-          "expect": ["c5d4"],
+          "expect": [
+            "c5d4"
+          ],
           "hint": "Capture with the c-pawn.",
           "ifWrong": "Capture the d4 pawn.",
           "ifRight": "Now you have two centre pawns against White's one.",
@@ -68,7 +76,9 @@
         {
           "type": "play",
           "text": "Develop with an attack on e4.",
-          "expect": ["g8f6"],
+          "expect": [
+            "g8f6"
+          ],
           "hint": "Your king's knight can hit e4.",
           "ifWrong": "Bring out the knight so it attacks e4.",
           "ifRight": "e4 is under attack.",
@@ -82,7 +92,9 @@
         {
           "type": "play",
           "text": "Play the Najdorf: the quiet a6 keeps White's pieces off b5 and prepares ...e5 or ...b5.",
-          "expect": ["a7a6"],
+          "expect": [
+            "a7a6"
+          ],
           "hint": "A one-square move with the a-pawn.",
           "ifWrong": "The Najdorf is 5...a6.",
           "ifRight": "The Najdorf, a favourite of world champions.",
@@ -94,7 +106,87 @@
         {
           "type": "explain",
           "text": "Your plan: use the half-open c-file (a rook on c8 later), challenge the centre with ...e5 or ...e6, and expand with ...b5.",
-          "arrows": ["c8c3:idea"]
+          "arrows": [
+            "c8c3:idea"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "openings-sicilian-plans",
+      "title": "The Sicilian middlegame",
+      "summary": "Control the c-file, counter in the centre, and expand with ...b5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbq1rk1/1p2bppp/p2p1n2/4p3/4P3/1NN1B3/PPP1BPPP/R2Q1RK1 b - - 5 9",
+          "text": "With ...e5 in place, Black controls f4 and d4. Now Black develops the light-squared bishop to e6, puts a knight on d7, and expands with ...b5 and ...Rc8.",
+          "arrows": [
+            "c8e6:idea",
+            "b7b5:idea",
+            "a8c8:idea"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Develop your light-squared bishop to challenge the d5 and c4 squares.",
+          "expect": [
+            "c8e6"
+          ],
+          "hint": "Put the c8 bishop on e6.",
+          "ifWrong": "Play 9...Be6 to control d5 and connect your queenside pieces.",
+          "ifRight": "The bishop eyes c4 and stops White from dominating d5 easily.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White shifts the queen to d2, preparing Rfd1 and f3.",
+          "move": "d1d2"
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight without blocking the c-file.",
+          "expect": [
+            "b8d7"
+          ],
+          "hint": "Put the b8 knight on d7 so your rook can use c8.",
+          "ifWrong": "Play 10...Nbd7: on d7 the knight supports ...b5 and keeps the c-file open for your rook.",
+          "ifRight": "Notice how the c-file stays clear for ...Rc8.",
+          "feedback": {
+            "b8c6": "10...Nc6 is playable too, yet 10...Nbd7 leaves the c-file open for ...Rc8 and supports ...Nb6-c4."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White swings a rook to d1 to pressure d6.",
+          "move": "f1d1"
+        },
+        {
+          "type": "play",
+          "text": "Put a rook on the half-open c-file to target c2.",
+          "expect": [
+            "a8c8"
+          ],
+          "hint": "Slide the a8 rook to c8.",
+          "ifWrong": "Play 11...Rc8 to put pressure down the c-file.",
+          "ifRight": "Now ...b5, ...Nb6 and ...Nc4 give Black strong queenside counterplay.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "2rq1rk1/1p1nbppp/p2pbn2/4p3/4P3/1NN1BP2/PPPQB1PP/R2R2K1 b - - 0 12",
+          "text": "White played 12.f3 to guard e4. Start your queenside expansion.",
+          "expect": [
+            "b7b5",
+            "d7b6",
+            "d8c7"
+          ],
+          "hint": "Push the b-pawn two squares to gain space and prepare ...Nb6-c4.",
+          "ifWrong": "Play 12...b5 (or 12...Nb6 or 12...Qc7) to expand on the queenside.",
+          "ifRight": "Black has great queenside counterplay along the c-file.",
+          "rule": true
         }
       ]
     }

@@ -1,0 +1,199 @@
+{
+  "id": "openings-kings-indian-classical",
+  "category": "openings",
+  "title": "Classical Variation (6.Be2)",
+  "intro": "Meet 6.Be2 with 6...e5. Answer 7.O-O with ...Nc6, reroute ...Ne7, ...Nd7 and ...f5 against d5, and chase 7.Be3 with ...Ng4.",
+  "level": "advanced",
+  "order": 91,
+  "side": "black",
+  "opening": "kings-indian",
+  "variation": "d2d4 g8f6 c2c4 g7g6 b1c3 f8g7 e2e4 d7d6 g1f3 e8g8 f1e2",
+  "battleLine": "King's Indian Defense: Normal Variation",
+  "lessons": [
+    {
+      "id": "openings-kings-indian-classical-e5",
+      "title": "The Classical 6...e5 and 7...Nc6",
+      "summary": "Strike with 6...e5 and meet 7.O-O with 7...Nc6.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbq1rk1/ppp1ppbp/3p1np1/8/2PPP3/2N2N2/PP2BPPP/R1BQK2R b KQ - 3 6",
+          "text": "In the Classical Variation, White prepares to castle with 6.Be2. Now that your king is safe, it is time to strike in the centre."
+        },
+        {
+          "type": "play",
+          "text": "Challenge White's centre immediately.",
+          "expect": [
+            "e7e5"
+          ],
+          "hint": "Push the e-pawn two squares.",
+          "ifWrong": "Play 6...e5 to fight for central space and open your c8 bishop.",
+          "ifRight": "Now White must choose between castling, closing with d5, or trading on e5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White castles: 7.O-O.",
+          "move": "e1g1"
+        },
+        {
+          "type": "play",
+          "text": "Put pressure on d4 so White commits in the centre.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Develop your queen's knight to c6.",
+          "ifWrong": "Play 7...Nc6 to attack d4 and invite 8.d5.",
+          "ifRight": "White usually closes the centre with 8.d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White pushes past with 8.d5.",
+          "move": "d4d5"
+        },
+        {
+          "type": "play",
+          "text": "Step back to e7 to clear the c-file and prepare ...f5.",
+          "expect": [
+            "c6e7"
+          ],
+          "hint": "Move the c6 knight to e7.",
+          "ifWrong": "Play 8...Ne7 so your knight helps on the kingside and frees the f-pawn after ...Nd7.",
+          "ifRight": "Next come ...Nd7 and ...f5.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbq1rk1/ppp2pbp/3p1np1/3Pp3/2P1P3/2N2N2/PP2BPPP/R1BQK2R b KQ - 0 7",
+          "text": "In the Petrosian System (7.d5), White closes the centre before castling. Secure the c5 square for your knight.",
+          "expect": [
+            "a7a5",
+            "b8d7"
+          ],
+          "hint": "Push your a-pawn two squares to stop b4.",
+          "ifWrong": "Play 7...a5 (or 7...Nbd7): 7...a5 stops White's b4 expansion and secures c5 for your b8 knight.",
+          "ifRight": "After 7...a5, Black plays ...Na6-c5 and ...f5.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-kings-indian-classical-dxe5",
+      "title": "Meeting 7.dxe5 and 7.Be3",
+      "summary": "Recapture ...dxe5 and know the ...Nxe4 tactic; chase 7.Be3 with ...Ng4.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbq1rk1/ppp2pbp/3p1np1/4p3/2PPP3/2N2N2/PP2BPPP/R1BQK2R w KQ - 0 7",
+          "text": "Instead of 7.O-O, White sometimes tries the Exchange Variation with 7.dxe5.",
+          "move": "d4e5"
+        },
+        {
+          "type": "play",
+          "text": "Recapture with the pawn to keep lines open and control d4.",
+          "expect": [
+            "d6e5"
+          ],
+          "hint": "Take back on e5 with the d-pawn.",
+          "ifWrong": "Play 7...dxe5.",
+          "ifRight": "Remember that e5 is protected: if White trades queens and takes e5, ...Nxe4 wins it back.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnbr2k1/ppp2pbp/5np1/4p3/2P1P3/2N2N2/PP2BPPP/R1B1K2R w KQ - 0 9",
+          "text": "After 8.Qxd8 Rxd8, if White gets greedy with 9.Nxe5:",
+          "move": "f3e5"
+        },
+        {
+          "type": "play",
+          "text": "Win back the pawn and threaten a discovered attack on the e5 knight.",
+          "expect": [
+            "f6e4"
+          ],
+          "hint": "Capture on e4 with your knight.",
+          "ifWrong": "Play 9...Nxe4: White's e5 knight is attacked by your g7 bishop and c3 is hanging.",
+          "ifRight": "Black regains the pawn with active piece play on the d-file.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnbq1rk1/ppp2pbp/3p1np1/4p3/2PPP3/2N1BN2/PP2BPPP/R2QK2R b KQ - 1 7",
+          "text": "Another popular choice for White is 7.Be3, guarding d4 without closing the centre."
+        },
+        {
+          "type": "play",
+          "text": "Harass the e3 bishop immediately with your knight.",
+          "expect": [
+            "f6g4",
+            "b8c6"
+          ],
+          "hint": "Jump to g4 with your f6 knight.",
+          "ifWrong": "Play 7...Ng4 (or 7...Nc6) to chase the bishop away and clear the f-pawn.",
+          "ifRight": "After 8.Bg5 f6 9.Bh4, Black attacks smoothly with ...Nc6 and ...g5 or ...Nh6.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-kings-indian-classical-attack",
+      "title": "The Kingside Attack",
+      "summary": "Bring the knight back to f6, push ...f4, and open lines with ...g5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/pppnn1bp/3p2p1/3Ppp2/2P1P3/2NN4/PP1BBPPP/R2Q1RK1 b - - 1 11",
+          "text": "White plays 11.Bd2 to prepare Rc1 and c5 on the queenside. Meanwhile, Black builds a decisive kingside storm."
+        },
+        {
+          "type": "play",
+          "text": "Bring your d7 knight back to f6 so it eyes e4 and clears the c8 bishop.",
+          "expect": [
+            "d7f6",
+            "f5f4"
+          ],
+          "hint": "Put the d7 knight on f6.",
+          "ifWrong": "Play 11...Nf6 to pressure e4 and prepare ...g5.",
+          "ifRight": "With ...Nf6, White must guard e4 with f3.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White defends e4 with 12.f3.",
+          "move": "f2f3"
+        },
+        {
+          "type": "play",
+          "text": "Gain kingside space and lock in White's dark-squared bishop.",
+          "expect": [
+            "f5f4"
+          ],
+          "hint": "Push the f-pawn forward to f4.",
+          "ifWrong": "Play 12...f4 so you can march ...g5, ...h5 and ...g4.",
+          "ifRight": "Now Black's kingside attack rolls forward with ...g5 and ...Rf7-g7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White strikes on the queenside with 13.c5.",
+          "move": "c4c5"
+        },
+        {
+          "type": "play",
+          "text": "Keep pushing your kingside attack to open files against White's king.",
+          "expect": [
+            "g6g5"
+          ],
+          "hint": "Push the g-pawn two squares to prepare ...g4.",
+          "ifWrong": "Play 13...g5 to open the g-file with ...g4.",
+          "ifRight": "Black's pieces pour towards g2 and h2 while White's queenside play is slower.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}
