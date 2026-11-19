@@ -32,6 +32,9 @@ data class Puzzle(
 object PuzzleParser {
     private val UCI_MOVE = Regex("^[a-h][1-8][a-h][1-8][qrbn]?$")
 
+    /** The theme that marks a puzzle from one of our openings: "opening:" and the opening's id (D112). */
+    const val OPENING_THEME = "opening:"
+
     /**
      * Parses one tab-separated pack line:
      * `id  fen  moves  rating  primaryTheme  themes  popularity  [alternatives]`.
@@ -56,6 +59,9 @@ object PuzzleParser {
             ?.split('|')
             ?.map { step -> step.split(',').map { it.trim().lowercase() }.filter { UCI_MOVE.matches(it) }.toSet() }
             .orEmpty()
+        // The opening tactics pack (D112) names each puzzle's openings in a ninth column; they
+        // become themes such as "opening:italian", so a run can ask for one opening's puzzles.
+        val openings = cols.getOrNull(8)?.trim().orEmpty().split(',').filter { it.isNotBlank() }.map { OPENING_THEME + it.trim() }
 
         if (id.isEmpty() || primaryTheme.isEmpty()) return null
         if (fen.split(' ').size < 4) return null
@@ -67,7 +73,7 @@ object PuzzleParser {
             moves = moves,
             rating = rating,
             primaryTheme = primaryTheme,
-            themes = if (themes.isEmpty()) setOf(primaryTheme) else themes,
+            themes = (if (themes.isEmpty()) setOf(primaryTheme) else themes) + openings,
             popularity = popularity,
             alternatives = alternatives,
         )
@@ -123,7 +129,7 @@ object PuzzleThemes {
 
     /** "mateIn1" -> "Mate in 1"; unknown tags fall back to a spaced-out camelCase name. */
     fun displayName(theme: String): String =
-        NAMES[theme] ?: theme
+        if (theme.startsWith(PuzzleParser.OPENING_THEME)) "Opening tactics" else NAMES[theme] ?: theme
             .replace(Regex("([a-z0-9])([A-Z])"), "$1 $2")
             .lowercase()
             .replaceFirstChar { it.uppercase() }

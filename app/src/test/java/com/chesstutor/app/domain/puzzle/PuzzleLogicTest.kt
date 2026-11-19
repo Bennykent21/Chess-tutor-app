@@ -263,4 +263,16 @@ class PuzzleLogicTest {
         assertEquals(PuzzleRating.MIN, PuzzleRating.update(PuzzleRating.MIN, 3000, solved = false))
         assertEquals(PuzzleRating.MAX, PuzzleRating.update(PuzzleRating.MAX, 400, solved = true))
     }
+
+    /** The opening tactics pack (D112): a ninth column names the puzzle's openings, which become themes a run can ask for. */
+    @Test
+    fun anOpeningPacksPuzzleCarriesItsOpenings() {
+        val line = "ab12	r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3	g8f6 f3g5	900	fork	fork opening	95		italian,e4-e5"
+        val puzzle = PuzzleParser.parseLine(line)!!
+        assertTrue(puzzle.themes.containsAll(setOf("fork", "opening:italian", "opening:e4-e5")))
+        assertEquals("Opening tactics", PuzzleThemes.displayName("opening:italian"))
+        val pack = PuzzlePack(listOf(puzzle))
+        assertEquals(listOf("ab12"), PuzzleModes.related(pack, listOf("opening:italian"), 900, 10, 1L).map { it.id })
+        assertTrue(PuzzleModes.related(pack, listOf("opening:london"), 900, 10, 1L).isEmpty())
+    }
 }

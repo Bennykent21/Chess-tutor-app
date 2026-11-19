@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Gavel
 import com.chesstutor.app.design.ctPage
 import androidx.compose.ui.text.style.TextAlign
@@ -100,6 +101,8 @@ data class RepertoireActions(
     val onTricky: () -> Unit,
     /** The mistakes club players make in this opening, to punish (D112). */
     val onPunish: () -> Unit = {},
+    /** Puzzles from games in this opening (D112). */
+    val onTactics: (() -> Unit)? = null,
     val onSparring: (() -> Unit)? = null,
     val onPlayOut: (() -> Unit)? = null,
     /** Learns the next new moves inside one variation (its moves from the start). */
@@ -182,6 +185,9 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
                     leading = { CtMetalIcon(Icons.Rounded.Gavel, size = 36.dp) },
                     trailing = { Text("${ui.punish}", style = CtType.BodySmall.copy(color = CtColors.Text2)) },
                 )
+            }
+            actions.onTactics?.let {
+                CtListRow(title = "Tactics", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Extension, size = 36.dp) })
             }
             if (ui.tricky > 0) {
                 CtListRow(

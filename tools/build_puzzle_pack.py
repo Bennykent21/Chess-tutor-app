@@ -101,6 +101,10 @@ def parse_args():
     p.add_argument("--recheck-alternatives", action="store_true",
                    help="re-analyse only puzzles whose cached result has alternatives (after a rule change)")
     p.add_argument("--cache", default=os.path.join("tools", ".cache", "alternatives.jsonl"))
+    p.add_argument("--openings", action="store_true",
+                   help="build the opening tactics pack instead (D112): puzzles per opening of tools/repertoire, "
+                        "matched by Lichess OpeningTags, solved by that opening's side, spread over ratings")
+    p.add_argument("--per-opening", type=int, default=60, help="with --openings: puzzles per opening")
     return p.parse_args()
 
 
@@ -160,6 +164,106 @@ def select(args):
     rows.sort(key=lambda r: (r["rating"], r["id"]))
     print(f"read {seen:,} rows, {kept:,} passed filters, selected {len(rows):,} puzzles", flush=True)
     return rows
+
+
+# ------------------------------------------------------------------ openings (D112)
+
+# Our opening ids and the Lichess OpeningTags families (first word) that belong to them; a tag
+# that must appear among the puzzle's tags narrows a family (the Dragon among the Sicilians).
+OPENING_TAGS = {
+    "italian": (["Italian_Game"], None), "ruy-lopez": (["Ruy_Lopez"], None), "scotch": (["Scotch_Game"], None),
+    "vienna": (["Vienna_Game"], None), "kings-gambit": (["Kings_Gambit", "Kings_Gambit_Accepted", "Kings_Gambit_Declined"], None),
+    "london": (["London_System"], None), "jobava-london": (["Rapport-Jobava_System"], None),
+    "queens-gambit": (["Queens_Gambit", "Queens_Gambit_Declined", "Queens_Gambit_Accepted", "Slav_Defense", "Semi-Slav_Defense"], None),
+    "catalan": (["Catalan_Opening"], None), "english": (["English_Opening"], None), "reti": (["Zukertort_Opening", "Reti_Opening"], None),
+    "caro-kann": (["Caro-Kann_Defense"], None), "sicilian": (["Sicilian_Defense"], None),
+    "sicilian-dragon": (["Sicilian_Defense"], "Dragon"), "french": (["French_Defense"], None),
+    "scandinavian": (["Scandinavian_Defense"], None), "pirc": (["Pirc_Defense"], None), "modern": (["Modern_Defense"], None),
+    "alekhine": (["Alekhine_Defense"], None), "petrov": (["Petrovs_Defense", "Russian_Game"], None),
+    "e4-e5": (["Italian_Game", "Ruy_Lopez", "Scotch_Game", "Four_Knights_Game", "Kings_Knight_Opening", "Vienna_Game", "Bishops_Opening"], None),
+    "queens-gambit-declined": (["Queens_Gambit_Declined"], None), "slav": (["Slav_Defense", "Semi-Slav_Defense"], None),
+    "nimzo-indian": (["Nimzo-Indian_Defense", "Queens_Indian_Defense"], None), "grunfeld": (["Grunfeld_Defense"], None),
+    "dutch": (["Dutch_Defense"], None), "benoni": (["Benoni_Defense", "Modern_Benoni"], None),
+    "kings-indian": (["Kings_Indian_Defense"], None), "vs-english": (["English_Opening"], None),
+    "vs-reti": (["Zukertort_Opening", "Reti_Opening"], None),
+}
+OPENING_BANDS = [(400, 1000), (1000, 1400), (1400, 1800), (1800, 2600)]
+
+
+def opening_sides():
+    """{opening id: "white" or "black"} from tools/repertoire, the side the learner plays."""
+    import json
+    folder = os.path.join("tools", "repertoire")
+    sides = {}
+    for name in os.listdir(folder):
+        if name.endswith(".json") and not name.endswith(".notes.json"):
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                config = json.load(f)
+            sides[config["id"]] = config["side"]
+    return sides
+
+
+def select_openings(args):
+    """Per opening, the most popular puzzles in each rating band where the learner's side solves."""
+    sides = opening_sides()
+    per_band = max(1, args.per_opening // len(OPENING_BANDS))
+    cells = defaultdict(list)  # (opening, band) -> [(popularity, plays, row)]
+    reader = csv.DictReader(open_input(args.input))
+    seen = 0
+    for row in reader:
+        seen += 1
+        if seen % 500_000 == 0:
+            print(f"  read {seen:,} rows", flush=True)
+        tags = (row.get("OpeningTags") or "").split()
+        if not tags:
+            continue
+        try:
+            rating, pop, plays, dev = int(row["Rating"]), int(row["Popularity"]), int(row["NbPlays"]), int(row["RatingDeviation"])
+        except (KeyError, ValueError):
+            continue
+        if pop < args.min_popularity or plays < args.min_plays or dev > args.max_deviation:
+            continue
+        moves = row["Moves"].split()
+        if len(moves) < 2 or len(moves) > args.max_moves:
+            continue
+        # Lichess fens are before the opponent's move: the solver is the side not to move.
+        solver = "white" if row["FEN"].split()[1] == "b" else "black"
+        band = next((i for i, (lo, hi) in enumerate(OPENING_BANDS) if lo <= rating < hi), None)
+        if band is None:
+            continue
+        for opening, (families, narrow) in OPENING_TAGS.items():
+            if sides.get(opening) != solver or tags[0] not in families:
+                continue
+            if narrow and not any(narrow in t for t in tags):
+                continue
+            bucket = cells[(opening, band)]
+            bucket.append((pop, plays, row))
+            if len(bucket) > per_band * 4:
+                bucket.sort(key=lambda x: (-x[0], -x[1]))
+                del bucket[per_band:]
+    picked = defaultdict(set)
+    rows = {}
+    for (opening, _), bucket in cells.items():
+        bucket.sort(key=lambda x: (-x[0], -x[1]))
+        for pop, _, row in bucket[:per_band]:
+            themes = row["Themes"].split()
+            primary = next((t for t in CORE_THEMES if t in themes), themes[0] if themes else "opening")
+            rows.setdefault(row["PuzzleId"], {
+                "id": row["PuzzleId"], "fen": row["FEN"], "moves": row["Moves"].split(),
+                "rating": int(row["Rating"]), "theme": primary, "themes": row["Themes"], "pop": pop,
+            })
+            picked[row["PuzzleId"]].add(opening)
+    out = sorted(rows.values(), key=lambda r: (r["rating"], r["id"]))
+    for r in out:
+        r["openings"] = ",".join(sorted(picked[r["id"]]))
+    counts = defaultdict(int)
+    for ops in picked.values():
+        for o in ops:
+            counts[o] += 1
+    print(f"read {seen:,} rows, selected {len(out):,} puzzles for {len(counts)} openings", flush=True)
+    for o in sorted(OPENING_TAGS):
+        print(f"  {o:<24}{counts.get(o, 0):>4}")
+    return out
 
 
 # ------------------------------------------------------------------ engine
@@ -317,7 +421,7 @@ def find_alternatives(rows, args):
 
 def main():
     args = parse_args()
-    rows = select(args)
+    rows = select_openings(args) if args.openings else select(args)
     alternatives = find_alternatives(rows, args) if args.stockfish else {}
 
     with gzip.open(args.output, "wt", encoding="utf-8", newline="\n") as f:
@@ -325,7 +429,7 @@ def main():
             f.write("\t".join([
                 r["id"], r["fen"], " ".join(r["moves"]), str(r["rating"]), r["theme"], r["themes"],
                 str(r["pop"]), alternatives.get(r["id"], ""),
-            ]) + "\n")
+            ] + ([r["openings"]] if "openings" in r else [])) + "\n")
 
     per_theme = defaultdict(int)
     for r in rows:
