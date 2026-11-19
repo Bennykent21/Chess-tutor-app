@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import kotlin.math.roundToInt
 import com.chesstutor.app.domain.repertoire.Drills
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -60,6 +61,8 @@ data class RepertoireBookUi(
     val mastery: Map<RepertoireLevel, MasteryProgress>,
     val due: Int,
     val tricky: Int,
+    /** Mistakes club players make in this opening, to punish (D112). */
+    val punish: Int = 0,
     /** New cards waiting in the open levels. */
     val fresh: Int,
     val chart: ReplyChart?,
@@ -103,7 +106,7 @@ data class ReplyChart(val after: String, val replies: List<ChartReply>)
 data class ChartReply(val san: String, val share: Double, val error: Boolean)
 
 /** TEST is an opening's test-out (Phase 12): no hints, nothing saved, four of five right opens its drills. */
-enum class RunKind { LEARN, REVIEW, TRICKY, TEST, DRILL, CHALLENGE }
+enum class RunKind { LEARN, REVIEW, TRICKY, TEST, DRILL, CHALLENGE, PUNISH }
 
 /** What the trainer is saying at this moment of a run. */
 sealed interface RunMoment {
@@ -167,7 +170,12 @@ data class RunUi(
     val missed: Set<Int> = emptySet(),
     /** A learn run playing its line again because the last pass needed help (D102). */
     val repeatPass: Boolean = false,
-)
+    /** In a punish run: how many players at the learner's level make the mistake on the board, in percent (D112). */
+    val punishShare: Int? = null,
+) {
+    /** Drills, challenges and punish runs are practice: misses come back, nothing is scheduled. */
+    val practice: Boolean get() = kind == RunKind.DRILL || kind == RunKind.CHALLENGE || kind == RunKind.PUNISH
+}
 
 /**
  * The repertoire trainer (Phase 10, D68 to D76): the taught openings from the bundled trees,
@@ -244,6 +252,7 @@ class RepertoireViewModel(
             mastery = RepertoireLevel.entries.associateWith { Mastery.of(book, it, cardMap, log, zone) },
             due = mine.count { it.isDue(now) && book.nodes[it.key]?.own == true },
             tricky = mine.count { it.tricky },
+            punish = Drills.punish(index, cardMap.values, now, band(book)).size,
             fresh = book.cards(progress.unlocked).count { it.key !in introduced && CourseGate.isOpen(index.pathTo(it.key).orEmpty(), open) },
             chart = chartOf(index, band(book)),
             introduced = book.cards().count { it.key in introduced },
@@ -488,6 +497,18 @@ class RepertoireViewModel(
         startQueue(RunKind.CHALLENGE, "Challenge", queue)
     }
 
+    /** The mistakes club players make in [bookId], each to punish (D112); misses come back. */
+    fun startPunish(bookId: String) {
+        val index = indexes.value?.firstOrNull { it.book.id == bookId } ?: return
+        val found = Drills.punish(index, cards.value.values, clock(), band(index.book))
+        if (found.isEmpty()) return
+        punishShares = found.associate { (card, share) -> card.node.key to share }
+        startQueue(RunKind.PUNISH, index.book.title, found.map { it.first })
+    }
+
+    /** The share of each punish position's mistake, by the position's key. */
+    private var punishShares: Map<String, Double> = emptyMap()
+
     /** The tricky lines of [bookId], each from the start of its line (D76). */
     fun startTricky(bookId: String) {
         val index = indexes.value?.firstOrNull { it.book.id == bookId } ?: return
@@ -498,7 +519,7 @@ class RepertoireViewModel(
 
     private fun startQueue(kind: RunKind, title: String, queue: List<DueCard>) {
         clear()
-        val session = ReviewSession(queue, repeatMisses = kind == RunKind.DRILL || kind == RunKind.CHALLENGE, now = clock)
+        val session = ReviewSession(queue, repeatMisses = kind == RunKind.DRILL || kind == RunKind.CHALLENGE || kind == RunKind.PUNISH, now = clock)
         review = session
         val board = RepertoireBoard(line = { reviewLine(session) to (session.isOwnTurn && moment.lets()) }, submit = ::submitReview)
         mutableRun.value = RunUi(kind, title, queue.first().book.side, board, moment, null, 0, queue.size, tricky = queue.first().fromStart)
@@ -564,7 +585,7 @@ class RepertoireViewModel(
         // A test only looks. A drill or challenge saves only a position's first miss, so what the
         // learner fails in practice comes back in their reviews (D102); a right answer changes nothing.
         val kind = mutableRun.value?.kind
-        val practice = kind == RunKind.DRILL || kind == RunKind.CHALLENGE
+        val practice = kind == RunKind.DRILL || kind == RunKind.CHALLENGE || kind == RunKind.PUNISH
         val firstAsk = session.outcome.count { it.first.id == card.id } == 1
         if (kind != RunKind.TEST && (!practice || (firstAsk && !log.firstTryRight))) {
             viewModelScope.launch {
@@ -589,7 +610,7 @@ class RepertoireViewModel(
                 val session = review ?: return
                 session.next()
                 if (session.finished) {
-                    if (mutableRun.value?.kind == RunKind.DRILL || mutableRun.value?.kind == RunKind.CHALLENGE) {
+                    if (mutableRun.value?.practice == true) {
                         moment = RunMoment.Finished(session.rightFirstTry, session.positions)
                         publish()
                         return
@@ -754,6 +775,7 @@ class RepertoireViewModel(
                 session != null -> session.outcome.withIndex().filter { !it.value.second.firstTryRight }.map { it.index }.toSet()
                 else -> emptySet()
             },
+            punishShare = if (current.kind == RunKind.PUNISH) session?.current?.node?.key?.let(punishShares::get)?.let { (it * 100).roundToInt() } else null,
             repeatPass = (run?.restarts ?: 0) > 0,
         )
     }

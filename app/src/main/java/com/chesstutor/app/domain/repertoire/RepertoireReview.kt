@@ -268,6 +268,26 @@ object Drills {
     fun challenge(index: RepertoireIndex, states: Collection<CardState>, size: Int, now: Instant, random: kotlin.random.Random = kotlin.random.Random.Default): List<DueCard> =
         learnt(index, states, now).shuffled(random).take(size)
 
+    /**
+     * The positions right after a mistake club players often make (D112): the replies the build
+     * marked "punish", each once, the most common at [band] first, with that share. They need
+     * nothing learnt first; a position not met yet gets a fresh state.
+     */
+    fun punish(index: RepertoireIndex, states: Collection<CardState>, now: Instant, band: Int? = null): List<Pair<DueCard, Double>> {
+        val mine = states.filter { it.bookId == index.book.id }.associateBy { it.key }
+        return index.book.nodes.values.filter { !it.own }
+            .flatMap { node -> node.replies.filter { it.punish }.map { node to it } }
+            .sortedByDescending { (_, reply) -> reply.shareFor(band) }
+            .mapNotNull { (node, reply) ->
+                val after = RepertoireIndex.play(index.positionOf(node.key), reply.uci) ?: return@mapNotNull null
+                val card = index.book.at(after)?.takeIf { it.own && it.move != null } ?: return@mapNotNull null
+                val path = index.pathTo(card.key) ?: return@mapNotNull null
+                val state = mine[card.key] ?: CardState(index.book.id, card.key, card.level, dueAt = now, introducedAt = now)
+                DueCard(index, card, state, path) to reply.shareFor(band)
+            }
+            .distinctBy { it.first.node.key }
+    }
+
     private fun learnt(index: RepertoireIndex, states: Collection<CardState>, now: Instant): List<DueCard> {
         val mine = states.filter { it.bookId == index.book.id }.associateBy { it.key }
         return index.book.cards().mapNotNull { node ->

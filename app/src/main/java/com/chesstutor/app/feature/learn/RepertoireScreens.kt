@@ -1,5 +1,6 @@
 package com.chesstutor.app.feature.learn
 
+import androidx.compose.material.icons.rounded.Gavel
 import com.chesstutor.app.design.ctPage
 import androidx.compose.ui.text.style.TextAlign
 import com.chesstutor.app.design.CtChip
@@ -97,6 +98,8 @@ data class RepertoireActions(
     val onReview: () -> Unit,
     val onLearn: () -> Unit,
     val onTricky: () -> Unit,
+    /** The mistakes club players make in this opening, to punish (D112). */
+    val onPunish: () -> Unit = {},
     val onSparring: (() -> Unit)? = null,
     val onPlayOut: (() -> Unit)? = null,
     /** Learns the next new moves inside one variation (its moves from the start). */
@@ -171,6 +174,13 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
                         if (open) Text("${ui.challenge}", style = CtType.BodySmall.copy(color = CtColors.Text2))
                         else Icon(Icons.Rounded.Lock, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(16.dp))
                     },
+                )
+            }
+            if (ui.punish > 0) {
+                CtListRow(
+                    title = "Punish mistakes", icon = null, onClick = actions.onPunish,
+                    leading = { CtMetalIcon(Icons.Rounded.Gavel, size = 36.dp) },
+                    trailing = { Text("${ui.punish}", style = CtType.BodySmall.copy(color = CtColors.Text2)) },
                 )
             }
             if (ui.tricky > 0) {
@@ -487,7 +497,9 @@ private fun coachWords(run: RunUi): String? {
 }
 
 private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.moment) {
-    RunMoment.YourMove -> "Your move" to when {
+    RunMoment.YourMove -> if (run.kind == RunKind.PUNISH) {
+        (run.against ?: "Your move") to (run.punishShare?.let { "$it% of players at your level play this. Punish it." } ?: "Punish it.")
+    } else "Your move" to when {
         run.kind == RunKind.TEST -> "No hints. ${RepertoireViewModel.TEST_PASS} right opens the drills."
         run.tricky -> "A tricky line, from the start."
         else -> null
@@ -497,11 +509,11 @@ private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.mome
     is RunMoment.Also -> "Also good" to (m.san?.let { "Your move here is $it." } ?: "Not the move to remember here.")
     is RunMoment.Shown -> "Play ${m.san}" to when (run.kind) {
         RunKind.LEARN -> null
-        RunKind.DRILL, RunKind.CHALLENGE -> "It comes back at the end."
+        RunKind.DRILL, RunKind.CHALLENGE, RunKind.PUNISH -> "It comes back at the end."
         else -> "This position comes back sooner."
     }
     is RunMoment.CardDone -> when {
-        run.kind == RunKind.DRILL || run.kind == RunKind.CHALLENGE -> when {
+        run.practice -> when {
             !m.right -> "Missed. It comes back later."
             m.again -> "First pass. Once more later to be sure."
             else -> null
@@ -512,7 +524,7 @@ private fun wordsOf(run: RunUi): Pair<String?, String?> = when (val m = run.mome
     is RunMoment.Finished -> if (run.kind == RunKind.TEST) {
         if (m.right >= RepertoireViewModel.testPassMark(m.total)) "Passed" to "${m.right} of ${m.total} right. The drills are open."
         else "Not yet" to "${m.right} of ${m.total} right. Take the course, or try again tomorrow."
-    } else if (run.kind == RunKind.DRILL || run.kind == RunKind.CHALLENGE) {
+    } else if (run.practice) {
         (if (m.right == m.total) "Every one first try" else "All solved") to "${m.right} of ${m.total} first try."
     } else if (run.kind == RunKind.LEARN) {
         "Line learnt" to "${m.right} of ${m.total} first try. Back tomorrow."
