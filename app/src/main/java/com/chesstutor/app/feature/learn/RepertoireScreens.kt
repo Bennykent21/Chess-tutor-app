@@ -1,5 +1,8 @@
 package com.chesstutor.app.feature.learn
 
+import com.chesstutor.app.domain.repertoire.RepertoireIndex
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.horizontalScroll
 import com.chesstutor.app.design.CtBackBar
 import com.chesstutor.app.domain.learn.LessonVideo
 import com.chesstutor.app.board.BoardTheme
@@ -156,6 +159,8 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
                 heading(Modifier.align(Alignment.BottomStart))
             }
         }
+        // The lines first, as boards (mock-up round 5): tap one to watch it, then play it back.
+        if (ui.variations.isNotEmpty()) LinesChapter(ui, actions)
         Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
             CupRail(ui)
             Spacer(Modifier.height(CtSpacing.xxs))
@@ -206,6 +211,48 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
             actions.onIdeas?.let { CtListRow(title = "Ideas", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.AutoStories, size = 36.dp) }) }
             actions.onSparring?.let { CtListRow(title = "Sparring", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.SportsEsports, size = 36.dp) }) }
             actions.onPlayOut?.let { CtListRow(title = "Play it out", icon = null, onClick = it, leading = { CtMetalIcon(Icons.Rounded.Flag, size = 36.dp) }) }
+        }
+    }
+}
+
+/**
+ * The opening's lines as a strip of boards (mock-up round 5, D112): each variation's position, its
+ * name, how often players reach it, and a bar for how well it is known. A tap teaches it: the line
+ * plays once, then the learner plays it back. A locked line opens its course instead.
+ */
+@Composable
+private fun LinesChapter(ui: RepertoireBookUi, actions: RepertoireActions) {
+    Column(Modifier.padding(top = CtSpacing.md), verticalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
+        Column(Modifier.padding(horizontal = CtSpacing.gutter)) {
+            Text("Lines", style = CtType.Title)
+            Text("Tap a line: watch it, then play it back.", style = CtType.Caption.copy(color = CtColors.Text2))
+        }
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = CtSpacing.gutter, vertical = CtSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(CtSpacing.md),
+        ) {
+            ui.variations.forEach { line ->
+                val fen = remember(line.path) {
+                    line.path.fold(com.chesstutor.app.core.Position.initial()) { p, uci -> RepertoireIndex.play(p, uci) ?: p }.toFen()
+                }
+                Column(
+                    Modifier
+                        .width(112.dp)
+                        .clip(CtShapes.Chip)
+                        .ctPressable(onClickLabel = "Learn ${line.label}") {
+                            if (line.locked) actions.onCourse?.invoke() else actions.onLearnVariation(line.path)
+                        },
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    BoardThumbnail(fen, actions.boardTheme, flipped = ui.book.side == PieceColor.BLACK, size = 112.dp)
+                    Text(line.label, style = CtType.Label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("${(line.share * 100).roundToInt()}% of games", style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1)
+                    Box(Modifier.fillMaxWidth().height(3.dp).background(CtColors.Track)) {
+                        val known = if (line.cards == 0) 0f else line.solid.toFloat() / line.cards
+                        Box(Modifier.fillMaxHeight().fillMaxWidth(known.coerceIn(0f, 1f)).background(CtColors.Success))
+                    }
+                }
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -87,7 +88,7 @@ class RepertoireScreensTest {
         compose.onNodeWithText("Tricky lines").assertExists()
         compose.onNodeWithText("42%").assertExists()
         compose.onNodeWithText("Ideas").assertExists()
-        compose.onNodeWithText("Two Knights Defense").performScrollTo().performClick()
+        compose.onAllNodesWithText("Two Knights Defense")[0].performClick()
         assertEquals("$P g8f6".split(' '), learnt)
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page_variations.png")
         compose.onRoot().captureRoboImage("build/outputs/roborazzi/repertoire_page.png")
