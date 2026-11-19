@@ -98,6 +98,20 @@ class LearnHubModelTest {
     }
 
     @Test
+    fun blacksCoursesFilterByTheFirstMoveTheyAnswer() {
+        fun course(id: String, opening: String, lines: List<List<String>> = emptyList()) =
+            Course(id, LessonCategory.OPENINGS, id, "", LessonLevel.BEGINNER, 0, emptyList(), side = PieceColor.BLACK, opening = opening, variations = lines)
+        val courses = listOf(
+            course("caro-ideas", "caro-kann"),
+            course("caro-advance", "caro-kann", listOf("e2e4 c7c6 d2d4 d7d5 e4e5".split(' '))),
+            course("kid-classical", "kings-indian", listOf("d2d4 g8f6 c2c4 g7g6".split(' '))),
+        )
+        assertEquals("an ideas course answers what its opening's lines answer", "e2e4", LearnHubModel.firstMoveAnswered(courses[0], courses))
+        assertEquals(listOf("caro-ideas", "caro-advance"), LearnHubModel.filter(courses, CourseFilter(side = PieceColor.BLACK, against = "e2e4")).map { it.id })
+        assertEquals(listOf("kid-classical"), LearnHubModel.filter(courses, CourseFilter(side = PieceColor.BLACK, against = "d2d4")).map { it.id })
+    }
+
+    @Test
     fun countsAndStatuses() {
         val progress = mapOf(
             "o1" to LessonProgress("o1", completed = true),

@@ -5,10 +5,6 @@ import androidx.compose.ui.text.style.TextAlign
 import com.chesstutor.app.design.CtChip
 import androidx.compose.material.icons.rounded.Bolt
 import com.chesstutor.app.domain.repertoire.Drills
-import com.chesstutor.app.feature.play.rememberTalk
-import com.chesstutor.app.feature.play.TalkLine
-import com.chesstutor.app.feature.play.Talk
-import com.chesstutor.app.design.CtMascotArt
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -385,11 +381,12 @@ fun RepertoireRunScreen(
         title = run.title,
         onBack = onBack,
         modifier = modifier,
-        // The talking coach, as in games and puzzles (D96); the steps go under the board.
+        // Drills are for speed, so no coach talks here (D111): the board's rings and the dots
+        // say right or wrong, and only words that add something (Why, a note) sit above the board.
         zone = {
-            val words = coachWords(run)
-            val talk = rememberTalk(listOfNotNull(words?.let { TalkLine("${run.step}:${run.moment}:$it".hashCode(), it) }), key = run.title)
-            Talk(avatar = { CtMascotArt(settings.mascot, height = 76.dp) }, lines = talk)
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
+                coachWords(run)?.let { Text(it, style = CtType.Body, maxLines = 4, overflow = TextOverflow.Ellipsis) }
+            }
         },
         under = {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly) {

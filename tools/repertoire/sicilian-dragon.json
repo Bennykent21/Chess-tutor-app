@@ -1,0 +1,13 @@
+{
+  "id": "sicilian-dragon",
+  "title": "Sicilian Dragon",
+  "side": "black",
+  "start": "e4 c5",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {
+    "e4 c5 Nf3": "d6",
+    "e4 c5 Nf3 d6 d4": "cxd4",
+    "e4 c5 Nf3 d6 d4 cxd4 Nxd4": "Nf6",
+    "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3": "g6"
+  }
+}

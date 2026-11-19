@@ -1,0 +1,13 @@
+{
+  "id": "jobava-london",
+  "title": "Jobava London",
+  "side": "white",
+  "start": "d4",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {
+    "d4 d5": "Nc3",
+    "d4 d5 Nc3 Nf6": "Bf4",
+    "d4 Nf6": "Nc3",
+    "d4 Nf6 Nc3 d5": "Bf4"
+  }
+}

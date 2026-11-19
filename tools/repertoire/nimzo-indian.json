@@ -1,0 +1,12 @@
+{
+  "id": "nimzo-indian",
+  "title": "Nimzo- and Queen's Indian",
+  "side": "black",
+  "start": "d4 Nf6",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {
+    "d4 Nf6 c4": "e6",
+    "d4 Nf6 c4 e6 Nc3": "Bb4",
+    "d4 Nf6 c4 e6 Nf3": "b6"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "benoni",
+  "title": "Modern Benoni",
+  "side": "black",
+  "start": "d4 Nf6",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {
+    "d4 Nf6 c4": "c5",
+    "d4 Nf6 c4 c5 d5": "e6"
+  }
+}

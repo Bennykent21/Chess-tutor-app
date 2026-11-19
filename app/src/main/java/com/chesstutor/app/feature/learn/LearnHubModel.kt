@@ -30,7 +30,13 @@ data class LessonCount(val completed: Int, val started: Int, val total: Int) {
 enum class LessonStatus { NEW, STARTED, DONE }
 
 /** The two filters on a category page (plan section 6.2). Null means "all". */
-data class CourseFilter(val query: String = "", val level: LessonLevel? = null, val side: PieceColor? = null)
+data class CourseFilter(
+    val query: String = "",
+    val level: LessonLevel? = null,
+    val side: PieceColor? = null,
+    /** For Black's courses: only those that answer this first move of White's ("e2e4"), D111. */
+    val against: String? = null,
+)
 
 /**
  * The Learn tab's pages as plain data: hub tiles with progress, the "continue" lesson,
@@ -92,8 +98,16 @@ object LearnHubModel {
             val text = (listOf(course.title, course.intro) + course.lessons.map { it.title }).joinToString(" ").lowercase()
             words.all { it in text } &&
                 (filter.level == null || course.level == filter.level) &&
-                (filter.side == null || course.side == null || course.side == filter.side)
+                (filter.side == null || course.side == null || course.side == filter.side) &&
+                (filter.against == null || (course.side == PieceColor.BLACK && firstMoveAnswered(course, courses) == filter.against))
         }
+    }
+
+    /** The first move of White's that a course answers ("e2e4"): from its own lines, else from its opening's other courses. */
+    fun firstMoveAnswered(course: Course, all: List<Course>): String? {
+        val line = course.variations.firstOrNull()
+            ?: all.firstOrNull { it.opening != null && it.opening == course.opening && it.variations.isNotEmpty() }?.variations?.first()
+        return line?.firstOrNull()
     }
 
     /** True when the side chips make sense for these courses (some teach one side only). */

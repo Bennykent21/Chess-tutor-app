@@ -1,0 +1,11 @@
+{
+  "id": "pirc",
+  "title": "Pirc Defence",
+  "side": "black",
+  "start": "e4 d6",
+  "about": "Built from club games at each level and checked by Stockfish; our moves are the sound moves players choose most.",
+  "choices": {
+    "e4 d6 d4": "Nf6",
+    "e4 d6 d4 Nf6 Nc3": "g6"
+  }
+}

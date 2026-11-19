@@ -108,6 +108,7 @@ fun LearnCategoryScreen(
         // A search looks through every tier.
         level = tier.takeIf { query.isBlank() },
         side = sideKey?.let { if (it == "white") PieceColor.WHITE else PieceColor.BLACK },
+        against = when (sideKey) { "black-e4" -> "e2e4"; "black-d4" -> "d2d4"; else -> null },
     )
     val shown = LearnHubModel.filter(all, filter)
     val (icon, _) = categoryStyle(category)
@@ -153,8 +154,8 @@ fun LearnCategoryScreen(
                 ) {
                     if (LearnHubModel.offersSideFilter(all)) {
                         FilterDropdown(
-                            label = when (sideKey) { "white" -> "White"; "black" -> "Black"; else -> "Both sides" },
-                            options = listOf(null to "Both sides", "white" to "White", "black" to "Black"),
+                            label = SIDE_CHOICES.firstOrNull { it.first == sideKey }?.second ?: "Both sides",
+                            options = SIDE_CHOICES,
                             onPick = { sideKey = it },
                         )
                     }
@@ -181,6 +182,9 @@ fun LearnCategoryScreen(
 }
 
 private val HERO_HEIGHT = 240.dp
+
+/** The side filter: either side, one side, or Black's answers to 1.e4 or 1.d4 (D111). */
+private val SIDE_CHOICES = listOf(null to "Both sides", "white" to "White", "black" to "Black", "black-e4" to "Black vs 1.e4", "black-d4" to "Black vs 1.d4")
 
 /** A chip that opens a short menu of choices; null is "any". */
 @Composable
