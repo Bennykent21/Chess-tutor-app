@@ -159,8 +159,6 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
                 heading(Modifier.align(Alignment.BottomStart))
             }
         }
-        // The lines first, as boards (mock-up round 5): tap one to watch it, then play it back.
-        if (ui.variations.isNotEmpty()) LinesChapter(ui, actions)
         Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.md), verticalArrangement = Arrangement.spacedBy(CtSpacing.md)) {
             CupRail(ui)
             Spacer(Modifier.height(CtSpacing.xxs))
@@ -176,11 +174,9 @@ fun RepertoirePage(ui: RepertoireBookUi, actions: RepertoireActions, modifier: M
             }
             if (ui.locked) actions.onTest?.let { CtButton(text = "Know it already? Take the test", onClick = it, style = CtButtonStyle.Ghost, modifier = Modifier.fillMaxWidth()) }
         }
-        if (ui.variations.isNotEmpty()) {
-            Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.lg)) {
-                VariationList(ui.variations, actions.onLearnVariation, actions.onDrillVariation)
-            }
-        }
+        // The lines under the cups, as boards (mock-up round 5): tap one to watch it, then play it back;
+        // a line begun has its own Drill. They replace the old Variations list.
+        if (ui.variations.isNotEmpty()) LinesChapter(ui, actions)
         Column(Modifier.padding(start = CtSpacing.gutter, end = CtSpacing.gutter, top = CtSpacing.sm, bottom = CtSpacing.xl)) {
             // Mixed positions from every learnt line, more at each cup; closed until two lines are begun (D101).
             if (ui.introduced > 0) {
@@ -240,7 +236,12 @@ private fun LinesChapter(ui: RepertoireBookUi, actions: RepertoireActions) {
                         .width(112.dp)
                         .clip(CtShapes.Chip)
                         .ctPressable(onClickLabel = "Learn ${line.label}") {
-                            if (line.locked) actions.onCourse?.invoke() else actions.onLearnVariation(line.path)
+                            // New moves left: learn them; all learnt: drill from memory (D101); locked: its course.
+                            when {
+                                line.locked || line.cards == 0 -> actions.onCourse?.invoke()
+                                line.cards > line.introduced -> actions.onLearnVariation(line.path)
+                                else -> actions.onDrillVariation(line.path)
+                            }
                         },
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -250,6 +251,9 @@ private fun LinesChapter(ui: RepertoireBookUi, actions: RepertoireActions) {
                     Box(Modifier.fillMaxWidth().height(3.dp).background(CtColors.Track)) {
                         val known = if (line.cards == 0) 0f else line.solid.toFloat() / line.cards
                         Box(Modifier.fillMaxHeight().fillMaxWidth(known.coerceIn(0f, 1f)).background(CtColors.Success))
+                    }
+                    if (line.introduced > 0 && line.cards > line.introduced && !line.locked) {
+                        CtChip(text = "Drill", onClick = { actions.onDrillVariation(line.path) })
                     }
                 }
             }
@@ -297,66 +301,6 @@ private fun ReadinessRing(readiness: Double) {
     }
 }
 
-/**
- * The opponent's choices (D77): each bar is as long as the choice is common, solid moves fill
- * it dark and moves met once fill it pale. A tap learns the next new moves of that variation, or,
- * when it has none left, drills it from memory (D101); one begun but not finished also has a
- * Drill chip. One with nothing open yet is faint and locked.
- */
-@Composable
-private fun VariationList(variations: List<Variation>, onLearn: (List<String>) -> Unit, onDrill: (List<String>) -> Unit) {
-    val longest = variations.maxOf { it.share }.coerceAtLeast(0.01)
-    Text("Variations", style = CtType.TitleSmall)
-    Spacer(Modifier.height(CtSpacing.xs))
-    variations.forEach { v ->
-        val open = v.cards > 0 && !v.locked
-        val fresh = open && v.cards > v.introduced
-        val drillable = open && v.introduced > 0
-        val spoken = buildString {
-            append("${v.label}, ${percent(v.share)} of games")
-            if (open) append(", ${v.solid} of ${v.cards} solid") else append(", locked")
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = CtSpacing.touchTarget)
-                .then(
-                    when {
-                        fresh -> Modifier.ctPressable(onClickLabel = "Learn ${v.label}") { onLearn(v.path) }
-                        drillable -> Modifier.ctPressable(onClickLabel = "Drill ${v.label}") { onDrill(v.path) }
-                        else -> Modifier
-                    },
-                )
-                .semantics(mergeDescendants = true) { contentDescription = spoken }
-                .padding(vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-                // The name takes the room it needs; only a name too long for the row is cut.
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(CtSpacing.xs)) {
-                    Text(v.label, style = CtType.Label.copy(color = if (open) CtColors.Text else CtColors.Text2), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                    if (v.name != null) Text(v.move, style = CtType.Caption.copy(color = CtColors.Text2), maxLines = 1)
-                }
-                if (!open) Icon(Icons.Rounded.Lock, contentDescription = null, tint = CtColors.Text2, modifier = Modifier.size(13.dp))
-                if (fresh && drillable) CtChip(text = "Drill", onClick = { onDrill(v.path) })
-                Text(percent(v.share), style = CtType.Caption.copy(color = CtColors.Text2))
-            }
-            val track = CtColors.Track
-            val solid = CtColors.Text
-            val met = CtColors.Text2.copy(alpha = 0.55f)
-            Canvas(Modifier.fillMaxWidth((v.share / longest).toFloat().coerceIn(0.04f, 1f)).height(6.dp)) {
-                val radius = CornerRadius(size.height / 2)
-                drawRoundRect(track, cornerRadius = radius)
-                if (v.cards > 0) {
-                    val metWidth = size.width * v.introduced / v.cards
-                    val solidWidth = size.width * v.solid / v.cards
-                    if (metWidth > 0f) drawRoundRect(met, size = Size(metWidth, size.height), cornerRadius = radius)
-                    if (solidWidth > 0f) drawRoundRect(solid, size = Size(solidWidth, size.height), cornerRadius = radius)
-                }
-            }
-        }
-    }
-}
 
 @DrawableRes
 private fun cupOf(level: RepertoireLevel): Int = when (level) {

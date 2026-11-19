@@ -4,25 +4,54 @@ Each release's notes on GitHub come from its section here. Versions follow [Sema
 
 ## [1.2.0] - 2026-11-19
 
+The biggest update so far: every tab was redesigned, and openings are now built from millions of real club games.
+
 ### Openings
 
-- Twenty-nine openings to learn and drill, for White and for Black against 1.e4, 1.d4 and the rest, built from millions of club games and checked by Stockfish.
-- Eight openings in the new look, each with its ideas course and its variations: London, Queen's Gambit, Ruy Lopez, English, Scandinavian, French, Sicilian and King's Indian.
-- Punish mistakes: the slips players at your level really make in each opening. Find the move that punishes them.
-- Tactics from each opening: real puzzles from games in that opening, solved by your side.
+- Twenty-nine openings to learn and drill: your White openings, and Black's answers to 1.e4, 1.d4 and the rest, filtered by one tap. Every move comes from what players at your level really play, checked by Stockfish.
+- Eight openings in the new course look, each with an ideas course and its variations: London, Queen's Gambit, Ruy Lopez, English, Scandinavian, French, Sicilian and King's Indian. Every move and position in them was checked.
+- Every line is taught even without words: watch it, then play it back.
+- Punish mistakes: the slips players at your level really make in each opening, with how often they make them. Find the move that punishes them.
+- Tactics from each opening: 60 real puzzles from games in that opening, solved by your side, from beginner to 2000.
 - One page per opening, from Learn and from Train, with its video at the top.
+
+### Learn
+
+- Rebuilt: topics by level, progress rings, an opening page with its variations, and a talking coach that explains each move.
+- Videos inside the app: each lesson can open on its own video, a course's video sits where its art was, with full screen and 10-second steps.
+- Moves in plain words, and a short course on reading chess notation.
+- The top card continues your last lesson.
 
 ### Train
 
 - Today: one session that mixes what is due with mistakes to punish, then tactics from your openings.
-- Your openings sit on Train's front page; drills go quicker and without the talking coach.
+- Drills that prove you know a line: a miss comes back later at random, two right answers after a miss, green and red dots, and a clean pass to finish.
+- Drill any variation you have learnt, and a mixed Challenge per opening that grows with each cup.
+- From your games, rebuilt: your numbers, your openings with their results and where you leave them, endings you let slip and mistakes you repeat, each with a way to train it.
+- Your openings on the front page; drills go quicker and without the talking coach.
+
+### Home and Play
+
+- A new Play list, custom games, one clock picker and a new game screen.
+- Premoves, several in a row.
+- New games are reviewed in the background (only the newest, and you can turn it off in Settings).
+
+### Puzzles
+
+- Rebuilt: a level strip, one tile style, a richer goal page and custom runs.
+
+### Account and Stats
+
+- A cleaner Account page with your piece, your ratings and your games.
+- Game pages like every other board screen, with metal result icons and a centred move strip.
+- Stats: the period you pick narrows every number, a richer Insights section (results by rating and time of day, accuracy by phase, where your losses turn), and every number that stands for games opens them.
 
 ### Everywhere
 
 - One day streak for the whole app: puzzles, games played here, lessons and drills all count.
-- Explore grades a move on a deeper search and calls out a bigger win let go.
-- New piece sets (Celtic, Spatial, Ink, Terracotta) and sound packs (Studio, Piano, Retro, Sci-fi).
-- The art is back to its earlier look; Learn's top card continues your last lesson; no empty coach bubbles.
+- Explore grades a move on a deeper search and calls out a bigger win let go; stale engine lines no longer spoil its grades.
+- New piece sets (Celtic, Spatial, Ink, Terracotta) chosen from a grid, more board colours, and sound packs (Studio, Piano, Retro, Sci-fi) with a preview.
+- An icons-only bottom bar, outlined until chosen; metal icons across the app; no empty coach bubbles.
 
 ## [1.1.2] - 2026-11-17
 
