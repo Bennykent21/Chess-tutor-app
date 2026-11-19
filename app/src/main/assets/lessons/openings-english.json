@@ -6,18 +6,23 @@
   "level": "intermediate",
   "order": 55,
   "side": "white",
+  "opening": "english",
   "battleLine": "English Opening: King's English Variation",
   "lessons": [
     {
       "id": "openings-english-kings",
       "title": "The King's English",
       "summary": "c4, Nc3, g3 and Bg2: pressure on d5 and the long diagonal.",
+      "orientation": "white",
       "steps": [
         {
           "type": "explain",
           "text": "1.c4 controls d5 without putting a pawn in the centre yet. White's plan: Nc3 and a bishop on g2, all aiming at d5 and the long light diagonal.",
           "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          "arrows": ["c2c4:good", "f1g2:idea"]
+          "arrows": [
+            "c2c4:good",
+            "f1g2:idea"
+          ]
         },
         {
           "type": "explain",
@@ -27,10 +32,127 @@
           "type": "play",
           "text": "Set up the English as White.",
           "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          "line": ["c2c4", "e7e5", "b1c3", "g8f6", "g2g3", "d7d5", "c4d5", "f6d5", "f1g2"],
+          "line": [
+            "c2c4",
+            "e7e5",
+            "b1c3",
+            "g8f6",
+            "g2g3",
+            "d7d5",
+            "c4d5",
+            "f6d5",
+            "f1g2"
+          ],
           "hint": "c4, Nc3, g3, then take on d5 and put the bishop on g2.",
           "ifWrong": "Follow the plan: c4, Nc3, g3, cxd5, Bg2.",
           "ifRight": "The bishop on g2 already hits the knight on d5 and the queenside.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black steps away from the diagonal with 5...Nb6.",
+          "move": "d5b6"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight and control the centre.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Bring the knight to f3, attacking e5.",
+          "ifWrong": "Play 6.Nf3 to hit e5 and prepare castling.",
+          "ifRight": "Now e5 is under attack and White is ready to castle.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black defends e5 with 6...Nc6.",
+          "move": "b8c6"
+        },
+        {
+          "type": "play",
+          "text": "Tuck your king to safety.",
+          "expect": [
+            "e1g1"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 7.O-O so your rook can enter the game on the c-file or e-file.",
+          "ifRight": "Next come d3, Be3 and Rc1, pressing down the c-file.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-plans",
+      "title": "The queenside expansion",
+      "summary": "Use Rb1 and b4 to push on the flank where you have extra space.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/ppp2pbp/2np1np1/4p3/2P5/2NP1NP1/PP2PPBP/R1BQ1RK1 w - - 4 8",
+          "text": "In closed English structures, White's pawn on c4 and bishop on g2 point at the queenside. White expands on that side with Rb1 and b4.",
+          "arrows": [
+            "a1b1:idea",
+            "b2b4:idea"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Prepare the b4 advance with your rook.",
+          "expect": [
+            "a1b1"
+          ],
+          "hint": "Put your a1 rook behind the b-pawn.",
+          "ifWrong": "Play 8.Rb1 so b4 is supported by both the a-pawn and the rook.",
+          "ifRight": "Rb1 also steps off the long h8-a1 diagonal.",
+          "feedback": {
+            "b2b4": "8.b4 loses a pawn to 8...Nxb4. Support it first with 8.Rb1."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black tries to slow down your plan with 8...a5.",
+          "move": "a7a5"
+        },
+        {
+          "type": "play",
+          "text": "Give b4 extra support with a pawn move.",
+          "expect": [
+            "a2a3"
+          ],
+          "hint": "Push the a-pawn one square.",
+          "ifWrong": "Play 9.a3 so you can still push b4 next.",
+          "ifRight": "Now b4 cannot be stopped.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black brings a rook towards the centre with 9...Re8.",
+          "move": "f8e8"
+        },
+        {
+          "type": "play",
+          "text": "Launch your queenside pawn push.",
+          "expect": [
+            "b2b4"
+          ],
+          "hint": "Push the b-pawn two squares.",
+          "ifWrong": "Play 10.b4 to gain space and open lines on the queenside.",
+          "ifRight": "If Black takes on b4, axb4 opens the a-file and keeps strong pressure.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqr1k1/1pp2pbp/2np1np1/4p3/1pP5/P1NP1NP1/4PPBP/1RBQ1RK1 w - - 0 11",
+          "text": "Black took on b4 with 10...axb4. Recapture and open a file for your pieces.",
+          "expect": [
+            "a3b4"
+          ],
+          "hint": "Take back with the a-pawn.",
+          "ifWrong": "Play 11.axb4 to open the a-file and drive Black's pieces back with b5.",
+          "ifRight": "The a-file is open, and b5 is a strong follow-up.",
           "rule": true
         }
       ]

@@ -1,0 +1,214 @@
+{
+  "id": "openings-english-anglo-indian",
+  "category": "openings",
+  "title": "Anglo-Indian (1...Nf6)",
+  "intro": "Against 1...Nf6, develop 2.Nc3. Meet ...g6 with g3 and Bg2, ...d5 with cxd5 and g3, and ...e6 with Nf3.",
+  "level": "intermediate",
+  "order": 58,
+  "side": "white",
+  "opening": "english",
+  "variation": "c2c4 g8f6",
+  "battleLine": "English Opening: Anglo-Indian Defense",
+  "lessons": [
+    {
+      "id": "openings-english-anglo-indian-g6",
+      "title": "Meeting 2...g6",
+      "summary": "Fianchetto with g3 and Bg2 against the King's Indian set-up.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "1...Nf6 is Black's most flexible reply to 1.c4. White develops 2.Nc3 to control d5 and e4."
+        },
+        {
+          "type": "play",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "Play 1.c4, then answer 1...Nf6 with 2.Nc3.",
+          "line": [
+            "c2c4",
+            "g8f6",
+            "b1c3"
+          ],
+          "hint": "Push c4, then develop the queen's knight.",
+          "ifWrong": "Play 1.c4 and 2.Nc3.",
+          "ifRight": "Now White is ready for g3 or Nf3.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black chooses a King's Indian set-up with 2...g6.",
+          "move": "g7g6"
+        },
+        {
+          "type": "play",
+          "text": "Prepare your kingside fianchetto.",
+          "expect": [
+            "g2g3"
+          ],
+          "hint": "Push the g-pawn one square.",
+          "ifWrong": "Play 3.g3.",
+          "ifRight": "The bishop will go to g2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black plays 3...Bg7.",
+          "move": "f8g7"
+        },
+        {
+          "type": "play",
+          "text": "Put your bishop on the long diagonal.",
+          "expect": [
+            "f1g2"
+          ],
+          "hint": "Move the f1 bishop to g2.",
+          "ifWrong": "Play 4.Bg2.",
+          "ifRight": "White controls the light squares across the board.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbq1rk1/ppppppbp/5np1/8/2P5/2N3P1/PP1PPPBP/R1BQK1NR w KQ - 2 5",
+          "text": "Black castles: 4...O-O. Continue with your calm English development.",
+          "expect": [
+            "g1f3",
+            "e2e4"
+          ],
+          "hint": "Develop the king's knight to f3.",
+          "ifWrong": "Play 5.Nf3 (or 5.e4) to prepare O-O and d3.",
+          "ifRight": "Next come O-O, d3, Rb1 and b4.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-anglo-indian-d5",
+      "title": "Meeting 2...d5",
+      "summary": "Trade on d5, play g3 and recapture bxc3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/pppppppp/5n2/8/2P5/2N5/PP1PPPPP/R1BQKBNR b KQkq - 2 2",
+          "text": "Black challenges c4 in the centre with 2...d5, heading towards a Grünfeld structure.",
+          "move": "d7d5"
+        },
+        {
+          "type": "play",
+          "text": "Swap off Black's central d-pawn.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5 with the c-pawn.",
+          "ifWrong": "Play 3.cxd5 to remove Black's centre pawn.",
+          "ifRight": "White keeps an extra central pawn.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black recaptures with 3...Nxd5.",
+          "move": "f6d5"
+        },
+        {
+          "type": "play",
+          "text": "Prepare to challenge the d5 knight with your bishop.",
+          "expect": [
+            "g2g3"
+          ],
+          "hint": "Push the g-pawn one square.",
+          "ifWrong": "Play 4.g3 so Bg2 hits the knight on d5.",
+          "ifRight": "Next comes Bg2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/ppp1pp1p/6p1/8/8/2n3P1/PP1PPPBP/R1BQK1NR w KQkq - 0 6",
+          "text": "After 4.g3 g6 5.Bg2, Black often trades knights on c3."
+        },
+        {
+          "type": "play",
+          "text": "Recapture towards the centre.",
+          "expect": [
+            "b2c3"
+          ],
+          "hint": "Take back with the b-pawn.",
+          "ifWrong": "Play 6.bxc3 to strengthen d4 and open the b-file for your rook.",
+          "ifRight": "White builds a strong centre with d4 or Nf3 and O-O.",
+          "feedback": {
+            "d2c3": "6.dxc3 trades queens after ...Qxd1+ and helps Black equalize. Take with bxc3."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-anglo-indian-e6",
+      "title": "Meeting 2...e6",
+      "summary": "Develop Nf3 and meet ...Bb4 with Qc2.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/pppppppp/5n2/8/2P5/2N5/PP1PPPPP/R1BQKBNR b KQkq - 2 2",
+          "text": "Black keeps the centre flexible with 2...e6, ready for ...Bb4 or ...d5.",
+          "move": "e7e6"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight first instead of g3, so ...d5 and ...d4 is never annoying.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Bring the knight to f3.",
+          "ifWrong": "Play 3.Nf3 to guard d4 and keep all options open.",
+          "ifRight": "White can meet ...Bb4 cleanly or answer ...d5 with d4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black pins the c3 knight with 3...Bb4.",
+          "move": "f8b4"
+        },
+        {
+          "type": "play",
+          "text": "Protect c3 with your queen so Black cannot double your pawns.",
+          "expect": [
+            "d1c2"
+          ],
+          "hint": "Move the queen one square.",
+          "ifWrong": "Play 4.Qc2: if Black takes on c3, Qxc3 keeps your pawn structure intact.",
+          "ifRight": "Next come a3, g3 or e3, keeping the bishop pair.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/ppp2ppp/4pn2/3p4/2P5/2N2N2/PP1PPPPP/R1BQKB1R w KQkq - 0 4",
+          "text": "Here Black pushed 3...d5 instead of 3...Bb4. Claim your share of the centre.",
+          "expect": [
+            "d2d4",
+            "e2e3"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 4.d4 to transpose into a sound Queen's Gambit.",
+          "ifRight": "You have a healthy central position with easy development.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbq1rk1/pppp1ppp/4pn2/8/1bP5/2N2N2/PPQPPPPP/R1B1KB1R w KQ - 4 5",
+          "text": "After 3...Bb4 4.Qc2 O-O, ask the bishop what it wants.",
+          "expect": [
+            "a2a3",
+            "g2g3",
+            "e2e3"
+          ],
+          "hint": "Attack the bishop on b4 with a pawn.",
+          "ifWrong": "Play 5.a3 to win the bishop pair after ...Bxc3 Qxc3.",
+          "ifRight": "White either gains the bishop pair or wins space with b4.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

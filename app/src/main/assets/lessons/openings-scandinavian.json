@@ -6,6 +6,7 @@
   "level": "beginner",
   "order": 85,
   "side": "black",
+  "opening": "scandinavian",
   "battleLine": "Scandinavian Defense: Main Line",
   "lessons": [
     {
@@ -18,7 +19,9 @@
           "type": "explain",
           "text": "1...d5 attacks the e4 pawn straight away. After 2.exd5 Qxd5 the queen is out early, and 3.Nc3 chases it with tempo.",
           "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-          "arrows": ["d7d5:good"]
+          "arrows": [
+            "d7d5:good"
+          ]
         },
         {
           "type": "explain",
@@ -28,10 +31,115 @@
           "type": "play",
           "text": "Play the main line as Black.",
           "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
-          "line": ["d7d5", "e4d5", "d8d5", "b1c3", "d5a5", "d2d4", "g8f6", "g1f3", "c7c6"],
+          "line": [
+            "d7d5",
+            "e4d5",
+            "d8d5",
+            "b1c3",
+            "d5a5",
+            "d2d4",
+            "g8f6",
+            "g1f3",
+            "c7c6"
+          ],
           "hint": "d5, take back with the queen, then queen to a5, knight to f6 and pawn to c6.",
           "ifWrong": "Follow the plan: ...d5, ...Qxd5, ...Qa5, ...Nf6, ...c6.",
           "ifRight": "That is the Scandinavian main line. Next comes ...Bf5 and ...e6.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops the bishop towards f7 with 6.Bc4.",
+          "move": "f1c4"
+        },
+        {
+          "type": "play",
+          "text": "Bring your light-squared bishop outside the pawn chain before playing ...e6.",
+          "expect": [
+            "c8f5"
+          ],
+          "hint": "Put the c8 bishop on f5.",
+          "ifWrong": "Play 6...Bf5 so your bishop stays active outside your pawns.",
+          "ifRight": "Now ...e6 will not trap your bishop.",
+          "feedback": {
+            "e7e6": "6...e6 locks in your c8 bishop. Get it out first with 6...Bf5."
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rn2kb1r/pp2pppp/2p2n2/q4b2/2BP4/2N2N2/PPPB1PPP/R2QK2R b KQkq - 3 7",
+          "text": "White lines up a discovered attack on your queen with 7.Bd2. Finish opening the way for your dark-squared bishop.",
+          "expect": [
+            "e7e6"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 7...e6: if 8.Nd5, your queen simply drops back to d8.",
+          "ifRight": "Black has a rock-solid, harmonious position.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-scandinavian-plans",
+      "title": "Where the queen and pieces go",
+      "summary": "Retreat safely against Nd5, recapture with the queen, and finish development.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rn2kb1r/pp3ppp/2p1pn2/q2N1b2/2BP4/5N2/PPPB1PPP/R2QK2R b KQkq - 1 8",
+          "text": "White often jumps in with 8.Nd5, threatening your queen with a discovered attack and eyeing f6."
+        },
+        {
+          "type": "play",
+          "text": "Move your queen to safety without losing a pawn.",
+          "expect": [
+            "a5d8"
+          ],
+          "hint": "Return the queen home to d8.",
+          "ifWrong": "Play 8...Qd8 so d8 guards c7 and keeps everything protected.",
+          "ifRight": "Your queen is safe and White must deal with the knight on d5.",
+          "feedback": {
+            "a5a4": "8...Qa4 lets White play 9.Nc7+ and win a rook."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White trades knights: 9.Nxf6+.",
+          "move": "d5f6"
+        },
+        {
+          "type": "play",
+          "text": "Recapture cleanly without damaging your kingside pawns.",
+          "expect": [
+            "d8f6"
+          ],
+          "hint": "Take back with the queen.",
+          "ifWrong": "Play 9...Qxf6 to keep your kingside pawns healthy and develop smoothly.",
+          "ifRight": "Your queen stands actively on f6, eyeing d4 and the kingside.",
+          "feedback": {
+            "g7f6": "9...gxf6 weakens your kingside pawns. Take back with 9...Qxf6."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 10.Qe2 to prepare O-O-O and threaten d5.",
+          "move": "d1e2"
+        },
+        {
+          "type": "play",
+          "text": "Develop your last minor piece or prepare castling.",
+          "expect": [
+            "b8d7",
+            "f8d6",
+            "f8e7"
+          ],
+          "hint": "Develop your queen's knight to d7 or dark-squared bishop to d6.",
+          "ifWrong": "Play 10...Nd7 (or 10...Bd6): Black finishes development and can castle either side.",
+          "ifRight": "Black has a very solid position with zero weaknesses.",
           "rule": true
         }
       ]

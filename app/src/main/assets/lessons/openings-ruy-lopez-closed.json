@@ -1,0 +1,218 @@
+{
+  "id": "openings-ruy-lopez-closed",
+  "category": "openings",
+  "title": "Closed Ruy Lopez",
+  "intro": "After 5...Be7, White protects e4 with Re1, tucks the bishop away on b3 and c2, plays c3, h3 and d4, and steers the knight towards the kingside.",
+  "level": "intermediate",
+  "order": 31,
+  "side": "white",
+  "opening": "ruy-lopez",
+  "variation": "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7",
+  "battleLine": "Ruy Lopez: Closed",
+  "lessons": [
+    {
+      "id": "openings-ruy-lopez-closed-re1",
+      "title": "Setting up Re1 and Bb3",
+      "summary": "Defend e4, retreat Bb3, then prepare d4 with c3 and h3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 3 5",
+          "text": "In the Closed Ruy Lopez, Black declines the e4 pawn and develops 5...Be7.",
+          "move": "f8e7"
+        },
+        {
+          "type": "play",
+          "text": "Defend e4 and threaten Bxc6 followed by Nxe5.",
+          "expect": [
+            "f1e1"
+          ],
+          "hint": "Put your rook behind the e-pawn.",
+          "ifWrong": "Play 6.Re1 to guard e4 and activate your rook.",
+          "ifRight": "Now e5 is genuinely threatened, so Black must defend it.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black breaks the pin with 6...b5 before playing ...d6 or castling.",
+          "move": "b7b5"
+        },
+        {
+          "type": "play",
+          "text": "Keep your Spanish bishop on its active diagonal.",
+          "expect": [
+            "a4b3"
+          ],
+          "hint": "Step back to b3.",
+          "ifWrong": "Play 7.Bb3 so the bishop still aims at f7 and stays safe.",
+          "ifRight": "The bishop stays strong on b3.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black supports e5 with 7...d6.",
+          "move": "d7d6"
+        },
+        {
+          "type": "play",
+          "text": "Build a pawn wall for d4 and open the c2 square for your bishop.",
+          "expect": [
+            "c2c3"
+          ],
+          "hint": "Push the c-pawn one square.",
+          "ifWrong": "Play 8.c3 to prepare d4 and give the b3 bishop a home on c2.",
+          "ifRight": "Now White is ready for h3 and d4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/2p1bppp/p1np1n2/1p2p3/4P3/1BP2N2/PP1P1PPP/RNBQR1K1 w - - 1 9",
+          "text": "Black castles: 8...O-O. Stop ...Bg4 before advancing in the centre.",
+          "expect": [
+            "h2h3"
+          ],
+          "hint": "Push the h-pawn one square.",
+          "ifWrong": "Play 9.h3 so Black cannot pin your knight with ...Bg4.",
+          "ifRight": "Next comes d4 and Nbd2-f1-g3.",
+          "feedback": {
+            "d2d4": "9.d4 lets Black play 9...Bg4, putting awkward pressure on d4. Play 9.h3 first."
+          },
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-closed-anti-marshall",
+      "title": "Meeting 7...O-O (Anti-Marshall)",
+      "summary": "Play 8.h3 or 8.a4 to sidestep the Marshall Attack.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqk2r/2ppbppp/p1n2n2/1p2p3/4P3/1B3N2/PPPP1PPP/RNBQR1K1 b kq - 1 7",
+          "text": "If Black plays 7...O-O instead of 7...d6, they are preparing the sharp Marshall Attack with 8...d5 after 8.c3.",
+          "move": "e8g8"
+        },
+        {
+          "type": "play",
+          "text": "Play 8.h3 (or 8.a4) to shut down the Marshall Attack cleanly.",
+          "expect": [
+            "h2h3",
+            "a2a4"
+          ],
+          "hint": "Avoid 8.c3 for one move and play h3 or a4 instead.",
+          "ifWrong": "Play 8.h3 (or 8.a4) so ...d5 is no longer effective.",
+          "ifRight": "With c3 not yet played, ...d5 simply loses a pawn after exd5 Nxd5 Nxe5.",
+          "feedback": {
+            "c2c3": "8.c3 allows the sharp Marshall gambit 8...d5. Sidestep it with 8.h3 or 8.a4."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/2ppbppp/p1n2n2/1p2p3/4P3/1B3N1P/PPPP1PP1/RNBQR1K1 b - - 0 8",
+          "text": "After 8.h3, Black usually plays 8...d6 to defend e5.",
+          "move": "d7d6"
+        },
+        {
+          "type": "play",
+          "text": "Now that ...d5 is off the table, prepare d4 with your c-pawn.",
+          "expect": [
+            "c2c3"
+          ],
+          "hint": "Push the c-pawn one square.",
+          "ifWrong": "Play 9.c3, reaching the normal Closed Ruy Lopez.",
+          "ifRight": "You get the exact Closed Ruy Lopez you wanted without facing the Marshall.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r2q1rk1/1bppbppp/p1n2n2/1p2p3/4P3/1B3N1P/PPPP1PP1/RNBQR1K1 w - - 1 9",
+          "text": "If Black answers 8.h3 with 8...Bb7, defend e4 calmly and prepare c3 and d4.",
+          "expect": [
+            "d2d3",
+            "c2c3"
+          ],
+          "hint": "Support e4 with d3 or prepare d4 with c3.",
+          "ifWrong": "Play 9.d3 (or 9.c3) to keep e4 protected.",
+          "ifRight": "White stays solid and plans Nbd2, Nf1 and Ng3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/2p1bppp/p1n2n2/1p1pp3/4P3/1B3N1P/PPPP1PP1/RNBQR1K1 w - - 0 9",
+          "text": "What if Black plays 8...d5 anyway against 8.h3?",
+          "expect": [
+            "e4d5"
+          ],
+          "hint": "Capture the d5 pawn.",
+          "ifWrong": "Play 9.exd5: after 9...Nxd5 10.Nxe5, White wins a clean central pawn.",
+          "ifRight": "White simply takes the free pawn.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-closed-b5",
+      "title": "Meeting 4...b5 and ...Na5",
+      "summary": "Ignore the early knight chase and castle into a lead in development.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 1 4",
+          "text": "Black sometimes pushes 4...b5 immediately, trying to win your Spanish bishop with ...Na5.",
+          "move": "b7b5"
+        },
+        {
+          "type": "play",
+          "text": "Drop the bishop back to its safe square.",
+          "expect": [
+            "a4b3"
+          ],
+          "hint": "Retreat to b3.",
+          "ifWrong": "Play 5.Bb3.",
+          "ifRight": "White stays completely fine.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black jumps in with 5...Na5, attacking the bishop.",
+          "move": "c6a5"
+        },
+        {
+          "type": "play",
+          "text": "Ignore the threat for a moment and castle.",
+          "expect": [
+            "e1g1"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 6.O-O: if Black takes on b3, axb3 opens the a-file and you keep a big lead in development.",
+          "ifRight": "White is ready to strike in the centre with d4.",
+          "feedback": {
+            "b3f7": "6.Bxf7+ Kxf7 7.Nxe5+ Ke8 only helps Black after ...Qe7. Castle calmly with 6.O-O."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/2pp1ppp/p7/np2p3/4P3/1B3N2/PPPP1PPP/RNBQ1RK1 b kq - 1 6",
+          "text": "If Black takes the bishop with 6...Nxb3:",
+          "move": "a5b3"
+        },
+        {
+          "type": "play",
+          "text": "Recapture and activate your a1 rook.",
+          "expect": [
+            "a2b3"
+          ],
+          "hint": "Take back with the a-pawn.",
+          "ifWrong": "Play 7.axb3 to open the a-file and prepare d4.",
+          "ifRight": "White leads in development and pushes d4 next.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

@@ -6,12 +6,14 @@
   "level": "intermediate",
   "order": 30,
   "side": "white",
+  "opening": "ruy-lopez",
   "battleLine": "Ruy Lopez",
   "lessons": [
     {
       "id": "openings-ruy-lopez-main",
       "title": "The Spanish main line",
       "summary": "Pressure the defender of e5, keep the bishop, castle.",
+      "orientation": "white",
       "steps": [
         {
           "type": "explain",
@@ -22,7 +24,13 @@
           "type": "play",
           "text": "Play the first three moves of the Ruy Lopez.",
           "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          "line": ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5"],
+          "line": [
+            "e2e4",
+            "e7e5",
+            "g1f3",
+            "b8c6",
+            "f1b5"
+          ],
           "hint": "e4 and Nf3 as usual, then the bishop goes one square further than in the Italian.",
           "ifWrong": "That is playable, but the Ruy Lopez goes e4, Nf3 and Bb5.",
           "ifRight": "That is the Ruy Lopez.",
@@ -31,7 +39,10 @@
         {
           "type": "explain",
           "text": "If the knight on c6 disappeared, e5 would be left undefended. That threat hangs over Black for the whole game.",
-          "arrows": ["b5c6", "c6e5:idea"]
+          "arrows": [
+            "b5c6",
+            "c6e5:idea"
+          ]
         },
         {
           "type": "explain",
@@ -41,7 +52,9 @@
         {
           "type": "play",
           "text": "Keep your bishop: step back to a4, staying on the same diagonal.",
-          "expect": ["b5a4"],
+          "expect": [
+            "b5a4"
+          ],
           "hint": "Retreat along the diagonal towards the a-file.",
           "ifWrong": "The main line keeps the bishop with a retreat to a4.",
           "ifRight": "The bishop still pins down the knight.",
@@ -58,7 +71,9 @@
         {
           "type": "play",
           "text": "Castle. Your e4 pawn is safe enough for now: if Black takes it, your rook will use the open e-file.",
-          "expect": ["e1g1"],
+          "expect": [
+            "e1g1"
+          ],
           "hint": "Move the king two squares towards the h1 rook.",
           "ifWrong": "Castle now; it is the main line.",
           "ifRight": "Castled, with the rook ready for the e-file.",
@@ -68,10 +83,87 @@
           "type": "quiz",
           "text": "Black grabbed the pawn with 5...Nxe4 (the Open Variation). Find a strong reply.",
           "fen": "r1bqkb1r/1ppp1ppp/p1n5/4p3/B3n3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 6",
-          "expect": ["d2d4", "f1e1"],
+          "expect": [
+            "d2d4",
+            "f1e1",
+            "d1e2"
+          ],
           "hint": "Open the centre while Black's king is still in the middle.",
           "ifWrong": "Use your lead in development: open lines towards Black's king.",
           "ifRight": "Good: you open lines while Black's king is still in the centre."
+        }
+      ]
+    },
+    {
+      "id": "openings-ruy-lopez-maneuver",
+      "title": "The Spanish knight maneuver",
+      "summary": "Build a centre with c3 and d4, then reroute Nbd2-f1-g3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/2p1bppp/p1np1n2/1p2p3/4P3/1BP2N2/PP1P1PPP/RNBQR1K1 w - - 1 9",
+          "text": "In the Closed Ruy Lopez, White stops ...Bg4 with h3, builds a pawn centre with d4, and swings the b1 knight around to the kingside via d2, f1 and g3.",
+          "arrows": [
+            "b1d2:idea",
+            "d2f1:idea",
+            "f1g3:idea"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Prevent ...Bg4 pinning your f3 knight before you push d4.",
+          "expect": [
+            "h2h3"
+          ],
+          "hint": "Push the h-pawn one square.",
+          "ifWrong": "Play 9.h3 first so ...Bg4 is impossible.",
+          "ifRight": "With ...Bg4 stopped, d4 comes next.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black challenges your Spanish bishop with 9...Na5.",
+          "move": "c6a5"
+        },
+        {
+          "type": "play",
+          "text": "Tuck your bishop back safely while keeping an eye on e4 and the kingside.",
+          "expect": [
+            "b3c2"
+          ],
+          "hint": "Step back one square to c2.",
+          "ifWrong": "Play 10.Bc2: the bishop defends e4 and aims towards h7.",
+          "ifRight": "Your Spanish bishop stays alive for the kingside attack.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black fights for d4 with 10...c5.",
+          "move": "c7c5"
+        },
+        {
+          "type": "play",
+          "text": "Claim the centre now that h3 and Bc2 are in place.",
+          "expect": [
+            "d2d4"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 11.d4 to challenge Black's centre.",
+          "ifRight": "Next the b1 knight begins its journey to d2, f1 and g3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1b2rk1/2q1bppp/p2p1n2/npp1p3/3PP3/2P2N1P/PPB2PP1/RNBQR1K1 w - - 1 12",
+          "text": "Black develops the queen to c7. Start the famous Spanish knight maneuver.",
+          "expect": [
+            "b1d2"
+          ],
+          "hint": "Bring your queen's knight to d2, heading for f1 and g3.",
+          "ifWrong": "Play 12.Nbd2, the start of the classic Ruy Lopez maneuver.",
+          "ifRight": "The knight heads to f1 and g3, eyeing the f5 square.",
+          "rule": true
         }
       ]
     }

@@ -1,0 +1,324 @@
+{
+  "notes": [
+    {
+      "path": "e4 c5",
+      "kind": "branch",
+      "text": "The Sicilian Defence. Black fights for d4 from the flank and creates an unbalanced game where both sides play to win. Against 2.Nf3, Black plays 2...d6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nf3"
+          ],
+          "move": "d6",
+          "top": 3,
+          "sentence": 2
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6",
+      "kind": "branch",
+      "text": "Black guards e5 and prepares ...Nf6. After 3.d4, Black trades a flank pawn for a centre pawn with cxd4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "d4"
+          ],
+          "move": "cxd4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3",
+      "kind": "branch",
+      "text": "The Open Sicilian. Black chooses the Najdorf with 5...a6, keeping White's pieces off b5 and preparing ...e5 or ...b5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "a6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be2",
+      "kind": "plan",
+      "text": "White chooses the solid Classical set-up. Black strikes in the centre with 6...e5, claiming space and opening the f8 bishop.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be2 e5 Nb3",
+      "kind": "plan",
+      "text": "The d5 square is slightly weak, yet Black's active pieces compensate. Black develops 7...Be7 and castles quickly.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Be7",
+            "O-O",
+            "O-O"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3",
+      "kind": "plan",
+      "text": "The English Attack prepares Qd2, f3 and O-O-O. Black counters in the centre with 6...e5, fighting for d4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Bg5",
+      "kind": "plan",
+      "text": "White pins the f6 knight and prepares a sharp kingside attack. Black blocks the pin solidly with 6...e6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Bg5 e6 f4",
+      "kind": "plan",
+      "text": "White threatens e5 or f5 to break open the centre. Black unpins cleanly with 7...Be7.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Be7",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Bc4",
+      "kind": "plan",
+      "text": "White aims the bishop at f7 and e6. Black shuts down that diagonal right away with 6...e6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 Bb5+",
+      "kind": "branch",
+      "text": "The Moscow Variation avoids Open Sicilian theory with a check. Black calmly blocks with 3...Bd7.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bd7",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 Bb5+ Bd7 Bxd7+",
+      "kind": "plan",
+      "text": "White trades dark-squared bishops. Black recaptures 4...Qxd7 to keep c6 free for the knight and develop smoothly.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qxd7",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 c3",
+      "kind": "plan",
+      "text": "The Delayed Alapin tries to build a big centre with d4. Black attacks e4 immediately with 3...Nf6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nf3 d6 d4 cxd4 Qxd4",
+      "kind": "plan",
+      "text": "The Chekhover Variation recaptures with the queen. Black gains time at once with 4...Nc6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 c3",
+      "kind": "branch",
+      "text": "The Alapin Variation prepares 3.d4 to build a full pawn centre. Black hits e4 right away with 2...Nf6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 c3 Nf6 e5 Nd5 d4 cxd4",
+      "kind": "plan",
+      "text": "Black swaps off a flank pawn and exposes White's centre. Against 5.cxd4, Black strikes back with 5...d6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "cxd4"
+          ],
+          "move": "d6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 d4 cxd4 c3",
+      "kind": "branch",
+      "text": "The Smith-Morra Gambit offers a pawn for rapid development. Black accepts with 3...dxc3 and builds a rock-solid shield.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "dxc3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 d4 cxd4 c3 dxc3 Nxc3 Nc6 Nf3",
+      "kind": "plan",
+      "text": "White aims all pieces towards the centre and f7. Black plays 5...d6 to control e5 and prepare ...e6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nc3",
+      "kind": "branch",
+      "text": "The Closed Sicilian avoids d4 for now. Black mirrors White's control of d4 with 2...Nc6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nc3 Nc6 g3",
+      "kind": "plan",
+      "text": "White prepares a kingside fianchetto. Black answers with ...g6 and ...Bg7 to fight for the dark squares.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "g6",
+            "Bg2",
+            "Bg7"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nc3 Nc6 f4",
+      "kind": "branch",
+      "text": "The Grand Prix Attack aims for a kingside storm. Black fianchettoes with 3...g6 to blunt White's attack.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "g6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 Nc3 Nc6 f4 g6 Nf3 Bg7 Bb5",
+      "kind": "plan",
+      "text": "White threatens to double Black's pawns on c6. Black jumps into the centre with 5...Nd4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nd4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 c5 f4",
+      "kind": "plan",
+      "text": "Against the immediate 2.f4, Black strikes in the centre before White develops. Playing 2...d5 challenges e4 at once.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    }
+  ]
+}

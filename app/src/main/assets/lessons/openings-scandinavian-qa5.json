@@ -1,0 +1,219 @@
+{
+  "id": "openings-scandinavian-qa5",
+  "category": "openings",
+  "title": "Main Line with 3...Qa5",
+  "intro": "After 2.exd5 Qxd5 3.Nc3, retreat to a5. Build a rock-solid set-up with ...Nf6, ...c6, ...Bf5 and ...e6, and handle White's early threats.",
+  "level": "beginner",
+  "order": 86,
+  "side": "black",
+  "opening": "scandinavian",
+  "variation": "e2e4 d7d5 e4d5 d8d5 b1c3",
+  "battleLine": "Scandinavian Defense: Main Line",
+  "lessons": [
+    {
+      "id": "openings-scandinavian-qa5-setup",
+      "title": "The ...c6 and ...Bf5 set-up",
+      "summary": "Retreat to a5, play ...Nf6 and ...c6, and bring the bishop out to f5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnb1kbnr/ppp1pppp/8/3q4/8/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 3",
+          "text": "White develops with tempo against your queen. The classic square for the queen is a5."
+        },
+        {
+          "type": "play",
+          "text": "Retreat your queen to a5, keeping pressure on c3 and e1.",
+          "expect": [
+            "d5a5"
+          ],
+          "hint": "Move the queen to the a-file.",
+          "ifWrong": "Play 3...Qa5.",
+          "ifRight": "From a5 the queen stays active and clears d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White claims the centre with 4.d4.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight towards the centre.",
+          "expect": [
+            "g8f6"
+          ],
+          "hint": "Put the g8 knight on f6.",
+          "ifWrong": "Play 4...Nf6 to control d5 and e4.",
+          "ifRight": "Now White usually develops 5.Nf3.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 5.Nf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Support d5 and give your queen a path back to c7.",
+          "expect": [
+            "c7c6"
+          ],
+          "hint": "Push the c-pawn one square.",
+          "ifWrong": "Play 5...c6 so your queen can tuck into c7 if attacked.",
+          "ifRight": "Now Black is ready for ...Bf5 and ...e6.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnb1kb1r/pp2pppp/2p2n2/q7/3P4/2N2N2/PPP1BPPP/R1BQK2R b KQkq - 2 6",
+          "text": "White develops quietly with 6.Be2. Bring your light-squared bishop out before closing the chain with ...e6.",
+          "expect": [
+            "c8f5"
+          ],
+          "hint": "Put your c8 bishop on f5.",
+          "ifWrong": "Play 6...Bf5 so your bishop stays active outside the pawn chain.",
+          "ifRight": "Next come ...e6, ...Nbd7 and ...Bd6 or ...Be7.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-scandinavian-qa5-ne5",
+      "title": "Meeting 6.Ne5 and 5.Bd2",
+      "summary": "Drop the bishop back to e6 after 6.Ne5 Bf5 7.g4 and sidestep 5.Bd2 with ...Qb6.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnb1kb1r/pp2pppp/2p2n2/q7/3P4/2N2N2/PPP2PPP/R1BQKB1R w KQkq - 0 6",
+          "text": "Instead of 6.Bc4, White sometimes jumps forward with 6.Ne5 to eye c4 and f7.",
+          "move": "f3e5"
+        },
+        {
+          "type": "play",
+          "text": "Keep developing your light-squared bishop cleanly.",
+          "expect": [
+            "c8f5"
+          ],
+          "hint": "Bring the c8 bishop to f5.",
+          "ifWrong": "Play 6...Bf5: after 7.g4, your bishop steps back to e6.",
+          "ifRight": "Notice that 7.Nc4 can be met by 7...Qc7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White chases the bishop with 7.g4.",
+          "move": "g2g4"
+        },
+        {
+          "type": "play",
+          "text": "Step back to a square where the bishop cannot be trapped.",
+          "expect": [
+            "f5e6"
+          ],
+          "hint": "Not g6: there h4 and h5 would trap the bishop. Go to e6.",
+          "ifWrong": "Play 7...Be6: on g6 the bishop would be caught by h4 and h5.",
+          "ifRight": "The bishop is safe on e6, and White's g4 push has loosened the kingside.",
+          "rule": true,
+          "feedback": {
+            "f5g6": "7...Bg6 walks into 8.h4, and h5 traps the bishop. Go to e6."
+          }
+        },
+        {
+          "type": "quiz",
+          "fen": "rnb1kb1r/ppp1pppp/5n2/q7/3P4/2N5/PPPB1PPP/R2QKBNR b KQkq - 2 5",
+          "text": "Watch out if White plays 5.Bd2 before Nf3, setting up a discovered attack on your queen. Put your queen on an active square.",
+          "expect": [
+            "a5b6",
+            "c7c6"
+          ],
+          "hint": "Move your queen to b6, hitting both b2 and d4.",
+          "ifWrong": "Play 5...Qb6 (or 5...c6): 5...Qb6 steps out of the pin and attacks b2 and d4.",
+          "ifRight": "Black sidesteps the discovered attack and puts pressure on b2 and d4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnb1kb1r/pp2pppp/2p2n2/q7/2BP4/2N2N2/PPP2PPP/R1BQK2R b KQkq - 1 6",
+          "text": "If White plays 6.Bc4, develop your bishop outside the pawn chain before playing ...e6.",
+          "expect": [
+            "c8f5"
+          ],
+          "hint": "Put your c8 bishop on f5.",
+          "ifWrong": "Play 6...Bf5.",
+          "ifRight": "Active bishop, solid pawn structure.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-scandinavian-qa5-gambits",
+      "title": "Meeting 4.b4 (Leonhardt Gambit)",
+      "summary": "Take the pawn with 4...Qxb4 and tuck the queen on d6 after 5.Rb1.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnb1kbnr/ppp1pppp/8/q7/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 2 4",
+          "text": "Some aggressive players try the Leonhardt Gambit (4.b4), offering a pawn to open the b-file.",
+          "move": "b2b4"
+        },
+        {
+          "type": "play",
+          "text": "Accept the free pawn cleanly.",
+          "expect": [
+            "a5b4"
+          ],
+          "hint": "Capture on b4 with your queen.",
+          "ifWrong": "Play 4...Qxb4.",
+          "ifRight": "Now White will chase your queen with 5.Rb1.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White attacks your queen with 5.Rb1.",
+          "move": "a1b1"
+        },
+        {
+          "type": "play",
+          "text": "Tuck the queen onto a safe central square where it eyes the kingside and stays out of trouble.",
+          "expect": [
+            "b4d6",
+            "b4a5"
+          ],
+          "hint": "Retreat the queen to d6.",
+          "ifWrong": "Play 5...Qd6 (or 5...Qa5): on d6 the queen is safe and guards the kingside.",
+          "ifRight": "Black is a clear pawn up and develops ...Nf6 and ...c6 smoothly.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnb1kbnr/ppp1pppp/3q4/8/8/2N2N2/P1PP1PPP/1RBQKB1R b Kkq - 3 6",
+          "text": "White develops 6.Nf3. Keep developing solidly to consolidate your extra pawn.",
+          "expect": [
+            "g8f6",
+            "a7a6",
+            "c7c6"
+          ],
+          "hint": "Develop your king's knight to f6.",
+          "ifWrong": "Play 6...Nf6 (followed by ...a6 or ...c6) to keep White's pieces out.",
+          "ifRight": "Black keeps the extra pawn and finishes development cleanly.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnb1kbnr/ppp1pppp/8/q7/2B5/2N5/PPPP1PPP/R1BQK1NR b KQkq - 3 4",
+          "text": "If White skips d4 and plays 4.Bc4, continue developing smoothly.",
+          "expect": [
+            "g8f6"
+          ],
+          "hint": "Develop your king's knight to f6.",
+          "ifWrong": "Play 4...Nf6, preparing ...c6 and ...Bf5 as usual.",
+          "ifRight": "Black reaches the same sturdy Scandinavian set-up.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

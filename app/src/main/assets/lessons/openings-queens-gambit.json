@@ -6,12 +6,14 @@
   "level": "intermediate",
   "order": 40,
   "side": "white",
+  "opening": "queens-gambit",
   "battleLine": "Queen's Gambit",
   "lessons": [
     {
       "id": "openings-queens-gambit-main",
       "title": "The Queen's Gambit Declined",
       "summary": "Pressure d5, pin the knight, and avoid the Elephant Trap.",
+      "orientation": "white",
       "steps": [
         {
           "type": "explain",
@@ -22,7 +24,11 @@
           "type": "play",
           "text": "Play the Queen's Gambit.",
           "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          "line": ["d2d4", "d7d5", "c2c4"],
+          "line": [
+            "d2d4",
+            "d7d5",
+            "c2c4"
+          ],
           "hint": "Queen's pawn two squares, then the c-pawn two squares.",
           "ifWrong": "The Queen's Gambit goes d4, then c4.",
           "ifRight": "The gambit is offered.",
@@ -36,7 +42,9 @@
         {
           "type": "play",
           "text": "Develop your queen's knight and add pressure on d5.",
-          "expect": ["b1c3"],
+          "expect": [
+            "b1c3"
+          ],
           "hint": "Which knight attacks d5?",
           "ifWrong": "The main line brings the knight to c3, hitting d5.",
           "ifRight": "Two pieces now attack d5.",
@@ -53,7 +61,9 @@
         {
           "type": "play",
           "text": "Pin the knight with your bishop: it defends d5, and now it cannot move without losing the queen.",
-          "expect": ["c1g5"],
+          "expect": [
+            "c1g5"
+          ],
           "hint": "Your dark-squared bishop can reach g5.",
           "ifWrong": "The classic move is Bg5, pinning the knight to the queen.",
           "ifRight": "The pin adds more pressure on d5.",
@@ -61,30 +71,123 @@
         },
         {
           "type": "explain",
-          "text": "Careful! After 4...Nbd7 5.cxd5 exd5, the pawn on d5 looks free. It is a trap.",
+          "text": "Careful: after 4...Nbd7 5.cxd5 exd5, the pawn on d5 looks free, yet it is a trap.",
           "fen": "r1bqkb1r/pppn1ppp/5n2/3p2B1/3P4/2N5/PP2PPPP/R2QKBNR w KQkq - 0 6",
-          "highlights": ["d5:bad"]
+          "highlights": [
+            "d5:bad"
+          ]
         },
         {
           "type": "quiz",
           "text": "Do not fall for the Elephant Trap. Play a safe, solid move instead of taking d5.",
           "fen": "r1bqkb1r/pppn1ppp/5n2/3p2B1/3P4/2N5/PP2PPPP/R2QKBNR w KQkq - 0 6",
-          "expect": ["e2e3", "g1f3", "d1c2", "a1c1", "a2a3", "g5h4", "d1a4", "d1d2", "d1c1"],
+          "expect": [
+            "e2e3",
+            "g1f3",
+            "d1c2",
+            "a1c1",
+            "a2a3",
+            "g5h4",
+            "d1a4",
+            "d1d2",
+            "d1c1",
+            "g5f4"
+          ],
           "hint": "Support your centre, develop the king's knight, or bring a rook to the c-file.",
           "ifWrong": "Keep it simple: develop and protect your centre.",
           "ifRight": "Safe and solid.",
           "feedback": {
-            "c3d5": "That is the Elephant Trap: 6...Nxd5! 7.Bxd8 Bb4+ 8.Qd2 Bxd2+ 9.Kxd2 Kxd8 and Black has won a piece."
+            "c3d5": "That is the Elephant Trap: 6...Nxd5 7.Bxd8 Bb4+ 8.Qd2 Bxd2+ 9.Kxd2 Kxd8 and Black has won a piece."
           }
         },
         {
           "type": "quiz",
           "text": "Here Black accepted the gambit with 2...dxc4. Take the centre or get ready to win the pawn back.",
           "fen": "rnbqkbnr/ppp1pppp/8/8/2pP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
-          "expect": ["e2e4", "g1f3", "e2e3", "b1c3"],
+          "expect": [
+            "e2e4",
+            "g1f3",
+            "e2e3",
+            "b1c3"
+          ],
           "hint": "A central pawn move, or develop the king's knight.",
           "ifWrong": "Use the time to build your centre or develop.",
           "ifRight": "Good: the pawn on c4 will not run away."
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-plans",
+      "title": "The minority attack",
+      "summary": "Fix the centre, control the c-file, and push b4-b5.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/pppnbppp/5n2/3p2B1/3P4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+          "text": "After cxd5 exd5, the centre is fixed. White owns the half-open c-file and plans to develop, castle, and launch the minority attack with b4-b5.",
+          "arrows": [
+            "a2b4:idea",
+            "b4b5:idea",
+            "a1c1:idea"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Develop your light-squared bishop to its best diagonal, eyeing Black's kingside.",
+          "expect": [
+            "f1d3"
+          ],
+          "hint": "Put the bishop on d3.",
+          "ifWrong": "Play 8.Bd3 so you can castle next and pressure h7.",
+          "ifRight": "The bishop sits actively on d3.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black supports d5 with 8...c6.",
+          "move": "c7c6"
+        },
+        {
+          "type": "play",
+          "text": "Castle to safety and bring a rook into play.",
+          "expect": [
+            "e1g1"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 9.O-O.",
+          "ifRight": "Now White is ready to activate the rooks.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black shifts the rook to e8 with 9...Re8.",
+          "move": "f8e8"
+        },
+        {
+          "type": "play",
+          "text": "Connect your rooks and place your queen on the c-file diagonal.",
+          "expect": [
+            "d1c2"
+          ],
+          "hint": "Move the queen to c2, aiming at h7 and supporting the c-file.",
+          "ifWrong": "Play 10.Qc2 to eye h7 and prepare Rab1 and b4.",
+          "ifRight": "White controls the c-file and prepares the minority attack.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqrnk1/pp2bppp/2p2n2/3p2B1/3P4/2NBPN2/PPQ2PPP/R4RK1 w - - 4 11",
+          "text": "Black defends h7 with 10...Nf8. Start the minority attack on the queenside.",
+          "expect": [
+            "a1b1",
+            "a2a3",
+            "b2b4"
+          ],
+          "hint": "Prepare or start advancing your queenside pawns with Rab1, a3 or b4.",
+          "ifWrong": "Play 11.Rab1 (or 11.a3) to push b4 and b5, creating a weakness on c6.",
+          "ifRight": "Once b5 trades on c6, Black is left with a weak backward pawn.",
+          "rule": true
         }
       ]
     }

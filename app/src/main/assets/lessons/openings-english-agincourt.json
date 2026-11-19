@@ -1,0 +1,211 @@
+{
+  "id": "openings-english-agincourt",
+  "category": "openings",
+  "title": "Against 1...e6, 1...c6 and 1...d5",
+  "intro": "Meet 1...e6 and 1...c6 with Nf3, g3 and Bg2. Against 1...d5, trade on d5 and gain time against Black's queen.",
+  "level": "intermediate",
+  "order": 59,
+  "side": "white",
+  "opening": "english",
+  "variation": "c2c4 e7e6, c2c4 c7c6, c2c4 d7d5",
+  "battleLine": "English Opening: Agincourt Defense",
+  "lessons": [
+    {
+      "id": "openings-english-agincourt-e6",
+      "title": "Meeting 1...e6",
+      "summary": "Use Nf3, g3 and Bg2 to reach a strong Catalan set-up.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "Against 1...e6, White starts 2.Nf3 to prepare g3 and Bg2 without committing d4 right away."
+        },
+        {
+          "type": "play",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "Play 1.c4, then answer 1...e6 with 2.Nf3.",
+          "line": [
+            "c2c4",
+            "e7e6",
+            "g1f3"
+          ],
+          "hint": "Push c4, then develop the king's knight.",
+          "ifWrong": "Play 1.c4 and 2.Nf3.",
+          "ifRight": "White keeps the position flexible.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black takes space in the centre with 2...d5.",
+          "move": "d7d5"
+        },
+        {
+          "type": "play",
+          "text": "Start your kingside fianchetto.",
+          "expect": [
+            "g2g3"
+          ],
+          "hint": "Push the g-pawn one square.",
+          "ifWrong": "Play 3.g3 to prepare Bg2.",
+          "ifRight": "Notice that c4 is safe: if ...dxc4, White wins it back easily with Qa4+.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops with 3...Nf6.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Put your bishop on the long diagonal.",
+          "expect": [
+            "f1g2"
+          ],
+          "hint": "Fianchetto to g2.",
+          "ifWrong": "Play 4.Bg2.",
+          "ifRight": "Next White castles and plays d4 to reach a strong Catalan.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbq1rk1/ppp1bppp/4pn2/3p4/2P5/5NP1/PP1PPPBP/RNBQ1RK1 w - - 5 6",
+          "text": "After 4...Be7 5.O-O O-O, claim the centre.",
+          "expect": [
+            "d2d4",
+            "b2b3"
+          ],
+          "hint": "Push the d-pawn two squares to pressure Black's queenside.",
+          "ifWrong": "Play 6.d4 to enter a pleasant Catalan position.",
+          "ifRight": "Your g2 bishop rakes the long diagonal.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-agincourt-c6",
+      "title": "Meeting 1...c6",
+      "summary": "Fianchetto and punish an early ...Bf5 with cxd5 and Qb3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/pp2pppp/2p2n2/3p4/2P5/5NP1/PP1PPPBP/RNBQK2R b KQkq - 2 4",
+          "text": "Against 1...c6, White uses the same Nf3, g3 and Bg2 set-up. Here Black often brings the bishop out with 4...Bf5.",
+          "move": "c8f5"
+        },
+        {
+          "type": "play",
+          "text": "Open the c-file before Black gets comfortable.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5.",
+          "ifWrong": "Play 5.cxd5 to expose Black's b7 pawn.",
+          "ifRight": "Once Black takes back, your queen can target b7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black recaptures with 5...cxd5.",
+          "move": "c6d5"
+        },
+        {
+          "type": "play",
+          "text": "Attack both b7 and d5 with your queen.",
+          "expect": [
+            "d1b3"
+          ],
+          "hint": "Put the queen on b3.",
+          "ifWrong": "Play 6.Qb3 to put immediate pressure on b7 and d5.",
+          "ifRight": "Black must spend time defending b7.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/pp2pppp/2p2n2/8/2p5/5NP1/PP1PPPBP/RNBQK2R w KQkq - 0 5",
+          "text": "What if Black grabs the pawn with 4...dxc4?",
+          "expect": [
+            "e1g1",
+            "b1a3",
+            "d1c2"
+          ],
+          "hint": "Castle first, or prepare to win c4 back with Na3 or Qc2.",
+          "ifWrong": "Play 5.O-O (or 5.Na3): the c4 pawn cannot be held for long.",
+          "ifRight": "White wins the pawn back with Qc2 or Na3 and keeps a lead in development.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/pp3ppp/2p1pn2/3p4/2P5/5NP1/PP1PPPBP/RNBQK2R w KQkq - 0 5",
+          "text": "If Black plays solidly with 4...e6, keep developing.",
+          "expect": [
+            "e1g1",
+            "b2b3",
+            "d2d4"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 5.O-O, then continue with b3 and Bb2 or d4.",
+          "ifRight": "Calm and solid, with clear plans.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-agincourt-d5",
+      "title": "Meeting 1...d5",
+      "summary": "Trade on d5 and chase Black's queen with Nc3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "Sometimes Black plays 1...d5 right away, hoping for a reversed Scandinavian."
+        },
+        {
+          "type": "play",
+          "text": "Open with 1.c4.",
+          "expect": [
+            "c2c4"
+          ],
+          "hint": "Push the c-pawn two squares.",
+          "ifWrong": "Play 1.c4.",
+          "ifRight": "1.c4 controls d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black pushes 1...d5 immediately.",
+          "move": "d7d5"
+        },
+        {
+          "type": "play",
+          "text": "Trade off Black's central pawn.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5.",
+          "ifWrong": "Play 2.cxd5 so Black must bring the queen out or spend time with ...Nf6.",
+          "ifRight": "You gain time if Black takes with the queen.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black recaptures with the queen: 2...Qxd5.",
+          "move": "d8d5"
+        },
+        {
+          "type": "play",
+          "text": "Develop a knight and chase Black's queen.",
+          "expect": [
+            "b1c3"
+          ],
+          "hint": "Attack the queen with your queen's knight.",
+          "ifWrong": "Play 3.Nc3 to gain a free tempo against the queen.",
+          "ifRight": "After 3...Qa5, White continues with Nf3, g3 and Bg2.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

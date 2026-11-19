@@ -1,0 +1,210 @@
+{
+  "id": "openings-french-exchange",
+  "category": "openings",
+  "title": "Exchange, KIA & 2nd Moves",
+  "intro": "Equalize comfortably in the Exchange Variation with ...Bd6 and ...Nf6, fight White's King's Indian Attack (2.d3) with ...d5 and ...c5, and meet 2.Nf3 or 2.c4 with 2...d5.",
+  "level": "intermediate",
+  "order": 74,
+  "side": "black",
+  "opening": "french",
+  "variation": "e2e4 e7e6 d2d4 d7d5 e4d5, e2e4 e7e6 d2d3, e2e4 e7e6 g1f3, e2e4 e7e6 c2c4",
+  "battleLine": "French Defense: Exchange Variation",
+  "lessons": [
+    {
+      "id": "openings-french-exchange-main",
+      "title": "The Exchange Variation (3.exd5)",
+      "summary": "Develop ...Bd6, ...Nf6 and ...O-O with open diagonals.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp2ppp/4p3/3P4/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3",
+          "text": "In the Exchange Variation, White clears the centre on move three."
+        },
+        {
+          "type": "play",
+          "text": "Recapture with the pawn to open your c8 bishop.",
+          "expect": [
+            "e6d5"
+          ],
+          "hint": "Take back on d5 with the e-pawn.",
+          "ifWrong": "Play 3...exd5: both bishops develop freely now.",
+          "ifRight": "Black has zero pawn weaknesses and easy development.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 4.Nf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Put your dark-squared bishop on an active diagonal.",
+          "expect": [
+            "f8d6"
+          ],
+          "hint": "Develop the f8 bishop to d6.",
+          "ifWrong": "Play 4...Bd6 to control e5 and point at White's kingside.",
+          "ifRight": "Black plans ...Nf6 (or ...Ne7), ...O-O and ...Bg4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White mirrors with 5.Bd3.",
+          "move": "f1d3"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight.",
+          "expect": [
+            "g8f6"
+          ],
+          "hint": "Put the g8 knight on f6.",
+          "ifWrong": "Play 5...Nf6 (or 5...Ne7) so you can castle next.",
+          "ifRight": "Black castles next and brings the c8 bishop to g4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/ppp2ppp/8/3p4/2PP4/8/PP3PPP/RNBQKBNR b KQkq - 0 4",
+          "text": "If White tries 4.c4 to attack your d5 pawn, defend it actively.",
+          "expect": [
+            "g8f6",
+            "f8b4"
+          ],
+          "hint": "Develop your king's knight to defend d5.",
+          "ifWrong": "Play 4...Nf6 (followed by ...Bb4+ or ...Be7) to guard d5 and keep pace in development.",
+          "ifRight": "After 5.Nc3 Bb4, Black gets lively piece play.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-exchange-kia",
+      "title": "King's Indian Attack (2.d3)",
+      "summary": "Claim the centre with ...d5, ...c5 and ...Nc6.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "With 2.d3, White avoids open centre play and heads for a King's Indian Attack with Nd2, Ngf3 and g3.",
+          "move": "d2d3"
+        },
+        {
+          "type": "play",
+          "text": "Claim your share of the centre immediately.",
+          "expect": [
+            "d7d5"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 2...d5 to challenge e4.",
+          "ifRight": "Black takes space in the centre right away.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White defends e4 with 3.Nd2.",
+          "move": "b1d2"
+        },
+        {
+          "type": "play",
+          "text": "Expand in the centre and prepare ...Nc6 before White settles.",
+          "expect": [
+            "c7c5",
+            "g8f6"
+          ],
+          "hint": "Push the c-pawn two squares.",
+          "ifWrong": "Play 3...c5 (or 3...Nf6) to claim the d4 square.",
+          "ifRight": "Black grabs space on the queenside and centre.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 4.Ngf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight to control d4 and e5.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Put the b8 knight on c6.",
+          "ifWrong": "Play 4...Nc6, then ...Nf6, ...Be7 and ...O-O.",
+          "ifRight": "Black has a harmonious set-up with extra central space.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-exchange-2nd",
+      "title": "Meeting 2.Nf3 and 2.c4",
+      "summary": "Play 2...d5 against White's quieter second moves.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "If White delays d4 with 2.Nf3, Black still sticks to the French plan.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Challenge e4 at once.",
+          "expect": [
+            "d7d5"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 2...d5.",
+          "ifRight": "Now White must choose between 3.Nc3, 3.e5 or 3.exd5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White defends with 3.Nc3 (the Two Knights Attack).",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Keep attacking e4 and transpose into healthy Classical lines.",
+          "expect": [
+            "g8f6",
+            "d5d4"
+          ],
+          "hint": "Develop your king's knight to f6.",
+          "ifWrong": "Play 3...Nf6: if 4.e5 Nfd7, Black follows with ...c5.",
+          "ifRight": "After 4.e5 Nfd7, Black hits the centre with ...c5.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pppp1ppp/4p3/8/2P1P3/8/PP1P1PPP/RNBQKBNR b KQkq - 0 2",
+          "text": "What if White tries to prevent ...d5 with 2.c4?",
+          "expect": [
+            "d7d5"
+          ],
+          "hint": "Play ...d5 anyway.",
+          "ifWrong": "Play 2...d5: after 3.exd5 exd5 4.cxd5 Nf6, Black wins the pawn back with fast development.",
+          "ifRight": "Playing 2...d5 gives Black an active, comfortable game.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/ppp2ppp/8/3P4/8/8/PP1P1PPP/RNBQKBNR b KQkq - 0 4",
+          "text": "White took twice on d5. Recapture cleanly instead of bringing the queen out early.",
+          "expect": [
+            "g8f6"
+          ],
+          "hint": "Develop your king's knight to attack d5.",
+          "ifWrong": "Play 4...Nf6 so you recapture with the knight and avoid losing time with the queen.",
+          "ifRight": "Black wins d5 back next with ...Nxd5 and stands very well.",
+          "feedback": {
+            "d8d5": "4...Qxd5 allows 5.Nc3, chasing your queen with tempo. Play 4...Nf6."
+          },
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "id": "openings-scandinavian-declined",
+  "category": "openings",
+  "title": "White Declines (2.Nc3, 2.e5, 2.d4, 2.Nf3)",
+  "intro": "Seize the centre with 2...d4 against 2.Nc3, play 2...c5 against 2.e5, and take on e4 against the Blackmar-Diemer (2.d4) and Tennison (2.Nf3) gambits.",
+  "level": "beginner",
+  "order": 88,
+  "side": "black",
+  "opening": "scandinavian",
+  "variation": "e2e4 d7d5 b1c3, e2e4 d7d5 e4e5, e2e4 d7d5 d2d4, e2e4 d7d5 g1f3",
+  "battleLine": "Scandinavian Defense",
+  "lessons": [
+    {
+      "id": "openings-scandinavian-declined-nc3",
+      "title": "Meeting 2.Nc3",
+      "summary": "Gain space with 2...d4 and take over the centre with 3...e5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "Instead of taking on d5, White sometimes guards e4 with 2.Nc3.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Gain space in the centre and chase the knight immediately.",
+          "expect": [
+            "d5d4"
+          ],
+          "hint": "Push your d-pawn forward to attack c3.",
+          "ifWrong": "Play 2...d4 so White must retreat the knight.",
+          "ifRight": "White's knight is driven backwards right away.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White retreats to e2 with 3.Nce2, blocking the f1 bishop.",
+          "move": "c3e2"
+        },
+        {
+          "type": "play",
+          "text": "Claim the centre while White's pieces are tangled up.",
+          "expect": [
+            "e7e5"
+          ],
+          "hint": "Push your e-pawn two squares.",
+          "ifWrong": "Play 3...e5 to gain central space and lock in White's pieces.",
+          "ifRight": "Black already enjoys extra space and smooth development.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White moves the knight again to g3: 4.Ng3.",
+          "move": "e2g3"
+        },
+        {
+          "type": "play",
+          "text": "Develop an active piece and stop Bc4 ideas.",
+          "expect": [
+            "c8e6",
+            "b8c6",
+            "g8f6"
+          ],
+          "hint": "Develop your light-squared bishop to e6 or knight to c6.",
+          "ifWrong": "Play 4...Be6 (or 4...Nc6 or 4...Nf6) to control key dark squares.",
+          "ifRight": "Black develops easily with ...Nc6, ...f6 and ...Qd7.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-scandinavian-declined-e5",
+      "title": "Meeting 2.e5",
+      "summary": "Strike at once with 2...c5 and bring your c8 bishop out actively.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "If White pushes past with 2.e5, the position looks like a French Defence, with one huge bonus for Black.",
+          "move": "e4e5"
+        },
+        {
+          "type": "play",
+          "text": "Strike at the centre right away before playing ...e6.",
+          "expect": [
+            "c7c5"
+          ],
+          "hint": "Push your c-pawn two squares.",
+          "ifWrong": "Play 2...c5: unlike the French, your c8 bishop is still free to come out to f5 or g4.",
+          "ifRight": "You get an improved French where your light-squared bishop is never trapped.",
+          "feedback": {
+            "e7e6": "2...e6 shuts in your c8 bishop. Play 2...c5 first so your bishop can come out."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White prepares d4 with 3.c3.",
+          "move": "c2c3"
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight to control d4 and e5.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Bring the b8 knight to c6.",
+          "ifWrong": "Play 3...Nc6 to pressure d4 and e5.",
+          "ifRight": "Now ...Bf5 or ...Bg4 comes easily.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/pp2pppp/2n5/2ppP3/3P4/2P5/PP3PPP/RNBQKBNR b KQkq - 0 4",
+          "text": "White supports e5 with 4.d4. Put pressure on d4 or get your c8 bishop out.",
+          "expect": [
+            "c5d4",
+            "c8f5"
+          ],
+          "hint": "Take on d4 first or bring your bishop to f5.",
+          "ifWrong": "Play 4...cxd4 (followed by ...Bf5 or ...Bg4) to attack White's centre.",
+          "ifRight": "After 4...cxd4 5.cxd4 Bf5, Black has an ideal position.",
+          "rule": true,
+          "feedback": {
+            "c8g4": "With no knight on f3 there is nothing to pin, and the bishop gets into trouble. Take on d4 or go to f5."
+          }
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/pp2pppp/2n5/2ppP3/8/2P2N2/PP1P1PPP/RNBQKB1R b KQkq - 0 4",
+          "text": "Here White played 3.Nf3 Nc6 4.c3. Bring your light-squared bishop out actively with a pin.",
+          "expect": [
+            "c8g4"
+          ],
+          "hint": "Pin the f3 knight.",
+          "ifWrong": "Play 4...Bg4 to pin the knight and follow with ...e6.",
+          "ifRight": "With the bishop outside the pawn chain, Black plays ...e6 and ...Nge7 smoothly.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-scandinavian-declined-gambits",
+      "title": "Meeting 2.d4 and 2.Nf3",
+      "summary": "Accept the Blackmar-Diemer and Tennison gambits and develop your c8 bishop actively.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+          "text": "In the Blackmar-Diemer Gambit, White plays 2.d4, offering the e4 pawn for open lines.",
+          "move": "d2d4"
+        },
+        {
+          "type": "play",
+          "text": "Take the central pawn.",
+          "expect": [
+            "d5e4"
+          ],
+          "hint": "Capture on e4.",
+          "ifWrong": "Play 2...dxe4.",
+          "ifRight": "Now Black develops solidly and keeps the extra pawn.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White offers a second pawn with 3.Nc3 Nf6 4.f3.",
+          "fen": "rnbqkb1r/ppp1pppp/5n2/8/3Pp3/2N2P2/PPP3PP/R1BQKBNR b KQkq - 0 4"
+        },
+        {
+          "type": "play",
+          "text": "Take on f3 and keep your pieces active.",
+          "expect": [
+            "e4f3"
+          ],
+          "hint": "Capture on f3.",
+          "ifWrong": "Play 4...exf3: after 5.Nxf3, bring your c8 bishop out to f5 or g4 before playing ...e6.",
+          "ifRight": "After 5.Nxf3 Bf5 (or 5...Bg4), Black stays a sound pawn up.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/8/4p3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3",
+          "text": "Against 2.Nf3 dxe4, club players often try the tricky Tennison Gambit with 3.Ng5.",
+          "move": "f3g5"
+        },
+        {
+          "type": "play",
+          "text": "Defend your extra pawn while developing a piece.",
+          "expect": [
+            "c8f5",
+            "g8f6"
+          ],
+          "hint": "Bring your c8 bishop to f5 to guard e4.",
+          "ifWrong": "Play 3...Bf5 (followed by ...Nf6 and ...e6): you hold onto the extra pawn and stay rock solid.",
+          "ifRight": "After 4.Nc3 Nf6, Black protects e4 cleanly and keeps the extra pawn.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

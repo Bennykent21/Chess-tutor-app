@@ -1,0 +1,341 @@
+{
+  "notes": [
+    {
+      "path": "d4",
+      "kind": "plan",
+      "text": "The London System starts with 1.d4. After 1...d5, White develops 2.Nf3 and brings the dark-squared bishop to f4 before e3 locks it in.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "d5"
+          ],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3",
+      "kind": "branch",
+      "text": "White develops the king's knight first. Against 2...Nf6, White brings the bishop to f4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nf6"
+          ],
+          "move": "Bf4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4",
+      "kind": "branch",
+      "text": "The London System. The bishop reaches f4 outside the pawn chain, and after 3...c5 White supports d4 with e3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "c5"
+          ],
+          "move": "e3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 c5 e3",
+      "kind": "plan",
+      "text": "White supports d4 and opens a path for the light-squared bishop. Against 4...Nc6, White plays c3 to complete the pawn pyramid.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nc6"
+          ],
+          "move": "c3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 c5 e3 Nc6 c3",
+      "kind": "branch",
+      "text": "The pawn pyramid c3, d4 and e3 is complete. Against 5...e6, White develops Nbd2.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "e6"
+          ],
+          "move": "Nbd2",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 c5 e3 Nc6 c3 e6 Nbd2",
+      "kind": "plan",
+      "text": "The knight goes to d2 so it never blocks the c-pawn. After 6...Be7, White plays Bd3 and prepares castling and Ne5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Be7"
+          ],
+          "move": "Bd3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 c5 e3 Nc6 c3 e6 Nbd2 Bd6",
+      "kind": "plan",
+      "text": "Black challenges the London bishop. Stepping back to g3 keeps the bishop active and invites ...Bxg3 hxg3, opening the h-file.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bg3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 c5 e3 Nc6 c3 Qb6",
+      "kind": "plan",
+      "text": "Black attacks the b2 pawn right away. White answers with 6.Qb3, defending b2 and eyeing an open a-file after ...Qxb3 axb3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qb3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 c5 e3 Nc6 c3 Qb6 Qb3 c4",
+      "kind": "plan",
+      "text": "Black closes the queenside and avoids the queen trade. White drops back to c2 and keeps Nbd2 and e4 in reserve.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qc2",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 c5 e3 cxd4",
+      "kind": "plan",
+      "text": "Black releases the central tension early. Taking back with exd4 opens the e-file and prepares c3, Bd3 and castling.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "exd4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 e6",
+      "kind": "plan",
+      "text": "Black plays solidly without ...c5 yet. White plays 4.e3, keeping the f4 bishop active outside the pawn chain.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 e6 e3 Bd6",
+      "kind": "plan",
+      "text": "Black tries to trade off the active f4 bishop at once. White retreats to g3, keeping control of the b8-h2 diagonal.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bg3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 Bf5",
+      "kind": "plan",
+      "text": "Black copies the London bishop move. White plays e3 and challenges Black's bishop with Bd3.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "e3",
+            "e6",
+            "Bd3"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 Nf6 Bf4 Bf5 e3 e6 Bd3 Bxd3 Qxd3",
+      "kind": "plan",
+      "text": "Trading on d3 brings White's queen out smoothly without losing time. After 6...c6, White continues with Nbd2 and castling.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "c6"
+          ],
+          "move": "Nbd2",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6",
+      "kind": "branch",
+      "text": "Against 1...Nf6, White stays flexible with 2.Nf3. Against 2...g6, White brings the bishop out to f4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nf3",
+            "g6"
+          ],
+          "move": "Bf4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 Nf3 g6 Bf4",
+      "kind": "plan",
+      "text": "Against a King's Indian set-up, the f4 bishop controls e5. White builds a calm structure with e3 and Be2.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Bg7",
+            "e3",
+            "O-O",
+            "Be2"
+          ],
+          "side": "white",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 Nf3 g6 Bf4 Bg7 e3 O-O Be2 d6",
+      "kind": "plan",
+      "text": "White plays 6.h3 to create a safe retreat on h2 if Black plays ...Nh5. Then Nbd2, c3 and castling follow naturally.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "h3",
+          "top": 3,
+          "sentence": 0
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 Nf3 e6 Bf4",
+      "kind": "branch",
+      "text": "Black keeps the centre flexible with ...e6. Against 3...b6, White plays e3 and builds a solid position.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "b6"
+          ],
+          "move": "e3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 Nf3 e6 Bf4 b6 e3 Bb7",
+      "kind": "plan",
+      "text": "Black fianchettoes the light-squared bishop to target e4. White develops with Nbd2 to guard e4 and prepare Bd3.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nbd2",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 d5 Nf3 c5",
+      "kind": "plan",
+      "text": "Black strikes at d4 before playing ...Nf6. White supports the centre with 3.c3 so the pawn structure stays firm after ...cxd4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 c5",
+      "kind": "plan",
+      "text": "Against the early flank move 1...c5, 2.c3 keeps a strong pawn in the centre. If Black plays 2...cxd4, White recaptures with cxd4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "c3",
+            "cxd4"
+          ],
+          "move": "cxd4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 c5 c3 Nf6",
+      "kind": "plan",
+      "text": "Black develops the knight to stop e4. White plays 3.Nf3 and brings the dark-squared bishop out to f4 next.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nf3",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    }
+  ]
+}

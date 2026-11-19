@@ -1,0 +1,215 @@
+{
+  "id": "openings-french-e5",
+  "category": "openings",
+  "title": "Advance Variation (3.e5)",
+  "intro": "White pushes 3.e5 to grab space. Strike the base of the pawn chain with 3...c5, pile up on d4 with ...Nc6 and ...Qb6, and avoid traps.",
+  "level": "intermediate",
+  "order": 71,
+  "side": "black",
+  "opening": "french",
+  "variation": "e2e4 e7e6 d2d4 d7d5 e4e5",
+  "battleLine": "French Defense: Advance Variation",
+  "lessons": [
+    {
+      "id": "openings-french-e5-c5",
+      "title": "Attacking the base",
+      "summary": "Hit d4 with ...c5, ...Nc6 and ...Qb6.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp2ppp/4p3/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3",
+          "text": "In the Advance Variation, White's d4 and e5 pawns form a chain. Black attacks the base on d4 right away.",
+          "highlights": [
+            "d4:bad"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Strike at the base of the pawn chain.",
+          "expect": [
+            "c7c5"
+          ],
+          "hint": "Push the c-pawn two squares.",
+          "ifWrong": "Play 3...c5 to attack d4 immediately.",
+          "ifRight": "This is the core idea of the French Defence.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White reinforces d4 with 4.c3.",
+          "move": "c2c3"
+        },
+        {
+          "type": "play",
+          "text": "Add a second attacker to d4.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Develop your queen's knight.",
+          "ifWrong": "Play 4...Nc6 to pressure d4 and control e5.",
+          "ifRight": "Now d4 is under pressure from two Black units.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White guards d4 again with 5.Nf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Add a third attacker to d4 and hit b2 at the same time.",
+          "expect": [
+            "d8b6"
+          ],
+          "hint": "Bring your queen to b6.",
+          "ifWrong": "Play 5...Qb6 to pressure both d4 and b2.",
+          "ifRight": "Now White must choose between 6.Be2, 6.Bd3 and 6.a3.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1b1kbnr/pp3ppp/1qn1p3/2ppP3/3P4/P1P2N2/1P3PPP/RNBQKB1R b KQkq - 0 6",
+          "text": "White plays 6.a3, preparing b4. Stop White's queenside plan or increase the pressure.",
+          "expect": [
+            "c5c4",
+            "g8h6",
+            "c8d7"
+          ],
+          "hint": "Lock down the queenside with ...c4, or develop ...Nh6 to f5.",
+          "ifWrong": "Play 6...c4 (or 6...Nh6 or 6...Bd7): 6...c4 shuts down White's b4 push and clamps the queenside.",
+          "ifRight": "After 6...c4, Black expands with ...Na5 and ...Bd7.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-e5-bd3",
+      "title": "Meeting 6.Bd3",
+      "summary": "Play ...cxd4 and ...Bd7 before capturing on d4.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1b1kbnr/pp3ppp/1qn1p3/2ppP3/3P4/2PB1N2/PP3PPP/RNBQK2R b KQkq - 4 6",
+          "text": "With 6.Bd3, White leaves d4 lightly defended, setting a famous trap."
+        },
+        {
+          "type": "play",
+          "text": "Trade pawns on d4 so White's d4 pawn becomes a fixed target.",
+          "expect": [
+            "c5d4"
+          ],
+          "hint": "Capture on d4.",
+          "ifWrong": "Play 6...cxd4.",
+          "ifRight": "Now watch out for the trick after 7.cxd4.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White recaptures: 7.cxd4.",
+          "move": "c3d4"
+        },
+        {
+          "type": "play",
+          "text": "Do not grab d4 yet because 7...Nxd4 8.Nxd4 Qxd4 walks into 9.Bb5+. Block the check first.",
+          "expect": [
+            "c8d7"
+          ],
+          "hint": "Put your c8 bishop on d7.",
+          "ifWrong": "Play 7...Bd7 so ...Nxd4 is a real threat next.",
+          "ifRight": "Now Black threatens ...Nxd4 for real.",
+          "feedback": {
+            "c6d4": "7...Nxd4 loses your queen after 8.Nxd4 Qxd4 9.Bb5+."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White castles: 8.O-O, offering the Milner-Barry Gambit.",
+          "move": "e1g1"
+        },
+        {
+          "type": "play",
+          "text": "Grab the central pawn now that Bb5+ is impossible.",
+          "expect": [
+            "c6d4",
+            "a7a6"
+          ],
+          "hint": "Capture on d4 with your c6 knight.",
+          "ifWrong": "Play 8...Nxd4: after 9.Nxd4 Qxd4, Black wins a central pawn safely.",
+          "ifRight": "Black wins a healthy central pawn and meets ...Qxd4 cleanly.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-e5-other",
+      "title": "Meeting 4.dxc5 and 4.Nf3",
+      "summary": "Develop ...Nc6 and ...Bxc5 against 4.dxc5, and trade on d4 against 4.Nf3.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4",
+          "text": "Instead of 4.c3, White sometimes gives up the centre with 4.dxc5.",
+          "move": "d4c5"
+        },
+        {
+          "type": "play",
+          "text": "Develop with an attack on e5 before taking back on c5.",
+          "expect": [
+            "b8c6",
+            "f8c5"
+          ],
+          "hint": "Bring your queen's knight to c6, hitting e5.",
+          "ifWrong": "Play 4...Nc6 (or 4...Bxc5) to put immediate pressure on e5.",
+          "ifRight": "White must spend time guarding e5 while you win c5 back smoothly.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "r1bqkbnr/pp3ppp/2n1p3/2PpP3/8/5N2/PPP2PPP/RNBQKB1R b KQkq - 2 5",
+          "text": "White guards e5 with 5.Nf3."
+        },
+        {
+          "type": "play",
+          "text": "Recover the pawn and develop your bishop.",
+          "expect": [
+            "f8c5"
+          ],
+          "hint": "Capture on c5 with your dark-squared bishop.",
+          "ifWrong": "Play 5...Bxc5.",
+          "ifRight": "Black has an easy game with ...f6 or ...Nge7 next.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/5N2/PPP2PPP/RNBQKB1R b KQkq - 1 4",
+          "text": "What if White plays 4.Nf3 without 4.c3?",
+          "expect": [
+            "c5d4",
+            "b8c6"
+          ],
+          "hint": "Take on d4 right away.",
+          "ifWrong": "Play 4...cxd4 so White cannot build the c3-d4 chain.",
+          "ifRight": "After 5.Nxd4 Nc6 (or 5.Qxd4 Nc6), Black gets fast piece play.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp3ppp/4p3/3pP3/3N4/8/PPP2PPP/RNBQKB1R b KQkq - 0 5",
+          "text": "White recaptured 5.Nxd4. Continue challenging White's centre.",
+          "expect": [
+            "b8c6",
+            "f8c5"
+          ],
+          "hint": "Develop your queen's knight to c6.",
+          "ifWrong": "Play 5...Nc6 to attack d4 and e5.",
+          "ifRight": "Black follows with ...Qb6 or ...Bc5 with strong pressure.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

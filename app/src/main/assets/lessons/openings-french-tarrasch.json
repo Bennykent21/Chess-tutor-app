@@ -1,0 +1,211 @@
+{
+  "id": "openings-french-tarrasch",
+  "category": "openings",
+  "title": "Tarrasch Variation (3.Nd2)",
+  "intro": "White plays 3.Nd2 to avoid the ...Bb4 pin. Strike at once with 3...c5, develop actively against the isolated pawn, or play 4...Qxd5 against Ngf3.",
+  "level": "intermediate",
+  "order": 73,
+  "side": "black",
+  "opening": "french",
+  "variation": "e2e4 e7e6 d2d4 d7d5 b1d2",
+  "battleLine": "French Defense: Tarrasch Variation",
+  "lessons": [
+    {
+      "id": "openings-french-tarrasch-c5",
+      "title": "The Open Tarrasch (3...c5)",
+      "summary": "Strike with 3...c5 and develop active pieces around the d5 pawn.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPPN1PPP/R1BQKBNR b KQkq - 1 3",
+          "text": "With 3.Nd2, White defends e4 while keeping c3 free for a pawn. However, the knight on d2 blocks the c1 bishop and puts no pressure on d5."
+        },
+        {
+          "type": "play",
+          "text": "Challenge White's centre immediately.",
+          "expect": [
+            "c7c5"
+          ],
+          "hint": "Strike at d4 with your c-pawn.",
+          "ifWrong": "Play 3...c5 right away.",
+          "ifRight": "Black fights for the centre at once.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White trades on d5: 4.exd5.",
+          "move": "e4d5"
+        },
+        {
+          "type": "play",
+          "text": "Take back to get open lines for both bishops, even if d5 becomes isolated.",
+          "expect": [
+            "e6d5"
+          ],
+          "hint": "Capture on d5 with the e-pawn.",
+          "ifWrong": "Play 4...exd5: your pieces will develop rapidly to active squares.",
+          "ifRight": "Now your c8 bishop is completely free.",
+          "feedback": {
+            "d8d5": "4...Qxd5 is playable too, though 4...exd5 gives Black rapid, easy piece play."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 5.Ngf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight and control d4 and e5.",
+          "expect": [
+            "b8c6"
+          ],
+          "hint": "Put the knight on c6.",
+          "ifWrong": "Play 5...Nc6.",
+          "ifRight": "Next comes ...Bd6 and ...Nge7.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkbnr/pp3ppp/2n5/1Bpp4/3P4/5N2/PPPN1PPP/R1BQK2R b KQkq - 2 6",
+          "text": "White pins the knight with 6.Bb5. Develop your dark-squared bishop actively.",
+          "expect": [
+            "f8d6"
+          ],
+          "hint": "Put the f8 bishop on d6, eyeing the kingside.",
+          "ifWrong": "Play 6...Bd6: if White plays 7.dxc5, 7...Bxc5 develops cleanly.",
+          "ifRight": "Black develops ...Nge7 and ...O-O next with active pieces.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-tarrasch-ngf3",
+      "title": "Meeting 4.Ngf3 and 4.c3",
+      "summary": "Trade on d4 and keep a healthy pawn structure with ...Qxd5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp3ppp/4p3/2pp4/3PP3/8/PPPN1PPP/R1BQKBNR w KQkq - 0 4",
+          "text": "Instead of taking on d5 at once, White often plays 4.Ngf3.",
+          "move": "g1f3"
+        },
+        {
+          "type": "play",
+          "text": "Clear the central tension before White develops further.",
+          "expect": [
+            "c5d4"
+          ],
+          "hint": "Capture on d4.",
+          "ifWrong": "Play 4...cxd4: if White takes 5.exd5, you recapture cleanly with the queen.",
+          "ifRight": "White must choose how to recapture.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White takes on d5 first: 5.exd5.",
+          "move": "e4d5"
+        },
+        {
+          "type": "play",
+          "text": "Recapture with the queen so you keep a healthy pawn structure.",
+          "expect": [
+            "d8d5"
+          ],
+          "hint": "Take on d5 with your queen.",
+          "ifWrong": "Play 5...Qxd5: after 6.Bc4 Qd6 (or 6...Qd8), your pawns stay intact.",
+          "ifRight": "Black avoids an isolated pawn and develops ...Nf6 and ...Nc6 smoothly.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp3ppp/4p3/2pp4/3PP3/2P5/PP1N1PPP/R1BQKBNR b KQkq - 0 4",
+          "text": "What if White supports d4 with 4.c3?",
+          "expect": [
+            "c5d4",
+            "b8c6"
+          ],
+          "hint": "Take on d4 so White must recapture with the c-pawn, or develop ...Nc6.",
+          "ifWrong": "Play 4...cxd4 (or 4...Nc6): after 5.cxd4 dxe4 6.Nxe4, Black gets easy play with ...Nc6 and ...Nf6.",
+          "ifRight": "White's d4 pawn becomes an easy target.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkbnr/pp3ppp/4p3/3p4/3NP3/8/PPPN1PPP/R1BQKB1R b KQkq - 0 5",
+          "text": "If White captures 5.Nxd4 after 4...cxd4, develop and challenge the centre.",
+          "expect": [
+            "b8c6",
+            "g8f6"
+          ],
+          "hint": "Develop your queen's knight to c6 or king's knight to f6.",
+          "ifWrong": "Play 5...Nc6 (or 5...Nf6) to fight for e5 and d4.",
+          "ifRight": "Black develops rapidly with ...Nf6 and ...Be7 or ...Bc5.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-french-tarrasch-iqp",
+      "title": "Playing with the isolated d5 pawn",
+      "summary": "Put the knight on e7, save the bishop on b6, and castle.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bqk1nr/pp3ppp/2n5/1Bbp4/8/5N2/PPPN1PPP/R1BQ1RK1 b kq - 1 8",
+          "text": "In the isolated pawn position, Black's d5 pawn gives extra space and open lines for the pieces. Develop quickly and watch out for Nb3."
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight without inviting a Bg5 pin.",
+          "expect": [
+            "g8e7"
+          ],
+          "hint": "Put the g8 knight on e7.",
+          "ifWrong": "Play 8...Nge7 so you avoid a pin after Bg5 and prepare ...O-O.",
+          "ifRight": "The knight sits nicely on e7 and leaves ...Bg4 free.",
+          "feedback": {
+            "g8f6": "8...Nf6 is playable too, though 8...Nge7 avoids 9.Bg5 pins cleanly."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White chases your active c5 bishop with 9.Nb3.",
+          "move": "d2b3"
+        },
+        {
+          "type": "play",
+          "text": "Keep the bishop on its strong kingside diagonal.",
+          "expect": [
+            "c5b6"
+          ],
+          "hint": "Step back one square to b6.",
+          "ifWrong": "Play 9...Bb6 so the bishop keeps aiming at f2 and stays safe.",
+          "ifRight": "The bishop stays active on b6.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 10.Re1, eyeing the e-file.",
+          "move": "f1e1"
+        },
+        {
+          "type": "play",
+          "text": "Get your king to safety.",
+          "expect": [
+            "e8g8"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 10...O-O.",
+          "ifRight": "Black is castled with active bishops and plans ...Bg4 or ...Qd6.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

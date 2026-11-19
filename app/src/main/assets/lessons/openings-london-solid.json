@@ -1,0 +1,219 @@
+{
+  "id": "openings-london-solid",
+  "category": "openings",
+  "title": "Symmetrical and ...e6 Lines",
+  "intro": "Black holds the centre with ...e6 or copies the bishop move with ...Bf5. Stay solid with e3, Bd3 and Nbd2.",
+  "level": "beginner",
+  "order": 52,
+  "side": "white",
+  "opening": "london",
+  "variation": "d2d4 d7d5 g1f3 g8f6 c1f4 e7e6, d2d4 d7d5 g1f3 g8f6 c1f4 c8f5",
+  "battleLine": "Queen's Pawn Game: London System",
+  "lessons": [
+    {
+      "id": "openings-london-solid-e6",
+      "title": "Meeting 3...e6",
+      "summary": "Develop e3, Bg3 and Nbd2 against Black's solid set-up.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/5N2/PPP1PPPP/RN1QKB1R b KQkq - 3 3",
+          "text": "Black often skips ...c5 at first and defends d5 calmly with 3...e6.",
+          "move": "e7e6"
+        },
+        {
+          "type": "play",
+          "text": "Support d4 and open the path for your light-squared bishop.",
+          "expect": [
+            "e2e3"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 4.e3.",
+          "ifRight": "Now White develops cleanly with Bd3, Nbd2 and c3.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black challenges the diagonal with 4...Bd6.",
+          "move": "f8d6"
+        },
+        {
+          "type": "play",
+          "text": "Keep your bishop on the b1-h7 diagonal.",
+          "expect": [
+            "f4g3"
+          ],
+          "hint": "Retreat one square to g3.",
+          "ifWrong": "Play 5.Bg3 so Black cannot trade for free.",
+          "ifRight": "If Black takes on g3, hxg3 opens your rook's file.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black castles: 5...O-O.",
+          "move": "e8g8"
+        },
+        {
+          "type": "play",
+          "text": "Bring out your queen's knight without blocking the c-pawn.",
+          "expect": [
+            "b1d2"
+          ],
+          "hint": "Develop the b1 knight to d2.",
+          "ifWrong": "Play 6.Nbd2, keeping c3 free for a pawn.",
+          "ifRight": "Next come Bd3, c3 and castling.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqk2r/ppp1bppp/4pn2/3p4/3P1B2/4PN2/PPP2PPP/RN1QKB1R w KQkq - 2 5",
+          "text": "Here Black played 4...Be7 instead of 4...Bd6. Continue your London development.",
+          "expect": [
+            "b1d2",
+            "f1d3"
+          ],
+          "hint": "Develop the queen's knight to d2 or the bishop to d3.",
+          "ifWrong": "Play 5.Nbd2 (or 5.Bd3) to build the London set-up.",
+          "ifRight": "Both Nbd2 and Bd3 lead to a harmonious position.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-london-solid-bf5",
+      "title": "Meeting 3...Bf5",
+      "summary": "Challenge Black's bishop with Bd3 and recapture with Qxd3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/5N2/PPP1PPPP/RN1QKB1R b KQkq - 3 3",
+          "text": "Black mirrors your bishop move with 3...Bf5.",
+          "move": "c8f5"
+        },
+        {
+          "type": "play",
+          "text": "Stick to your set-up and support d4.",
+          "expect": [
+            "e2e3"
+          ],
+          "hint": "The e-pawn, one square.",
+          "ifWrong": "Play 4.e3, freeing the f1 bishop.",
+          "ifRight": "Now you are ready to challenge Black's f5 bishop.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black plays 4...e6, mirroring your pawn structure.",
+          "move": "e7e6"
+        },
+        {
+          "type": "play",
+          "text": "Offer a bishop trade that brings your queen into the game.",
+          "expect": [
+            "f1d3"
+          ],
+          "hint": "Put your light-squared bishop opposite Black's f5 bishop.",
+          "ifWrong": "Play 5.Bd3 to challenge Black's active bishop.",
+          "ifRight": "If Black trades on d3, your queen recaptures actively.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black accepts the trade: 5...Bxd3.",
+          "move": "f5d3"
+        },
+        {
+          "type": "play",
+          "text": "Recapture with the queen so your pawn structure stays clean.",
+          "expect": [
+            "d1d3"
+          ],
+          "hint": "Take with the queen, not the c-pawn.",
+          "ifWrong": "Play 6.Qxd3 to keep your c-pawn ready for c3 or c4.",
+          "ifRight": "White develops Nbd2, c3 and castles easily.",
+          "feedback": {
+            "c2d3": "6.cxd3 creates a backward d-pawn and blocks your c-file ideas. Recapture with the queen."
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rn1qkb1r/pp3ppp/2p1pn2/3p4/3P1B2/3QPN2/PPP2PPP/RN2K2R w KQkq - 0 7",
+          "text": "Black reinforces d5 with 6...c6. Continue developing your queenside.",
+          "expect": [
+            "b1d2",
+            "e1g1",
+            "c2c3"
+          ],
+          "hint": "Develop the knight to d2 or castle.",
+          "ifWrong": "Play 7.Nbd2 (or castle) to finish development.",
+          "ifRight": "White has a comfortable edge in development and space.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-london-solid-c5-early",
+      "title": "Meeting 2...c5",
+      "summary": "Play 3.c3 first to keep d4 firm before Bf4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 1 2",
+          "text": "Sometimes Black skips 2...Nf6 and hits d4 immediately with 2...c5.",
+          "move": "c7c5"
+        },
+        {
+          "type": "play",
+          "text": "Keep the centre firm before bringing the bishop out.",
+          "expect": [
+            "c2c3"
+          ],
+          "hint": "Support d4 with the c-pawn.",
+          "ifWrong": "Play 3.c3 so you can meet ...cxd4 with cxd4.",
+          "ifRight": "With d4 solidly defended, Bf4 comes next.",
+          "feedback": {
+            "c1f4": "3.Bf4 lets Black trade 3...cxd4 4.Nxd4 and gain time against your knight."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops with 3...Nc6.",
+          "move": "b8c6"
+        },
+        {
+          "type": "play",
+          "text": "Now bring your dark-squared bishop out before playing e3.",
+          "expect": [
+            "c1f4"
+          ],
+          "hint": "Put the bishop on f4.",
+          "ifWrong": "Play 4.Bf4: this transposes into the normal London lines.",
+          "ifRight": "Next come e3 and Nbd2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/8/2pp4/3P4/2P2N2/PP2PPPP/RNBQKB1R b KQkq - 0 3",
+          "text": "What if Black takes on d4 right after 3.c3?",
+          "move": "c5d4"
+        },
+        {
+          "type": "play",
+          "text": "Recapture with the c-pawn and keep a strong centre.",
+          "expect": [
+            "c3d4"
+          ],
+          "hint": "Take back with the c-pawn.",
+          "ifWrong": "Play 4.cxd4 to keep a central pawn on d4 and open the c-file.",
+          "ifRight": "Then Bf4, e3 and Nc3 give White active piece play.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

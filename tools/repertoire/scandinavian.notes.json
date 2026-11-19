@@ -1,0 +1,322 @@
+{
+  "notes": [
+    {
+      "path": "e4 d5",
+      "kind": "branch",
+      "text": "The Scandinavian Defence. Black attacks e4 on move one and takes back with the queen after 2.exd5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "exd5"
+          ],
+          "move": "Qxd5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nc3",
+      "kind": "plan",
+      "text": "White develops with tempo against the queen. Black steps back to a5, eyeing e1 and staying out of reach.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qa5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3",
+      "kind": "plan",
+      "text": "White builds a clean centre. Black plays 5...c6 to give the queen a safe home on c7 and guard d5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6 Bc4",
+      "kind": "plan",
+      "text": "White targets f7. Black brings the light-squared bishop outside the pawn chain with 6...Bf5 before playing ...e6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bf5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6 Bc4 Bf5 Bd2 e6 Nd5",
+      "kind": "plan",
+      "text": "White tries a discovered attack on the queen. Black simply retreats 8...Qd8 and keeps a rock-solid position.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qd8",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6 Ne5",
+      "kind": "plan",
+      "text": "White jumps into e5 to eye f7 and c4. Black calmly develops 6...Bf5 and meets g4 with ...Be6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bf5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6 Be2",
+      "kind": "plan",
+      "text": "White develops quietly before castling. Black brings the bishop out to f5 and follows with ...e6.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Bf5",
+            "O-O",
+            "e6"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Bd2",
+      "kind": "plan",
+      "text": "White prepares a discovered attack with Nd5 or Nb5. Black moves the queen to b6 to hit b2 and d4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qb6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nc3 Qa5 b4",
+      "kind": "plan",
+      "text": "The Leonhardt Gambit sacrifices a wing pawn for rapid development. Black takes 4...Qxb4 and tucks the queen safely on d6 after 5.Rb1.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Qxb4",
+            "Rb1",
+            "Qd6"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nf3",
+      "kind": "branch",
+      "text": "White skips Nc3 so the queen is not chased at once. Black pins the f3 knight with 3...Bg4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bg4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 Nf3 Bg4 Be2 Nc6",
+      "kind": "plan",
+      "text": "Black puts pressure on d4 and prepares queenside castling. Against 5.d4, Black castles long with ...O-O-O.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "d4"
+          ],
+          "move": "O-O-O",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 d4",
+      "kind": "plan",
+      "text": "White claims the centre before chasing the queen. Black immediately attacks d4 with 3...Nc6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 d4 Nc6 Nf3",
+      "kind": "plan",
+      "text": "White defends d4 with the knight. Black pins it immediately with 4...Bg4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bg4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 exd5 Qxd5 c4",
+      "kind": "plan",
+      "text": "White pushes c4 to drive the queen away, leaving d4 weak. Black moves to a5 and plays ...c6 and ...Nf6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Qa5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 Nc3",
+      "kind": "branch",
+      "text": "White defends e4 instead of capturing. Black gains space and chases the knight with 2...d4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "d4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 Nc3 d4 Nce2",
+      "kind": "plan",
+      "text": "The knight retreats awkwardly, blocking White's pieces. Black grabs the centre with 3...e5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 e5",
+      "kind": "branch",
+      "text": "White pushes past to avoid the Scandinavian. Black strikes at the centre immediately with 2...c5, getting the c8 bishop out before ...e6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 e5 c5 c3",
+      "kind": "plan",
+      "text": "White tries to build a French-style chain on d4. Black attacks d4 with 3...Nc6 and brings the light-squared bishop to f5 or g4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 d4",
+      "kind": "branch",
+      "text": "The Blackmar-Diemer Gambit offers the e4 pawn. Black captures 2...dxe4 and develops smoothly.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "dxe4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 d4 dxe4 Nc3 Nf6 f3 exf3 Nxf3",
+      "kind": "plan",
+      "text": "White sacrifices a pawn for open lines. Black develops the light-squared bishop actively to f5 before playing ...e6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bf5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 Nf3",
+      "kind": "branch",
+      "text": "The Tennison Gambit offers e4 to lure Black forward. Black takes 2...dxe4 and guards the pawn cleanly after 3.Ng5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "dxe4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "e4 d5 Nf3 dxe4 Ng5",
+      "kind": "plan",
+      "text": "White attacks e4 with the knight. Black defends e4 and develops at the same time with 3...Bf5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Bf5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    }
+  ]
+}

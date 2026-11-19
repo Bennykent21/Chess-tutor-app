@@ -1,0 +1,214 @@
+{
+  "id": "openings-kings-indian-fianchetto",
+  "category": "openings",
+  "title": "Fianchetto, Averbakh & London",
+  "intro": "Answer the Fianchetto (g3, Bg2) with ...Nbd7 and ...e5, hit the Averbakh (6.Bg5) with ...c5, and meet the London calmly with ...d6 and ...O-O.",
+  "level": "advanced",
+  "order": 92,
+  "side": "black",
+  "opening": "kings-indian",
+  "variation": "d2d4 g8f6 c2c4 g7g6 g2g3, d2d4 g8f6 c2c4 g7g6 b1c3 f8g7 e2e4 d7d6 g1f3 e8g8 g2g3, d2d4 g8f6 c2c4 g7g6 b1c3 f8g7 e2e4 d7d6 f1e2 e8g8 c1g5, d2d4 g8f6 g1f3 g7g6 c1f4",
+  "battleLine": "King's Indian Defense: Fianchetto Variation",
+  "lessons": [
+    {
+      "id": "openings-kings-indian-fianchetto-g3",
+      "title": "The Fianchetto Variation",
+      "summary": "Develop ...Nbd7 and push ...e5 against White's g3-Bg2 set-up.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbq1rk1/ppp1ppbp/3p1np1/8/2PP4/5NP1/PP2PPBP/RNBQ1RK1 b - - 1 6",
+          "text": "In the Fianchetto Variation, White guards the kingside with g3 and Bg2. Against this set-up, Black prepares ...e5 with ...Nbd7."
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight without blocking the g7 bishop.",
+          "expect": [
+            "b8d7"
+          ],
+          "hint": "Put the b8 knight on d7.",
+          "ifWrong": "Play 6...Nbd7 to support ...e5.",
+          "ifRight": "Now ...e5 is ready.",
+          "feedback": {
+            "b8c6": "6...Nc6 blocks your c-pawn and can be hit by d5. 6...Nbd7 is cleaner."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White develops 7.Nc3.",
+          "move": "b1c3"
+        },
+        {
+          "type": "play",
+          "text": "Claim central space with your e-pawn.",
+          "expect": [
+            "e7e5"
+          ],
+          "hint": "Push the e-pawn two squares.",
+          "ifWrong": "Play 7...e5.",
+          "ifRight": "Black fights for the centre cleanly.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White expands with 8.e4.",
+          "move": "e2e4"
+        },
+        {
+          "type": "play",
+          "text": "Support d5 and guard b5 before developing ...Re8 or ...Qb6.",
+          "expect": [
+            "c7c6",
+            "e5d4"
+          ],
+          "hint": "Push the c-pawn one square to prepare ...Qb6 or ...a5.",
+          "ifWrong": "Play 8...c6 (or 8...exd4): 8...c6 gives your queen a path to b6 or a5 and covers d5.",
+          "ifRight": "Black has a very solid, active Fianchetto King's Indian.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbq1rk1/ppp1ppbp/3p1np1/8/2PPP3/2N2NP1/PP3P1P/R1BQKB1R b KQ - 0 6",
+          "text": "Here White played 6.g3 after already playing e4. Use the same reliable plan.",
+          "expect": [
+            "b8d7",
+            "e7e5",
+            "c7c5"
+          ],
+          "hint": "Develop ...Nbd7 to prepare ...e5, or strike immediately with ...e5.",
+          "ifWrong": "Play 6...Nbd7 (or 6...e5) to fight for the centre cleanly.",
+          "ifRight": "Consistent and strong against every fianchetto move order.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-kings-indian-fianchetto-averbakh",
+      "title": "Averbakh (6.Bg5) & Makogonov (5.h3)",
+      "summary": "Strike with ...c5 against the Averbakh and meet 5.h3 6.Be3 with ...e5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbq1rk1/ppp1ppbp/3p1np1/6B1/2PPP3/2N5/PP2BPPP/R2QK1NR b KQ - 3 6",
+          "text": "In the Averbakh Variation (6.Bg5), White pins your knight and makes ...e5 harder to play."
+        },
+        {
+          "type": "play",
+          "text": "Hit White's centre from the other flank.",
+          "expect": [
+            "c7c5"
+          ],
+          "hint": "Push the c-pawn two squares.",
+          "ifWrong": "Play 6...c5: now if White pushes d5, you strike back with ...e6.",
+          "ifRight": "6...c5 immediately challenges White's centre.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White closes the centre with 7.d5.",
+          "move": "d4d5"
+        },
+        {
+          "type": "play",
+          "text": "Undermine the d5 pawn while White is behind in kingside development.",
+          "expect": [
+            "e7e6",
+            "h7h6"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 7...e6 to trade off d5 and open the e-file for your rook.",
+          "ifRight": "After ...exd5, Black attacks e4 along the e-file.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbq1rk1/ppp1ppbp/3p1np1/8/2PPP3/2N1B2P/PP3PP1/R2QKBNR b KQ - 1 6",
+          "text": "Against the Makogonov (5.h3 O-O 6.Be3), strike in the centre right away.",
+          "expect": [
+            "e7e5",
+            "c7c5"
+          ],
+          "hint": "Push ...e5 to challenge d4 immediately.",
+          "ifWrong": "Play 6...e5 (or 6...c5): after 7.d5, you can jump to h5 or play ...a5 and ...Na6.",
+          "ifRight": "Black gets active counterplay on both flanks.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbq1rk1/ppp2pbp/3p1np1/3Pp3/2P1P3/2N1B2P/PP3PP1/R2QKBNR b KQ - 0 7",
+          "text": "White closed with 7.d5. Clear the f-pawn or secure c5.",
+          "expect": [
+            "f6h5",
+            "a7a5",
+            "b8a6"
+          ],
+          "hint": "Jump to h5 to prepare ...f5 and stop g4 tricks, or play ...a5.",
+          "ifWrong": "Play 7...Nh5 (or 7...a5 or 7...Na6) to prepare ...f5 and ...Nf4.",
+          "ifRight": "Black lands a knight on f4 or c5 with strong play.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-kings-indian-fianchetto-london",
+      "title": "Meeting the London (2.Nf3 & 3.Bf4)",
+      "summary": "Build ...d6, ...Nbd7 and ...Qe8 to push ...e5 against the London.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbq1rk1/ppppppbp/5np1/8/3P1B2/4PN2/PPP1BPPP/RN1QK2R b KQ - 2 5",
+          "text": "Many club players meet 1...Nf6 2.Nf3 g6 with the calm London System (Bf4, e3, Be2). Black prepares ...e5 smoothly."
+        },
+        {
+          "type": "play",
+          "text": "Stop e5 ideas and prepare ...Nbd7 and ...e5.",
+          "expect": [
+            "d7d6"
+          ],
+          "hint": "Push the d-pawn one square.",
+          "ifWrong": "Play 5...d6.",
+          "ifRight": "Black keeps the g7 diagonal open and gets ready for ...Nbd7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White makes a retreat square for the bishop with 6.h3.",
+          "move": "h2h3"
+        },
+        {
+          "type": "play",
+          "text": "Develop your queen's knight to support ...e5.",
+          "expect": [
+            "b8d7"
+          ],
+          "hint": "Put the b8 knight on d7.",
+          "ifWrong": "Play 6...Nbd7.",
+          "ifRight": "Now ...e5 or ...Qe8 followed by ...e5 is ready.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White castles: 7.O-O.",
+          "move": "e1g1"
+        },
+        {
+          "type": "play",
+          "text": "Prepare ...e5 cleanly without allowing dxe5 dxe5 Nxe5.",
+          "expect": [
+            "d8e8",
+            "f8e8",
+            "c7c5"
+          ],
+          "hint": "Put your queen or rook on e8 to back up ...e5, or strike with ...c5.",
+          "ifWrong": "Play 7...Qe8 (or 7...Re8 or 7...c5): after 7...Qe8, ...e5 follows next with great central play.",
+          "ifRight": "Black pushes ...e5 next and fights for the centre with an active position.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

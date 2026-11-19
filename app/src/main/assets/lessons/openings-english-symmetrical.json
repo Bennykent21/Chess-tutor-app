@@ -1,0 +1,216 @@
+{
+  "id": "openings-english-symmetrical",
+  "category": "openings",
+  "title": "Symmetrical Variation (1...c5)",
+  "intro": "Black mirrors 1.c4 with 1...c5. Fianchetto with g3 and Bg2, develop Nf3, and meet an early ...d5 with cxd5.",
+  "level": "intermediate",
+  "order": 57,
+  "side": "white",
+  "opening": "english",
+  "variation": "c2c4 c7c5",
+  "battleLine": "English Opening: Symmetrical Variation",
+  "lessons": [
+    {
+      "id": "openings-english-symmetrical-fianchetto",
+      "title": "The Fianchetto set-up",
+      "summary": "Play Nc3, g3, Bg2 and Nf3 against 1...c5.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "Against the Symmetrical English (1...c5), the fianchetto with Nc3, g3 and Bg2 gives White a solid, flexible game."
+        },
+        {
+          "type": "play",
+          "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "text": "Answer 1...c5 and 2...Nc6 with Nc3 and g3.",
+          "line": [
+            "c2c4",
+            "c7c5",
+            "b1c3",
+            "b8c6",
+            "g2g3"
+          ],
+          "hint": "c4, Nc3, then g3.",
+          "ifWrong": "Play c4, Nc3 and g3.",
+          "ifRight": "Your bishop is ready for g2.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black mirrors your fianchetto with 3...g6.",
+          "move": "g7g6"
+        },
+        {
+          "type": "play",
+          "text": "Place your bishop on g2.",
+          "expect": [
+            "f1g2"
+          ],
+          "hint": "Move the bishop to g2.",
+          "ifWrong": "Play 4.Bg2.",
+          "ifRight": "White controls the long diagonal.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black plays 4...Bg7.",
+          "move": "f8g7"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Put the knight on f3.",
+          "ifWrong": "Play 5.Nf3.",
+          "ifRight": "White is ready to castle.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqk2r/pp1pppbp/2n2np1/2p5/2P5/2N2NP1/PP1PPPBP/R1BQK2R w KQkq - 2 6",
+          "text": "Black develops 5...Nf6. Get your king to safety.",
+          "expect": [
+            "e1g1"
+          ],
+          "hint": "Castle kingside.",
+          "ifWrong": "Play 6.O-O before opening the centre.",
+          "ifRight": "Now White can play d3 or d4 next.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-symmetrical-d5",
+      "title": "Meeting an early ...d5",
+      "summary": "Trade on d5 and gain time with Bg2.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/pp1ppppp/5n2/2p5/2P5/2N3P1/PP1PPP1P/R1BQKBNR b KQkq - 0 3",
+          "text": "If Black plays ...Nf6 early, they often strike in the centre with 3...d5.",
+          "move": "d7d5"
+        },
+        {
+          "type": "play",
+          "text": "Trade off Black's central pawn.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5.",
+          "ifWrong": "Play 4.cxd5 so Black loses central pawn presence.",
+          "ifRight": "After ...Nxd5, your bishop will hit the knight.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black recaptures with 4...Nxd5.",
+          "move": "f6d5"
+        },
+        {
+          "type": "play",
+          "text": "Develop the bishop onto the long diagonal with tempo.",
+          "expect": [
+            "f1g2"
+          ],
+          "hint": "Fianchetto to g2.",
+          "ifWrong": "Play 5.Bg2, attacking the knight on d5.",
+          "ifRight": "Black usually retreats the knight to c7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black retreats with 5...Nc7 to keep the c-file guarded.",
+          "move": "d5c7"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight and control d4 and e5.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Put the knight on f3.",
+          "ifWrong": "Play 6.Nf3, preparing O-O and d3.",
+          "ifRight": "Next come O-O, d3 and Be3, pressing on c5.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-english-symmetrical-plans",
+      "title": "Middlegame plans",
+      "summary": "Choose between the calm d3 flank attack and the central d4 break.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "r1bq1rk1/pp1pppbp/2n2np1/2p5/2P5/2N2NP1/PP1PPPBP/R1BQ1RK1 w - - 4 7",
+          "text": "In the Symmetrical English, White can either hold the centre with d3 and expand with Rb1 and b4, or break at once with d4.",
+          "arrows": [
+            "d2d3:idea",
+            "d2d4:idea"
+          ]
+        },
+        {
+          "type": "play",
+          "text": "Play the calm move that prepares a3, Rb1 and b4 while opening the c1 bishop.",
+          "expect": [
+            "d2d3"
+          ],
+          "hint": "Push the d-pawn one square.",
+          "ifWrong": "Play 7.d3 to build a solid structure.",
+          "ifRight": "White prepares Bd2, a3, Rb1 and b4.",
+          "feedback": {
+            "d2d4": "7.d4 is strong too. Here we focus on the solid 7.d3 plan."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black also plays calmly with 7...d6.",
+          "move": "d7d6"
+        },
+        {
+          "type": "play",
+          "text": "Prepare your queenside pawn push.",
+          "expect": [
+            "a1b1",
+            "a2a3"
+          ],
+          "hint": "Support b4 with the rook on b1 or pawn on a3.",
+          "ifWrong": "Play 8.Rb1 (or 8.a3) to get ready for b4.",
+          "ifRight": "Once b4 lands, White gains space on the queenside.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/pp1pppbp/2n2np1/2p5/2P5/2N2NP1/PP1PPPBP/R1BQ1RK1 w - - 4 7",
+          "text": "In the same position, White can also strike at once in the centre. Play that break.",
+          "expect": [
+            "d2d4"
+          ],
+          "hint": "Push the d-pawn two squares.",
+          "ifWrong": "Play 7.d4 to open lines in the centre.",
+          "ifRight": "After 7...cxd4 8.Nxd4, White gets active piece play.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bq1rk1/pp1pppbp/2n2np1/8/2Pp4/2N2NP1/PP2PPBP/R1BQ1RK1 w - - 0 8",
+          "text": "Black captured 7...cxd4. Recapture cleanly.",
+          "expect": [
+            "f3d4"
+          ],
+          "hint": "Take back with the knight.",
+          "ifWrong": "Play 8.Nxd4 so your bishop on g2 stays open.",
+          "ifRight": "Your pieces control the centre and long diagonal.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

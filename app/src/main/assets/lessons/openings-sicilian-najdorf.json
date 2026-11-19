@@ -1,0 +1,215 @@
+{
+  "id": "openings-sicilian-najdorf",
+  "category": "openings",
+  "title": "Najdorf Variation (5...a6)",
+  "intro": "The Najdorf stops White pieces from using b5. Meet 6.Be2 and 6.Be3 with ...e5, and answer 6.Bg5 or 6.Bc4 solidly with ...e6.",
+  "level": "intermediate",
+  "order": 61,
+  "side": "black",
+  "opening": "sicilian",
+  "variation": "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6",
+  "battleLine": "Sicilian Defense: Najdorf Variation",
+  "lessons": [
+    {
+      "id": "openings-sicilian-najdorf-e5",
+      "title": "Meeting 6.Be2 and 6.Be3",
+      "summary": "Claim central space at once with 6...e5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 0 6",
+          "text": "Against the Classical 6.Be2, Black seizes central space and opens the f8 bishop.",
+          "move": "f1e2"
+        },
+        {
+          "type": "play",
+          "text": "Challenge the centre at once with the thematic Najdorf push.",
+          "expect": [
+            "e7e5"
+          ],
+          "hint": "Push the e-pawn two squares, chasing the d4 knight.",
+          "ifWrong": "Play 6...e5 to gain central space and drive the d4 knight back.",
+          "ifRight": "The knight must retreat, and Black develops ...Be7 and ...O-O smoothly.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White retreats the knight with 7.Nb3.",
+          "move": "d4b3"
+        },
+        {
+          "type": "play",
+          "text": "Develop your dark-squared bishop and prepare to castle.",
+          "expect": [
+            "f8e7"
+          ],
+          "hint": "Move the f8 bishop to e7.",
+          "ifWrong": "Play 7...Be7 so you can castle and play ...Be6.",
+          "ifRight": "Black will castle and place the light-squared bishop on e6.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N1B3/PPP2PPP/R2QKB1R b KQkq - 1 6",
+          "text": "Against the English Attack (6.Be3), the same central strike works great."
+        },
+        {
+          "type": "play",
+          "text": "Push the e-pawn two squares to kick the knight.",
+          "expect": [
+            "e7e5"
+          ],
+          "hint": "Play 6...e5.",
+          "ifWrong": "Play 6...e5 to fight for d4 and open your dark-squared bishop.",
+          "ifRight": "After 7.Nb3, Black develops ...Be6 to guard d5.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/1p3ppp/p2p1n2/4p3/4P3/1NN1B3/PPP2PPP/R2QKB1R b KQkq - 1 7",
+          "text": "White stepped back to b3. Develop your light-squared bishop to challenge d5 and c4.",
+          "expect": [
+            "c8e6"
+          ],
+          "hint": "Put your c8 bishop on e6.",
+          "ifWrong": "Play 7...Be6 to control d5 and prepare ...Nbd7 and ...Rc8.",
+          "ifRight": "Black has a solid, active Najdorf set-up.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-sicilian-najdorf-bg5",
+      "title": "Meeting 6.Bg5",
+      "summary": "Unpin solidly with 6...e6 and 7...Be7.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 0 6",
+          "text": "6.Bg5 is White's sharpest move, pinning the f6 knight and threatening Bxf6 or f4.",
+          "move": "c1g5"
+        },
+        {
+          "type": "play",
+          "text": "Break the pin cleanly and keep your pawn structure flexible.",
+          "expect": [
+            "e7e6"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 6...e6: playing 6...e5 allows 7.Bxf6 followed by Nd5.",
+          "ifRight": "Solid and sound: ...Be7 comes next.",
+          "feedback": {
+            "e7e5": "After 6...e5 7.Bxf6 Qxf6 8.Nd5 Qd8, Black loses control of d5."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White pushes 7.f4, threatening e5 or Qf3 and O-O-O.",
+          "move": "f2f4"
+        },
+        {
+          "type": "play",
+          "text": "Unpin your knight before White opens the centre.",
+          "expect": [
+            "f8e7"
+          ],
+          "hint": "Develop the f8 bishop to e7.",
+          "ifWrong": "Play 7...Be7 to unpin the f6 knight and prepare castling.",
+          "ifRight": "Now e5 is met safely and Black is ready for ...Qc7 and ...Nbd7.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White brings the queen out with 8.Qf3 to prepare O-O-O.",
+          "move": "d1f3"
+        },
+        {
+          "type": "play",
+          "text": "Keep the c-file and e5 square under control while developing your queenside.",
+          "expect": [
+            "d8c7",
+            "h7h6"
+          ],
+          "hint": "Move the queen to c7 so you can follow with ...Nbd7 and ...b5.",
+          "ifWrong": "Play 8...Qc7 (or 8...h6): Black prepares ...Nbd7, ...b5 and ...Bb7.",
+          "ifRight": "Black has a sturdy, counterattacking set-up against White's kingside.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-sicilian-najdorf-bc4",
+      "title": "Meeting 6.Bc4 and 6.h3",
+      "summary": "Blunt 6.Bc4 with ...e6 and ...b5, and meet 6.h3 or 6.f3 with ...e5.",
+      "orientation": "black",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 0 6",
+          "text": "With 6.Bc4, White targets the f7 and e6 squares right away.",
+          "move": "f1c4"
+        },
+        {
+          "type": "play",
+          "text": "Blunt the c4 bishop's diagonal immediately.",
+          "expect": [
+            "e7e6"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 6...e6: this shuts down the c4 bishop and prepares ...b5.",
+          "ifRight": "Notice how the c4 bishop now hits a brick wall on e6.",
+          "feedback": {
+            "e7e5": "6...e5 lets White control d5 while the c4 bishop still eyes f7."
+          },
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "White retreats the bishop to safety with 7.Bb3.",
+          "move": "c4b3"
+        },
+        {
+          "type": "play",
+          "text": "Expand on the queenside with tempo against White's bishop and knight.",
+          "expect": [
+            "b7b5",
+            "f8e7"
+          ],
+          "hint": "Push the b-pawn two squares to prepare ...Bb7.",
+          "ifWrong": "Play 7...b5 to gain queenside space and put your bishop on b7.",
+          "ifRight": "Next ...Bb7 attacks e4.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N4P/PPP2PP1/R1BQKB1R b KQkq - 0 6",
+          "text": "Against 6.h3 (preparing g4), strike in the centre.",
+          "expect": [
+            "e7e5",
+            "e7e6"
+          ],
+          "hint": "Push your e-pawn two squares.",
+          "ifWrong": "Play 6...e5 (or 6...e6) to fight for the centre right away.",
+          "ifRight": "6...e5 claims central space and meets g4 with ...Be6 and ...h6 or ...d5.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N2P2/PPP3PP/R1BQKB1R b KQkq - 0 6",
+          "text": "Against 6.f3 (preparing Be3 and g4), play the classic central counter.",
+          "expect": [
+            "e7e5",
+            "e7e6"
+          ],
+          "hint": "Push the e-pawn two squares.",
+          "ifWrong": "Play 6...e5 to drive the knight back before developing ...Be6.",
+          "ifRight": "Black counters in the centre and prepares ...Be6 and ...Be7.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

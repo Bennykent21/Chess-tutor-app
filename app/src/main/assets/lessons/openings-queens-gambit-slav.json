@@ -1,0 +1,223 @@
+{
+  "id": "openings-queens-gambit-slav",
+  "category": "openings",
+  "title": "Slav Defence (2...c6)",
+  "intro": "Black supports d5 with 2...c6. Play Nf3 and Nc3, stop ...b5 with 5.a4 after ...dxc4, and punish early ...Bf5 with Qb3.",
+  "level": "intermediate",
+  "order": 42,
+  "side": "white",
+  "opening": "queens-gambit",
+  "variation": "d2d4 d7d5 c2c4 c7c6",
+  "battleLine": "Slav Defense",
+  "lessons": [
+    {
+      "id": "openings-queens-gambit-slav-main",
+      "title": "The Slav main line",
+      "summary": "Develop Nf3 and Nc3, then stop ...b5 with 5.a4.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2",
+          "text": "In the Slav Defence, Black backs up d5 with 2...c6, keeping the light-squared bishop free.",
+          "move": "c7c6"
+        },
+        {
+          "type": "play",
+          "text": "Develop your king's knight first to keep control of e5.",
+          "expect": [
+            "g1f3"
+          ],
+          "hint": "Bring the knight to f3.",
+          "ifWrong": "Play 3.Nf3 to guard d4 and stop ...e5 counterattacks.",
+          "ifRight": "3.Nf3 also avoids sharp gambits like 3.Nc3 dxc4 4.e4 b5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops 3...Nf6.",
+          "move": "g8f6"
+        },
+        {
+          "type": "play",
+          "text": "Add pressure on d5.",
+          "expect": [
+            "b1c3"
+          ],
+          "hint": "Develop your queen's knight.",
+          "ifWrong": "Play 4.Nc3.",
+          "ifRight": "Now Black must choose how to handle the tension on d5.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black accepts on c4 with 4...dxc4, planning to defend the pawn with ...b5.",
+          "move": "d5c4"
+        },
+        {
+          "type": "play",
+          "text": "Stop ...b5 right away so you can win c4 back easily.",
+          "expect": [
+            "a2a4"
+          ],
+          "hint": "Push the a-pawn two squares.",
+          "ifWrong": "Play 5.a4 to prevent ...b5 completely.",
+          "ifRight": "Black cannot hold onto c4.",
+          "feedback": {
+            "e2e3": "5.e3 lets Black play 5...b5 and cling to the extra pawn."
+          },
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rn1qkb1r/pp2pppp/2p2n2/5b2/P1pP4/2N2N2/1P2PPPP/R1BQKB1R w KQkq - 1 6",
+          "text": "Black develops the bishop with 5...Bf5. Open the diagonal for your f1 bishop to recapture c4.",
+          "expect": [
+            "e2e3",
+            "f3e5"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 6.e3 (followed by Bxc4) to win your pawn back and prepare castling.",
+          "ifRight": "After 6...e6 7.Bxc4, White has a strong centre and easy play.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-slav-bf5",
+      "title": "Punishing an early 3...Bf5",
+      "summary": "Trade on d5 and hit b7 and d5 with Qb3.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkbnr/pp2pppp/2p5/3p4/2PP4/5N2/PP2PPPP/RNBQKB1R b KQkq - 1 3",
+          "text": "Sometimes Black rushes the bishop out with 3...Bf5 before playing ...Nf6 or ...e6.",
+          "move": "c8f5"
+        },
+        {
+          "type": "play",
+          "text": "Open the c-file and clear the way for your queen.",
+          "expect": [
+            "c4d5"
+          ],
+          "hint": "Capture on d5.",
+          "ifWrong": "Play 4.cxd5 to expose Black's queenside.",
+          "ifRight": "Once Black takes back, b7 is a target.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black recaptures: 4...cxd5.",
+          "move": "c6d5"
+        },
+        {
+          "type": "play",
+          "text": "Fork b7 and d5 with your queen.",
+          "expect": [
+            "d1b3"
+          ],
+          "hint": "Put your queen on b3.",
+          "ifWrong": "Play 5.Qb3 to attack both b7 and d5 at once.",
+          "ifRight": "Black is forced onto the defensive.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rn1qkbnr/p3pppp/1p6/3p1b2/3P4/1Q3N2/PP2PPPP/RNB1KB1R w KQkq - 0 6",
+          "text": "Black defends b7 with 5...b6, weakening c6 and the light squares. Develop and put pressure on d5.",
+          "expect": [
+            "b1c3",
+            "e2e4"
+          ],
+          "hint": "Develop your queen's knight to attack d5 and control e4.",
+          "ifWrong": "Play 6.Nc3 (or 6.e4) to attack d5 and keep Black under heavy pressure.",
+          "ifRight": "White dominates the centre and dark squares.",
+          "rule": true,
+          "feedback": {
+            "e2e3": "6.e3 is too slow: 6.Nc3 or 6.e4 hits d5 while Black's queenside is loose."
+          }
+        },
+        {
+          "type": "quiz",
+          "fen": "rn2kbnr/ppq1pppp/8/3p1b2/3P4/1Q3N2/PP2PPPP/RNB1KB1R w KQkq - 2 6",
+          "text": "If Black plays 5...Qc7 to guard b7 and eye c1, defend c1 and hit d5.",
+          "expect": [
+            "b1c3"
+          ],
+          "hint": "Develop the b1 knight to c3, protecting c1 with your bishop and hitting d5.",
+          "ifWrong": "Play 6.Nc3: now ...Qxc1+ is impossible and d5 is attacked.",
+          "ifRight": "White threatens Nxd5 and e4 with a clear advantage.",
+          "rule": true
+        }
+      ]
+    },
+    {
+      "id": "openings-queens-gambit-slav-quiet",
+      "title": "Quiet Slav ideas",
+      "summary": "Play e3 and Bd3 against 4...e6 and 4...a6.",
+      "orientation": "white",
+      "steps": [
+        {
+          "type": "explain",
+          "fen": "rnbqkb1r/pp2pppp/2p2n2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 3 4",
+          "text": "Instead of 4...dxc4, Black often plays 4...e6 or 4...a6, keeping the tension.",
+          "move": "e7e6"
+        },
+        {
+          "type": "play",
+          "text": "Reinforce d4 calmly and avoid sharp sacrificial lines.",
+          "expect": [
+            "e2e3"
+          ],
+          "hint": "Push the e-pawn one square.",
+          "ifWrong": "Play 5.e3 to build a solid structure.",
+          "ifRight": "Next come Bd3 and O-O.",
+          "rule": true
+        },
+        {
+          "type": "explain",
+          "text": "Black develops 5...Nbd7.",
+          "move": "b8d7"
+        },
+        {
+          "type": "play",
+          "text": "Put your light-squared bishop on its best attacking square.",
+          "expect": [
+            "f1d3"
+          ],
+          "hint": "Develop the bishop to d3.",
+          "ifWrong": "Play 6.Bd3 to support e4 and eye h7.",
+          "ifRight": "If Black takes on c4, Bxc4 develops with tempo.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "r1bqkb1r/pp1n1ppp/2p1pn2/8/2pP4/2NBPN2/PP3PPP/R1BQK2R w KQkq - 0 7",
+          "text": "Black captures 6...dxc4. Win the pawn back immediately.",
+          "expect": [
+            "d3c4"
+          ],
+          "hint": "Take on c4 with your bishop.",
+          "ifWrong": "Play 7.Bxc4, gaining time and preparing O-O and e4.",
+          "ifRight": "White enjoys a strong centre and easy play.",
+          "rule": true
+        },
+        {
+          "type": "quiz",
+          "fen": "rnbqkb1r/1p2pppp/p1p2n2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 0 5",
+          "text": "Against 4...a6, keep your centre solid and develop.",
+          "expect": [
+            "e2e3",
+            "c4c5",
+            "a2a4"
+          ],
+          "hint": "Support d4 with e3.",
+          "ifWrong": "Play 5.e3 (or 5.c5 or 5.a4) to keep a firm grip on the centre.",
+          "ifRight": "Simple and solid: White castles and fights for e4.",
+          "rule": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,336 @@
+{
+  "notes": [
+    {
+      "path": "d4 Nf6",
+      "kind": "plan",
+      "text": "The King's Indian Defence. Black develops 1...Nf6 to control e4 and prepares ...g6 and ...Bg7 to pressure the centre from afar.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "c4"
+          ],
+          "move": "g6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6",
+      "kind": "branch",
+      "text": "Black stops White from pushing e5 and prepares to castle. Against 5.Nf3, Black castles with 5...O-O before striking in the centre.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [
+            "Nf3"
+          ],
+          "move": "O-O",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2",
+      "kind": "plan",
+      "text": "The Classical Variation. Black strikes at the centre immediately with 6...e5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 O-O",
+      "kind": "plan",
+      "text": "Black develops 7...Nc6 to add pressure onto d4 and lure White into closing the centre with d5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Nc6",
+          "top": 3,
+          "sentence": 0
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 O-O Nc6 d5",
+      "kind": "plan",
+      "text": "White closes the centre and gains queenside space. Black retreats 8...Ne7 so the f-pawn can advance to f5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Ne7",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 O-O Nc6 d5 Ne7 Ne1 Nd7 Nd3",
+      "kind": "plan",
+      "text": "White heads to the queenside with Nd3 and c5. Black launches the kingside counterattack with 10...f5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "f5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 d5",
+      "kind": "plan",
+      "text": "The Petrosian System closes the centre before White castles. Black clamps down on the queenside with 7...a5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "a5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 Be3",
+      "kind": "plan",
+      "text": "White keeps the tension on d4 and develops the bishop. Black immediately attacks the e3 bishop with 7...Ng4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Ng4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O g3",
+      "kind": "plan",
+      "text": "White aims for a fianchetto set-up to guard d4. Black prepares ...e5 solidly with 6...Nbd7.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nbd7",
+            "Bg2",
+            "e5"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 g3 Bg7 Bg2 O-O Nf3 d6 O-O",
+      "kind": "plan",
+      "text": "The Fianchetto Variation keeps White's kingside safe. Black plays 6...Nbd7 and ...e5 to claim central space.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nbd7",
+            "Nc3",
+            "e5"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Be2 O-O Bg5",
+      "kind": "plan",
+      "text": "The Averbakh Variation stops ...e5 for the moment. Black hits White's centre from the other side with 6...c5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 h3",
+      "kind": "plan",
+      "text": "The Makogonov System stops ...Bg4 and prepares g4. Black castles calmly with 5...O-O.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "O-O",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f3",
+      "kind": "branch",
+      "text": "The Saemisch Variation builds a rigid centre and aims for a kingside storm. Black castles 5...O-O before striking back.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "O-O",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f3 O-O Be3",
+      "kind": "plan",
+      "text": "White guards d4 and prepares Qd2 and O-O-O. Black challenges the centre immediately with 6...e5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f3 O-O Be3 e5 d5",
+      "kind": "plan",
+      "text": "White closes the centre to avoid trades. Black clears the f-pawn's path with 7...Nh5 and pushes ...f5.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Nh5",
+            "Qd2",
+            "f5"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f3 O-O Be3 e5 Nge2",
+      "kind": "plan",
+      "text": "White keeps the tension and develops the knight. Black trades 7...exd4 and breaks in the centre with ...c6.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "exd4",
+            "Nxd4",
+            "c6"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f3 O-O Bg5",
+      "kind": "plan",
+      "text": "White pins the knight in the Saemisch. Black strikes back at d4 immediately with 6...c5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f4",
+      "kind": "branch",
+      "text": "The Four Pawns Attack grabs huge space, yet leaves White behind in development. Black castles 5...O-O and strikes with ...c5.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "O-O",
+            "Nf3",
+            "c5"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f4 O-O Nf3 c5 d5",
+      "kind": "plan",
+      "text": "White keeps the pawns rolling forward. Black undermines the centre immediately with 7...e6.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "e6",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 Nf3 g6 Bf4",
+      "kind": "plan",
+      "text": "The London System avoids c4 altogether. Black completes the fianchetto with ...Bg7, castles, and plays ...d6.",
+      "claims": [
+        {
+          "type": "line",
+          "line": [
+            "Bg7",
+            "e3",
+            "O-O",
+            "Be2",
+            "d6"
+          ],
+          "side": "black",
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 Bg5",
+      "kind": "branch",
+      "text": "The Trompowsky Attack threatens Bxf6 to double Black's pawns. Black steps forward actively with 2...Ne4.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "Ne4",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    },
+    {
+      "path": "d4 Nf6 Bg5 Ne4 Bh4",
+      "kind": "plan",
+      "text": "White tries to keep the bishop on the h4-d8 pin. Black immediately attacks the centre with 3...c5.",
+      "claims": [
+        {
+          "type": "plan",
+          "after": [],
+          "move": "c5",
+          "top": 3,
+          "sentence": 1
+        }
+      ]
+    }
+  ]
+}
