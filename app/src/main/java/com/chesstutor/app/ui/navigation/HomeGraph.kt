@@ -1,5 +1,19 @@
 package com.chesstutor.app.ui.navigation
 
+import android.content.Context
+import com.chesstutor.app.domain.account.GameLibrary
+import com.chesstutor.app.domain.account.GameReview
+import com.chesstutor.app.domain.account.GameReviewer
+import com.chesstutor.app.domain.opening.OpeningTree
+import com.chesstutor.app.domain.train.GameFinding
+import com.chesstutor.app.domain.train.GameFindings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,7 +63,6 @@ import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.StartingLevel
 import com.chesstutor.app.navigation.TopTab
 import java.time.LocalDate
-import kotlinx.coroutines.flow.map
 
 /** The Home tab: Home, the bots and their pages, the game setups and the game itself. */
 internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
@@ -119,6 +132,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                         navController.navigate(AppRoutes.analysis(fen, engineSide = engine)) { launchSingleTop = true }
                     },
                     onTrainLine = { bookId, path ->
+                        navController.navigateToTab(TopTab.LEARN)
                         val book = repertoire.state.value.book(bookId)
                         if (book != null && !book.locked && book.fresh > 0) {
                             repertoire.startLearn(bookId, path)
@@ -128,6 +142,7 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                         }
                     },
                     onTrainEnding = { setId ->
+                        navController.navigateToTab(TopTab.TRAIN)
                         positions.start(setId)
                         navController.navigate(AppRoutes.TRAIN_POSITION_RUN) { launchSingleTop = true }
                     },
@@ -440,7 +455,7 @@ internal fun Shell.homeViewModel(): HomeViewModel {
                 puzzleHistory = AppContainer.providePuzzleRepository(context).history(),
                 analysisSummaries = AppContainer.provideGameAnalysis(context).observeSummaries(),
                 observeEvals = { id -> AppContainer.provideGameAnalysis(context).observeEvals(id) },
-                findings = findingsViewModel().state.map { it.report.findings },
+                findings = observeCoachingFindings(context),
             ),
         ),
     )
@@ -449,3 +464,33 @@ internal fun Shell.homeViewModel(): HomeViewModel {
 /** The computer at [rating] for a custom game (D92): Bolt's face, not saved as a bot of the player's. */
 private fun customComputer(rating: Int): RosterBot =
     BotDraft(name = "Computer", face = "bolt", rating = rating).toCustomBot("custom_computer", System.currentTimeMillis()).asRosterBot()
+
+
+/**
+ * Observe the same saved games and completed reviews used by "From your games".
+ * Recompute on either source changing so Home's recommendation does not wait for a manual refresh.
+ */
+private fun observeCoachingFindings(context: Context): Flow<List<GameFinding>> = flow {
+    val books = AppContainer.provideRepertoireLoader(context).load()
+    val gameRepository = AppContainer.provideGameRepository(context)
+    val analysis = AppContainer.provideGameAnalysis(context)
+
+    combine(gameRepository.observeGames(), analysis.observeSummaries()) { records, summaries ->
+        records to summaries
+    }.collect { (records, analysed) ->
+        val findings = withContext(Dispatchers.Default) {
+            val games = GameLibrary.summarise(records, OpeningTree.EMPTY)
+            val reviews = HashMap<String, GameReview>()
+            games.filter { it.id in analysed }.forEach { game ->
+                reviews[game.id] = GameReviewer.review(
+                    game.startFen ?: Position.STARTING_FEN,
+                    game.moves,
+                    analysis.evals(game.id),
+                    game.bookPlies,
+                )
+            }
+            GameFindings.of(games, books, reviews)
+        }
+        emit(findings)
+    }
+}.flowOn(Dispatchers.IO)

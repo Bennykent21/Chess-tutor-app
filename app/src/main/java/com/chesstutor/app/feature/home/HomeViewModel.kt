@@ -36,7 +36,6 @@ import com.chesstutor.app.domain.game.GameRules
 import com.chesstutor.app.domain.game.GameSetup
 import com.chesstutor.app.domain.game.NextLesson
 import com.chesstutor.app.domain.game.NextStep
-import com.chesstutor.app.domain.game.NextStepRecommender
 import com.chesstutor.app.domain.game.CoachingIntelligence
 import com.chesstutor.app.domain.train.GameFinding
 import com.chesstutor.app.domain.account.TrainingReport

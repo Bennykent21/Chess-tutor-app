@@ -10,6 +10,7 @@ import com.chesstutor.app.data.bot.InMemoryBotRepository
 import com.chesstutor.app.data.repository.InMemoryGameRepository
 import com.chesstutor.app.domain.MoveChoice
 import com.chesstutor.app.domain.account.ThemeScore
+import com.chesstutor.app.domain.train.GameFinding
 import com.chesstutor.app.domain.account.TrainingReport
 import com.chesstutor.app.domain.bot.BotRoster
 import com.chesstutor.app.domain.game.NextStep
@@ -242,4 +243,26 @@ class HomeViewModelTest {
         test.runCurrent()
         assertEquals(NextStep.Mistakes(4), vm.home.value.nextStep)
     }
+    @Test
+    fun homeUsesRepeatedGameEvidenceToRecommendTheRelevantPosition() {
+        val repeated = GameFinding.RepeatedMistake(
+            fen = Position.STARTING_FEN,
+            opening = "Italian Game",
+            after = "2...Nf6",
+            played = "3.Nxe5",
+            better = "3.d4",
+            times = 3,
+            reached = 4,
+        )
+        val vm = HomeViewModel(
+            FakeEngine(), { OpeningTree.EMPTY }, games, bots, flowOf(emptySet()), store,
+            random = Random(1), clock = { test.testScheduler.currentTime }, worker = dispatcher,
+            learning = HomeLearning(findings = flowOf(listOf(repeated))),
+        )
+        test.backgroundScope.launch(dispatcher) { vm.home.collect {} }
+        test.runCurrent()
+
+        assertEquals(NextStep.RepeatedMistake(repeated), vm.home.value.nextStep)
+    }
+
 }
