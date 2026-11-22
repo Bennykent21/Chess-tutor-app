@@ -49,6 +49,7 @@ import com.chesstutor.app.navigation.AppRoutes
 import com.chesstutor.app.navigation.StartingLevel
 import com.chesstutor.app.navigation.TopTab
 import java.time.LocalDate
+import kotlinx.coroutines.flow.map
 
 /** The Home tab: Home, the bots and their pages, the game setups and the game itself. */
 internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
@@ -56,6 +57,9 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
         friendPages(shell)
         composable(TopTab.HOME.startRoute) { entry ->
             val homeModel = homeViewModel()
+            // These are existing training destinations, selected by the central coaching layer.
+            val repertoire = repertoireViewModel()
+            val positions = positionViewModel()
             // The newest games get reviewed while Home is open, so it can show their graphs (D93).
             val account = accountViewModel()
             LaunchedEffect(state.appSettings.autoReview) { if (state.appSettings.autoReview) account.reviewRecentInBackground() else account.pauseBackground() }
@@ -109,6 +113,23 @@ internal fun NavGraphBuilder.homeGraph(shell: Shell) = with(shell) {
                     onPractiseTheme = { theme ->
                         navController.navigateToTab(TopTab.PUZZLES)
                         navController.navigate(AppRoutes.puzzleRelated(listOf(theme))) { launchSingleTop = true }
+                    },
+                    onTrainPosition = { fen ->
+                        val engine = if (fen.split(' ').getOrNull(1) == "b") "white" else "black"
+                        navController.navigate(AppRoutes.analysis(fen, engineSide = engine)) { launchSingleTop = true }
+                    },
+                    onTrainLine = { bookId, path ->
+                        val book = repertoire.state.value.book(bookId)
+                        if (book != null && !book.locked && book.fresh > 0) {
+                            repertoire.startLearn(bookId, path)
+                            navController.navigate(AppRoutes.REPERTOIRE_RUN) { launchSingleTop = true }
+                        } else {
+                            navController.navigate(AppRoutes.repertoire(bookId)) { launchSingleTop = true }
+                        }
+                    },
+                    onTrainEnding = { setId ->
+                        positions.start(setId)
+                        navController.navigate(AppRoutes.TRAIN_POSITION_RUN) { launchSingleTop = true }
                     },
                     onName = viewModel::setPlayerName,
                     onStartingLevel = { level ->
@@ -419,6 +440,7 @@ internal fun Shell.homeViewModel(): HomeViewModel {
                 puzzleHistory = AppContainer.providePuzzleRepository(context).history(),
                 analysisSummaries = AppContainer.provideGameAnalysis(context).observeSummaries(),
                 observeEvals = { id -> AppContainer.provideGameAnalysis(context).observeEvals(id) },
+                findings = findingsViewModel().state.map { it.report.findings },
             ),
         ),
     )

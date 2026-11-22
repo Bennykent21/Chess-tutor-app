@@ -37,6 +37,8 @@ import com.chesstutor.app.domain.game.GameSetup
 import com.chesstutor.app.domain.game.NextLesson
 import com.chesstutor.app.domain.game.NextStep
 import com.chesstutor.app.domain.game.NextStepRecommender
+import com.chesstutor.app.domain.game.CoachingIntelligence
+import com.chesstutor.app.domain.train.GameFinding
 import com.chesstutor.app.domain.account.TrainingReport
 import com.chesstutor.app.domain.learn.LessonLibrary
 import com.chesstutor.app.domain.learn.LessonProgress
@@ -148,6 +150,8 @@ class HomeLearning(
     val analysisSummaries: Flow<Map<String, AnalysisSummary>> = flowOf(emptyMap()),
     /** A game's saved engine view, for the last game's graph (D93). */
     val observeEvals: (String) -> Flow<List<PlyEval>> = { flowOf(emptyList()) },
+    /** Existing, evidence-backed game findings shared with the coaching decision layer. */
+    val findings: Flow<List<GameFinding>> = flowOf(emptyList()),
 )
 
 /**
@@ -209,11 +213,15 @@ class HomeViewModel(
                 gamesPlayed = list.count { it.id.startsWith("bot_") },
                 myBots = mine,
             )
-        }.combine(combine(learnSide, dueMistakes) { side, due -> side to due }) { state, (side, due) ->
+        }.combine(combine(learnSide, dueMistakes, learning.findings) { side, due, findings ->
+            Triple(side, due, findings)
+        }) { state, (side, due, findings) ->
             val (lesson, report) = side
             state.copy(
                 nextLesson = lesson,
-                nextStep = state.recommendation?.let { NextStepRecommender.recommend(due, report.weaknesses, it) },
+                nextStep = state.recommendation?.let {
+                    CoachingIntelligence.recommend(due, report.weaknesses, findings, it)
+                },
             )
         }.combine(combine(daily, learning.puzzleHistory, recap, activityDays) { preview, history, look, days -> HomeLookBack(preview, history, look, days) }) { state, back ->
             val today = Instant.ofEpochMilli(clock()).atZone(ZoneId.systemDefault()).toLocalDate()

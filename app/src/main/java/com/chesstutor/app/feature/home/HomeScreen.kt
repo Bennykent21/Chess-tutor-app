@@ -101,6 +101,12 @@ data class HomeActions(
     val onWhatsNew: () -> Unit = {},
     /** One saved game: its page and review (Your last game, D92). */
     val onOpenGame: (String) -> Unit = {},
+    /** Start the existing opening-line trainer for a recurring repertoire slip. */
+    val onTrainLine: (bookId: String, path: List<String>) -> Unit = { _, _ -> },
+    /** Start the existing endgame set linked to a recurring conversion problem. */
+    val onTrainEnding: (setId: String) -> Unit = {},
+    /** Open the existing analysis board at a recurring mistake position. */
+    val onTrainPosition: (fen: String) -> Unit = {},
 )
 
 /**
@@ -266,6 +272,27 @@ private fun NextStepRow(step: NextStep, actions: HomeActions, modifier: Modifier
             subtitle = step.reason,
             icon = Icons.Rounded.Replay,
             onClick = actions.onReviewMistakes,
+            modifier = modifier,
+        )
+        is NextStep.RepeatedMistake -> CtListRow(
+            title = "Review a recurring mistake",
+            subtitle = step.reason,
+            icon = Icons.Rounded.Warning,
+            onClick = { actions.onTrainPosition(step.finding.fen) },
+            modifier = modifier,
+        )
+        is NextStep.LineSlip -> CtListRow(
+            title = "Fix your ${step.finding.bookTitle} line",
+            subtitle = step.reason,
+            icon = Icons.Rounded.Replay,
+            onClick = { actions.onTrainLine(step.finding.bookId, step.finding.path) },
+            modifier = modifier,
+        )
+        is NextStep.Ending -> CtListRow(
+            title = "Practise ${step.finding.kind.title.lowercase()}",
+            subtitle = step.reason,
+            icon = Icons.Rounded.Warning,
+            onClick = { actions.onTrainEnding(step.finding.kind.setId) },
             modifier = modifier,
         )
         is NextStep.Theme -> CtListRow(
